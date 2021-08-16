@@ -55,13 +55,13 @@ std::shared_ptr<::ros::Publisher> create_publisher(RosNodeType* node, const std:
 }
 
 template<class MessageType, class ClassType>
-std::shared_ptr<::ros::Subscriber> create_subscriber(RosNodeType* node, const std::string& topic, const uint32_t queue_size, void(ClassType::*fp)(const M&), ClassType* obj)
+std::shared_ptr<::ros::Subscriber> create_subscriber(RosNodeType* node, const std::string& topic, const uint32_t queue_size, void(ClassType::*fp)(const MessageType&), ClassType* obj)
 {
   return std::make_shared<::ros::Subscriber>(node->template subscribe(topic.c_str(), queue_size, fp, obj));
 }
 
 template<class MessageType, class ClassType, class RequestType, class ResponseType>
-std::shared_ptr<::ros::ServiceServer> create_service(RosNodeType* node, const std::string& service, bool(ClassType::*srv_func)(MReq &, MRes &), ClassType *obj)
+std::shared_ptr<::ros::ServiceServer> create_service(RosNodeType* node, const std::string& service, bool(ClassType::*srv_func)(RequestType &, ResponseType &), ClassType *obj)
 {
   return std::make_shared<::ros::ServiceServer>(node->template advertiseService<ClassType, RequestType, ResponseType>(service, srv_func, obj));
 }

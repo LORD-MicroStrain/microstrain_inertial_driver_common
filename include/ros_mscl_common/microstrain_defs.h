@@ -339,88 +339,88 @@ using DeviceSettingsServiceMsg = ::mscl_msgs::DeviceSettings;
 
 
 // ROS1 Service Types
-using TriggerServiceType = std::shared_ptr<::ros::ServiceServer>
-using EmptyServiceType = std::shared_ptr<::ros::ServiceServer>
+using TriggerServiceType = std::shared_ptr<::ros::ServiceServer>;
+using EmptyServiceType = std::shared_ptr<::ros::ServiceServer>;
 
-using SetAccelBiasServiceType = std::shared_ptr<::ros::ServiceServer>
-using GetAccelBiasServiceType = std::shared_ptr<::ros::ServiceServer>
+using SetAccelBiasServiceType = std::shared_ptr<::ros::ServiceServer>;
+using GetAccelBiasServiceType = std::shared_ptr<::ros::ServiceServer>;
 
-using SetGyroBiasServiceType = std::shared_ptr<::ros::ServiceServer>
-using GetGyroBiasServiceType = std::shared_ptr<::ros::ServiceServer>
+using SetGyroBiasServiceType = std::shared_ptr<::ros::ServiceServer>;
+using GetGyroBiasServiceType = std::shared_ptr<::ros::ServiceServer>;
 
-using SetHardIronValuesServiceType = std::shared_ptr<::ros::ServiceServer>
-using GetHardIronValuesServiceType = std::shared_ptr<::ros::ServiceServer>
+using SetHardIronValuesServiceType = std::shared_ptr<::ros::ServiceServer>;
+using GetHardIronValuesServiceType = std::shared_ptr<::ros::ServiceServer>;
 
-using SetSoftIronMatrixServiceType = std::shared_ptr<::ros::ServiceServer>
-using GetSoftIronMatrixServiceType = std::shared_ptr<::ros::ServiceServer>
+using SetSoftIronMatrixServiceType = std::shared_ptr<::ros::ServiceServer>;
+using GetSoftIronMatrixServiceType = std::shared_ptr<::ros::ServiceServer>;
 
-using SetComplementaryFilterServiceType = std::shared_ptr<::ros::ServiceServer>
-using GetComplementaryFilterServiceType = std::shared_ptr<::ros::ServiceServer>
+using SetComplementaryFilterServiceType = std::shared_ptr<::ros::ServiceServer>;
+using GetComplementaryFilterServiceType = std::shared_ptr<::ros::ServiceServer>;
 
-using SetConingScullingCompServiceType = std::shared_ptr<::ros::ServiceServer>
-using GetConingScullingCompServiceType = std::shared_ptr<::ros::ServiceServer>
+using SetConingScullingCompServiceType = std::shared_ptr<::ros::ServiceServer>;
+using GetConingScullingCompServiceType = std::shared_ptr<::ros::ServiceServer>;
 
-using SetSensor2VehicleRotationServiceType = std::shared_ptr<::ros::ServiceServer>
-using GetSensor2VehicleRotationServiceType = std::shared_ptr<::ros::ServiceServer>
+using SetSensor2VehicleRotationServiceType = std::shared_ptr<::ros::ServiceServer>;
+using GetSensor2VehicleRotationServiceType = std::shared_ptr<::ros::ServiceServer>;
 
-using SetSensor2VehicleOffsetServiceType = std::shared_ptr<::ros::ServiceServer>
-using GetSensor2VehicleOffsetServiceType = std::shared_ptr<::ros::ServiceServer>
+using SetSensor2VehicleOffsetServiceType = std::shared_ptr<::ros::ServiceServer>;
+using GetSensor2VehicleOffsetServiceType = std::shared_ptr<::ros::ServiceServer>;
 
-using GetSensor2VehicleTransformationServiceType = std::shared_ptr<::ros::ServiceServer>
+using GetSensor2VehicleTransformationServiceType = std::shared_ptr<::ros::ServiceServer>;
 
-using InitFilterEulerServiceType = std::shared_ptr<::ros::ServiceServer>
-using InitFilterHeadingServiceType = std::shared_ptr<::ros::ServiceServer>
+using InitFilterEulerServiceType = std::shared_ptr<::ros::ServiceServer>;
+using InitFilterHeadingServiceType = std::shared_ptr<::ros::ServiceServer>;
 
-using SetHeadingSourceServiceType = std::shared_ptr<::ros::ServiceServer>
-using GetHeadingSourceServiceType = std::shared_ptr<::ros::ServiceServer>
+using SetHeadingSourceServiceType = std::shared_ptr<::ros::ServiceServer>;
+using GetHeadingSourceServiceType = std::shared_ptr<::ros::ServiceServer>;
 
-using SetReferencePositionServiceType = std::shared_ptr<::ros::ServiceServer>
-using GetReferencePositionServiceType = std::shared_ptr<::ros::ServiceServer>
+using SetReferencePositionServiceType = std::shared_ptr<::ros::ServiceServer>;
+using GetReferencePositionServiceType = std::shared_ptr<::ros::ServiceServer>;
 
-using SetEstimationControlFlagsServiceType = std::shared_ptr<::ros::ServiceServer>
-using GetEstimationControlFlagsServiceType = std::shared_ptr<::ros::ServiceServer>
+using SetEstimationControlFlagsServiceType = std::shared_ptr<::ros::ServiceServer>;
+using GetEstimationControlFlagsServiceType = std::shared_ptr<::ros::ServiceServer>;
 
-using SetDynamicsModeServiceType = std::shared_ptr<::ros::ServiceServer>
-using GetDynamicsModeServiceType = std::shared_ptr<::ros::ServiceServer>
+using SetDynamicsModeServiceType = std::shared_ptr<::ros::ServiceServer>;
+using GetDynamicsModeServiceType = std::shared_ptr<::ros::ServiceServer>;
 
-using SetZeroAngleUpdateThresholdServiceType = std::shared_ptr<::ros::ServiceServer>
-using GetZeroAngleUpdateThresholdServiceType = std::shared_ptr<::ros::ServiceServer>
+using SetZeroAngleUpdateThresholdServiceType = std::shared_ptr<::ros::ServiceServer>;
+using GetZeroAngleUpdateThresholdServiceType = std::shared_ptr<::ros::ServiceServer>;
 
-using SetZeroVelocityUpdateThresholdServiceType = std::shared_ptr<::ros::ServiceServer>
-using GetZeroVelocityUpdateThresholdServiceType = std::shared_ptr<::ros::ServiceServer>
+using SetZeroVelocityUpdateThresholdServiceType = std::shared_ptr<::ros::ServiceServer>;
+using GetZeroVelocityUpdateThresholdServiceType = std::shared_ptr<::ros::ServiceServer>;
 
-using SetTareOrientationServiceType = std::shared_ptr<::ros::ServiceServer>
+using SetTareOrientationServiceType = std::shared_ptr<::ros::ServiceServer>;
 
-using SetAccelNoiseServiceType = std::shared_ptr<::ros::ServiceServer>
-using GetAccelNoiseServiceType = std::shared_ptr<::ros::ServiceServer>
+using SetAccelNoiseServiceType = std::shared_ptr<::ros::ServiceServer>;
+using GetAccelNoiseServiceType = std::shared_ptr<::ros::ServiceServer>;
 
-using SetGyroNoiseServiceType = std::shared_ptr<::ros::ServiceServer>
-using GetGyroNoiseServiceType = std::shared_ptr<::ros::ServiceServer>
+using SetGyroNoiseServiceType = std::shared_ptr<::ros::ServiceServer>;
+using GetGyroNoiseServiceType = std::shared_ptr<::ros::ServiceServer>;
 
-using SetMagNoiseServiceType = std::shared_ptr<::ros::ServiceServer>
-using GetMagNoiseServiceType = std::shared_ptr<::ros::ServiceServer>
+using SetMagNoiseServiceType = std::shared_ptr<::ros::ServiceServer>;
+using GetMagNoiseServiceType = std::shared_ptr<::ros::ServiceServer>;
 
-using SetGyroBiasModelServiceType = std::shared_ptr<::ros::ServiceServer>
-using GetGyroBiasModelServiceType = std::shared_ptr<::ros::ServiceServer>
+using SetGyroBiasModelServiceType = std::shared_ptr<::ros::ServiceServer>;
+using GetGyroBiasModelServiceType = std::shared_ptr<::ros::ServiceServer>;
 
-using SetAccelBiasModelServiceType = std::shared_ptr<::ros::ServiceServer>
-using GetAccelBiasModelServiceType = std::shared_ptr<::ros::ServiceServer>
+using SetAccelBiasModelServiceType = std::shared_ptr<::ros::ServiceServer>;
+using GetAccelBiasModelServiceType = std::shared_ptr<::ros::ServiceServer>;
 
-using SetGravityAdaptiveValsServiceType = std::shared_ptr<::ros::ServiceServer>
-using GetGravityAdaptiveValsServiceType = std::shared_ptr<::ros::ServiceServer>
+using SetGravityAdaptiveValsServiceType = std::shared_ptr<::ros::ServiceServer>;
+using GetGravityAdaptiveValsServiceType = std::shared_ptr<::ros::ServiceServer>;
 
-using SetMagAdaptiveValsServiceType = std::shared_ptr<::ros::ServiceServer>
-using GetMagAdaptiveValsServiceType = std::shared_ptr<::ros::ServiceServer>
+using SetMagAdaptiveValsServiceType = std::shared_ptr<::ros::ServiceServer>;
+using GetMagAdaptiveValsServiceType = std::shared_ptr<::ros::ServiceServer>;
 
-using SetMagDipAdaptiveValsServiceType = std::shared_ptr<::ros::ServiceServer>
-using GetMagDipAdaptiveValsServiceType = std::shared_ptr<::ros::ServiceServer>
+using SetMagDipAdaptiveValsServiceType = std::shared_ptr<::ros::ServiceServer>;
+using GetMagDipAdaptiveValsServiceType = std::shared_ptr<::ros::ServiceServer>;
 
-using ExternalHeadingUpdateServiceType = std::shared_ptr<::ros::ServiceServer>
+using ExternalHeadingUpdateServiceType = std::shared_ptr<::ros::ServiceServer>;
 
-using SetRelativePositionReferenceServiceType = std::shared_ptr<::ros::ServiceServer>
-using GetRelativePositionReferenceServiceType = std::shared_ptr<::ros::ServiceServer>
+using SetRelativePositionReferenceServiceType = std::shared_ptr<::ros::ServiceServer>;
+using GetRelativePositionReferenceServiceType = std::shared_ptr<::ros::ServiceServer>;
 
-using DeviceSettingsServiceType = std::shared_ptr<::ros::ServiceServer>
+using DeviceSettingsServiceType = std::shared_ptr<::ros::ServiceServer>;
 
 
 ///
