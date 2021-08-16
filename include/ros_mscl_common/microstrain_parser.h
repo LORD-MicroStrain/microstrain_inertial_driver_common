@@ -17,6 +17,7 @@
 //
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 #include "microstrain_defs.h"
+#include "microstrain_ros_funcs.h"
 #include "microstrain_config.h"
 #include "microstrain_publishers.h"
 
@@ -46,37 +47,6 @@ class MicrostrainParser
   void parse_gnss_packet(const mscl::MipDataPacket& packet, int gnss_id);
   void parse_rtk_packet(const mscl::MipDataPacket& packet);
   void print_packet_stats();
-
-
-#if MICROSTRAIN_ROS_VERSION==1
-  ::ros::Time ros_time_now()
-  {
-    return ros::Time::now();
-  }
-  ::ros::Time to_ros_time(int64_t time)
-  {
-    return ros::Time().fromNSec(time);
-  }
-  void set_seq(RosHeaderType* header, const uint32_t seq)
-  {
-    header->seq = seq;
-  }
-#elif MICROSTRAIN_ROS_VERSION==2
-  ::rclcpp::Time ros_time_now()
-  {
-    return m_node->get_clock()->now();
-  }
-  ::rclcpp::Time to_ros_time(int64_t time)
-  {
-    return ::rclcpp::Time(time);
-  }
-  void set_seq(RosHeaderType* header, const uint32_t seq)
-  {
-    //NOOP because seq was removed in ROS2
-  }
-#else
-#error "Unsupported ROS version. -DMICROSTRAIN_ROS_VERSION must be set to 1 or 2"
-#endif
 
   RosNodeType* m_node;
   MicrostrainConfig* m_config;

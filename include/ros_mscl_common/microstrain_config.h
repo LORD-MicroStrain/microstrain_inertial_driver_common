@@ -30,6 +30,7 @@
 #include "mscl/mscl.h"
 
 #include "microstrain_defs.h"
+#include "microstrain_ros_funcs.h"
 
 constexpr auto default_matrix = {9.0, 0.0};
 constexpr auto default_vector = {3.0, 0.0};
@@ -158,18 +159,6 @@ class MicrostrainConfig
 
  private:
   RosNodeType* m_node;
-
-  template<class ConfigType>
-  void get_param(RosNodeType* node, const std::string& param_name, ConfigType& param_val, const ConfigType& default_val)
-  {
-#if MICROSTRAIN_ROS_VERSION==1
-    node->param<ConfigType>(param_name, param_val, default_val);
-#elif MICROSTRAIN_ROS_VERSION==2
-    node->get_parameter_or<ConfigType>(param_name, param_val, default_val);
-#else
-#error "Unsupported ROS version. -DMICROSTRAIN_ROS_VERSION must be set to 1 or 2"
-#endif
-  }
 };  // MicrostrainConfig class
 
 } // namespace Microstrain

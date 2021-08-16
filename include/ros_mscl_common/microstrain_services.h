@@ -17,6 +17,7 @@
 //
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 #include "microstrain_defs.h"
+#include "microstrain_ros_funcs.h"
 #include "microstrain_config.h"
 
 
@@ -133,32 +134,12 @@ class MicrostrainServices
   void get_basic_status_ptr(const std::shared_ptr<TriggerServiceMsg::Request> req, std::shared_ptr<TriggerServiceMsg::Response> res);
 
  private:
-#if MICROSTRAIN_ROS_VERSION==1
-  template<class MType, class T, class MReq, class MRes>
-  std::shared_ptr<::ros::ServiceServer> create_service(RosNodeType* node, const std::string& service, bool(T::*srv_func)(MReq &, MRes &), T *obj)
-  {
-    return std::make_shared<::ros::ServiceServer>(node->template advertiseService<T, MReq, MRes>(service, srv_func, obj));
-  }
-#elif MICROSTRAIN_ROS_VERSION==2
-  template<class MType, class T, class MReq, class MRes>
-  typename ::rclcpp::Service<MType>::SharedPtr create_service(RosNodeType* node, const std::string& service, bool(T::*srv_func)(MReq &, MRes &), T *obj)
-  {
-    return node->template create_service<MType>(service,
-      [obj, srv_func](const std::shared_ptr<MReq> req, std::shared_ptr<MRes> res)
-      {
-        (obj->*srv_func)(*req, *res);
-      });
-  }
-#else
-#error "Unsupported ROS version. -DMICROSTRAIN_ROS_VERSION must be set to 1 or 2"
-#endif
-
   RosNodeType* m_node;
   MicrostrainConfig* m_config;
 
-  GetBasicStatusServiceType m_get_basic_status_service;
-  GetDiagnosticReportServiceType m_get_diagnostic_report_service;
-  DeviceReportServiceType m_device_report_service;
+  TriggerServiceType m_get_basic_status_service;
+  TriggerServiceType m_get_diagnostic_report_service;
+  TriggerServiceType m_device_report_service;
   SetTareOrientationServiceType m_set_tare_orientation_service;
   SetComplementaryFilterServiceType m_set_complementary_filter_service;
   GetComplementaryFilterServiceType m_get_complementary_filter_service;
@@ -171,22 +152,22 @@ class MicrostrainServices
   GetAccelBiasServiceType m_get_accel_bias_service;
   SetGyroBiasServiceType m_set_gyro_bias_service;
   GetGyroBiasServiceType m_get_gyro_bias_service;
-  GyroBiasCaptureServiceType m_gyro_bias_capture_service;
+  TriggerServiceType m_gyro_bias_capture_service;
   SetHardIronValuesServiceType m_set_hard_iron_values_service;
   GetHardIronValuesServiceType m_get_hard_iron_values_service;
   SetSoftIronMatrixServiceType m_set_soft_iron_matrix_service;
   GetSoftIronMatrixServiceType m_get_soft_iron_matrix_service;
   SetConingScullingCompServiceType m_set_coning_sculling_comp_service;
   GetConingScullingCompServiceType m_get_coning_sculling_comp_service;
-  ResetFilterServiceType m_reset_filter_service;
+  EmptyServiceType m_reset_filter_service;
   SetEstimationControlFlagsServiceType m_set_estimation_control_flags_service;
   GetEstimationControlFlagsServiceType m_get_estimation_control_flags_service;
   InitFilterEulerServiceType m_init_filter_euler_service;
   InitFilterHeadingServiceType m_init_filter_heading_service;
   SetHeadingSourceServiceType m_set_heading_source_service;
   GetHeadingSourceServiceType m_get_heading_source_service;
-  CommandedVelZuptServiceType m_commanded_vel_zupt_service;
-  CommandedAngRateZuptServiceType m_commanded_ang_rate_zupt_service;
+  TriggerServiceType m_commanded_vel_zupt_service;
+  TriggerServiceType m_commanded_ang_rate_zupt_service;
   SetAccelNoiseServiceType m_set_accel_noise_service;
   GetAccelNoiseServiceType m_get_accel_noise_service;
   SetGyroNoiseServiceType m_set_gyro_noise_service;

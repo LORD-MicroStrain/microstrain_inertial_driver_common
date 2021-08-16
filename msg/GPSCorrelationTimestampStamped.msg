@@ -1,3 +1,3 @@
-Header header
+std_msgs/Header header
 GPSCorrelationTimestamp gps_cor
 

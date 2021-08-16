@@ -776,7 +776,7 @@ void MicrostrainParser::parse_gnss_packet(const mscl::MipDataPacket &packet, int
 
   //GPS Time reference
   set_seq(&m_publishers->m_gnss_time_msg[gnss_id].header, m_gnss_valid_packet_count[gnss_id]);
-  m_publishers->m_gnss_time_msg[gnss_id].header.stamp    = ros_time_now();
+  m_publishers->m_gnss_time_msg[gnss_id].header.stamp    = ros_time_now(m_node);
   m_publishers->m_gnss_time_msg[gnss_id].header.frame_id = m_config->m_gnss_frame_id[gnss_id];
   m_publishers->m_gnss_time_msg[gnss_id].time_ref        = to_ros_time(time);
 

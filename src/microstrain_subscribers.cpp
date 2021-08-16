@@ -26,7 +26,6 @@ MicrostrainSubscribers::MicrostrainSubscribers(RosNodeType* node, MicrostrainCon
 bool MicrostrainSubscribers::configure_subscribers()
 {
   //Clear the ZUPT listener flags
-  // TODO: Should these be moved to this class?
   m_vel_still = false;
   m_ang_still = false;
   
@@ -144,7 +143,6 @@ void MicrostrainSubscribers::ang_zupt()
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 void MicrostrainSubscribers::external_gps_time_callback(const TimeReferenceMsg& time)
 {
-  // TODO: Figure out the toSec function in ROS2
   if(m_config->m_inertial_device)
   {
     try

@@ -17,6 +17,7 @@
 //
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 #include "microstrain_defs.h"
+#include "microstrain_ros_funcs.h"
 #include "microstrain_config.h"
 
 
@@ -42,29 +43,29 @@ class MicrostrainPublishers
 
   //IMU Publishers
   ImuPubType m_imu_pub;
-  MagPubType m_mag_pub;
-  GpsCorrPubType m_gps_corr_pub;
+  MagneticFieldPubType m_mag_pub;
+  GPSCorrelationTimestampStampedPubType m_gps_corr_pub;
 
   //GNSS Publishers
-  GnssPubType m_gnss_pub[NUM_GNSS];
-  GnssOdomPubType m_gnss_odom_pub[NUM_GNSS];
-  GnssTimePubType m_gnss_time_pub[NUM_GNSS];
-  GnssAidingStatusPubType m_gnss_aiding_status_pub[NUM_GNSS];
-  GnssDualAntennaStatusPubType m_gnss_dual_antenna_status_pub;
+  NavSatFixPubType m_gnss_pub[NUM_GNSS];
+  OdometryPubType m_gnss_odom_pub[NUM_GNSS];
+  TimeReferencePubType m_gnss_time_pub[NUM_GNSS];
+  GNSSAidingStatusPubType m_gnss_aiding_status_pub[NUM_GNSS];
+  GNSSDualAntennaStatusPubType m_gnss_dual_antenna_status_pub;
 
   //RTK Data publisher
-  RtkPubType m_rtk_pub;
+  RTKStatusPubType m_rtk_pub;
   
   //Filter Publishers
   FilterStatusPubType m_filter_status_pub;
   FilterHeadingPubType m_filter_heading_pub;
   FilterHeadingStatePubType m_filter_heading_state_pub;
-  FilterPubType m_filter_pub;
-  FilteredImuPubType m_filtered_imu_pub;
-  FilterRelativePosPubType m_filter_relative_pos_pub;
+  OdometryPubType m_filter_pub;
+  ImuPubType m_filtered_imu_pub;
+  OdometryPubType m_filter_relative_pos_pub;
 
   //Device Status Publisher
-  DeviceStatusPubType m_device_status_pub;
+  StatusPubType m_device_status_pub;
 
   //IMU Messages
   ImuMsg                            m_imu_msg;
@@ -93,23 +94,6 @@ class MicrostrainPublishers
   StatusMsg m_device_status_msg; 
 
  private:
-  // Generic function to create a publisher
-#if MICROSTRAIN_ROS_VERSION==1
-  template<class MessageType>
-  std::shared_ptr<::ros::Publisher> create_publisher(RosNodeType* node, const std::string& topic, const uint32_t queue_size)
-  {
-    return std::make_shared<::ros::Publisher>(node->template advertise<MessageType>(topic, queue_size));
-  }
-#elif MICROSTRAIN_ROS_VERSION==2
-  template<class MessageType>
-  typename ::rclcpp_lifecycle::LifecyclePublisher<MessageType>::SharedPtr create_publisher(RosNodeType* node, const std::string& topic, const uint32_t qos)
-  {
-    return node->template create_publisher<MessageType>(topic, qos);
-  }
-#else
-#error "Unsupported ROS version. -DMICROSTRAIN_ROS_VERSION must be set to 1 or 2"
-#endif
-
   RosNodeType* m_node;
   MicrostrainConfig* m_config;
 };  // struct MicrostrainPublishers

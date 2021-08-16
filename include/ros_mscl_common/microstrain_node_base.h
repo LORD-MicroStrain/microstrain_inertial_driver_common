@@ -43,13 +43,14 @@ namespace Microstrain
 ///
 class MicrostrainNodeBase
 {
- // TODO: Figure out if we can make this protected
  public:
+  void parse_and_publish();
+
+ protected:
   MicrostrainNodeBase() = default;
 
   bool initialize(RosNodeType* init_node);
   bool configure(RosNodeType* config_node);
-  void parse_and_publish();
 
   RosNodeType* m_node;
   MicrostrainConfig m_config;
