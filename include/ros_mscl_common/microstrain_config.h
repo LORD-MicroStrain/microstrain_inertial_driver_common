@@ -28,18 +28,19 @@
 #include "ros_mscl_common/microstrain_defs.h"
 #include "ros_mscl_common/microstrain_ros_funcs.h"
 
-constexpr auto default_matrix = { 9.0, 0.0 };
-constexpr auto default_vector = { 3.0, 0.0 };
-constexpr auto default_quaternion = { 4.0, 0.0 };
-
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 ///
 /// \brief Contains functions for micostrain driver
 ///
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
-namespace Microstrain
+namespace microstrain
 {
+
+constexpr auto DEFAULT_MATRIX = { 9.0, 0.0 };
+constexpr auto DEFAULT_VECTOR = { 3.0, 0.0 };
+constexpr auto DEFAULT_QUATERNION = { 4.0, 0.0 };
+
 ///
 /// \brief Contains configuration information
 ///
@@ -50,112 +51,112 @@ public:
   explicit MicrostrainConfig(RosNodeType* node);
 
   bool configure(RosNodeType* node);
-  bool connect_device(RosNodeType* node);
-  bool setup_device(RosNodeType* node);
-  bool setup_raw_file(RosNodeType* node);
-  bool configure_gpio(RosNodeType* node);
-  bool configure_imu(RosNodeType* node);
-  bool configure_gnss(RosNodeType* node, uint8_t gnss_id);
-  bool configure_rtk(RosNodeType* node);
-  bool configure_filter(RosNodeType* node);
-  bool configure_sensor2vehicle(RosNodeType* node);
+  bool connectDevice(RosNodeType* node);
+  bool setupDevice(RosNodeType* node);
+  bool setupRawFile(RosNodeType* node);
+  bool configureGPIO(RosNodeType* node);
+  bool configureIMU(RosNodeType* node);
+  bool configureGNSS(RosNodeType* node, uint8_t gnss_id);
+  bool configureRTK(RosNodeType* node);
+  bool configureFilter(RosNodeType* node);
+  bool configureSensor2vehicle(RosNodeType* node);
 
   // Device pointer used to interact with the device
-  std::unique_ptr<mscl::InertialNode> m_inertial_device;
+  std::unique_ptr<mscl::InertialNode> inertial_device_;
 
   // Config read from the device
-  bool m_supports_gnss1;
-  bool m_supports_gnss2;
-  bool m_supports_rtk;
-  bool m_supports_filter;
-  bool m_supports_imu;
+  bool supports_gnss1_;
+  bool supports_gnss2_;
+  bool supports_rtk_;
+  bool supports_filter_;
+  bool supports_imu_;
 
   // Info for converting to the ENU frame
-  bool m_use_enu_frame;
-  tf2::Matrix3x3 m_t_ned2enu;
+  bool use_enu_frame_;
+  tf2::Matrix3x3 t_ned2enu_;
 
   // Flag for using device timestamp instead of PC received time
-  bool m_use_device_timestamp;
+  bool use_device_timestamp_;
 
   // FILTER
-  double m_gps_leap_seconds;
-  bool m_filter_enable_gnss_heading_aiding;
-  bool m_filter_enable_gnss_pos_vel_aiding;
-  bool m_filter_enable_altimeter_aiding;
-  bool m_filter_enable_odometer_aiding;
-  bool m_filter_enable_magnetometer_aiding;
-  bool m_filter_enable_external_heading_aiding;
-  bool m_filter_enable_external_gps_time_update;
-  bool m_filter_enable_wheeled_vehicle_constraint;
-  bool m_filter_enable_vertical_gyro_constraint;
-  bool m_filter_enable_gnss_antenna_cal;
+  double gps_leap_seconds_;
+  bool filter_enable_gnss_heading_aiding_;
+  bool filter_enable_gnss_pos_vel_aiding_;
+  bool filter_enable_altimeter_aiding_;
+  bool filter_enable_odometer_aiding_;
+  bool filter_enable_magnetometer_aiding_;
+  bool filter_enable_external_heading_aiding_;
+  bool filter_enable_external_gps_time_update_;
+  bool filter_enable_wheeled_vehicle_constraint_;
+  bool filter_enable_vertical_gyro_constraint_;
+  bool filter_enable_gnss_antenna_cal_;
 
   // Frame ids
-  std::string m_imu_frame_id;
-  std::string m_gnss_frame_id[NUM_GNSS];
-  std::string m_filter_frame_id;
-  std::string m_filter_child_frame_id;
+  std::string imu_frame_id_;
+  std::string gnss_frame_id_[NUM_GNSS];
+  std::string filter_frame_id_;
+  std::string filter_child_frame_id_;
 
   // Topic strings
-  std::string m_velocity_zupt_topic;
-  std::string m_angular_zupt_topic;
-  std::string m_external_gps_time_topic;
+  std::string velocity_zupt_topic_;
+  std::string angular_zupt_topic_;
+  std::string external_gps_time_topic_;
 
   // Publish data flags
-  bool m_publish_imu;
-  bool m_publish_gps_corr;
-  bool m_publish_gnss[NUM_GNSS];
-  bool m_publish_gnss_aiding_status[NUM_GNSS];
-  bool m_publish_gnss_dual_antenna_status;
-  bool m_publish_filter;
-  bool m_publish_filter_relative_pos;
-  bool m_publish_rtk;
+  bool publish_imu_;
+  bool publish_gps_corr_;
+  bool publish_gnss_[NUM_GNSS];
+  bool publish_gnss_aiding_status_[NUM_GNSS];
+  bool publish_gnss_dual_antenna_status_;
+  bool publish_filter_;
+  bool publish_filter_relative_pos_;
+  bool publish_rtk_;
 
   // ZUPT, angular ZUPT topic listener variables
-  bool m_angular_zupt;
-  bool m_velocity_zupt;
+  bool angular_zupt_;
+  bool velocity_zupt_;
 
   // Static covariance vectors
-  std::vector<double> m_imu_linear_cov;
-  std::vector<double> m_imu_angular_cov;
-  std::vector<double> m_imu_orientation_cov;
+  std::vector<double> imu_linear_cov_;
+  std::vector<double> imu_angular_cov_;
+  std::vector<double> imu_orientation_cov_;
 
   // Update rates
-  int m_imu_data_rate;
-  int m_gnss_data_rate[NUM_GNSS];
-  int m_filter_data_rate;
+  int imu_data_rate_;
+  int gnss_data_rate_[NUM_GNSS];
+  int filter_data_rate_;
 
   // Gnss antenna offsets
-  std::vector<double> m_gnss_antenna_offset[NUM_GNSS];
+  std::vector<double> gnss_antenna_offset_[NUM_GNSS];
 
   // Various settings variables
-  clock_t m_start;
-  uint8_t m_com_mode;
-  float m_field_data[3];
-  float m_soft_iron[9];
-  float m_soft_iron_readback[9];
-  float m_angles[3];
-  float m_heading_angle;
-  float m_readback_angles[3];
-  float m_noise[3];
-  float m_beta[3];
-  float m_readback_beta[3];
-  float m_readback_noise[3];
-  float m_offset[3];
-  float m_readback_offset[3];
-  double m_reference_position_command[3];
-  double m_reference_position_readback[3];
-  uint8_t m_dynamics_mode;
+  clock_t start_;
+  uint8_t com_mode_;
+  float field_data_[3];
+  float soft_iron_[9];
+  float soft_iron_readback_[9];
+  float angles_[3];
+  float heading_angle_;
+  float readback_angles_[3];
+  float noise_[3];
+  float beta_[3];
+  float readback_beta_[3];
+  float readback_noise_[3];
+  float offset_[3];
+  float readback_offset_[3];
+  double reference_position_command_[3];
+  double reference_position_readback_[3];
+  uint8_t dynamics_mode_;
 
   // Raw data file parameters
-  bool m_raw_file_enable;
-  bool m_raw_file_include_support_data;
-  std::ofstream m_raw_file;
+  bool raw_file_enable_;
+  bool raw_file_include_support_data_;
+  std::ofstream raw_file_;
 
 private:
-  RosNodeType* m_node;
+  RosNodeType* node_;
 };  // MicrostrainConfig class
 
-}  // namespace Microstrain
+}  // namespace microstrain
 
 #endif  // ROS_MSCL_COMMON_MICROSTRAIN_CONFIG_H

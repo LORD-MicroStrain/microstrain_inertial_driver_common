@@ -25,7 +25,7 @@
 /// \brief Contains functions for micostrain driver
 ///
 /////////////////////////////////////////////////////////////////////////////////////////////////////
-namespace Microstrain
+namespace microstrain
 {
 ///
 /// \brief Contains publishers for microstrain node
@@ -36,37 +36,35 @@ public:
   MicrostrainSubscribers() = default;
   MicrostrainSubscribers(RosNodeType* node, MicrostrainConfig* config);
 
-  bool configure_subscribers();
+  bool configure();
 
-  void velocity_zupt_callback(const BoolMsg& state);
-  void vel_zupt_start();
-  void vel_zupt();
+  void velZuptCallback(const BoolMsg& state);
+  void velZupt();
 
-  void ang_zupt_callback(const BoolMsg& state);
-  void ang_zupt_start();
-  void ang_zupt();
+  void angZuptCallback(const BoolMsg& state);
+  void angZupt();
 
   void external_gps_time_callback(const TimeReferenceMsg& time);
 
   // ZUPT subscribers
-  BoolSubType m_filter_vel_state_sub;
-  BoolSubType m_filter_ang_state_sub;
+  BoolSubType filter_vel_state_sub_;
+  BoolSubType filter_ang_state_sub_;
 
   // External GNSS subscriber
-  TimeReferenceSubType m_external_gps_time_sub;
+  TimeReferenceSubType external_gps_time_sub_;
 
 private:
   // Node Information
-  RosNodeType* m_node;
-  MicrostrainConfig* m_config;
+  RosNodeType* node_;
+  MicrostrainConfig* config_;
 
-  bool m_vel_still;
-  bool m_ang_still;
+  bool vel_still_;
+  bool ang_still_;
 
-  RosTimerType m_vel_zupt_timer;
-  RosTimerType m_ang_zupt_timer;
+  RosTimerType vel_zupt_timer_;
+  RosTimerType ang_zupt_timer_;
 };  // struct MicrostrainPublishers
 
-}  // namespace Microstrain
+}  // namespace microstrain
 
 #endif  // ROS_MSCL_COMMON_MICROSTRAIN_SUBSCRIBERS_H

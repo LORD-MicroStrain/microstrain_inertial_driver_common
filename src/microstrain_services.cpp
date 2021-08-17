@@ -16,316 +16,316 @@
 #include <memory>
 #include "ros_mscl_common/microstrain_services.h"
 
-namespace Microstrain
+namespace microstrain
 {
-MicrostrainServices::MicrostrainServices(RosNodeType* node, MicrostrainConfig* config) : m_node(node), m_config(config)
+MicrostrainServices::MicrostrainServices(RosNodeType* node, MicrostrainConfig* config) : node_(node), config_(config)
 {
 }
 
-bool MicrostrainServices::configure_services()
+bool MicrostrainServices::configure()
 {
-  if (m_config->m_inertial_device->features().supportsCommand(mscl::MipTypes::Command::CMD_DEVICE_STATUS))
+  if (config_->inertial_device_->features().supportsCommand(mscl::MipTypes::Command::CMD_DEVICE_STATUS))
   {
-    m_get_basic_status_service =
-        create_service<TriggerServiceMsg>(m_node, "get_basic_status", &MicrostrainServices::get_basic_status, this);
-    m_get_diagnostic_report_service = create_service<TriggerServiceMsg>(
-        m_node, "get_diagnostic_report", &MicrostrainServices::get_diagnostic_report, this);
+    get_basic_status_service_ =
+        create_service<TriggerServiceMsg>(node_, "get_basic_status", &MicrostrainServices::getBasicStatus, this);
+    get_diagnostic_report_service_ = create_service<TriggerServiceMsg>(
+        node_, "get_diagnostic_report", &MicrostrainServices::getDiagnosticReport, this);
   }
 
-  if (m_config->m_inertial_device->features().supportsCommand(mscl::MipTypes::Command::CMD_GET_DEVICE_INFO))
+  if (config_->inertial_device_->features().supportsCommand(mscl::MipTypes::Command::CMD_GET_DEVICE_INFO))
   {
-    m_device_report_service =
-        create_service<TriggerServiceMsg>(m_node, "device_report", &MicrostrainServices::device_report, this);
+    device_report_service_ =
+        create_service<TriggerServiceMsg>(node_, "device_report", &MicrostrainServices::deviceReport, this);
   }
 
   // IMU tare orientation service
-  if (m_config->m_inertial_device->features().supportsCommand(mscl::MipTypes::Command::CMD_EF_TARE_ORIENT))
+  if (config_->inertial_device_->features().supportsCommand(mscl::MipTypes::Command::CMD_EF_TARE_ORIENT))
   {
-    m_set_tare_orientation_service = create_service<SetTareOrientationServiceMsg>(
-        m_node, "set_tare_orientation", &MicrostrainServices::set_tare_orientation, this);
+    set_tare_orientation_service_ = create_service<SetTareOrientationServiceMsg>(
+        node_, "set_tare_orientation", &MicrostrainServices::setTareOrientation, this);
   }
 
   // IMU Complementary filter service
-  if (m_config->m_inertial_device->features().supportsCommand(
+  if (config_->inertial_device_->features().supportsCommand(
           mscl::MipTypes::Command::CMD_COMPLEMENTARY_FILTER_SETTINGS))
   {
-    m_set_complementary_filter_service = create_service<SetComplementaryFilterServiceMsg>(
-        m_node, "set_complementary_filter", &MicrostrainServices::set_complementary_filter, this);
-    m_get_complementary_filter_service = create_service<GetComplementaryFilterServiceMsg>(
-        m_node, "get_complementary_filter", &MicrostrainServices::get_complementary_filter, this);
+    set_complementary_filter_service_ = create_service<SetComplementaryFilterServiceMsg>(
+        node_, "set_complementary_filter", &MicrostrainServices::setComplementaryFilter, this);
+    get_complementary_filter_service_ = create_service<GetComplementaryFilterServiceMsg>(
+        node_, "get_complementary_filter", &MicrostrainServices::getComplementaryFilter, this);
   }
 
   // IMU sensor2vehicle frame rotation service
-  if (m_config->m_inertial_device->features().supportsCommand(
+  if (config_->inertial_device_->features().supportsCommand(
           mscl::MipTypes::Command::CMD_EF_SENS_VEHIC_FRAME_ROTATION_EULER))
   {
-    m_set_sensor2vehicle_rotation_service = create_service<SetSensor2VehicleRotationServiceMsg>(
-        m_node, "set_sensor2vehicle_rotation", &MicrostrainServices::set_sensor2vehicle_rotation, this);
-    m_get_sensor2vehicle_rotation_service = create_service<GetSensor2VehicleRotationServiceMsg>(
-        m_node, "get_sensor2vehicle_rotation", &MicrostrainServices::get_sensor2vehicle_rotation, this);
+    set_sensor2vehicle_rotation_service_ = create_service<SetSensor2VehicleRotationServiceMsg>(
+        node_, "set_sensor2vehicle_rotation", &MicrostrainServices::setSensor2vehicleRotation, this);
+    get_sensor2vehicle_rotation_service_ = create_service<GetSensor2VehicleRotationServiceMsg>(
+        node_, "get_sensor2vehicle_rotation", &MicrostrainServices::getSensor2vehicleRotation, this);
   }
 
   // IMU sensor2vehicle frame offset service
-  if (m_config->m_inertial_device->features().supportsCommand(mscl::MipTypes::Command::CMD_EF_SENS_VEHIC_FRAME_OFFSET))
+  if (config_->inertial_device_->features().supportsCommand(mscl::MipTypes::Command::CMD_EF_SENS_VEHIC_FRAME_OFFSET))
   {
-    m_set_sensor2vehicle_offset_service = create_service<SetSensor2VehicleOffsetServiceMsg>(
-        m_node, "set_sensor2vehicle_offset", &MicrostrainServices::set_sensor2vehicle_offset, this);
-    m_get_sensor2vehicle_offset_service = create_service<GetSensor2VehicleOffsetServiceMsg>(
-        m_node, "get_sensor2vehicle_offset", &MicrostrainServices::get_sensor2vehicle_offset, this);
+    set_sensor2vehicle_offset_service_ = create_service<SetSensor2VehicleOffsetServiceMsg>(
+        node_, "set_sensor2vehicle_offset", &MicrostrainServices::setSensor2vehicleOffset, this);
+    get_sensor2vehicle_offset_service_ = create_service<GetSensor2VehicleOffsetServiceMsg>(
+        node_, "get_sensor2vehicle_offset", &MicrostrainServices::getSensor2vehicleOffset, this);
   }
 
   // IMU sensor2vehicle transformation service
-  if (m_config->m_inertial_device->features().supportsCommand(
+  if (config_->inertial_device_->features().supportsCommand(
           mscl::MipTypes::Command::CMD_EF_SENS_VEHIC_FRAME_OFFSET) &&
-      m_config->m_inertial_device->features().supportsCommand(
+      config_->inertial_device_->features().supportsCommand(
           mscl::MipTypes::Command::CMD_EF_SENS_VEHIC_FRAME_ROTATION_EULER))
   {
-    m_get_sensor2vehicle_transformation_service = create_service<GetSensor2VehicleTransformationServiceMsg>(
-        m_node, "get_sensor2vehicle_transformation", &MicrostrainServices::get_sensor2vehicle_transformation, this);
+    get_sensor2vehicle_transformation_service_ = create_service<GetSensor2VehicleTransformationServiceMsg>(
+        node_, "get_sensor2vehicle_transformation", &MicrostrainServices::getSensor2vehicleTransformation, this);
   }
 
   // IMU Accel bias service
-  if (m_config->m_inertial_device->features().supportsCommand(mscl::MipTypes::Command::CMD_ACCEL_BIAS))
+  if (config_->inertial_device_->features().supportsCommand(mscl::MipTypes::Command::CMD_ACCEL_BIAS))
   {
-    m_set_accel_bias_service =
-        create_service<SetAccelBiasServiceMsg>(m_node, "set_accel_bias", &MicrostrainServices::set_accel_bias, this);
-    m_get_accel_bias_service =
-        create_service<GetAccelBiasServiceMsg>(m_node, "get_accel_bias", &MicrostrainServices::get_accel_bias, this);
+    set_accel_bias_service_ =
+        create_service<SetAccelBiasServiceMsg>(node_, "set_accel_bias", &MicrostrainServices::setAccelBias, this);
+    get_accel_bias_service_ =
+        create_service<GetAccelBiasServiceMsg>(node_, "get_accel_bias", &MicrostrainServices::getAccelBias, this);
   }
 
   // IMU gyro bias service
-  if (m_config->m_inertial_device->features().supportsCommand(mscl::MipTypes::Command::CMD_GYRO_BIAS))
+  if (config_->inertial_device_->features().supportsCommand(mscl::MipTypes::Command::CMD_GYRO_BIAS))
   {
-    m_set_gyro_bias_service =
-        create_service<SetGyroBiasServiceMsg>(m_node, "set_gyro_bias", &MicrostrainServices::set_gyro_bias, this);
-    m_get_gyro_bias_service =
-        create_service<GetGyroBiasServiceMsg>(m_node, "get_gyro_bias", &MicrostrainServices::get_gyro_bias, this);
+    set_gyro_bias_service_ =
+        create_service<SetGyroBiasServiceMsg>(node_, "set_gyro_bias", &MicrostrainServices::setGyroBias, this);
+    get_gyro_bias_service_ =
+        create_service<GetGyroBiasServiceMsg>(node_, "get_gyro_bias", &MicrostrainServices::getGyroBias, this);
   }
 
   // IMU Gyro bias capture service
-  if (m_config->m_inertial_device->features().supportsCommand(mscl::MipTypes::Command::CMD_CAP_GYRO_BIAS))
+  if (config_->inertial_device_->features().supportsCommand(mscl::MipTypes::Command::CMD_CAP_GYRO_BIAS))
   {
-    m_gyro_bias_capture_service =
-        create_service<TriggerServiceMsg>(m_node, "gyro_bias_capture", &MicrostrainServices::gyro_bias_capture, this);
+    gyro_bias_capture_service_ =
+        create_service<TriggerServiceMsg>(node_, "gyro_bias_capture", &MicrostrainServices::gyroBiasCapture, this);
   }
 
   // IMU Mag Hard iron offset service
-  if (m_config->m_inertial_device->features().supportsCommand(mscl::MipTypes::Command::CMD_MAG_HARD_IRON_OFFSET))
+  if (config_->inertial_device_->features().supportsCommand(mscl::MipTypes::Command::CMD_MAG_HARD_IRON_OFFSET))
   {
-    m_set_hard_iron_values_service = create_service<SetHardIronValuesServiceMsg>(
-        m_node, "set_hard_iron_values", &MicrostrainServices::set_hard_iron_values, this);
-    m_get_hard_iron_values_service = create_service<GetHardIronValuesServiceMsg>(
-        m_node, "get_hard_iron_values", &MicrostrainServices::get_hard_iron_values, this);
+    set_hard_iron_values_service_ = create_service<SetHardIronValuesServiceMsg>(
+        node_, "set_hard_iron_values", &MicrostrainServices::setHardIronValues, this);
+    get_hard_iron_values_service_ = create_service<GetHardIronValuesServiceMsg>(
+        node_, "get_hard_iron_values", &MicrostrainServices::getHardIronValues, this);
   }
 
   // IMU Mag Soft iron matrix service
-  if (m_config->m_inertial_device->features().supportsCommand(mscl::MipTypes::Command::CMD_MAG_SOFT_IRON_MATRIX))
+  if (config_->inertial_device_->features().supportsCommand(mscl::MipTypes::Command::CMD_MAG_SOFT_IRON_MATRIX))
   {
-    m_set_soft_iron_matrix_service = create_service<SetSoftIronMatrixServiceMsg>(
-        m_node, "set_soft_iron_matrix", &MicrostrainServices::set_soft_iron_matrix, this);
-    m_get_soft_iron_matrix_service = create_service<GetSoftIronMatrixServiceMsg>(
-        m_node, "get_soft_iron_matrix", &MicrostrainServices::get_soft_iron_matrix, this);
+    set_soft_iron_matrix_service_ = create_service<SetSoftIronMatrixServiceMsg>(
+        node_, "set_soft_iron_matrix", &MicrostrainServices::setSoftIronMatrix, this);
+    get_soft_iron_matrix_service_ = create_service<GetSoftIronMatrixServiceMsg>(
+        node_, "get_soft_iron_matrix", &MicrostrainServices::getSoftIronMatrix, this);
   }
 
   // IMU Coning and sculling enable service
-  if (m_config->m_inertial_device->features().supportsCommand(mscl::MipTypes::Command::CMD_CONING_SCULLING))
+  if (config_->inertial_device_->features().supportsCommand(mscl::MipTypes::Command::CMD_CONING_SCULLING))
   {
-    m_set_coning_sculling_comp_service = create_service<SetConingScullingCompServiceMsg>(
-        m_node, "set_coning_sculling_comp", &MicrostrainServices::set_coning_sculling_comp, this);
-    m_get_coning_sculling_comp_service = create_service<GetConingScullingCompServiceMsg>(
-        m_node, "get_coning_sculling_comp", &MicrostrainServices::get_coning_sculling_comp, this);
+    set_coning_sculling_comp_service_ = create_service<SetConingScullingCompServiceMsg>(
+        node_, "set_coning_sculling_comp", &MicrostrainServices::setConingScullingComp, this);
+    get_coning_sculling_comp_service_ = create_service<GetConingScullingCompServiceMsg>(
+        node_, "get_coning_sculling_comp", &MicrostrainServices::getConingScullingComp, this);
   }
 
   // Kalman filter reset
-  if (m_config->m_inertial_device->features().supportsCommand(mscl::MipTypes::Command::CMD_EF_RESET_FILTER))
+  if (config_->inertial_device_->features().supportsCommand(mscl::MipTypes::Command::CMD_EF_RESET_FILTER))
   {
-    m_reset_filter_service =
-        create_service<EmptyServiceMsg>(m_node, "reset_kf", &MicrostrainServices::reset_filter, this);
+    reset_filter_service_ =
+        create_service<EmptyServiceMsg>(node_, "reset_kf", &MicrostrainServices::resetFilter, this);
   }
 
   // Kalman filter estimation control service
-  if (m_config->m_inertial_device->features().supportsCommand(mscl::MipTypes::Command::CMD_EF_BIAS_EST_CTRL))
+  if (config_->inertial_device_->features().supportsCommand(mscl::MipTypes::Command::CMD_EF_BIAS_EST_CTRL))
   {
-    m_set_estimation_control_flags_service = create_service<SetEstimationControlFlagsServiceMsg>(
-        m_node, "set_estimation_control_flags", &MicrostrainServices::set_estimation_control_flags, this);
-    m_get_estimation_control_flags_service = create_service<GetEstimationControlFlagsServiceMsg>(
-        m_node, "get_estimation_control_flags", &MicrostrainServices::get_estimation_control_flags, this);
+    set_estimation_control_flags_service_ = create_service<SetEstimationControlFlagsServiceMsg>(
+        node_, "set_estimation_control_flags", &MicrostrainServices::setEstimationControlFlags, this);
+    get_estimation_control_flags_service_ = create_service<GetEstimationControlFlagsServiceMsg>(
+        node_, "get_estimation_control_flags", &MicrostrainServices::getEstimationControlFlags, this);
   }
 
   // Kalman filter initialization with full Euler angles service
-  if (m_config->m_inertial_device->features().supportsCommand(mscl::MipTypes::Command::CMD_EF_INIT_ATTITUDE))
+  if (config_->inertial_device_->features().supportsCommand(mscl::MipTypes::Command::CMD_EF_INIT_ATTITUDE))
   {
-    m_init_filter_euler_service = create_service<InitFilterEulerServiceMsg>(
-        m_node, "init_filter_euler", &MicrostrainServices::init_filter_euler, this);
+    init_filter_euler_service_ = create_service<InitFilterEulerServiceMsg>(
+        node_, "init_filter_euler", &MicrostrainServices::initFilterEuler, this);
   }
 
   // Kalman filter initialization with heading only service
-  if (m_config->m_inertial_device->features().supportsCommand(mscl::MipTypes::Command::CMD_EF_INIT_HEADING))
+  if (config_->inertial_device_->features().supportsCommand(mscl::MipTypes::Command::CMD_EF_INIT_HEADING))
   {
-    m_init_filter_heading_service = create_service<InitFilterHeadingServiceMsg>(
-        m_node, "init_filter_heading", &MicrostrainServices::init_filter_heading, this);
+    init_filter_heading_service_ = create_service<InitFilterHeadingServiceMsg>(
+        node_, "init_filter_heading", &MicrostrainServices::initFilterHeading, this);
   }
 
   // Kalman filter heading source service
-  if (m_config->m_inertial_device->features().supportsCommand(mscl::MipTypes::Command::CMD_EF_HEADING_UPDATE_CTRL))
+  if (config_->inertial_device_->features().supportsCommand(mscl::MipTypes::Command::CMD_EF_HEADING_UPDATE_CTRL))
   {
-    m_set_heading_source_service = create_service<SetHeadingSourceServiceMsg>(
-        m_node, "set_heading_source", &MicrostrainServices::set_heading_source, this);
-    m_get_heading_source_service = create_service<GetHeadingSourceServiceMsg>(
-        m_node, "get_heading_source", &MicrostrainServices::get_heading_source, this);
+    set_heading_source_service_ = create_service<SetHeadingSourceServiceMsg>(
+        node_, "set_heading_source", &MicrostrainServices::setHeadingSource, this);
+    get_heading_source_service_ = create_service<GetHeadingSourceServiceMsg>(
+        node_, "get_heading_source", &MicrostrainServices::getHeadingSource, this);
   }
 
   // Kalman filter commanded ZUPT service
-  if (m_config->m_inertial_device->features().supportsCommand(mscl::MipTypes::Command::CMD_EF_CMDED_ZERO_VEL_UPDATE))
+  if (config_->inertial_device_->features().supportsCommand(mscl::MipTypes::Command::CMD_EF_CMDED_ZERO_VEL_UPDATE))
   {
-    m_commanded_vel_zupt_service =
-        create_service<TriggerServiceMsg>(m_node, "commanded_vel_zupt", &MicrostrainServices::commanded_vel_zupt, this);
+    commanded_vel_zupt_service_ =
+        create_service<TriggerServiceMsg>(node_, "commanded_vel_zupt", &MicrostrainServices::commandedVelZupt, this);
   }
 
   // Kalman filter commanded angular ZUPT service
-  if (m_config->m_inertial_device->features().supportsCommand(
+  if (config_->inertial_device_->features().supportsCommand(
           mscl::MipTypes::Command::CMD_EF_CMDED_ZERO_ANG_RATE_UPDATE))
   {
-    m_commanded_ang_rate_zupt_service = create_service<TriggerServiceMsg>(
-        m_node, "commanded_ang_rate_zupt", &MicrostrainServices::commanded_ang_rate_zupt, this);
+    commanded_ang_rate_zupt_service_ = create_service<TriggerServiceMsg>(
+        node_, "commanded_ang_rate_zupt", &MicrostrainServices::commandedAngRateZupt, this);
   }
 
   // Kalman filter Accel white noise 1-sigma service
-  if (m_config->m_inertial_device->features().supportsCommand(mscl::MipTypes::Command::CMD_EF_ACCEL_WHT_NSE_STD_DEV))
+  if (config_->inertial_device_->features().supportsCommand(mscl::MipTypes::Command::CMD_EF_ACCEL_WHT_NSE_STD_DEV))
   {
-    m_set_accel_noise_service =
-        create_service<SetAccelNoiseServiceMsg>(m_node, "set_accel_noise", &MicrostrainServices::set_accel_noise, this);
-    m_get_accel_noise_service =
-        create_service<GetAccelNoiseServiceMsg>(m_node, "get_accel_noise", &MicrostrainServices::get_accel_noise, this);
+    set_accel_noise_service_ =
+        create_service<SetAccelNoiseServiceMsg>(node_, "set_accel_noise", &MicrostrainServices::setAccelNoise, this);
+    get_accel_noise_service_ =
+        create_service<GetAccelNoiseServiceMsg>(node_, "get_accel_noise", &MicrostrainServices::getAccelNoise, this);
   }
 
   // Kalman filter Gyro white noise 1-sigma service
-  if (m_config->m_inertial_device->features().supportsCommand(mscl::MipTypes::Command::CMD_EF_GYRO_WHT_NSE_STD_DEV))
+  if (config_->inertial_device_->features().supportsCommand(mscl::MipTypes::Command::CMD_EF_GYRO_WHT_NSE_STD_DEV))
   {
-    m_set_gyro_noise_service =
-        create_service<SetGyroNoiseServiceMsg>(m_node, "set_gyro_noise", &MicrostrainServices::set_gyro_noise, this);
-    m_get_gyro_noise_service =
-        create_service<GetGyroNoiseServiceMsg>(m_node, "get_gyro_noise", &MicrostrainServices::get_gyro_noise, this);
+    set_gyro_noise_service_ =
+        create_service<SetGyroNoiseServiceMsg>(node_, "set_gyro_noise", &MicrostrainServices::setGyroNoise, this);
+    get_gyro_noise_service_ =
+        create_service<GetGyroNoiseServiceMsg>(node_, "get_gyro_noise", &MicrostrainServices::getGyroNoise, this);
   }
 
   // Kalman filter Mag noise 1-sigma service
-  if (m_config->m_inertial_device->features().supportsCommand(
+  if (config_->inertial_device_->features().supportsCommand(
           mscl::MipTypes::Command::CMD_EF_HARD_IRON_OFFSET_PROCESS_NOISE))
   {
-    m_set_mag_noise_service =
-        create_service<SetMagNoiseServiceMsg>(m_node, "set_mag_noise", &MicrostrainServices::set_mag_noise, this);
-    m_get_mag_noise_service =
-        create_service<GetMagNoiseServiceMsg>(m_node, "get_mag_noise", &MicrostrainServices::get_mag_noise, this);
+    set_mag_noise_service_ =
+        create_service<SetMagNoiseServiceMsg>(node_, "set_mag_noise", &MicrostrainServices::setMagNoise, this);
+    get_mag_noise_service_ =
+        create_service<GetMagNoiseServiceMsg>(node_, "get_mag_noise", &MicrostrainServices::getMagNoise, this);
   }
 
   // Kalman filter accel bias model service
-  if (m_config->m_inertial_device->features().supportsCommand(mscl::MipTypes::Command::CMD_EF_ACCEL_BIAS_MODEL_PARAMS))
+  if (config_->inertial_device_->features().supportsCommand(mscl::MipTypes::Command::CMD_EF_ACCEL_BIAS_MODEL_PARAMS))
   {
-    m_set_accel_bias_model_service = create_service<SetAccelBiasModelServiceMsg>(
-        m_node, "set_accel_bias_model", &MicrostrainServices::set_accel_bias_model, this);
-    m_get_accel_bias_model_service = create_service<GetAccelBiasModelServiceMsg>(
-        m_node, "get_accel_bias_model", &MicrostrainServices::get_accel_bias_model, this);
+    set_accel_bias_model_service_ = create_service<SetAccelBiasModelServiceMsg>(
+        node_, "set_accel_bias_model", &MicrostrainServices::setAccelBiasModel, this);
+    get_accel_bias_model_service_ = create_service<GetAccelBiasModelServiceMsg>(
+        node_, "get_accel_bias_model", &MicrostrainServices::getAccelBiasModel, this);
   }
 
   // Kalman filter gyro bias model service
-  if (m_config->m_inertial_device->features().supportsCommand(mscl::MipTypes::Command::CMD_EF_GYRO_BIAS_MODEL_PARAMS))
+  if (config_->inertial_device_->features().supportsCommand(mscl::MipTypes::Command::CMD_EF_GYRO_BIAS_MODEL_PARAMS))
   {
-    m_set_gyro_bias_model_service = create_service<SetGyroBiasModelServiceMsg>(
-        m_node, "set_gyro_bias_model", &MicrostrainServices::set_gyro_bias_model, this);
-    m_get_gyro_bias_model_service = create_service<GetGyroBiasModelServiceMsg>(
-        m_node, "get_gyro_bias_model", &MicrostrainServices::get_gyro_bias_model, this);
+    set_gyro_bias_model_service_ = create_service<SetGyroBiasModelServiceMsg>(
+        node_, "set_gyro_bias_model", &MicrostrainServices::setGyroBiasModel, this);
+    get_gyro_bias_model_service_ = create_service<GetGyroBiasModelServiceMsg>(
+        node_, "get_gyro_bias_model", &MicrostrainServices::getGyroBiasModel, this);
   }
 
   // Kalman filter magnetometer magnitude adaptive filter service
-  if (m_config->m_inertial_device->features().supportsCommand(
+  if (config_->inertial_device_->features().supportsCommand(
           mscl::MipTypes::Command::CMD_EF_MAG_MAGNITUDE_ERR_ADAPT_MEASURE))
   {
-    m_set_mag_adaptive_vals_service = create_service<SetMagAdaptiveValsServiceMsg>(
-        m_node, "set_mag_adaptive_vals", &MicrostrainServices::set_mag_adaptive_vals, this);
-    m_get_mag_adaptive_vals_service = create_service<GetMagAdaptiveValsServiceMsg>(
-        m_node, "get_mag_adaptive_vals", &MicrostrainServices::get_mag_adaptive_vals, this);
+    set_mag_adaptive_vals_service_ = create_service<SetMagAdaptiveValsServiceMsg>(
+        node_, "set_mag_adaptive_vals", &MicrostrainServices::setMagAdaptiveVals, this);
+    get_mag_adaptive_vals_service_ = create_service<GetMagAdaptiveValsServiceMsg>(
+        node_, "get_mag_adaptive_vals", &MicrostrainServices::getMagAdaptiveVals, this);
   }
 
   // Kalman filter magnetometer dip angle adaptive filter service
-  if (m_config->m_inertial_device->features().supportsCommand(
+  if (config_->inertial_device_->features().supportsCommand(
           mscl::MipTypes::Command::CMD_EF_MAG_DIP_ANGLE_ERR_ADAPT_MEASURE))
   {
-    m_set_mag_dip_adaptive_vals_service = create_service<SetMagDipAdaptiveValsServiceMsg>(
-        m_node, "set_mag_dip_adaptive_vals", &MicrostrainServices::set_mag_dip_adaptive_vals, this);
-    m_get_mag_dip_adaptive_vals_service = create_service<GetMagDipAdaptiveValsServiceMsg>(
-        m_node, "get_mag_dip_adaptive_vals", &MicrostrainServices::get_mag_dip_adaptive_vals, this);
+    set_mag_dip_adaptive_vals_service_ = create_service<SetMagDipAdaptiveValsServiceMsg>(
+        node_, "set_mag_dip_adaptive_vals", &MicrostrainServices::setMagDipAdaptiveVals, this);
+    get_mag_dip_adaptive_vals_service_ = create_service<GetMagDipAdaptiveValsServiceMsg>(
+        node_, "get_mag_dip_adaptive_vals", &MicrostrainServices::getMagDipAdaptiveVals, this);
   }
 
   // Kalman filter gravity adaptive filtering settings service
-  if (m_config->m_inertial_device->features().supportsCommand(
+  if (config_->inertial_device_->features().supportsCommand(
           mscl::MipTypes::Command::CMD_EF_GRAV_MAGNITUDE_ERR_ADAPT_MEASURE))
   {
-    m_set_gravity_adaptive_vals_service = create_service<SetGravityAdaptiveValsServiceMsg>(
-        m_node, "set_gravity_adaptive_vals", &MicrostrainServices::set_gravity_adaptive_vals, this);
-    m_get_gravity_adaptive_vals_service = create_service<GetGravityAdaptiveValsServiceMsg>(
-        m_node, "get_gravity_adaptive_vals", &MicrostrainServices::get_gravity_adaptive_vals, this);
+    set_gravity_adaptive_vals_service_ = create_service<SetGravityAdaptiveValsServiceMsg>(
+        node_, "set_gravity_adaptive_vals", &MicrostrainServices::setGravityAdaptiveVals, this);
+    get_gravity_adaptive_vals_service_ = create_service<GetGravityAdaptiveValsServiceMsg>(
+        node_, "get_gravity_adaptive_vals", &MicrostrainServices::getGravityAdaptiveVals, this);
   }
 
   // Kalman filter automatic angular ZUPT configuration service
-  if (m_config->m_inertial_device->features().supportsCommand(
+  if (config_->inertial_device_->features().supportsCommand(
           mscl::MipTypes::Command::CMD_EF_ZERO_ANG_RATE_UPDATE_CTRL))
   {
-    m_set_zero_angle_update_threshold_service = create_service<SetZeroAngleUpdateThresholdServiceMsg>(
-        m_node, "set_zero_angle_update_threshold", &MicrostrainServices::set_zero_angle_update_threshold, this);
-    m_get_zero_angle_update_threshold_service = create_service<GetZeroAngleUpdateThresholdServiceMsg>(
-        m_node, "get_zero_angle_update_threshold", &MicrostrainServices::get_zero_angle_update_threshold, this);
+    set_zero_angle_update_threshold_service_ = create_service<SetZeroAngleUpdateThresholdServiceMsg>(
+        node_, "set_zero_angle_update_threshold", &MicrostrainServices::setZeroAngleUpdateThreshold, this);
+    get_zero_angle_update_threshold_service_ = create_service<GetZeroAngleUpdateThresholdServiceMsg>(
+        node_, "get_zero_angle_update_threshold", &MicrostrainServices::getZeroAngleUpdateThreshold, this);
   }
 
   // Kalman Filter automatic ZUPT configuration service
-  if (m_config->m_inertial_device->features().supportsCommand(mscl::MipTypes::Command::CMD_EF_ZERO_VEL_UPDATE_CTRL))
+  if (config_->inertial_device_->features().supportsCommand(mscl::MipTypes::Command::CMD_EF_ZERO_VEL_UPDATE_CTRL))
   {
-    m_set_zero_velocity_update_threshold_service = create_service<SetZeroVelocityUpdateThresholdServiceMsg>(
-        m_node, "set_zero_velocity_update_threshold", &MicrostrainServices::set_zero_velocity_update_threshold, this);
-    m_get_zero_velocity_update_threshold_service = create_service<GetZeroVelocityUpdateThresholdServiceMsg>(
-        m_node, "get_zero_velocity_update_threshold", &MicrostrainServices::get_zero_velocity_update_threshold, this);
+    set_zero_velocity_update_threshold_service_ = create_service<SetZeroVelocityUpdateThresholdServiceMsg>(
+        node_, "set_zero_velocity_update_threshold", &MicrostrainServices::setZeroVelocityUpdateThreshold, this);
+    get_zero_velocity_update_threshold_service_ = create_service<GetZeroVelocityUpdateThresholdServiceMsg>(
+        node_, "get_zero_velocity_update_threshold", &MicrostrainServices::getZeroVelocityUpdateThreshold, this);
   }
 
   // Reference position service
-  if (m_config->m_inertial_device->features().supportsCommand(mscl::MipTypes::Command::CMD_EF_SET_REF_POSITION))
+  if (config_->inertial_device_->features().supportsCommand(mscl::MipTypes::Command::CMD_EF_SET_REF_POSITION))
   {
-    m_set_reference_position_service = create_service<SetReferencePositionServiceMsg>(
-        m_node, "set_reference_position", &MicrostrainServices::set_reference_position, this);
-    m_get_reference_position_service = create_service<GetReferencePositionServiceMsg>(
-        m_node, "get_reference_position", &MicrostrainServices::get_reference_position, this);
+    set_reference_position_service_ = create_service<SetReferencePositionServiceMsg>(
+        node_, "set_reference_position", &MicrostrainServices::setReferencePosition, this);
+    get_reference_position_service_ = create_service<GetReferencePositionServiceMsg>(
+        node_, "get_reference_position", &MicrostrainServices::getReferencePosition, this);
   }
 
   // Dynamics mode service
-  if (m_config->m_inertial_device->features().supportsCommand(mscl::MipTypes::Command::CMD_EF_VEHIC_DYNAMICS_MODE))
+  if (config_->inertial_device_->features().supportsCommand(mscl::MipTypes::Command::CMD_EF_VEHIC_DYNAMICS_MODE))
   {
-    m_set_dynamics_mode_service = create_service<SetDynamicsModeServiceMsg>(
-        m_node, "set_dynamics_mode", &MicrostrainServices::set_dynamics_mode, this);
-    m_get_dynamics_mode_service = create_service<GetDynamicsModeServiceMsg>(
-        m_node, "get_dynamics_mode", &MicrostrainServices::get_dynamics_mode, this);
+    set_dynamics_mode_service_ = create_service<SetDynamicsModeServiceMsg>(
+        node_, "set_dynamics_mode", &MicrostrainServices::setDynamicsMode, this);
+    get_dynamics_mode_service_ = create_service<GetDynamicsModeServiceMsg>(
+        node_, "get_dynamics_mode", &MicrostrainServices::getDynamicsMode, this);
   }
 
   // Device Settings Service
-  if (m_config->m_inertial_device->features().supportsCommand(mscl::MipTypes::Command::CMD_SAVE_STARTUP_SETTINGS))
+  if (config_->inertial_device_->features().supportsCommand(mscl::MipTypes::Command::CMD_SAVE_STARTUP_SETTINGS))
   {
-    m_device_settings_service = create_service<DeviceSettingsServiceMsg>(m_node, "device_settings",
-                                                                         &MicrostrainServices::device_settings, this);
+    device_settings_service_ = create_service<DeviceSettingsServiceMsg>(node_, "device_settings",
+                                                                         &MicrostrainServices::deviceSettings, this);
   }
 
   // External Heading Service
-  if ((m_config->m_inertial_device->features().supportsCommand(
+  if ((config_->inertial_device_->features().supportsCommand(
           mscl::MipTypes::Command::CMD_EF_EXTERN_HEADING_UPDATE)) ||
-      (m_config->m_inertial_device->features().supportsCommand(mscl::MipTypes::Command::CMD_EF_EXT_HEADING_UPDATE_TS)))
+      (config_->inertial_device_->features().supportsCommand(mscl::MipTypes::Command::CMD_EF_EXT_HEADING_UPDATE_TS)))
   {
-    m_external_heading_service = create_service<ExternalHeadingUpdateServiceMsg>(
-        m_node, "external_heading", &MicrostrainServices::external_heading_update, this);
+    external_heading_service_ = create_service<ExternalHeadingUpdateServiceMsg>(
+        node_, "external_heading", &MicrostrainServices::externalHeadingUpdate, this);
   }
 
   // Relative Position Reference Service
-  if (m_config->m_inertial_device->features().supportsCommand(mscl::MipTypes::Command::CMD_EF_EXT_HEADING_UPDATE_TS))
+  if (config_->inertial_device_->features().supportsCommand(mscl::MipTypes::Command::CMD_EF_EXT_HEADING_UPDATE_TS))
   {
-    m_set_relative_position_reference_service = create_service<SetRelativePositionReferenceServiceMsg>(
-        m_node, "set_relative_position_reference", &MicrostrainServices::set_relative_position_reference, this);
-    m_get_relative_position_reference_service = create_service<GetRelativePositionReferenceServiceMsg>(
-        m_node, "get_relative_position_reference", &MicrostrainServices::get_relative_position_reference, this);
+    set_relative_position_reference_service_ = create_service<SetRelativePositionReferenceServiceMsg>(
+        node_, "set_relative_position_reference", &MicrostrainServices::setRelativePositionReference, this);
+    get_relative_position_reference_service_ = create_service<GetRelativePositionReferenceServiceMsg>(
+        node_, "get_relative_position_reference", &MicrostrainServices::getRelativePositionReference, this);
   }
   return true;
 }
@@ -334,25 +334,25 @@ bool MicrostrainServices::configure_services()
 // Get Device Report
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
-bool MicrostrainServices::device_report(TriggerServiceMsg::Request& req, TriggerServiceMsg::Response& res)
+bool MicrostrainServices::deviceReport(TriggerServiceMsg::Request& req, TriggerServiceMsg::Response& res)
 {
   res.success = false;
 
-  if (m_config->m_inertial_device)
+  if (config_->inertial_device_)
   {
     try
     {
-      MICROSTRAIN_INFO(m_node, "Model Name       => %s\n", m_config->m_inertial_device->modelName().c_str());
-      MICROSTRAIN_INFO(m_node, "Model Number     => %s\n", m_config->m_inertial_device->modelNumber().c_str());
-      MICROSTRAIN_INFO(m_node, "Serial Number    => %s\n", m_config->m_inertial_device->serialNumber().c_str());
-      MICROSTRAIN_INFO(m_node, "Options          => %s\n", m_config->m_inertial_device->deviceOptions().c_str());
-      MICROSTRAIN_INFO(m_node, "Firmware Version => %s\n\n",
-                       m_config->m_inertial_device->firmwareVersion().str().c_str());
+      MICROSTRAIN_INFO(node_, "Model Name       => %s\n", config_->inertial_device_->modelName().c_str());
+      MICROSTRAIN_INFO(node_, "Model Number     => %s\n", config_->inertial_device_->modelNumber().c_str());
+      MICROSTRAIN_INFO(node_, "Serial Number    => %s\n", config_->inertial_device_->serialNumber().c_str());
+      MICROSTRAIN_INFO(node_, "Options          => %s\n", config_->inertial_device_->deviceOptions().c_str());
+      MICROSTRAIN_INFO(node_, "Firmware Version => %s\n\n",
+                       config_->inertial_device_->firmwareVersion().str().c_str());
       res.success = true;
     }
     catch (mscl::Error& e)
     {
-      MICROSTRAIN_ERROR(m_node, "Error: %s", e.what());
+      MICROSTRAIN_ERROR(node_, "Error: %s", e.what());
     }
   }
 
@@ -363,19 +363,19 @@ bool MicrostrainServices::device_report(TriggerServiceMsg::Request& req, Trigger
 // Reset Filter Service
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
-bool MicrostrainServices::reset_filter(EmptyServiceMsg::Request& req, EmptyServiceMsg::Response& res)
+bool MicrostrainServices::resetFilter(EmptyServiceMsg::Request& req, EmptyServiceMsg::Response& res)
 {
-  MICROSTRAIN_INFO(m_node, "Resetting filter\n");
+  MICROSTRAIN_INFO(node_, "Resetting filter\n");
 
-  if (m_config->m_inertial_device)
+  if (config_->inertial_device_)
   {
     try
     {
-      m_config->m_inertial_device->resetFilter();
+      config_->inertial_device_->resetFilter();
     }
     catch (mscl::Error& e)
     {
-      MICROSTRAIN_ERROR(m_node, "Error: %s", e.what());
+      MICROSTRAIN_ERROR(node_, "Error: %s", e.what());
     }
   }
 
@@ -386,24 +386,24 @@ bool MicrostrainServices::reset_filter(EmptyServiceMsg::Request& req, EmptyServi
 // Initialize Filter (Euler Angles) Service
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
-bool MicrostrainServices::init_filter_euler(InitFilterEulerServiceMsg::Request& req,
+bool MicrostrainServices::initFilterEuler(InitFilterEulerServiceMsg::Request& req,
                                             InitFilterEulerServiceMsg::Response& res)
 {
   res.success = false;
-  MICROSTRAIN_INFO(m_node, "Initializing the Filter with Euler angles\n");
+  MICROSTRAIN_INFO(node_, "Initializing the Filter with Euler angles\n");
 
-  if (m_config->m_inertial_device)
+  if (config_->inertial_device_)
   {
     try
     {
       mscl::EulerAngles attitude(req.angle.x, req.angle.y, req.angle.z);
 
-      m_config->m_inertial_device->setInitialAttitude(attitude);
+      config_->inertial_device_->setInitialAttitude(attitude);
       res.success = true;
     }
     catch (mscl::Error& e)
     {
-      MICROSTRAIN_ERROR(m_node, "Error: %s", e.what());
+      MICROSTRAIN_ERROR(node_, "Error: %s", e.what());
     }
   }
 
@@ -414,23 +414,23 @@ bool MicrostrainServices::init_filter_euler(InitFilterEulerServiceMsg::Request& 
 // Initialize Filter (Heading Angle) Service
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
-bool MicrostrainServices::init_filter_heading(InitFilterHeadingServiceMsg::Request& req,
+bool MicrostrainServices::initFilterHeading(InitFilterHeadingServiceMsg::Request& req,
                                               InitFilterHeadingServiceMsg::Response& res)
 {
   res.success = false;
 
-  if (m_config->m_inertial_device)
+  if (config_->inertial_device_)
   {
     try
     {
-      MICROSTRAIN_INFO(m_node, "Initializing the Filter with a heading angle\n");
-      m_config->m_inertial_device->setInitialHeading(req.angle);
+      MICROSTRAIN_INFO(node_, "Initializing the Filter with a heading angle\n");
+      config_->inertial_device_->setInitialHeading(req.angle);
 
       res.success = true;
     }
     catch (mscl::Error& e)
     {
-      MICROSTRAIN_ERROR(m_node, "Error: %s", e.what());
+      MICROSTRAIN_ERROR(node_, "Error: %s", e.what());
     }
   }
 
@@ -441,35 +441,35 @@ bool MicrostrainServices::init_filter_heading(InitFilterHeadingServiceMsg::Reque
 // Set Accel Bias Service
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
-bool MicrostrainServices::set_accel_bias(SetAccelBiasServiceMsg::Request& req, SetAccelBiasServiceMsg::Response& res)
+bool MicrostrainServices::setAccelBias(SetAccelBiasServiceMsg::Request& req, SetAccelBiasServiceMsg::Response& res)
 {
   res.success = false;
-  MICROSTRAIN_INFO(m_node, "Setting accel bias values");
+  MICROSTRAIN_INFO(node_, "Setting accel bias values");
 
-  if (m_config->m_inertial_device)
+  if (config_->inertial_device_)
   {
     try
     {
-      mscl::GeometricVector biasVector = m_config->m_inertial_device->getAccelerometerBias();
+      mscl::GeometricVector biasVector = config_->inertial_device_->getAccelerometerBias();
 
-      MICROSTRAIN_INFO(m_node, "Accel bias vector values are: %f %f %f", biasVector.x(), biasVector.y(),
+      MICROSTRAIN_INFO(node_, "Accel bias vector values are: %f %f %f", biasVector.x(), biasVector.y(),
                        biasVector.z());
-      MICROSTRAIN_INFO(m_node, "Client request values are: %.2f %.2f %.2f", req.bias.x, req.bias.y, req.bias.z);
+      MICROSTRAIN_INFO(node_, "Client request values are: %.2f %.2f %.2f", req.bias.x, req.bias.y, req.bias.z);
 
       biasVector.x(req.bias.x);
       biasVector.y(req.bias.y);
       biasVector.z(req.bias.z);
 
-      m_config->m_inertial_device->setAccelerometerBias(biasVector);
+      config_->inertial_device_->setAccelerometerBias(biasVector);
 
-      MICROSTRAIN_INFO(m_node, "New accel bias vector values are: %.2f %.2f %.2f", biasVector.x(), biasVector.y(),
+      MICROSTRAIN_INFO(node_, "New accel bias vector values are: %.2f %.2f %.2f", biasVector.x(), biasVector.y(),
                        biasVector.z());
 
       res.success = true;
     }
     catch (mscl::Error& e)
     {
-      MICROSTRAIN_ERROR(m_node, "Error: %s", e.what());
+      MICROSTRAIN_ERROR(node_, "Error: %s", e.what());
     }
   }
 
@@ -480,18 +480,18 @@ bool MicrostrainServices::set_accel_bias(SetAccelBiasServiceMsg::Request& req, S
 // Get Accel Bias Service
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
-bool MicrostrainServices::get_accel_bias(GetAccelBiasServiceMsg::Request& req, GetAccelBiasServiceMsg::Response& res)
+bool MicrostrainServices::getAccelBias(GetAccelBiasServiceMsg::Request& req, GetAccelBiasServiceMsg::Response& res)
 {
   res.success = false;
-  MICROSTRAIN_INFO(m_node, "Getting accel bias values\n");
+  MICROSTRAIN_INFO(node_, "Getting accel bias values\n");
 
-  if (m_config->m_inertial_device)
+  if (config_->inertial_device_)
   {
     try
     {
-      mscl::GeometricVector biasVector = m_config->m_inertial_device->getAccelerometerBias();
+      mscl::GeometricVector biasVector = config_->inertial_device_->getAccelerometerBias();
 
-      MICROSTRAIN_INFO(m_node, "Accel bias vector values are: %f %f %f.\n", biasVector.x(), biasVector.y(),
+      MICROSTRAIN_INFO(node_, "Accel bias vector values are: %f %f %f.\n", biasVector.x(), biasVector.y(),
                        biasVector.z());
 
       res.bias.x = biasVector.x();
@@ -502,7 +502,7 @@ bool MicrostrainServices::get_accel_bias(GetAccelBiasServiceMsg::Request& req, G
     }
     catch (mscl::Error& e)
     {
-      MICROSTRAIN_ERROR(m_node, "Error: %s", e.what());
+      MICROSTRAIN_ERROR(node_, "Error: %s", e.what());
     }
   }
   return res.success;
@@ -512,35 +512,35 @@ bool MicrostrainServices::get_accel_bias(GetAccelBiasServiceMsg::Request& req, G
 // Set Gyro Bias Service
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
-bool MicrostrainServices::set_gyro_bias(SetGyroBiasServiceMsg::Request& req, SetGyroBiasServiceMsg::Response& res)
+bool MicrostrainServices::setGyroBias(SetGyroBiasServiceMsg::Request& req, SetGyroBiasServiceMsg::Response& res)
 {
   res.success = false;
-  MICROSTRAIN_INFO(m_node, "Setting gyro bias values");
+  MICROSTRAIN_INFO(node_, "Setting gyro bias values");
 
-  if (m_config->m_inertial_device)
+  if (config_->inertial_device_)
   {
     try
     {
-      mscl::GeometricVector biasVector = m_config->m_inertial_device->getGyroBias();
+      mscl::GeometricVector biasVector = config_->inertial_device_->getGyroBias();
 
-      MICROSTRAIN_INFO(m_node, "Gyro bias vector values are: %f %f %f", biasVector.x(), biasVector.y(), biasVector.z());
+      MICROSTRAIN_INFO(node_, "Gyro bias vector values are: %f %f %f", biasVector.x(), biasVector.y(), biasVector.z());
 
-      MICROSTRAIN_INFO(m_node, "Client request values are: %.2f %.2f %.2f", req.bias.x, req.bias.y, req.bias.z);
+      MICROSTRAIN_INFO(node_, "Client request values are: %.2f %.2f %.2f", req.bias.x, req.bias.y, req.bias.z);
 
       biasVector.x(req.bias.x);
       biasVector.y(req.bias.y);
       biasVector.z(req.bias.z);
 
-      m_config->m_inertial_device->setGyroBias(biasVector);
+      config_->inertial_device_->setGyroBias(biasVector);
 
-      MICROSTRAIN_INFO(m_node, "New gyro bias vector values are: %.2f %.2f %.2f", biasVector.x(), biasVector.y(),
+      MICROSTRAIN_INFO(node_, "New gyro bias vector values are: %.2f %.2f %.2f", biasVector.x(), biasVector.y(),
                        biasVector.z());
 
       res.success = true;
     }
     catch (mscl::Error& e)
     {
-      MICROSTRAIN_ERROR(m_node, "Error: %s", e.what());
+      MICROSTRAIN_ERROR(node_, "Error: %s", e.what());
     }
   }
 
@@ -551,17 +551,17 @@ bool MicrostrainServices::set_gyro_bias(SetGyroBiasServiceMsg::Request& req, Set
 // Get Gyro Bias Service
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
-bool MicrostrainServices::get_gyro_bias(GetGyroBiasServiceMsg::Request& req, GetGyroBiasServiceMsg::Response& res)
+bool MicrostrainServices::getGyroBias(GetGyroBiasServiceMsg::Request& req, GetGyroBiasServiceMsg::Response& res)
 {
   res.success = false;
-  MICROSTRAIN_INFO(m_node, "Getting gyro bias values");
-  if (m_config->m_inertial_device)
+  MICROSTRAIN_INFO(node_, "Getting gyro bias values");
+  if (config_->inertial_device_)
   {
     try
     {
-      mscl::GeometricVector biasVector = m_config->m_inertial_device->getGyroBias();
+      mscl::GeometricVector biasVector = config_->inertial_device_->getGyroBias();
 
-      MICROSTRAIN_INFO(m_node, "Gyro bias vector values are: %f %f %f", biasVector.x(), biasVector.y(), biasVector.z());
+      MICROSTRAIN_INFO(node_, "Gyro bias vector values are: %f %f %f", biasVector.x(), biasVector.y(), biasVector.z());
 
       res.bias.x = biasVector.x();
       res.bias.y = biasVector.y();
@@ -571,7 +571,7 @@ bool MicrostrainServices::get_gyro_bias(GetGyroBiasServiceMsg::Request& req, Get
     }
     catch (mscl::Error& e)
     {
-      MICROSTRAIN_ERROR(m_node, "Error: %s", e.what());
+      MICROSTRAIN_ERROR(node_, "Error: %s", e.what());
     }
   }
 
@@ -582,27 +582,27 @@ bool MicrostrainServices::get_gyro_bias(GetGyroBiasServiceMsg::Request& req, Get
 // Gyro Bias Capture Service
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
-bool MicrostrainServices::gyro_bias_capture(TriggerServiceMsg::Request& req, TriggerServiceMsg::Response& res)
+bool MicrostrainServices::gyroBiasCapture(TriggerServiceMsg::Request& req, TriggerServiceMsg::Response& res)
 {
   res.success = false;
-  MICROSTRAIN_INFO(m_node,
+  MICROSTRAIN_INFO(node_,
                    "Performing Gyro Bias capture.\nPlease keep device stationary during the 10 second gyro bias "
                    "capture interval\n");
 
-  if (m_config->m_inertial_device)
+  if (config_->inertial_device_)
   {
     try
     {
-      mscl::GeometricVector biasVector = m_config->m_inertial_device->captureGyroBias(10000);
+      mscl::GeometricVector biasVector = config_->inertial_device_->captureGyroBias(10000);
 
-      MICROSTRAIN_INFO(m_node, "Gyro Bias Captured:\nbias_vector[0] = %f\nbias_vector[1] = %f\nbias_vector[2] = %f\n\n",
+      MICROSTRAIN_INFO(node_, "Gyro Bias Captured:\nbias_vector[0] = %f\nbias_vector[1] = %f\nbias_vector[2] = %f\n\n",
                        biasVector.x(), biasVector.y(), biasVector.z());
 
       res.success = true;
     }
     catch (mscl::Error& e)
     {
-      MICROSTRAIN_ERROR(m_node, "Error: %s", e.what());
+      MICROSTRAIN_ERROR(node_, "Error: %s", e.what());
     }
   }
 
@@ -613,35 +613,35 @@ bool MicrostrainServices::gyro_bias_capture(TriggerServiceMsg::Request& req, Tri
 // Set Hard Iron Offset Service
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
-bool MicrostrainServices::set_hard_iron_values(SetHardIronValuesServiceMsg::Request& req,
+bool MicrostrainServices::setHardIronValues(SetHardIronValuesServiceMsg::Request& req,
                                                SetHardIronValuesServiceMsg::Response& res)
 {
   res.success = false;
-  MICROSTRAIN_INFO(m_node, "Setting hard iron values");
+  MICROSTRAIN_INFO(node_, "Setting hard iron values");
 
-  if (m_config->m_inertial_device)
+  if (config_->inertial_device_)
   {
     try
     {
-      mscl::GeometricVector biasVector = m_config->m_inertial_device->getMagnetometerHardIronOffset();
+      mscl::GeometricVector biasVector = config_->inertial_device_->getMagnetometerHardIronOffset();
 
-      MICROSTRAIN_INFO(m_node, "Hard Iron vector values are: %f %f %f", biasVector.x(), biasVector.y(), biasVector.z());
-      MICROSTRAIN_INFO(m_node, "Client request values are: %.2f %.2f %.2f", req.bias.x, req.bias.y, req.bias.z);
+      MICROSTRAIN_INFO(node_, "Hard Iron vector values are: %f %f %f", biasVector.x(), biasVector.y(), biasVector.z());
+      MICROSTRAIN_INFO(node_, "Client request values are: %.2f %.2f %.2f", req.bias.x, req.bias.y, req.bias.z);
 
       biasVector.x(req.bias.x);
       biasVector.y(req.bias.y);
       biasVector.z(req.bias.z);
 
-      m_config->m_inertial_device->setMagnetometerHardIronOffset(biasVector);
+      config_->inertial_device_->setMagnetometerHardIronOffset(biasVector);
 
-      MICROSTRAIN_INFO(m_node, "New hard iron values are: %.2f %.2f %.2f", biasVector.x(), biasVector.y(),
+      MICROSTRAIN_INFO(node_, "New hard iron values are: %.2f %.2f %.2f", biasVector.x(), biasVector.y(),
                        biasVector.z());
 
       res.success = true;
     }
     catch (mscl::Error& e)
     {
-      MICROSTRAIN_ERROR(m_node, "Error: %s", e.what());
+      MICROSTRAIN_ERROR(node_, "Error: %s", e.what());
     }
   }
 
@@ -652,19 +652,19 @@ bool MicrostrainServices::set_hard_iron_values(SetHardIronValuesServiceMsg::Requ
 // Get Hard Iron Offset Service
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
-bool MicrostrainServices::get_hard_iron_values(GetHardIronValuesServiceMsg::Request& req,
+bool MicrostrainServices::getHardIronValues(GetHardIronValuesServiceMsg::Request& req,
                                                GetHardIronValuesServiceMsg::Response& res)
 {
   res.success = false;
-  MICROSTRAIN_INFO(m_node, "Getting gyro bias values");
+  MICROSTRAIN_INFO(node_, "Getting gyro bias values");
 
-  if (m_config->m_inertial_device)
+  if (config_->inertial_device_)
   {
     try
     {
-      mscl::GeometricVector biasVector = m_config->m_inertial_device->getMagnetometerHardIronOffset();
+      mscl::GeometricVector biasVector = config_->inertial_device_->getMagnetometerHardIronOffset();
 
-      MICROSTRAIN_INFO(m_node, "Hard iron values are: %f %f %f", biasVector.x(), biasVector.y(), biasVector.z());
+      MICROSTRAIN_INFO(node_, "Hard iron values are: %f %f %f", biasVector.x(), biasVector.y(), biasVector.z());
 
       res.bias.x = biasVector.x();
       res.bias.y = biasVector.y();
@@ -674,7 +674,7 @@ bool MicrostrainServices::get_hard_iron_values(GetHardIronValuesServiceMsg::Requ
     }
     catch (mscl::Error& e)
     {
-      MICROSTRAIN_ERROR(m_node, "Error: %s", e.what());
+      MICROSTRAIN_ERROR(node_, "Error: %s", e.what());
     }
   }
 
@@ -685,13 +685,13 @@ bool MicrostrainServices::get_hard_iron_values(GetHardIronValuesServiceMsg::Requ
 // Set Soft Iron Matrix Service
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
-bool MicrostrainServices::set_soft_iron_matrix(SetSoftIronMatrixServiceMsg::Request& req,
+bool MicrostrainServices::setSoftIronMatrix(SetSoftIronMatrixServiceMsg::Request& req,
                                                SetSoftIronMatrixServiceMsg::Response& res)
 {
   res.success = false;
-  MICROSTRAIN_INFO(m_node, "Setting the soft iron matrix values\n");
+  MICROSTRAIN_INFO(node_, "Setting the soft iron matrix values\n");
 
-  if (m_config->m_inertial_device)
+  if (config_->inertial_device_)
   {
     try
     {
@@ -706,20 +706,20 @@ bool MicrostrainServices::set_soft_iron_matrix(SetSoftIronMatrixServiceMsg::Requ
       data.set(2, 1, req.soft_iron_3.y);
       data.set(2, 2, req.soft_iron_3.z);
 
-      m_config->m_inertial_device->setMagnetometerSoftIronMatrix(data);
-      MICROSTRAIN_INFO(m_node, "Sent values:     [%f  %f  %f][%f  %f  %f][%f  %f  %f]\n", data(0, 0), data(0, 1),
+      config_->inertial_device_->setMagnetometerSoftIronMatrix(data);
+      MICROSTRAIN_INFO(node_, "Sent values:     [%f  %f  %f][%f  %f  %f][%f  %f  %f]\n", data(0, 0), data(0, 1),
                        data(0, 2), data(1, 0), data(1, 1), data(1, 2), data(2, 0), data(2, 1), data(2, 2));
 
-      data = m_config->m_inertial_device->getMagnetometerSoftIronMatrix();
+      data = config_->inertial_device_->getMagnetometerSoftIronMatrix();
 
-      MICROSTRAIN_INFO(m_node, "Returned values:     [%f  %f  %f][%f  %f  %f][%f  %f  %f]\n", data(0, 0), data(0, 1),
+      MICROSTRAIN_INFO(node_, "Returned values:     [%f  %f  %f][%f  %f  %f][%f  %f  %f]\n", data(0, 0), data(0, 1),
                        data(0, 2), data(1, 0), data(1, 1), data(1, 2), data(2, 0), data(2, 1), data(2, 2));
 
       res.success = true;
     }
     catch (mscl::Error& e)
     {
-      MICROSTRAIN_ERROR(m_node, "Error: %s", e.what());
+      MICROSTRAIN_ERROR(node_, "Error: %s", e.what());
     }
   }
 
@@ -730,19 +730,19 @@ bool MicrostrainServices::set_soft_iron_matrix(SetSoftIronMatrixServiceMsg::Requ
 // Get Soft Iron Matrix Service
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
-bool MicrostrainServices::get_soft_iron_matrix(GetSoftIronMatrixServiceMsg::Request& req,
+bool MicrostrainServices::getSoftIronMatrix(GetSoftIronMatrixServiceMsg::Request& req,
                                                GetSoftIronMatrixServiceMsg::Response& res)
 {
   res.success = false;
-  MICROSTRAIN_INFO(m_node, "Getting the soft iron matrix values\n");
+  MICROSTRAIN_INFO(node_, "Getting the soft iron matrix values\n");
 
-  if (m_config->m_inertial_device)
+  if (config_->inertial_device_)
   {
     try
     {
-      mscl::Matrix_3x3 data = m_config->m_inertial_device->getMagnetometerSoftIronMatrix();
+      mscl::Matrix_3x3 data = config_->inertial_device_->getMagnetometerSoftIronMatrix();
 
-      MICROSTRAIN_INFO(m_node, "Soft iron matrix values: [%f  %f  %f][%f  %f  %f][%f  %f  %f]\n", data(0, 0),
+      MICROSTRAIN_INFO(node_, "Soft iron matrix values: [%f  %f  %f][%f  %f  %f][%f  %f  %f]\n", data(0, 0),
                        data(0, 1), data(0, 2), data(1, 0), data(1, 1), data(1, 2), data(2, 0), data(2, 1), data(2, 2));
 
       res.soft_iron_1.x = data(0, 0);
@@ -759,7 +759,7 @@ bool MicrostrainServices::get_soft_iron_matrix(GetSoftIronMatrixServiceMsg::Requ
     }
     catch (mscl::Error& e)
     {
-      MICROSTRAIN_ERROR(m_node, "Error: %s", e.what());
+      MICROSTRAIN_ERROR(node_, "Error: %s", e.what());
     }
   }
 
@@ -770,13 +770,13 @@ bool MicrostrainServices::get_soft_iron_matrix(GetSoftIronMatrixServiceMsg::Requ
 // Set Complementary Filter Settings Service
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
-bool MicrostrainServices::set_complementary_filter(SetComplementaryFilterServiceMsg::Request& req,
+bool MicrostrainServices::setComplementaryFilter(SetComplementaryFilterServiceMsg::Request& req,
                                                    SetComplementaryFilterServiceMsg::Response& res)
 {
-  MICROSTRAIN_INFO(m_node, "Setting the complementary filter values\n");
+  MICROSTRAIN_INFO(node_, "Setting the complementary filter values\n");
   res.success = false;
 
-  if (m_config->m_inertial_device)
+  if (config_->inertial_device_)
   {
     try
     {
@@ -786,17 +786,17 @@ bool MicrostrainServices::set_complementary_filter(SetComplementaryFilterService
       comp_filter_command.northCompensationEnabled = req.north_comp_enable;
       comp_filter_command.northCompensationTimeInSeconds = req.north_comp_time_const;
 
-      m_config->m_inertial_device->setComplementaryFilterSettings(comp_filter_command);
+      config_->inertial_device_->setComplementaryFilterSettings(comp_filter_command);
 
       MICROSTRAIN_INFO(
-          m_node, "Sent values:     Up Enable: %d North Enable: %d Up Time Constant: %f North Time Constant: %f \n",
+          node_, "Sent values:     Up Enable: %d North Enable: %d Up Time Constant: %f North Time Constant: %f \n",
           comp_filter_command.upCompensationEnabled, comp_filter_command.northCompensationEnabled,
           comp_filter_command.upCompensationTimeInSeconds, comp_filter_command.northCompensationTimeInSeconds);
 
-      comp_filter_command = m_config->m_inertial_device->getComplementaryFilterSettings();
+      comp_filter_command = config_->inertial_device_->getComplementaryFilterSettings();
 
       MICROSTRAIN_INFO(
-          m_node, "Returned values: Up Enable: %d North Enable: %d Up Time Constant: %f North Time Constant: %f \n",
+          node_, "Returned values: Up Enable: %d North Enable: %d Up Time Constant: %f North Time Constant: %f \n",
           comp_filter_command.upCompensationEnabled, comp_filter_command.northCompensationEnabled,
           comp_filter_command.upCompensationTimeInSeconds, comp_filter_command.northCompensationTimeInSeconds);
 
@@ -804,7 +804,7 @@ bool MicrostrainServices::set_complementary_filter(SetComplementaryFilterService
     }
     catch (mscl::Error& e)
     {
-      MICROSTRAIN_ERROR(m_node, "Error: %s", e.what());
+      MICROSTRAIN_ERROR(node_, "Error: %s", e.what());
     }
   }
 
@@ -815,20 +815,20 @@ bool MicrostrainServices::set_complementary_filter(SetComplementaryFilterService
 // Get Complementary Filter Settings Service
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
-bool MicrostrainServices::get_complementary_filter(GetComplementaryFilterServiceMsg::Request& req,
+bool MicrostrainServices::getComplementaryFilter(GetComplementaryFilterServiceMsg::Request& req,
                                                    GetComplementaryFilterServiceMsg::Response& res)
 {
   res.success = false;
-  MICROSTRAIN_INFO(m_node, "Getting the complementary filter values\n");
+  MICROSTRAIN_INFO(node_, "Getting the complementary filter values\n");
 
-  if (m_config->m_inertial_device)
+  if (config_->inertial_device_)
   {
     try
     {
-      mscl::ComplementaryFilterData comp_filter_command = m_config->m_inertial_device->getComplementaryFilterSettings();
+      mscl::ComplementaryFilterData comp_filter_command = config_->inertial_device_->getComplementaryFilterSettings();
 
       MICROSTRAIN_INFO(
-          m_node, "Returned values: Up Enable: %d North Enable: %d Up Time Constant: %f North Time Constant: %f \n",
+          node_, "Returned values: Up Enable: %d North Enable: %d Up Time Constant: %f North Time Constant: %f \n",
           comp_filter_command.upCompensationEnabled, comp_filter_command.northCompensationEnabled,
           comp_filter_command.upCompensationTimeInSeconds, comp_filter_command.northCompensationTimeInSeconds);
 
@@ -841,7 +841,7 @@ bool MicrostrainServices::get_complementary_filter(GetComplementaryFilterService
     }
     catch (mscl::Error& e)
     {
-      MICROSTRAIN_ERROR(m_node, "Error: %s", e.what());
+      MICROSTRAIN_ERROR(node_, "Error: %s", e.what());
     }
   }
 
@@ -852,13 +852,13 @@ bool MicrostrainServices::get_complementary_filter(GetComplementaryFilterService
 // Set Heading Source Service
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
-bool MicrostrainServices::set_heading_source(SetHeadingSourceServiceMsg::Request& req,
+bool MicrostrainServices::setHeadingSource(SetHeadingSourceServiceMsg::Request& req,
                                              SetHeadingSourceServiceMsg::Response& res)
 {
   res.success = false;
-  MICROSTRAIN_INFO(m_node, "Set Heading Source\n");
+  MICROSTRAIN_INFO(node_, "Set Heading Source\n");
 
-  if (m_config->m_inertial_device)
+  if (config_->inertial_device_)
   {
     try
     {
@@ -866,12 +866,12 @@ bool MicrostrainServices::set_heading_source(SetHeadingSourceServiceMsg::Request
           static_cast<mscl::InertialTypes::HeadingUpdateEnableOption>(req.heading_source);
 
       for (mscl::HeadingUpdateOptions headingSources :
-           m_config->m_inertial_device->features().supportedHeadingUpdateOptions())
+           config_->inertial_device_->features().supportedHeadingUpdateOptions())
       {
         if (headingSources.AsOptionId() == source)
         {
-          MICROSTRAIN_INFO(m_node, "Setting heading source to %#04X", source);
-          m_config->m_inertial_device->setHeadingUpdateControl(mscl::HeadingUpdateOptions(source));
+          MICROSTRAIN_INFO(node_, "Setting heading source to %#04X", source);
+          config_->inertial_device_->setHeadingUpdateControl(mscl::HeadingUpdateOptions(source));
           res.success = true;
           break;
         }
@@ -879,7 +879,7 @@ bool MicrostrainServices::set_heading_source(SetHeadingSourceServiceMsg::Request
     }
     catch (mscl::Error& e)
     {
-      MICROSTRAIN_ERROR(m_node, "Error: %s", e.what());
+      MICROSTRAIN_ERROR(node_, "Error: %s", e.what());
     }
   }
 
@@ -890,19 +890,19 @@ bool MicrostrainServices::set_heading_source(SetHeadingSourceServiceMsg::Request
 // Get Heading Source Service
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
-bool MicrostrainServices::get_heading_source(GetHeadingSourceServiceMsg::Request& req,
+bool MicrostrainServices::getHeadingSource(GetHeadingSourceServiceMsg::Request& req,
                                              GetHeadingSourceServiceMsg::Response& res)
 {
   res.success = false;
-  MICROSTRAIN_INFO(m_node, "Getting the heading source\n");
+  MICROSTRAIN_INFO(node_, "Getting the heading source\n");
 
-  if (m_config->m_inertial_device)
+  if (config_->inertial_device_)
   {
     try
     {
-      mscl::HeadingUpdateOptions source = m_config->m_inertial_device->getHeadingUpdateControl();
+      mscl::HeadingUpdateOptions source = config_->inertial_device_->getHeadingUpdateControl();
 
-      MICROSTRAIN_INFO(m_node, "Current heading source is %#04X", source.AsOptionId());
+      MICROSTRAIN_INFO(node_, "Current heading source is %#04X", source.AsOptionId());
 
       res.heading_source = static_cast<uint8_t>(source.AsOptionId());
 
@@ -910,7 +910,7 @@ bool MicrostrainServices::get_heading_source(GetHeadingSourceServiceMsg::Request
     }
     catch (mscl::Error& e)
     {
-      MICROSTRAIN_ERROR(m_node, "Error: %s", e.what());
+      MICROSTRAIN_ERROR(node_, "Error: %s", e.what());
     }
   }
 
@@ -921,29 +921,29 @@ bool MicrostrainServices::get_heading_source(GetHeadingSourceServiceMsg::Request
 // Set Sensor2Vehicle Frame Rotation Service
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
-bool MicrostrainServices::set_sensor2vehicle_rotation(SetSensor2VehicleRotationServiceMsg::Request& req,
+bool MicrostrainServices::setSensor2vehicleRotation(SetSensor2VehicleRotationServiceMsg::Request& req,
                                                       SetSensor2VehicleRotationServiceMsg::Response& res)
 {
   res.success = false;
 
-  if (m_config->m_inertial_device)
+  if (config_->inertial_device_)
   {
     try
     {
-      MICROSTRAIN_INFO(m_node, "Setting the sensor to vehicle frame rotation\n");
+      MICROSTRAIN_INFO(node_, "Setting the sensor to vehicle frame rotation\n");
       mscl::EulerAngles angles(req.angle.x, req.angle.y, req.angle.z);
-      m_config->m_inertial_device->setSensorToVehicleRotation_eulerAngles(angles);
+      config_->inertial_device_->setSensorToVehicleRotation_eulerAngles(angles);
 
-      angles = m_config->m_inertial_device->getSensorToVehicleRotation_eulerAngles();
+      angles = config_->inertial_device_->getSensorToVehicleRotation_eulerAngles();
 
-      MICROSTRAIN_INFO(m_node, "Rotation successfully set.\n");
-      MICROSTRAIN_INFO(m_node, "New angles: %f roll %f pitch %f yaw\n", angles.roll(), angles.pitch(), angles.yaw());
+      MICROSTRAIN_INFO(node_, "Rotation successfully set.\n");
+      MICROSTRAIN_INFO(node_, "New angles: %f roll %f pitch %f yaw\n", angles.roll(), angles.pitch(), angles.yaw());
 
       res.success = true;
     }
     catch (mscl::Error& e)
     {
-      MICROSTRAIN_ERROR(m_node, "Error: %s", e.what());
+      MICROSTRAIN_ERROR(node_, "Error: %s", e.what());
     }
   }
 
@@ -954,17 +954,17 @@ bool MicrostrainServices::set_sensor2vehicle_rotation(SetSensor2VehicleRotationS
 // Get Sensor2Vehicle Frame Rotation Service
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
-bool MicrostrainServices::get_sensor2vehicle_rotation(GetSensor2VehicleRotationServiceMsg::Request& req,
+bool MicrostrainServices::getSensor2vehicleRotation(GetSensor2VehicleRotationServiceMsg::Request& req,
                                                       GetSensor2VehicleRotationServiceMsg::Response& res)
 {
   res.success = false;
 
-  if (m_config->m_inertial_device)
+  if (config_->inertial_device_)
   {
     try
     {
-      mscl::EulerAngles angles = m_config->m_inertial_device->getSensorToVehicleRotation_eulerAngles();
-      MICROSTRAIN_INFO(m_node, "Sensor Vehicle Frame Rotation Angles: %f roll %f pitch %f yaw\n", angles.roll(),
+      mscl::EulerAngles angles = config_->inertial_device_->getSensorToVehicleRotation_eulerAngles();
+      MICROSTRAIN_INFO(node_, "Sensor Vehicle Frame Rotation Angles: %f roll %f pitch %f yaw\n", angles.roll(),
                        angles.pitch(), angles.yaw());
 
       res.angle.x = angles.roll();
@@ -975,7 +975,7 @@ bool MicrostrainServices::get_sensor2vehicle_rotation(GetSensor2VehicleRotationS
     }
     catch (mscl::Error& e)
     {
-      MICROSTRAIN_ERROR(m_node, "Error: %s", e.what());
+      MICROSTRAIN_ERROR(node_, "Error: %s", e.what());
     }
   }
 
@@ -987,28 +987,28 @@ bool MicrostrainServices::get_sensor2vehicle_rotation(GetSensor2VehicleRotationS
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // Set sensor to vehicle frame offset. Only in 45
-bool MicrostrainServices::set_sensor2vehicle_offset(SetSensor2VehicleOffsetServiceMsg::Request& req,
+bool MicrostrainServices::setSensor2vehicleOffset(SetSensor2VehicleOffsetServiceMsg::Request& req,
                                                     SetSensor2VehicleOffsetServiceMsg::Response& res)
 {
   res.success = false;
 
-  if (m_config->m_inertial_device)
+  if (config_->inertial_device_)
   {
     try
     {
-      MICROSTRAIN_INFO(m_node, "Setting the sensor to vehicle frame offset\n");
+      MICROSTRAIN_INFO(node_, "Setting the sensor to vehicle frame offset\n");
       mscl::PositionOffset offset(req.offset.x, req.offset.y, req.offset.z);
-      m_config->m_inertial_device->setSensorToVehicleOffset(offset);
+      config_->inertial_device_->setSensorToVehicleOffset(offset);
 
-      offset = m_config->m_inertial_device->getSensorToVehicleOffset();
-      MICROSTRAIN_INFO(m_node, "Offset successfully set.\n");
-      MICROSTRAIN_INFO(m_node, "Returned offset: %f X %f Y %f Z\n", offset.x(), offset.y(), offset.z());
+      offset = config_->inertial_device_->getSensorToVehicleOffset();
+      MICROSTRAIN_INFO(node_, "Offset successfully set.\n");
+      MICROSTRAIN_INFO(node_, "Returned offset: %f X %f Y %f Z\n", offset.x(), offset.y(), offset.z());
 
       res.success = true;
     }
     catch (mscl::Error& e)
     {
-      MICROSTRAIN_ERROR(m_node, "Error: %s", e.what());
+      MICROSTRAIN_ERROR(node_, "Error: %s", e.what());
     }
   }
 
@@ -1019,19 +1019,19 @@ bool MicrostrainServices::set_sensor2vehicle_offset(SetSensor2VehicleOffsetServi
 // Get Sensor2Vehicle Frame Offset Service
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
-bool MicrostrainServices::get_sensor2vehicle_offset(GetSensor2VehicleOffsetServiceMsg::Request& req,
+bool MicrostrainServices::getSensor2vehicleOffset(GetSensor2VehicleOffsetServiceMsg::Request& req,
                                                     GetSensor2VehicleOffsetServiceMsg::Response& res)
 {
   res.success = false;
 
-  if (m_config->m_inertial_device)
+  if (config_->inertial_device_)
   {
     try
     {
-      MICROSTRAIN_INFO(m_node, "Getting the sensor to vehicle frame offset\n");
+      MICROSTRAIN_INFO(node_, "Getting the sensor to vehicle frame offset\n");
 
-      mscl::PositionOffset offset = m_config->m_inertial_device->getSensorToVehicleOffset();
-      MICROSTRAIN_INFO(m_node, "Returned offset: %f X %f Y %f Z\n", offset.x(), offset.y(), offset.z());
+      mscl::PositionOffset offset = config_->inertial_device_->getSensorToVehicleOffset();
+      MICROSTRAIN_INFO(node_, "Returned offset: %f X %f Y %f Z\n", offset.x(), offset.y(), offset.z());
 
       res.offset.x = offset.x();
       res.offset.y = offset.y();
@@ -1041,7 +1041,7 @@ bool MicrostrainServices::get_sensor2vehicle_offset(GetSensor2VehicleOffsetServi
     }
     catch (mscl::Error& e)
     {
-      MICROSTRAIN_ERROR(m_node, "Error: %s", e.what());
+      MICROSTRAIN_ERROR(node_, "Error: %s", e.what());
     }
   }
 
@@ -1052,21 +1052,21 @@ bool MicrostrainServices::get_sensor2vehicle_offset(GetSensor2VehicleOffsetServi
 // Get Sensor2Vehicle Frame Transformation (Combination of Offset and Rotation) Service
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
-bool MicrostrainServices::get_sensor2vehicle_transformation(GetSensor2VehicleTransformationServiceMsg::Request& req,
+bool MicrostrainServices::getSensor2vehicleTransformation(GetSensor2VehicleTransformationServiceMsg::Request& req,
                                                             GetSensor2VehicleTransformationServiceMsg::Response& res)
 {
   res.success = false;
 
-  if (!m_config->m_inertial_device)
+  if (!config_->inertial_device_)
   {
     return res.success;
   }
 
   try
   {
-    MICROSTRAIN_INFO(m_node, "Getting transform from sensor frame to vehicle frame");
-    const mscl::PositionOffset offset = m_config->m_inertial_device->getSensorToVehicleOffset();
-    const mscl::EulerAngles rotation = m_config->m_inertial_device->getSensorToVehicleRotation_eulerAngles();
+    MICROSTRAIN_INFO(node_, "Getting transform from sensor frame to vehicle frame");
+    const mscl::PositionOffset offset = config_->inertial_device_->getSensorToVehicleOffset();
+    const mscl::EulerAngles rotation = config_->inertial_device_->getSensorToVehicleRotation_eulerAngles();
 
     // set offset components from the device-stored values
     res.offset.x = offset.x();
@@ -1082,7 +1082,7 @@ bool MicrostrainServices::get_sensor2vehicle_transformation(GetSensor2VehicleTra
   }
   catch (mscl::Error& e)
   {
-    MICROSTRAIN_ERROR(m_node, "Error getting sensor to vehicle transform: '%s'", e.what());
+    MICROSTRAIN_ERROR(node_, "Error getting sensor to vehicle transform: '%s'", e.what());
   }
 
   return res.success;
@@ -1092,28 +1092,28 @@ bool MicrostrainServices::get_sensor2vehicle_transformation(GetSensor2VehicleTra
 // Set Reference Position Service
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
-bool MicrostrainServices::set_reference_position(SetReferencePositionServiceMsg::Request& req,
+bool MicrostrainServices::setReferencePosition(SetReferencePositionServiceMsg::Request& req,
                                                  SetReferencePositionServiceMsg::Response& res)
 {
   res.success = false;
 
-  if (m_config->m_inertial_device)
+  if (config_->inertial_device_)
   {
     try
     {
-      MICROSTRAIN_INFO(m_node, "Setting reference Position\n");
+      MICROSTRAIN_INFO(node_, "Setting reference Position\n");
 
       mscl::Position referencePosition(req.position.x, req.position.y, req.position.z);
       mscl::FixedReferencePositionData referencePositionData(true, referencePosition);
 
-      m_config->m_inertial_device->setFixedReferencePosition(referencePositionData);
+      config_->inertial_device_->setFixedReferencePosition(referencePositionData);
 
-      MICROSTRAIN_INFO(m_node, "Reference position successfully set\n");
+      MICROSTRAIN_INFO(node_, "Reference position successfully set\n");
       res.success = true;
     }
     catch (mscl::Error& e)
     {
-      MICROSTRAIN_ERROR(m_node, "Error: %s", e.what());
+      MICROSTRAIN_ERROR(node_, "Error: %s", e.what());
     }
   }
 
@@ -1124,19 +1124,19 @@ bool MicrostrainServices::set_reference_position(SetReferencePositionServiceMsg:
 // Get Reference Position Service
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
-bool MicrostrainServices::get_reference_position(GetReferencePositionServiceMsg::Request& req,
+bool MicrostrainServices::getReferencePosition(GetReferencePositionServiceMsg::Request& req,
                                                  GetReferencePositionServiceMsg::Response& res)
 {
   res.success = false;
 
-  if (m_config->m_inertial_device)
+  if (config_->inertial_device_)
   {
     try
     {
-      MICROSTRAIN_INFO(m_node, "Getting reference position");
+      MICROSTRAIN_INFO(node_, "Getting reference position");
 
-      mscl::Position referencePosition = m_config->m_inertial_device->getFixedReferencePosition().referencePosition;
-      MICROSTRAIN_INFO(m_node, "Reference position: Lat %f , Long %f, Alt %f", referencePosition.latitude(),
+      mscl::Position referencePosition = config_->inertial_device_->getFixedReferencePosition().referencePosition;
+      MICROSTRAIN_INFO(node_, "Reference position: Lat %f , Long %f, Alt %f", referencePosition.latitude(),
                        referencePosition.longitude(), referencePosition.altitude());
 
       res.position.x = referencePosition.latitude();
@@ -1147,7 +1147,7 @@ bool MicrostrainServices::get_reference_position(GetReferencePositionServiceMsg:
     }
     catch (mscl::Error& e)
     {
-      MICROSTRAIN_ERROR(m_node, "Error: %s", e.what());
+      MICROSTRAIN_ERROR(node_, "Error: %s", e.what());
     }
   }
 
@@ -1158,28 +1158,28 @@ bool MicrostrainServices::get_reference_position(GetReferencePositionServiceMsg:
 // Set Enable/Disable Coning and Sculling Compensation Service
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
-bool MicrostrainServices::set_coning_sculling_comp(SetConingScullingCompServiceMsg::Request& req,
+bool MicrostrainServices::setConingScullingComp(SetConingScullingCompServiceMsg::Request& req,
                                                    SetConingScullingCompServiceMsg::Response& res)
 {
   res.success = false;
 
-  if (m_config->m_inertial_device)
+  if (config_->inertial_device_)
   {
     try
     {
-      MICROSTRAIN_INFO(m_node, "%s Coning and Sculling compensation", req.enable ? "DISABLED" : "ENABLED\n");
-      m_config->m_inertial_device->setConingAndScullingEnable(req.enable);
+      MICROSTRAIN_INFO(node_, "%s Coning and Sculling compensation", req.enable ? "DISABLED" : "ENABLED\n");
+      config_->inertial_device_->setConingAndScullingEnable(req.enable);
 
-      MICROSTRAIN_INFO(m_node, "Reading Coning and Sculling compensation enabled state:\n");
+      MICROSTRAIN_INFO(node_, "Reading Coning and Sculling compensation enabled state:\n");
 
-      bool enabled = m_config->m_inertial_device->getConingAndScullingEnable();
-      MICROSTRAIN_INFO(m_node, "%s Coning and Sculling compensation", enabled ? "DISABLED" : "ENABLED\n");
+      bool enabled = config_->inertial_device_->getConingAndScullingEnable();
+      MICROSTRAIN_INFO(node_, "%s Coning and Sculling compensation", enabled ? "DISABLED" : "ENABLED\n");
 
       res.success = true;
     }
     catch (mscl::Error& e)
     {
-      MICROSTRAIN_ERROR(m_node, "Error: %s", e.what());
+      MICROSTRAIN_ERROR(node_, "Error: %s", e.what());
     }
   }
 
@@ -1190,26 +1190,26 @@ bool MicrostrainServices::set_coning_sculling_comp(SetConingScullingCompServiceM
 // Get Enable/Disable Coning and Sculling Compensation Service
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
-bool MicrostrainServices::get_coning_sculling_comp(GetConingScullingCompServiceMsg::Request& req,
+bool MicrostrainServices::getConingScullingComp(GetConingScullingCompServiceMsg::Request& req,
                                                    GetConingScullingCompServiceMsg::Response& res)
 {
   res.success = false;
 
-  if (m_config->m_inertial_device)
+  if (config_->inertial_device_)
   {
     try
     {
-      MICROSTRAIN_INFO(m_node, "Reading Coning and Sculling compensation enabled state:\n");
+      MICROSTRAIN_INFO(node_, "Reading Coning and Sculling compensation enabled state:\n");
 
-      bool enabled = m_config->m_inertial_device->getConingAndScullingEnable();
-      MICROSTRAIN_INFO(m_node, "%s Coning and Sculling compensation", enabled ? "DISABLED" : "ENABLED\n");
+      bool enabled = config_->inertial_device_->getConingAndScullingEnable();
+      MICROSTRAIN_INFO(node_, "%s Coning and Sculling compensation", enabled ? "DISABLED" : "ENABLED\n");
 
       res.enable = enabled;
       res.success = true;
     }
     catch (mscl::Error& e)
     {
-      MICROSTRAIN_ERROR(m_node, "Error: %s", e.what());
+      MICROSTRAIN_ERROR(node_, "Error: %s", e.what());
     }
   }
 
@@ -1220,23 +1220,23 @@ bool MicrostrainServices::get_coning_sculling_comp(GetConingScullingCompServiceM
 // Set Estimation Control Flags Service
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
-bool MicrostrainServices::set_estimation_control_flags(SetEstimationControlFlagsServiceMsg::Request& req,
+bool MicrostrainServices::setEstimationControlFlags(SetEstimationControlFlagsServiceMsg::Request& req,
                                                        SetEstimationControlFlagsServiceMsg::Response& res)
 {
-  if (m_config->m_inertial_device)
+  if (config_->inertial_device_)
   {
     try
     {
       mscl::EstimationControlOptions flags(req.flags);
-      m_config->m_inertial_device->setEstimationControlFlags(flags);
-      flags = m_config->m_inertial_device->getEstimationControlFlags();
-      MICROSTRAIN_INFO(m_node, "Estimation control set to: %d", flags.AsUint16());
+      config_->inertial_device_->setEstimationControlFlags(flags);
+      flags = config_->inertial_device_->getEstimationControlFlags();
+      MICROSTRAIN_INFO(node_, "Estimation control set to: %d", flags.AsUint16());
 
       res.success = true;
     }
     catch (mscl::Error& e)
     {
-      MICROSTRAIN_ERROR(m_node, "Error: %s", e.what());
+      MICROSTRAIN_ERROR(node_, "Error: %s", e.what());
     }
   }
 
@@ -1247,25 +1247,25 @@ bool MicrostrainServices::set_estimation_control_flags(SetEstimationControlFlags
 // Get Estimation Control Flags Service
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
-bool MicrostrainServices::get_estimation_control_flags(GetEstimationControlFlagsServiceMsg::Request& req,
+bool MicrostrainServices::getEstimationControlFlags(GetEstimationControlFlagsServiceMsg::Request& req,
                                                        GetEstimationControlFlagsServiceMsg::Response& res)
 {
   res.success = false;
 
-  if (m_config->m_inertial_device)
+  if (config_->inertial_device_)
   {
     try
     {
-      uint16_t flags = m_config->m_inertial_device->getEstimationControlFlags().AsUint16();
+      uint16_t flags = config_->inertial_device_->getEstimationControlFlags().AsUint16();
 
-      MICROSTRAIN_INFO(m_node, "Estimation control set to: %x", flags);
+      MICROSTRAIN_INFO(node_, "Estimation control set to: %x", flags);
 
       res.flags = flags;
       res.success = true;
     }
     catch (mscl::Error& e)
     {
-      MICROSTRAIN_ERROR(m_node, "Error: %s", e.what());
+      MICROSTRAIN_ERROR(node_, "Error: %s", e.what());
     }
   }
 
@@ -1276,30 +1276,25 @@ bool MicrostrainServices::get_estimation_control_flags(GetEstimationControlFlags
 // Get Device Basic Status Service
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void MicrostrainServices::get_basic_status_ptr(const std::shared_ptr<TriggerServiceMsg::Request> req,
-                                               std::shared_ptr<TriggerServiceMsg::Response> res)
+bool MicrostrainServices::getBasicStatus(TriggerServiceMsg::Request& req, TriggerServiceMsg::Response& res)
 {
-}
-
-bool MicrostrainServices::get_basic_status(TriggerServiceMsg::Request& req, TriggerServiceMsg::Response& res)
-{
-  if (!m_config->m_inertial_device)
+  if (!config_->inertial_device_)
   {
     return false;
   }
 
-  if (m_config->m_inertial_device->features().supportsCommand(mscl::MipTypes::Command::CMD_DEVICE_STATUS))
+  if (config_->inertial_device_->features().supportsCommand(mscl::MipTypes::Command::CMD_DEVICE_STATUS))
   {
     mscl::DeviceStatusMap status;
 
-    if (m_config->m_inertial_device->features().supportedStatusSelectors().size() > 0)
+    if (config_->inertial_device_->features().supportedStatusSelectors().size() > 0)
     {
-      mscl::DeviceStatusData statusData = m_config->m_inertial_device->getBasicDeviceStatus();
+      mscl::DeviceStatusData statusData = config_->inertial_device_->getBasicDeviceStatus();
       status = statusData.asMap();
     }
     else
     {
-      MICROSTRAIN_INFO(m_node, "Model Number: \t\t\t\t\t%s\n", m_config->m_inertial_device->modelNumber().c_str());
+      MICROSTRAIN_INFO(node_, "Model Number: \t\t\t\t\t%s\n", config_->inertial_device_->modelNumber().c_str());
       return true;
     }
 
@@ -1310,15 +1305,15 @@ bool MicrostrainServices::get_basic_status(TriggerServiceMsg::Request& req, Trig
       switch (it->first)
       {
         case mscl::DeviceStatusValues::ModelNumber:
-          MICROSTRAIN_INFO(m_node, "Model Number: \t\t\t\t\t%s\n", (it->second).c_str());
+          MICROSTRAIN_INFO(node_, "Model Number: \t\t\t\t\t%s\n", (it->second).c_str());
           break;
 
         case mscl::DeviceStatusValues::StatusStructure_Value:
-          MICROSTRAIN_INFO(m_node, "Status Selector: \t\t\t\t%s\n", (it->second).c_str());
+          MICROSTRAIN_INFO(node_, "Status Selector: \t\t\t\t%s\n", (it->second).c_str());
           break;
 
         case mscl::DeviceStatusValues::SystemState_Value:
-          MICROSTRAIN_INFO(m_node, "System state: \t\t\t\t\t%s\n", (it->second).c_str());
+          MICROSTRAIN_INFO(node_, "System state: \t\t\t\t\t%s\n", (it->second).c_str());
           break;
 
         default:
@@ -1333,35 +1328,35 @@ bool MicrostrainServices::get_basic_status(TriggerServiceMsg::Request& req, Trig
 // Get Diagnostic Status Service
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
-bool MicrostrainServices::get_diagnostic_report(TriggerServiceMsg::Request& req, TriggerServiceMsg::Response& res)
+bool MicrostrainServices::getDiagnosticReport(TriggerServiceMsg::Request& req, TriggerServiceMsg::Response& res)
 {
   res.success = false;
 
-  if (!m_config->m_inertial_device)
+  if (!config_->inertial_device_)
   {
     return false;
   }
 
-  if (m_config->m_inertial_device->features().supportsCommand(mscl::MipTypes::Command::CMD_DEVICE_STATUS))
+  if (config_->inertial_device_->features().supportsCommand(mscl::MipTypes::Command::CMD_DEVICE_STATUS))
   {
     mscl::DeviceStatusMap status;
 
-    if (m_config->m_inertial_device->features().supportedStatusSelectors().size() > 1)
+    if (config_->inertial_device_->features().supportedStatusSelectors().size() > 1)
     {
-      mscl::DeviceStatusData statusData = m_config->m_inertial_device->getDiagnosticDeviceStatus();
+      mscl::DeviceStatusData statusData = config_->inertial_device_->getDiagnosticDeviceStatus();
       status = statusData.asMap();
       res.success = true;
     }
 
-    else if (m_config->m_inertial_device->features().supportedStatusSelectors().size() > 0)
+    else if (config_->inertial_device_->features().supportedStatusSelectors().size() > 0)
     {
-      mscl::DeviceStatusData statusData = m_config->m_inertial_device->getBasicDeviceStatus();
+      mscl::DeviceStatusData statusData = config_->inertial_device_->getBasicDeviceStatus();
       status = statusData.asMap();
       res.success = true;
     }
     else
     {
-      MICROSTRAIN_INFO(m_node, "Model Number: \t\t\t\t\t%s\n", m_config->m_inertial_device->modelNumber().c_str());
+      MICROSTRAIN_INFO(node_, "Model Number: \t\t\t\t\t%s\n", config_->inertial_device_->modelNumber().c_str());
       return true;
     }
 
@@ -1372,61 +1367,61 @@ bool MicrostrainServices::get_diagnostic_report(TriggerServiceMsg::Request& req,
       switch (it->first)
       {
         case mscl::DeviceStatusValues::ModelNumber:
-          MICROSTRAIN_INFO(m_node, "Model Number: \t\t\t\t\t%s\n", (it->second).c_str());
+          MICROSTRAIN_INFO(node_, "Model Number: \t\t\t\t\t%s\n", (it->second).c_str());
           break;
 
         case mscl::DeviceStatusValues::StatusStructure_Value:
-          MICROSTRAIN_INFO(m_node, "Status Selector: \t\t\t\t%s\n", (it->second).c_str());
+          MICROSTRAIN_INFO(node_, "Status Selector: \t\t\t\t%s\n", (it->second).c_str());
           break;
 
         case mscl::DeviceStatusValues::SystemState_Value:
-          MICROSTRAIN_INFO(m_node, "System state: \t\t\t\t\t%s\n", (it->second).c_str());
+          MICROSTRAIN_INFO(node_, "System state: \t\t\t\t\t%s\n", (it->second).c_str());
           break;
 
         case mscl::DeviceStatusValues::ImuStreamInfo_Enabled:
-          MICROSTRAIN_INFO(m_node, "IMU Streaming Enabled: \t\t\t\t%s\n",
+          MICROSTRAIN_INFO(node_, "IMU Streaming Enabled: \t\t\t\t%s\n",
                            strcmp((it->second).c_str(), "1") == 0 ? "TRUE" : "FALSE");
           break;
 
         case mscl::DeviceStatusValues::ImuStreamInfo_PacketsDropped:
-          MICROSTRAIN_INFO(m_node, "Number of Dropped IMU Packets: \t\t\t%s Packets\n", (it->second).c_str());
+          MICROSTRAIN_INFO(node_, "Number of Dropped IMU Packets: \t\t\t%s Packets\n", (it->second).c_str());
           break;
 
         case mscl::DeviceStatusValues::EstimationFilterStreamInfo_Enabled:
-          MICROSTRAIN_INFO(m_node, "FILTER Streaming Enabled: \t\t\t%s\n",
+          MICROSTRAIN_INFO(node_, "FILTER Streaming Enabled: \t\t\t%s\n",
                            strcmp((it->second).c_str(), "1") == 0 ? "TRUE" : "FALSE");
           break;
 
         case mscl::DeviceStatusValues::EstimationFilterStreamInfo_PacketsDropped:
-          MICROSTRAIN_INFO(m_node, "Number of Dropped FILTER Packets: \t\t%s Packets\n", (it->second).c_str());
+          MICROSTRAIN_INFO(node_, "Number of Dropped FILTER Packets: \t\t%s Packets\n", (it->second).c_str());
           break;
 
         case mscl::DeviceStatusValues::ComPortInfo_BytesWritten:
-          MICROSTRAIN_INFO(m_node, "Communications Port Bytes Written: \t\t%s Bytes\n", (it->second).c_str());
+          MICROSTRAIN_INFO(node_, "Communications Port Bytes Written: \t\t%s Bytes\n", (it->second).c_str());
           break;
 
         case mscl::DeviceStatusValues::ComPortInfo_BytesRead:
-          MICROSTRAIN_INFO(m_node, "Communications Port Bytes Read: \t\t%s Bytes\n", (it->second).c_str());
+          MICROSTRAIN_INFO(node_, "Communications Port Bytes Read: \t\t%s Bytes\n", (it->second).c_str());
           break;
 
         case mscl::DeviceStatusValues::ComPortInfo_OverrunsOnWrite:
-          MICROSTRAIN_INFO(m_node, "Communications Port Write Overruns: \t\t%s\n", (it->second).c_str());
+          MICROSTRAIN_INFO(node_, "Communications Port Write Overruns: \t\t%s\n", (it->second).c_str());
           break;
 
         case mscl::DeviceStatusValues::ComPortInfo_OverrunsOnRead:
-          MICROSTRAIN_INFO(m_node, "Communications Port Read Overruns: \t\t%s\n", (it->second).c_str());
+          MICROSTRAIN_INFO(node_, "Communications Port Read Overruns: \t\t%s\n", (it->second).c_str());
           break;
 
         case mscl::DeviceStatusValues::ImuMessageInfo_MessageParsingErrors:
-          MICROSTRAIN_INFO(m_node, "IMU Parser Errors: \t\t\t\t%s Errors\n", (it->second).c_str());
+          MICROSTRAIN_INFO(node_, "IMU Parser Errors: \t\t\t\t%s Errors\n", (it->second).c_str());
           break;
 
         case mscl::DeviceStatusValues::ImuMessageInfo_MessagesRead:
-          MICROSTRAIN_INFO(m_node, "IMU Message Count: \t\t\t\t%s Messages\n", (it->second).c_str());
+          MICROSTRAIN_INFO(node_, "IMU Message Count: \t\t\t\t%s Messages\n", (it->second).c_str());
           break;
 
         case mscl::DeviceStatusValues::ImuMessageInfo_LastMessageReadinMS:
-          MICROSTRAIN_INFO(m_node, "IMU Last Message Received: \t\t\t%s ms\n", (it->second).c_str());
+          MICROSTRAIN_INFO(node_, "IMU Last Message Received: \t\t\t%s ms\n", (it->second).c_str());
           break;
 
         default:
@@ -1442,29 +1437,29 @@ bool MicrostrainServices::get_diagnostic_report(TriggerServiceMsg::Request& req,
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // Set zero angular-rate update threshold
-bool MicrostrainServices::set_zero_angle_update_threshold(SetZeroAngleUpdateThresholdServiceMsg::Request& req,
+bool MicrostrainServices::setZeroAngleUpdateThreshold(SetZeroAngleUpdateThresholdServiceMsg::Request& req,
                                                           SetZeroAngleUpdateThresholdServiceMsg::Response& res)
 {
   res.success = false;
 
-  MICROSTRAIN_INFO(m_node, "Setting Zero Angular-Rate-Update threshold\n");
+  MICROSTRAIN_INFO(node_, "Setting Zero Angular-Rate-Update threshold\n");
 
-  if (m_config->m_inertial_device)
+  if (config_->inertial_device_)
   {
     try
     {
       mscl::ZUPTSettingsData ZUPTSettings(req.enable, req.threshold);
-      m_config->m_inertial_device->setAngularRateZUPT(ZUPTSettings);
+      config_->inertial_device_->setAngularRateZUPT(ZUPTSettings);
 
-      ZUPTSettings = m_config->m_inertial_device->getAngularRateZUPT();
-      MICROSTRAIN_INFO(m_node, "Enable value set to: %d, Threshold is: %f rad/s", ZUPTSettings.enabled,
+      ZUPTSettings = config_->inertial_device_->getAngularRateZUPT();
+      MICROSTRAIN_INFO(node_, "Enable value set to: %d, Threshold is: %f rad/s", ZUPTSettings.enabled,
                        ZUPTSettings.threshold);
 
       res.success = true;
     }
     catch (mscl::Error& e)
     {
-      MICROSTRAIN_ERROR(m_node, "Error: %s", e.what());
+      MICROSTRAIN_ERROR(node_, "Error: %s", e.what());
     }
   }
 
@@ -1475,19 +1470,19 @@ bool MicrostrainServices::set_zero_angle_update_threshold(SetZeroAngleUpdateThre
 // Get Auto Angular Zupt Enable/Threshold Service
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
-bool MicrostrainServices::get_zero_angle_update_threshold(GetZeroAngleUpdateThresholdServiceMsg::Request& req,
+bool MicrostrainServices::getZeroAngleUpdateThreshold(GetZeroAngleUpdateThresholdServiceMsg::Request& req,
                                                           GetZeroAngleUpdateThresholdServiceMsg::Response& res)
 {
   res.success = false;
 
-  MICROSTRAIN_INFO(m_node, "Getting Zero Angular-Rate-Update threshold\n");
+  MICROSTRAIN_INFO(node_, "Getting Zero Angular-Rate-Update threshold\n");
 
-  if (m_config->m_inertial_device)
+  if (config_->inertial_device_)
   {
     try
     {
-      mscl::ZUPTSettingsData ZUPTSettings = m_config->m_inertial_device->getAngularRateZUPT();
-      MICROSTRAIN_INFO(m_node, "Enable value set to: %d, Threshold is: %f rad/s", ZUPTSettings.enabled,
+      mscl::ZUPTSettingsData ZUPTSettings = config_->inertial_device_->getAngularRateZUPT();
+      MICROSTRAIN_INFO(node_, "Enable value set to: %d, Threshold is: %f rad/s", ZUPTSettings.enabled,
                        ZUPTSettings.threshold);
 
       res.enable = ZUPTSettings.enabled;
@@ -1496,7 +1491,7 @@ bool MicrostrainServices::get_zero_angle_update_threshold(GetZeroAngleUpdateThre
     }
     catch (mscl::Error& e)
     {
-      MICROSTRAIN_ERROR(m_node, "Error: %s", e.what());
+      MICROSTRAIN_ERROR(node_, "Error: %s", e.what());
     }
   }
 
@@ -1507,29 +1502,29 @@ bool MicrostrainServices::get_zero_angle_update_threshold(GetZeroAngleUpdateThre
 // Set Auto Velocity Zupt Enable/Threshold Service
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
-bool MicrostrainServices::set_zero_velocity_update_threshold(SetZeroVelocityUpdateThresholdServiceMsg::Request& req,
+bool MicrostrainServices::setZeroVelocityUpdateThreshold(SetZeroVelocityUpdateThresholdServiceMsg::Request& req,
                                                              SetZeroVelocityUpdateThresholdServiceMsg::Response& res)
 {
   res.success = false;
 
-  MICROSTRAIN_INFO(m_node, "Setting Zero Velocity-Update threshold\n");
+  MICROSTRAIN_INFO(node_, "Setting Zero Velocity-Update threshold\n");
 
-  if (m_config->m_inertial_device)
+  if (config_->inertial_device_)
   {
     try
     {
       mscl::ZUPTSettingsData ZUPTSettings(req.enable, req.threshold);
-      m_config->m_inertial_device->setVelocityZUPT(ZUPTSettings);
+      config_->inertial_device_->setVelocityZUPT(ZUPTSettings);
 
-      ZUPTSettings = m_config->m_inertial_device->getVelocityZUPT();
-      MICROSTRAIN_INFO(m_node, "Enable value set to: %d, Threshold is: %f m/s", ZUPTSettings.enabled,
+      ZUPTSettings = config_->inertial_device_->getVelocityZUPT();
+      MICROSTRAIN_INFO(node_, "Enable value set to: %d, Threshold is: %f m/s", ZUPTSettings.enabled,
                        ZUPTSettings.threshold);
 
       res.success = true;
     }
     catch (mscl::Error& e)
     {
-      MICROSTRAIN_ERROR(m_node, "Error: %s", e.what());
+      MICROSTRAIN_ERROR(node_, "Error: %s", e.what());
     }
   }
 
@@ -1540,19 +1535,19 @@ bool MicrostrainServices::set_zero_velocity_update_threshold(SetZeroVelocityUpda
 // Get Auto Velocity Zupt Enable/Threshold Service
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
-bool MicrostrainServices::get_zero_velocity_update_threshold(GetZeroVelocityUpdateThresholdServiceMsg::Request& req,
+bool MicrostrainServices::getZeroVelocityUpdateThreshold(GetZeroVelocityUpdateThresholdServiceMsg::Request& req,
                                                              GetZeroVelocityUpdateThresholdServiceMsg::Response& res)
 {
   res.success = false;
 
-  MICROSTRAIN_INFO(m_node, "Getting Zero Velocity-Update threshold\n");
+  MICROSTRAIN_INFO(node_, "Getting Zero Velocity-Update threshold\n");
 
-  if (m_config->m_inertial_device)
+  if (config_->inertial_device_)
   {
     try
     {
-      mscl::ZUPTSettingsData ZUPTSettings = m_config->m_inertial_device->getVelocityZUPT();
-      MICROSTRAIN_INFO(m_node, "Enable value set to: %d, Threshold is: %f rad/s", ZUPTSettings.enabled,
+      mscl::ZUPTSettingsData ZUPTSettings = config_->inertial_device_->getVelocityZUPT();
+      MICROSTRAIN_INFO(node_, "Enable value set to: %d, Threshold is: %f rad/s", ZUPTSettings.enabled,
                        ZUPTSettings.threshold);
 
       res.enable = ZUPTSettings.enabled;
@@ -1561,7 +1556,7 @@ bool MicrostrainServices::get_zero_velocity_update_threshold(GetZeroVelocityUpda
     }
     catch (mscl::Error& e)
     {
-      MICROSTRAIN_ERROR(m_node, "Error: %s", e.what());
+      MICROSTRAIN_ERROR(node_, "Error: %s", e.what());
     }
   }
 
@@ -1572,25 +1567,25 @@ bool MicrostrainServices::get_zero_velocity_update_threshold(GetZeroVelocityUpda
 // Tare Orientation Service
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
-bool MicrostrainServices::set_tare_orientation(SetTareOrientationServiceMsg::Request& req,
+bool MicrostrainServices::setTareOrientation(SetTareOrientationServiceMsg::Request& req,
                                                SetTareOrientationServiceMsg::Response& res)
 {
   res.success = false;
 
-  if (m_config->m_inertial_device)
+  if (config_->inertial_device_)
   {
     try
     {
       mscl::TareAxisValues axisValue(req.axis & mscl::InertialTypes::TARE_PITCH_AXIS,
                                      req.axis & mscl::InertialTypes::TARE_ROLL_AXIS,
                                      req.axis & mscl::InertialTypes::TARE_YAW_AXIS);
-      m_config->m_inertial_device->tareOrientation(axisValue);
+      config_->inertial_device_->tareOrientation(axisValue);
 
       res.success = true;
     }
     catch (mscl::Error& e)
     {
-      MICROSTRAIN_ERROR(m_node, "Error: %s", e.what());
+      MICROSTRAIN_ERROR(node_, "Error: %s", e.what());
     }
   }
 
@@ -1601,27 +1596,27 @@ bool MicrostrainServices::set_tare_orientation(SetTareOrientationServiceMsg::Req
 // Set Accel Noise 1-Sigma Values Service
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
-bool MicrostrainServices::set_accel_noise(SetAccelNoiseServiceMsg::Request& req, SetAccelNoiseServiceMsg::Response& res)
+bool MicrostrainServices::setAccelNoise(SetAccelNoiseServiceMsg::Request& req, SetAccelNoiseServiceMsg::Response& res)
 {
   res.success = false;
 
-  if (m_config->m_inertial_device)
+  if (config_->inertial_device_)
   {
     try
     {
-      MICROSTRAIN_INFO(m_node, "Setting the accel noise values\n");
+      MICROSTRAIN_INFO(node_, "Setting the accel noise values\n");
       mscl::GeometricVector noise(req.noise.x, req.noise.y, req.noise.z);
-      m_config->m_inertial_device->setAccelNoiseStandardDeviation(noise);
+      config_->inertial_device_->setAccelNoiseStandardDeviation(noise);
 
-      noise = m_config->m_inertial_device->getAccelNoiseStandardDeviation();
-      MICROSTRAIN_INFO(m_node, "Accel noise values successfully set.\n");
-      MICROSTRAIN_INFO(m_node, "Returned values: %f X %f Y %f Z\n", noise.x(), noise.y(), noise.z());
+      noise = config_->inertial_device_->getAccelNoiseStandardDeviation();
+      MICROSTRAIN_INFO(node_, "Accel noise values successfully set.\n");
+      MICROSTRAIN_INFO(node_, "Returned values: %f X %f Y %f Z\n", noise.x(), noise.y(), noise.z());
 
       res.success = true;
     }
     catch (mscl::Error& e)
     {
-      MICROSTRAIN_ERROR(m_node, "Error: %s", e.what());
+      MICROSTRAIN_ERROR(node_, "Error: %s", e.what());
     }
   }
 
@@ -1632,18 +1627,18 @@ bool MicrostrainServices::set_accel_noise(SetAccelNoiseServiceMsg::Request& req,
 // Get Accel Noise 1-Sigma Values Service
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
-bool MicrostrainServices::get_accel_noise(GetAccelNoiseServiceMsg::Request& req, GetAccelNoiseServiceMsg::Response& res)
+bool MicrostrainServices::getAccelNoise(GetAccelNoiseServiceMsg::Request& req, GetAccelNoiseServiceMsg::Response& res)
 {
   res.success = false;
 
-  if (m_config->m_inertial_device)
+  if (config_->inertial_device_)
   {
     try
     {
-      MICROSTRAIN_INFO(m_node, "Getting the accel noise values\n");
+      MICROSTRAIN_INFO(node_, "Getting the accel noise values\n");
 
-      mscl::GeometricVector noise = m_config->m_inertial_device->getAccelNoiseStandardDeviation();
-      MICROSTRAIN_INFO(m_node, "Returned values: %f X %f Y %f Z\n", noise.x(), noise.y(), noise.z());
+      mscl::GeometricVector noise = config_->inertial_device_->getAccelNoiseStandardDeviation();
+      MICROSTRAIN_INFO(node_, "Returned values: %f X %f Y %f Z\n", noise.x(), noise.y(), noise.z());
 
       res.noise.x = noise.x();
       res.noise.y = noise.y();
@@ -1652,7 +1647,7 @@ bool MicrostrainServices::get_accel_noise(GetAccelNoiseServiceMsg::Request& req,
     }
     catch (mscl::Error& e)
     {
-      MICROSTRAIN_ERROR(m_node, "Error: %s", e.what());
+      MICROSTRAIN_ERROR(node_, "Error: %s", e.what());
     }
   }
 
@@ -1663,27 +1658,27 @@ bool MicrostrainServices::get_accel_noise(GetAccelNoiseServiceMsg::Request& req,
 // Set Gyro Noise 1-Sigma Values Service
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
-bool MicrostrainServices::set_gyro_noise(SetGyroNoiseServiceMsg::Request& req, SetGyroNoiseServiceMsg::Response& res)
+bool MicrostrainServices::setGyroNoise(SetGyroNoiseServiceMsg::Request& req, SetGyroNoiseServiceMsg::Response& res)
 {
   res.success = false;
 
-  if (m_config->m_inertial_device)
+  if (config_->inertial_device_)
   {
     try
     {
-      MICROSTRAIN_INFO(m_node, "Setting the gyro noise values\n");
+      MICROSTRAIN_INFO(node_, "Setting the gyro noise values\n");
       mscl::GeometricVector noise(req.noise.x, req.noise.y, req.noise.z);
-      m_config->m_inertial_device->setGyroNoiseStandardDeviation(noise);
+      config_->inertial_device_->setGyroNoiseStandardDeviation(noise);
 
-      noise = m_config->m_inertial_device->getGyroNoiseStandardDeviation();
-      MICROSTRAIN_INFO(m_node, "Gyro noise values successfully set.\n");
-      MICROSTRAIN_INFO(m_node, "Returned values: %f X %f Y %f Z\n", noise.x(), noise.y(), noise.z());
+      noise = config_->inertial_device_->getGyroNoiseStandardDeviation();
+      MICROSTRAIN_INFO(node_, "Gyro noise values successfully set.\n");
+      MICROSTRAIN_INFO(node_, "Returned values: %f X %f Y %f Z\n", noise.x(), noise.y(), noise.z());
 
       res.success = true;
     }
     catch (mscl::Error& e)
     {
-      MICROSTRAIN_ERROR(m_node, "Error: %s", e.what());
+      MICROSTRAIN_ERROR(node_, "Error: %s", e.what());
     }
   }
 
@@ -1694,18 +1689,18 @@ bool MicrostrainServices::set_gyro_noise(SetGyroNoiseServiceMsg::Request& req, S
 // Get Gyro Noise 1-Sigma Values Service
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
-bool MicrostrainServices::get_gyro_noise(GetGyroNoiseServiceMsg::Request& req, GetGyroNoiseServiceMsg::Response& res)
+bool MicrostrainServices::getGyroNoise(GetGyroNoiseServiceMsg::Request& req, GetGyroNoiseServiceMsg::Response& res)
 {
   res.success = false;
 
-  if (m_config->m_inertial_device)
+  if (config_->inertial_device_)
   {
     try
     {
-      MICROSTRAIN_INFO(m_node, "Getting the gyro noise values\n");
+      MICROSTRAIN_INFO(node_, "Getting the gyro noise values\n");
 
-      mscl::GeometricVector noise = m_config->m_inertial_device->getGyroNoiseStandardDeviation();
-      MICROSTRAIN_INFO(m_node, "Gyro noise values: %f X %f Y %f Z\n", noise.x(), noise.y(), noise.z());
+      mscl::GeometricVector noise = config_->inertial_device_->getGyroNoiseStandardDeviation();
+      MICROSTRAIN_INFO(node_, "Gyro noise values: %f X %f Y %f Z\n", noise.x(), noise.y(), noise.z());
 
       res.noise.x = noise.x();
       res.noise.y = noise.y();
@@ -1714,7 +1709,7 @@ bool MicrostrainServices::get_gyro_noise(GetGyroNoiseServiceMsg::Request& req, G
     }
     catch (mscl::Error& e)
     {
-      MICROSTRAIN_ERROR(m_node, "Error: %s", e.what());
+      MICROSTRAIN_ERROR(node_, "Error: %s", e.what());
     }
   }
 
@@ -1725,27 +1720,27 @@ bool MicrostrainServices::get_gyro_noise(GetGyroNoiseServiceMsg::Request& req, G
 // Set Magnetometer Noise 1-Sigma Values Service
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
-bool MicrostrainServices::set_mag_noise(SetMagNoiseServiceMsg::Request& req, SetMagNoiseServiceMsg::Response& res)
+bool MicrostrainServices::setMagNoise(SetMagNoiseServiceMsg::Request& req, SetMagNoiseServiceMsg::Response& res)
 {
   res.success = false;
 
-  if (m_config->m_inertial_device)
+  if (config_->inertial_device_)
   {
     try
     {
-      MICROSTRAIN_INFO(m_node, "Setting the mag noise values\n");
+      MICROSTRAIN_INFO(node_, "Setting the mag noise values\n");
       mscl::GeometricVector noise(req.noise.x, req.noise.y, req.noise.z);
-      m_config->m_inertial_device->setHardIronOffsetProcessNoise(noise);
+      config_->inertial_device_->setHardIronOffsetProcessNoise(noise);
 
-      noise = m_config->m_inertial_device->getHardIronOffsetProcessNoise();
-      MICROSTRAIN_INFO(m_node, "Mag noise values successfully set.\n");
-      MICROSTRAIN_INFO(m_node, "Returned values: %f X %f Y %f Z\n", noise.x(), noise.y(), noise.z());
+      noise = config_->inertial_device_->getHardIronOffsetProcessNoise();
+      MICROSTRAIN_INFO(node_, "Mag noise values successfully set.\n");
+      MICROSTRAIN_INFO(node_, "Returned values: %f X %f Y %f Z\n", noise.x(), noise.y(), noise.z());
 
       res.success = true;
     }
     catch (mscl::Error& e)
     {
-      MICROSTRAIN_ERROR(m_node, "Error: %s", e.what());
+      MICROSTRAIN_ERROR(node_, "Error: %s", e.what());
     }
   }
 
@@ -1756,17 +1751,17 @@ bool MicrostrainServices::set_mag_noise(SetMagNoiseServiceMsg::Request& req, Set
 // Get Magnetometer Noise 1-Sigma Values Service
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
-bool MicrostrainServices::get_mag_noise(GetMagNoiseServiceMsg::Request& req, GetMagNoiseServiceMsg::Response& res)
+bool MicrostrainServices::getMagNoise(GetMagNoiseServiceMsg::Request& req, GetMagNoiseServiceMsg::Response& res)
 {
   res.success = false;
 
-  if (m_config->m_inertial_device)
+  if (config_->inertial_device_)
   {
     try
     {
-      MICROSTRAIN_INFO(m_node, "Getting the mag noise values\n");
-      mscl::GeometricVector noise = m_config->m_inertial_device->getHardIronOffsetProcessNoise();
-      MICROSTRAIN_INFO(m_node, "Returned values: %f X %f Y %f Z\n", noise.x(), noise.y(), noise.z());
+      MICROSTRAIN_INFO(node_, "Getting the mag noise values\n");
+      mscl::GeometricVector noise = config_->inertial_device_->getHardIronOffsetProcessNoise();
+      MICROSTRAIN_INFO(node_, "Returned values: %f X %f Y %f Z\n", noise.x(), noise.y(), noise.z());
 
       res.noise.x = noise.x();
       res.noise.y = noise.y();
@@ -1775,7 +1770,7 @@ bool MicrostrainServices::get_mag_noise(GetMagNoiseServiceMsg::Request& req, Get
     }
     catch (mscl::Error& e)
     {
-      MICROSTRAIN_ERROR(m_node, "Error: %s", e.what());
+      MICROSTRAIN_ERROR(node_, "Error: %s", e.what());
     }
   }
 
@@ -1786,16 +1781,16 @@ bool MicrostrainServices::get_mag_noise(GetMagNoiseServiceMsg::Request& req, Get
 // Set Gyro Bias Model Values Service
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
-bool MicrostrainServices::set_gyro_bias_model(SetGyroBiasModelServiceMsg::Request& req,
+bool MicrostrainServices::setGyroBiasModel(SetGyroBiasModelServiceMsg::Request& req,
                                               SetGyroBiasModelServiceMsg::Response& res)
 {
   res.success = false;
 
-  if (m_config->m_inertial_device)
+  if (config_->inertial_device_)
   {
     try
     {
-      MICROSTRAIN_INFO(m_node, "Setting the gyro bias model values\n");
+      MICROSTRAIN_INFO(node_, "Setting the gyro bias model values\n");
 
       mscl::GeometricVectors collection;
       mscl::GeometricVector noise(req.noise_vector.x, req.noise_vector.y, req.noise_vector.z);
@@ -1804,11 +1799,11 @@ bool MicrostrainServices::set_gyro_bias_model(SetGyroBiasModelServiceMsg::Reques
       mscl::GeometricVector beta_vector(req.beta_vector.x, req.beta_vector.y, req.beta_vector.z);
       collection.push_back(beta_vector);
 
-      m_config->m_inertial_device->setGyroBiasModelParams(collection);
+      config_->inertial_device_->setGyroBiasModelParams(collection);
 
-      collection = m_config->m_inertial_device->getGyroBiasModelParams();
-      MICROSTRAIN_INFO(m_node, "Gyro bias model values successfully set.\n");
-      MICROSTRAIN_INFO(m_node, "Returned values:  Beta: %f X %f Y %f Z, White Noise: %f X %f Y %f Z\n",
+      collection = config_->inertial_device_->getGyroBiasModelParams();
+      MICROSTRAIN_INFO(node_, "Gyro bias model values successfully set.\n");
+      MICROSTRAIN_INFO(node_, "Returned values:  Beta: %f X %f Y %f Z, White Noise: %f X %f Y %f Z\n",
                        collection[0].x(), collection[0].y(), collection[0].z(), collection[1].x(), collection[1].y(),
                        collection[1].z());
 
@@ -1816,7 +1811,7 @@ bool MicrostrainServices::set_gyro_bias_model(SetGyroBiasModelServiceMsg::Reques
     }
     catch (mscl::Error& e)
     {
-      MICROSTRAIN_ERROR(m_node, "Error: %s", e.what());
+      MICROSTRAIN_ERROR(node_, "Error: %s", e.what());
     }
   }
 
@@ -1827,18 +1822,18 @@ bool MicrostrainServices::set_gyro_bias_model(SetGyroBiasModelServiceMsg::Reques
 // Get Gyro Bias Model Values Service
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
-bool MicrostrainServices::get_gyro_bias_model(GetGyroBiasModelServiceMsg::Request& req,
+bool MicrostrainServices::getGyroBiasModel(GetGyroBiasModelServiceMsg::Request& req,
                                               GetGyroBiasModelServiceMsg::Response& res)
 {
   res.success = false;
 
-  if (m_config->m_inertial_device)
+  if (config_->inertial_device_)
   {
     try
     {
-      MICROSTRAIN_INFO(m_node, "Getting the gyro bias model values\n");
-      mscl::GeometricVectors collection = m_config->m_inertial_device->getGyroBiasModelParams();
-      MICROSTRAIN_INFO(m_node, "Gyro bias model values:  Beta: %f X %f Y %f Z, White Noise: %f X %f Y %f Z\n",
+      MICROSTRAIN_INFO(node_, "Getting the gyro bias model values\n");
+      mscl::GeometricVectors collection = config_->inertial_device_->getGyroBiasModelParams();
+      MICROSTRAIN_INFO(node_, "Gyro bias model values:  Beta: %f X %f Y %f Z, White Noise: %f X %f Y %f Z\n",
                        collection[0].x(), collection[0].y(), collection[0].z(), collection[1].x(), collection[1].y(),
                        collection[1].z());
 
@@ -1853,7 +1848,7 @@ bool MicrostrainServices::get_gyro_bias_model(GetGyroBiasModelServiceMsg::Reques
     }
     catch (mscl::Error& e)
     {
-      MICROSTRAIN_ERROR(m_node, "Error: %s", e.what());
+      MICROSTRAIN_ERROR(node_, "Error: %s", e.what());
     }
   }
 
@@ -1864,27 +1859,27 @@ bool MicrostrainServices::get_gyro_bias_model(GetGyroBiasModelServiceMsg::Reques
 // Set Accel Bias Model Values Service
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
-bool MicrostrainServices::set_accel_bias_model(SetAccelBiasModelServiceMsg::Request& req,
+bool MicrostrainServices::setAccelBiasModel(SetAccelBiasModelServiceMsg::Request& req,
                                                SetAccelBiasModelServiceMsg::Response& res)
 {
   res.success = false;
 
-  if (m_config->m_inertial_device)
+  if (config_->inertial_device_)
   {
     try
     {
-      MICROSTRAIN_INFO(m_node, "Setting the accel bias model values\n");
+      MICROSTRAIN_INFO(node_, "Setting the accel bias model values\n");
       mscl::GeometricVectors collection;
       mscl::GeometricVector noise(req.noise_vector.x, req.noise_vector.y, req.noise_vector.z);
       collection.push_back(noise);
 
       mscl::GeometricVector beta_vector(req.beta_vector.x, req.beta_vector.y, req.beta_vector.z);
       collection.push_back(beta_vector);
-      m_config->m_inertial_device->setAccelBiasModelParams(collection);
+      config_->inertial_device_->setAccelBiasModelParams(collection);
 
-      collection = m_config->m_inertial_device->getAccelBiasModelParams();
-      MICROSTRAIN_INFO(m_node, "Accel bias model values successfully set.\n");
-      MICROSTRAIN_INFO(m_node, "Returned values:  Beta: %f X %f Y %f Z, White Noise: %f X %f Y %f Z\n",
+      collection = config_->inertial_device_->getAccelBiasModelParams();
+      MICROSTRAIN_INFO(node_, "Accel bias model values successfully set.\n");
+      MICROSTRAIN_INFO(node_, "Returned values:  Beta: %f X %f Y %f Z, White Noise: %f X %f Y %f Z\n",
                        collection[0].x(), collection[0].y(), collection[0].z(), collection[1].x(), collection[1].y(),
                        collection[1].z());
 
@@ -1892,7 +1887,7 @@ bool MicrostrainServices::set_accel_bias_model(SetAccelBiasModelServiceMsg::Requ
     }
     catch (mscl::Error& e)
     {
-      MICROSTRAIN_ERROR(m_node, "Error: %s", e.what());
+      MICROSTRAIN_ERROR(node_, "Error: %s", e.what());
     }
   }
 
@@ -1903,19 +1898,19 @@ bool MicrostrainServices::set_accel_bias_model(SetAccelBiasModelServiceMsg::Requ
 // Get Accel Bias Model Values Service
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
-bool MicrostrainServices::get_accel_bias_model(GetAccelBiasModelServiceMsg::Request& req,
+bool MicrostrainServices::getAccelBiasModel(GetAccelBiasModelServiceMsg::Request& req,
                                                GetAccelBiasModelServiceMsg::Response& res)
 {
   res.success = false;
 
-  if (m_config->m_inertial_device)
+  if (config_->inertial_device_)
   {
     try
     {
-      MICROSTRAIN_INFO(m_node, "Getting the accel bias model values\n");
-      mscl::GeometricVectors collection = m_config->m_inertial_device->getAccelBiasModelParams();
+      MICROSTRAIN_INFO(node_, "Getting the accel bias model values\n");
+      mscl::GeometricVectors collection = config_->inertial_device_->getAccelBiasModelParams();
 
-      MICROSTRAIN_INFO(m_node, "Accel bias model values:  Beta: %f X %f Y %f Z, White Noise: %f X %f Y %f Z\n",
+      MICROSTRAIN_INFO(node_, "Accel bias model values:  Beta: %f X %f Y %f Z, White Noise: %f X %f Y %f Z\n",
                        collection[0].x(), collection[0].y(), collection[0].z(), collection[1].x(), collection[1].y(),
                        collection[1].z());
 
@@ -1930,7 +1925,7 @@ bool MicrostrainServices::get_accel_bias_model(GetAccelBiasModelServiceMsg::Requ
     }
     catch (mscl::Error& e)
     {
-      MICROSTRAIN_ERROR(m_node, "Error: %s", e.what());
+      MICROSTRAIN_ERROR(node_, "Error: %s", e.what());
     }
   }
 
@@ -1941,16 +1936,16 @@ bool MicrostrainServices::get_accel_bias_model(GetAccelBiasModelServiceMsg::Requ
 // Set Accel Magnitude Error Adaptive Measurement Values Service
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
-bool MicrostrainServices::set_gravity_adaptive_vals(SetGravityAdaptiveValsServiceMsg::Request& req,
+bool MicrostrainServices::setGravityAdaptiveVals(SetGravityAdaptiveValsServiceMsg::Request& req,
                                                     SetGravityAdaptiveValsServiceMsg::Response& res)
 {
   res.success = false;
 
-  if (m_config->m_inertial_device)
+  if (config_->inertial_device_)
   {
     try
     {
-      MICROSTRAIN_INFO(m_node, "Setting the accel magnitude error adaptive measurement values\n");
+      MICROSTRAIN_INFO(node_, "Setting the accel magnitude error adaptive measurement values\n");
 
       mscl::AdaptiveMeasurementData adaptiveData;
       adaptiveData.mode = static_cast<mscl::InertialTypes::AdaptiveMeasurementMode>(req.enable);
@@ -1961,11 +1956,11 @@ bool MicrostrainServices::set_gravity_adaptive_vals(SetGravityAdaptiveValsServic
       adaptiveData.highLimitUncertainty = req.high_limit_1sigma;
       adaptiveData.minUncertainty = req.min_1sigma;
 
-      m_config->m_inertial_device->setGravityErrorAdaptiveMeasurement(adaptiveData);
+      config_->inertial_device_->setGravityErrorAdaptiveMeasurement(adaptiveData);
 
-      adaptiveData = m_config->m_inertial_device->getGravityErrorAdaptiveMeasurement();
-      MICROSTRAIN_INFO(m_node, "accel magnitude error adaptive measurement values successfully set.\n");
-      MICROSTRAIN_INFO(m_node, "Returned values: Enable: %i, Parameters: %f %f %f %f %f %f", adaptiveData.mode,
+      adaptiveData = config_->inertial_device_->getGravityErrorAdaptiveMeasurement();
+      MICROSTRAIN_INFO(node_, "accel magnitude error adaptive measurement values successfully set.\n");
+      MICROSTRAIN_INFO(node_, "Returned values: Enable: %i, Parameters: %f %f %f %f %f %f", adaptiveData.mode,
                        adaptiveData.lowPassFilterCutoff, adaptiveData.minUncertainty, adaptiveData.lowLimit,
                        adaptiveData.highLimit, adaptiveData.lowLimitUncertainty, adaptiveData.highLimitUncertainty);
 
@@ -1973,7 +1968,7 @@ bool MicrostrainServices::set_gravity_adaptive_vals(SetGravityAdaptiveValsServic
     }
     catch (mscl::Error& e)
     {
-      MICROSTRAIN_ERROR(m_node, "Error: %s", e.what());
+      MICROSTRAIN_ERROR(node_, "Error: %s", e.what());
     }
   }
 
@@ -1984,20 +1979,20 @@ bool MicrostrainServices::set_gravity_adaptive_vals(SetGravityAdaptiveValsServic
 // Get Accel Magnitude Error Adaptive Measurement Values Service
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
-bool MicrostrainServices::get_gravity_adaptive_vals(GetGravityAdaptiveValsServiceMsg::Request& req,
+bool MicrostrainServices::getGravityAdaptiveVals(GetGravityAdaptiveValsServiceMsg::Request& req,
                                                     GetGravityAdaptiveValsServiceMsg::Response& res)
 {
   res.success = false;
 
-  if (m_config->m_inertial_device)
+  if (config_->inertial_device_)
   {
     try
     {
-      MICROSTRAIN_INFO(m_node, "Getting the accel magnitude error adaptive measurement values\n");
+      MICROSTRAIN_INFO(node_, "Getting the accel magnitude error adaptive measurement values\n");
 
-      mscl::AdaptiveMeasurementData adaptiveData = m_config->m_inertial_device->getGravityErrorAdaptiveMeasurement();
+      mscl::AdaptiveMeasurementData adaptiveData = config_->inertial_device_->getGravityErrorAdaptiveMeasurement();
       MICROSTRAIN_INFO(
-          m_node, "Accel magnitude error adaptive measurement values are: Enable: %i, Parameters: %f %f %f %f %f %f",
+          node_, "Accel magnitude error adaptive measurement values are: Enable: %i, Parameters: %f %f %f %f %f %f",
           adaptiveData.mode, adaptiveData.lowPassFilterCutoff, adaptiveData.minUncertainty, adaptiveData.lowLimit,
           adaptiveData.highLimit, adaptiveData.lowLimitUncertainty, adaptiveData.highLimitUncertainty);
 
@@ -2013,7 +2008,7 @@ bool MicrostrainServices::get_gravity_adaptive_vals(GetGravityAdaptiveValsServic
     }
     catch (mscl::Error& e)
     {
-      MICROSTRAIN_ERROR(m_node, "Error: %s", e.what());
+      MICROSTRAIN_ERROR(node_, "Error: %s", e.what());
     }
   }
 
@@ -2024,16 +2019,16 @@ bool MicrostrainServices::get_gravity_adaptive_vals(GetGravityAdaptiveValsServic
 // Set Magnetometer Magnitude Error Adaptive Measurement Values Service
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
-bool MicrostrainServices::set_mag_adaptive_vals(SetMagAdaptiveValsServiceMsg::Request& req,
+bool MicrostrainServices::setMagAdaptiveVals(SetMagAdaptiveValsServiceMsg::Request& req,
                                                 SetMagAdaptiveValsServiceMsg::Response& res)
 {
   res.success = false;
 
-  if (m_config->m_inertial_device)
+  if (config_->inertial_device_)
   {
     try
     {
-      MICROSTRAIN_INFO(m_node, "Setting the mag magnitude error adaptive measurement values\n");
+      MICROSTRAIN_INFO(node_, "Setting the mag magnitude error adaptive measurement values\n");
 
       mscl::AdaptiveMeasurementData adaptiveData;
       adaptiveData.mode = static_cast<mscl::InertialTypes::AdaptiveMeasurementMode>(req.enable);
@@ -2044,12 +2039,12 @@ bool MicrostrainServices::set_mag_adaptive_vals(SetMagAdaptiveValsServiceMsg::Re
       adaptiveData.highLimitUncertainty = req.high_limit_1sigma;
       adaptiveData.minUncertainty = req.min_1sigma;
 
-      m_config->m_inertial_device->setMagnetometerErrorAdaptiveMeasurement(adaptiveData);
+      config_->inertial_device_->setMagnetometerErrorAdaptiveMeasurement(adaptiveData);
 
-      adaptiveData = m_config->m_inertial_device->getMagnetometerErrorAdaptiveMeasurement();
-      MICROSTRAIN_INFO(m_node, "mag magnitude error adaptive measurement values successfully set.\n");
+      adaptiveData = config_->inertial_device_->getMagnetometerErrorAdaptiveMeasurement();
+      MICROSTRAIN_INFO(node_, "mag magnitude error adaptive measurement values successfully set.\n");
 
-      MICROSTRAIN_INFO(m_node, "Returned values: Enable: %i, Parameters: %f %f %f %f %f %f", adaptiveData.mode,
+      MICROSTRAIN_INFO(node_, "Returned values: Enable: %i, Parameters: %f %f %f %f %f %f", adaptiveData.mode,
                        adaptiveData.lowPassFilterCutoff, adaptiveData.minUncertainty, adaptiveData.lowLimit,
                        adaptiveData.highLimit, adaptiveData.lowLimitUncertainty, adaptiveData.highLimitUncertainty);
 
@@ -2057,7 +2052,7 @@ bool MicrostrainServices::set_mag_adaptive_vals(SetMagAdaptiveValsServiceMsg::Re
     }
     catch (mscl::Error& e)
     {
-      MICROSTRAIN_ERROR(m_node, "Error: %s", e.what());
+      MICROSTRAIN_ERROR(node_, "Error: %s", e.what());
     }
   }
 
@@ -2068,21 +2063,21 @@ bool MicrostrainServices::set_mag_adaptive_vals(SetMagAdaptiveValsServiceMsg::Re
 // Get Magnetometer Magnitude Error Adaptive Measurement Values Service
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
-bool MicrostrainServices::get_mag_adaptive_vals(GetMagAdaptiveValsServiceMsg::Request& req,
+bool MicrostrainServices::getMagAdaptiveVals(GetMagAdaptiveValsServiceMsg::Request& req,
                                                 GetMagAdaptiveValsServiceMsg::Response& res)
 {
   res.success = false;
 
-  if (m_config->m_inertial_device)
+  if (config_->inertial_device_)
   {
     try
     {
-      MICROSTRAIN_INFO(m_node, "Getting the mag magnitude error adaptive measurement values\n");
+      MICROSTRAIN_INFO(node_, "Getting the mag magnitude error adaptive measurement values\n");
 
       mscl::AdaptiveMeasurementData adaptiveData =
-          m_config->m_inertial_device->getMagnetometerErrorAdaptiveMeasurement();
+          config_->inertial_device_->getMagnetometerErrorAdaptiveMeasurement();
       MICROSTRAIN_INFO(
-          m_node, "Mag magnitude error adaptive measurement values are: Enable: %i, Parameters: %f %f %f %f %f %f",
+          node_, "Mag magnitude error adaptive measurement values are: Enable: %i, Parameters: %f %f %f %f %f %f",
           adaptiveData.mode, adaptiveData.lowPassFilterCutoff, adaptiveData.minUncertainty, adaptiveData.lowLimit,
           adaptiveData.highLimit, adaptiveData.lowLimitUncertainty, adaptiveData.highLimitUncertainty);
 
@@ -2098,7 +2093,7 @@ bool MicrostrainServices::get_mag_adaptive_vals(GetMagAdaptiveValsServiceMsg::Re
     }
     catch (mscl::Error& e)
     {
-      MICROSTRAIN_ERROR(m_node, "Error: %s", e.what());
+      MICROSTRAIN_ERROR(node_, "Error: %s", e.what());
     }
   }
 
@@ -2109,16 +2104,16 @@ bool MicrostrainServices::get_mag_adaptive_vals(GetMagAdaptiveValsServiceMsg::Re
 // Set Magnetometer Dip Angle Error Adaptive Measurement Values Service
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
-bool MicrostrainServices::set_mag_dip_adaptive_vals(SetMagDipAdaptiveValsServiceMsg::Request& req,
+bool MicrostrainServices::setMagDipAdaptiveVals(SetMagDipAdaptiveValsServiceMsg::Request& req,
                                                     SetMagDipAdaptiveValsServiceMsg::Response& res)
 {
   res.success = false;
 
-  if (m_config->m_inertial_device)
+  if (config_->inertial_device_)
   {
     try
     {
-      MICROSTRAIN_INFO(m_node, "Setting the mag dip angle error adaptive measurement values\n");
+      MICROSTRAIN_INFO(node_, "Setting the mag dip angle error adaptive measurement values\n");
 
       mscl::AdaptiveMeasurementData adaptiveData;
       adaptiveData.mode = static_cast<mscl::InertialTypes::AdaptiveMeasurementMode>(req.enable);
@@ -2127,11 +2122,11 @@ bool MicrostrainServices::set_mag_dip_adaptive_vals(SetMagDipAdaptiveValsService
       adaptiveData.highLimitUncertainty = req.high_limit_1sigma;
       adaptiveData.minUncertainty = req.min_1sigma;
 
-      m_config->m_inertial_device->setMagDipAngleErrorAdaptiveMeasurement(adaptiveData);
+      config_->inertial_device_->setMagDipAngleErrorAdaptiveMeasurement(adaptiveData);
 
-      adaptiveData = m_config->m_inertial_device->getMagDipAngleErrorAdaptiveMeasurement();
-      MICROSTRAIN_INFO(m_node, "mag dip angle error adaptive measurement values successfully set.\n");
-      MICROSTRAIN_INFO(m_node, "Returned values: Enable: %i, Parameters: %f %f %f %f\n", adaptiveData.mode,
+      adaptiveData = config_->inertial_device_->getMagDipAngleErrorAdaptiveMeasurement();
+      MICROSTRAIN_INFO(node_, "mag dip angle error adaptive measurement values successfully set.\n");
+      MICROSTRAIN_INFO(node_, "Returned values: Enable: %i, Parameters: %f %f %f %f\n", adaptiveData.mode,
                        adaptiveData.lowPassFilterCutoff, adaptiveData.minUncertainty, adaptiveData.highLimit,
                        adaptiveData.highLimitUncertainty);
 
@@ -2139,7 +2134,7 @@ bool MicrostrainServices::set_mag_dip_adaptive_vals(SetMagDipAdaptiveValsService
     }
     catch (mscl::Error& e)
     {
-      MICROSTRAIN_ERROR(m_node, "Error: %s", e.what());
+      MICROSTRAIN_ERROR(node_, "Error: %s", e.what());
     }
   }
 
@@ -2150,20 +2145,20 @@ bool MicrostrainServices::set_mag_dip_adaptive_vals(SetMagDipAdaptiveValsService
 // Get Magnetometer Dip Angle Error Adaptive Measurement Values Service
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
-bool MicrostrainServices::get_mag_dip_adaptive_vals(GetMagDipAdaptiveValsServiceMsg::Request& req,
+bool MicrostrainServices::getMagDipAdaptiveVals(GetMagDipAdaptiveValsServiceMsg::Request& req,
                                                     GetMagDipAdaptiveValsServiceMsg::Response& res)
 {
   res.success = false;
 
-  if (m_config->m_inertial_device)
+  if (config_->inertial_device_)
   {
     try
     {
-      MICROSTRAIN_INFO(m_node, "Getting the mag dip angle error adaptive measurement values\n");
+      MICROSTRAIN_INFO(node_, "Getting the mag dip angle error adaptive measurement values\n");
 
       mscl::AdaptiveMeasurementData adaptiveData =
-          m_config->m_inertial_device->getMagDipAngleErrorAdaptiveMeasurement();
-      MICROSTRAIN_INFO(m_node, "Returned values: Enable: %i, Parameters: %f %f %f %f %f %f", adaptiveData.mode,
+          config_->inertial_device_->getMagDipAngleErrorAdaptiveMeasurement();
+      MICROSTRAIN_INFO(node_, "Returned values: Enable: %i, Parameters: %f %f %f %f %f %f", adaptiveData.mode,
                        adaptiveData.lowPassFilterCutoff, adaptiveData.minUncertainty, adaptiveData.lowLimit,
                        adaptiveData.highLimit, adaptiveData.lowLimitUncertainty, adaptiveData.highLimitUncertainty);
 
@@ -2177,7 +2172,7 @@ bool MicrostrainServices::get_mag_dip_adaptive_vals(GetMagDipAdaptiveValsService
     }
     catch (mscl::Error& e)
     {
-      MICROSTRAIN_ERROR(m_node, "Error: %s", e.what());
+      MICROSTRAIN_ERROR(node_, "Error: %s", e.what());
     }
   }
 
@@ -2188,27 +2183,27 @@ bool MicrostrainServices::get_mag_dip_adaptive_vals(GetMagDipAdaptiveValsService
 // Set Vehicle Dynamics Mode Service
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
-bool MicrostrainServices::set_dynamics_mode(SetDynamicsModeServiceMsg::Request& req,
+bool MicrostrainServices::setDynamicsMode(SetDynamicsModeServiceMsg::Request& req,
                                             SetDynamicsModeServiceMsg::Response& res)
 {
   res.success = false;
 
-  if (m_config->m_inertial_device)
+  if (config_->inertial_device_)
   {
     try
     {
-      MICROSTRAIN_INFO(m_node, "Setting the vehicle dynamics mode\n");
+      MICROSTRAIN_INFO(node_, "Setting the vehicle dynamics mode\n");
 
       mscl::InertialTypes::VehicleModeType mode = static_cast<mscl::InertialTypes::VehicleModeType>(req.mode);
-      m_config->m_inertial_device->setVehicleDynamicsMode(mode);
+      config_->inertial_device_->setVehicleDynamicsMode(mode);
 
-      mode = m_config->m_inertial_device->getVehicleDynamicsMode();
+      mode = config_->inertial_device_->getVehicleDynamicsMode();
 
       res.success = true;
     }
     catch (mscl::Error& e)
     {
-      MICROSTRAIN_ERROR(m_node, "Error: %s", e.what());
+      MICROSTRAIN_ERROR(node_, "Error: %s", e.what());
     }
   }
 
@@ -2219,26 +2214,26 @@ bool MicrostrainServices::set_dynamics_mode(SetDynamicsModeServiceMsg::Request& 
 // Get Vehicle Dynamics Mode Service
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
-bool MicrostrainServices::get_dynamics_mode(GetDynamicsModeServiceMsg::Request& req,
+bool MicrostrainServices::getDynamicsMode(GetDynamicsModeServiceMsg::Request& req,
                                             GetDynamicsModeServiceMsg::Response& res)
 {
   res.success = false;
 
-  MICROSTRAIN_INFO(m_node, "Getting the vehicle dynamics mode\n");
+  MICROSTRAIN_INFO(node_, "Getting the vehicle dynamics mode\n");
 
-  if (m_config->m_inertial_device)
+  if (config_->inertial_device_)
   {
     try
     {
-      mscl::InertialTypes::VehicleModeType mode = m_config->m_inertial_device->getVehicleDynamicsMode();
-      MICROSTRAIN_INFO(m_node, "Vehicle dynamics mode is: %d\n", mode);
+      mscl::InertialTypes::VehicleModeType mode = config_->inertial_device_->getVehicleDynamicsMode();
+      MICROSTRAIN_INFO(node_, "Vehicle dynamics mode is: %d\n", mode);
 
       res.mode = mode;
       res.success = true;
     }
     catch (mscl::Error& e)
     {
-      MICROSTRAIN_ERROR(m_node, "Error: %s", e.what());
+      MICROSTRAIN_ERROR(node_, "Error: %s", e.what());
     }
   }
 
@@ -2249,12 +2244,12 @@ bool MicrostrainServices::get_dynamics_mode(GetDynamicsModeServiceMsg::Request& 
 // Change Device Settings
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
-bool MicrostrainServices::device_settings(DeviceSettingsServiceMsg::Request& req,
+bool MicrostrainServices::deviceSettings(DeviceSettingsServiceMsg::Request& req,
                                           DeviceSettingsServiceMsg::Response& res)
 {
   res.success = false;
 
-  if (m_config->m_inertial_device)
+  if (config_->inertial_device_)
   {
     try
     {
@@ -2263,33 +2258,33 @@ bool MicrostrainServices::device_settings(DeviceSettingsServiceMsg::Request& req
         // Save
         case 3:
         {
-          MICROSTRAIN_INFO(m_node, "Processing device settings command with function selector = 3 (Save)\n");
-          m_config->m_inertial_device->saveSettingsAsStartup();
+          MICROSTRAIN_INFO(node_, "Processing device settings command with function selector = 3 (Save)\n");
+          config_->inertial_device_->saveSettingsAsStartup();
         }
         break;
 
         // Load Saved Settings
         case 4:
         {
-          MICROSTRAIN_INFO(m_node,
+          MICROSTRAIN_INFO(node_,
                            "Processing device settings command with function selector = 4 (Load Saved Settings)\n");
-          m_config->m_inertial_device->loadStartupSettings();
+          config_->inertial_device_->loadStartupSettings();
         }
         break;
 
         // Load Default Settings
         case 5:
         {
-          MICROSTRAIN_INFO(m_node,
+          MICROSTRAIN_INFO(node_,
                            "Processing device settings command with function selector = 5 (Load Defailt Settings)\n");
-          m_config->m_inertial_device->loadFactoryDefaultSettings();
+          config_->inertial_device_->loadFactoryDefaultSettings();
         }
         break;
 
         // Unsupported function selector
         default:
         {
-          MICROSTRAIN_INFO(m_node, "Error: Unsupported function selector for device settings command\n");
+          MICROSTRAIN_INFO(node_, "Error: Unsupported function selector for device settings command\n");
           return res.success;
         }
         break;
@@ -2299,7 +2294,7 @@ bool MicrostrainServices::device_settings(DeviceSettingsServiceMsg::Request& req
     }
     catch (mscl::Error& e)
     {
-      MICROSTRAIN_ERROR(m_node, "Error: %s", e.what());
+      MICROSTRAIN_ERROR(node_, "Error: %s", e.what());
     }
   }
 
@@ -2310,21 +2305,21 @@ bool MicrostrainServices::device_settings(DeviceSettingsServiceMsg::Request& req
 // Commanded Velocity Zupt Service
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
-bool MicrostrainServices::commanded_vel_zupt(TriggerServiceMsg::Request& req, TriggerServiceMsg::Response& res)
+bool MicrostrainServices::commandedVelZupt(TriggerServiceMsg::Request& req, TriggerServiceMsg::Response& res)
 {
   res.success = false;
 
-  if (m_config->m_inertial_device &&
-      m_config->m_inertial_device->features().supportsCommand(mscl::MipTypes::Command::CMD_EF_CMDED_ZERO_VEL_UPDATE))
+  if (config_->inertial_device_ &&
+      config_->inertial_device_->features().supportsCommand(mscl::MipTypes::Command::CMD_EF_CMDED_ZERO_VEL_UPDATE))
   {
     try
     {
-      m_config->m_inertial_device->cmdedVelZUPT();
+      config_->inertial_device_->cmdedVelZUPT();
       res.success = true;
     }
     catch (mscl::Error& e)
     {
-      MICROSTRAIN_ERROR(m_node, "Error: %s", e.what());
+      MICROSTRAIN_ERROR(node_, "Error: %s", e.what());
     }
   }
 
@@ -2335,21 +2330,21 @@ bool MicrostrainServices::commanded_vel_zupt(TriggerServiceMsg::Request& req, Tr
 // Commanded Angular Rate Zupt Service
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
-bool MicrostrainServices::commanded_ang_rate_zupt(TriggerServiceMsg::Request& req, TriggerServiceMsg::Response& res)
+bool MicrostrainServices::commandedAngRateZupt(TriggerServiceMsg::Request& req, TriggerServiceMsg::Response& res)
 {
   res.success = false;
 
-  if (m_config->m_inertial_device && m_config->m_inertial_device->features().supportsCommand(
+  if (config_->inertial_device_ && config_->inertial_device_->features().supportsCommand(
                                          mscl::MipTypes::Command::CMD_EF_CMDED_ZERO_ANG_RATE_UPDATE))
   {
     try
     {
-      m_config->m_inertial_device->cmdedAngRateZUPT();
+      config_->inertial_device_->cmdedAngRateZUPT();
       res.success = true;
     }
     catch (mscl::Error& e)
     {
-      MICROSTRAIN_ERROR(m_node, "Error: %s", e.what());
+      MICROSTRAIN_ERROR(node_, "Error: %s", e.what());
     }
   }
 
@@ -2360,12 +2355,12 @@ bool MicrostrainServices::commanded_ang_rate_zupt(TriggerServiceMsg::Request& re
 // External Heading Update Service
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
-bool MicrostrainServices::external_heading_update(ExternalHeadingUpdateServiceMsg::Request& req,
+bool MicrostrainServices::externalHeadingUpdate(ExternalHeadingUpdateServiceMsg::Request& req,
                                                   ExternalHeadingUpdateServiceMsg::Response& res)
 {
   res.success = false;
 
-  if (m_config->m_inertial_device)
+  if (config_->inertial_device_)
   {
     try
     {
@@ -2379,20 +2374,20 @@ bool MicrostrainServices::external_heading_update(ExternalHeadingUpdateServiceMs
 
       if (req.use_time)
       {
-        m_config->m_inertial_device->sendExternalHeadingUpdate(heading_data, timestamp);
-        MICROSTRAIN_INFO(m_node, "Sent External Heading update with timestamp.\n");
+        config_->inertial_device_->sendExternalHeadingUpdate(heading_data, timestamp);
+        MICROSTRAIN_INFO(node_, "Sent External Heading update with timestamp.\n");
       }
       else
       {
-        m_config->m_inertial_device->sendExternalHeadingUpdate(heading_data);
-        MICROSTRAIN_INFO(m_node, "Sent External Heading update.\n");
+        config_->inertial_device_->sendExternalHeadingUpdate(heading_data);
+        MICROSTRAIN_INFO(node_, "Sent External Heading update.\n");
       }
 
       res.success = true;
     }
     catch (mscl::Error& e)
     {
-      MICROSTRAIN_ERROR(m_node, "Error: %s", e.what());
+      MICROSTRAIN_ERROR(node_, "Error: %s", e.what());
     }
   }
 
@@ -2403,12 +2398,12 @@ bool MicrostrainServices::external_heading_update(ExternalHeadingUpdateServiceMs
 // Set Relative Position Reference Service
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
-bool MicrostrainServices::set_relative_position_reference(SetRelativePositionReferenceServiceMsg::Request& req,
+bool MicrostrainServices::setRelativePositionReference(SetRelativePositionReferenceServiceMsg::Request& req,
                                                           SetRelativePositionReferenceServiceMsg::Response& res)
 {
   res.success = false;
 
-  if (m_config->m_inertial_device)
+  if (config_->inertial_device_)
   {
     try
     {
@@ -2418,19 +2413,19 @@ bool MicrostrainServices::set_relative_position_reference(SetRelativePositionRef
                                     static_cast<mscl::PositionVelocityReferenceFrame>(req.frame));
       ref.autoConfig = !(static_cast<bool>(req.source));
 
-      m_config->m_inertial_device->setRelativePositionReference(ref);
+      config_->inertial_device_->setRelativePositionReference(ref);
 
       if (req.source == 0)
-        MICROSTRAIN_INFO(m_node, "Setting reference position to RTK base station (automatic)");
+        MICROSTRAIN_INFO(node_, "Setting reference position to RTK base station (automatic)");
       else
-        MICROSTRAIN_INFO(m_node, "Setting reference position to: [%f, %f, %f], ref frame = %d", req.position.x,
+        MICROSTRAIN_INFO(node_, "Setting reference position to: [%f, %f, %f], ref frame = %d", req.position.x,
                          req.position.y, req.position.z, req.frame);
 
       res.success = true;
     }
     catch (mscl::Error& e)
     {
-      MICROSTRAIN_ERROR(m_node, "Error: %s", e.what());
+      MICROSTRAIN_ERROR(node_, "Error: %s", e.what());
     }
   }
 
@@ -2441,21 +2436,21 @@ bool MicrostrainServices::set_relative_position_reference(SetRelativePositionRef
 // Get Relative Position Reference Service
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
-bool MicrostrainServices::get_relative_position_reference(GetRelativePositionReferenceServiceMsg::Request& req,
+bool MicrostrainServices::getRelativePositionReference(GetRelativePositionReferenceServiceMsg::Request& req,
                                                           GetRelativePositionReferenceServiceMsg::Response& res)
 {
   res.success = false;
 
-  if (m_config->m_inertial_device)
+  if (config_->inertial_device_)
   {
     try
     {
-      mscl::PositionReferenceConfiguration ref = m_config->m_inertial_device->getRelativePositionReference();
+      mscl::PositionReferenceConfiguration ref = config_->inertial_device_->getRelativePositionReference();
 
       if (ref.autoConfig)
-        MICROSTRAIN_INFO(m_node, "Reference position is set to RTK base station (automatic)");
+        MICROSTRAIN_INFO(node_, "Reference position is set to RTK base station (automatic)");
       else
-        MICROSTRAIN_INFO(m_node, "Reference position is: [%f, %f, %f], ref frame = %d", ref.position.x(),
+        MICROSTRAIN_INFO(node_, "Reference position is: [%f, %f, %f], ref frame = %d", ref.position.x(),
                          ref.position.y(), ref.position.z(), (int)ref.position.referenceFrame);
 
       res.source = !ref.autoConfig;
@@ -2468,11 +2463,11 @@ bool MicrostrainServices::get_relative_position_reference(GetRelativePositionRef
     }
     catch (mscl::Error& e)
     {
-      MICROSTRAIN_ERROR(m_node, "Error: %s", e.what());
+      MICROSTRAIN_ERROR(node_, "Error: %s", e.what());
     }
   }
 
   return res.success;
 }
 
-}  // namespace Microstrain
+}  // namespace microstrain

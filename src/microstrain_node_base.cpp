@@ -16,90 +16,90 @@
 #include <algorithm>
 #include "ros_mscl_common/microstrain_node_base.h"
 
-namespace Microstrain
+namespace microstrain
 {
 bool MicrostrainNodeBase::initialize(RosNodeType* init_node)
 {
-  m_node = init_node;
-  m_config = MicrostrainConfig(m_node);
-  m_publishers = MicrostrainPublishers(m_node, &m_config);
-  m_subscribers = MicrostrainSubscribers(m_node, &m_config);
-  m_services = MicrostrainServices(m_node, &m_config);
-  m_parser = MicrostrainParser(m_node, &m_config, &m_publishers);
+  node_ = init_node;
+  config_ = MicrostrainConfig(node_);
+  publishers_ = MicrostrainPublishers(node_, &config_);
+  subscribers_ = MicrostrainSubscribers(node_, &config_);
+  services_ = MicrostrainServices(node_, &config_);
+  parser_ = MicrostrainParser(node_, &config_, &publishers_);
   return true;
 }
 
 bool MicrostrainNodeBase::configure(RosNodeType* config_node)
 {
-  if (!m_node)
+  if (!node_)
     return false;
 
-  MICROSTRAIN_DEBUG(m_node, "Reading config");
-  if (!m_config.configure(config_node))
+  MICROSTRAIN_DEBUG(node_, "Reading config");
+  if (!config_.configure(config_node))
   {
-    MICROSTRAIN_ERROR(m_node, "Failed to read configuration for node");
+    MICROSTRAIN_ERROR(node_, "Failed to read configuration for node");
     return false;
   }
-  MICROSTRAIN_DEBUG(m_node, "Configuring Publishers");
-  if (!m_publishers.configure_publishers())
+  MICROSTRAIN_DEBUG(node_, "Configuring Publishers");
+  if (!publishers_.configure())
   {
-    MICROSTRAIN_ERROR(m_node, "Failed to configure publishers");
+    MICROSTRAIN_ERROR(node_, "Failed to configure publishers");
     return false;
   }
-  MICROSTRAIN_DEBUG(m_node, "Configuring Subscribers");
-  if (!m_subscribers.configure_subscribers())
+  MICROSTRAIN_DEBUG(node_, "Configuring Subscribers");
+  if (!subscribers_.configure())
   {
-    MICROSTRAIN_ERROR(m_node, "Failed to configure subscribers");
+    MICROSTRAIN_ERROR(node_, "Failed to configure subscribers");
     return false;
   }
-  MICROSTRAIN_DEBUG(m_node, "Configuring Services");
-  if (!m_services.configure_services())
+  MICROSTRAIN_DEBUG(node_, "Configuring Services");
+  if (!services_.configure())
   {
-    MICROSTRAIN_ERROR(m_node, "Failed to setup services");
+    MICROSTRAIN_ERROR(node_, "Failed to setup services");
     return false;
   }
 
   // Determine loop rate as 2*(max update rate), but abs. max of 1kHz
   int max_rate = std::max(
     {
-      m_config.m_publish_imu ? m_config.m_imu_data_rate : 1,
-      m_config.m_publish_gnss[GNSS1_ID] ? m_config.m_gnss_data_rate[GNSS1_ID] : 1,
-      m_config.m_publish_gnss[GNSS2_ID] ? m_config.m_gnss_data_rate[GNSS2_ID] : 1,
-      m_config.m_publish_filter ? m_config.m_filter_data_rate : 1
+      config_.publish_imu_ ? config_.imu_data_rate_ : 1,
+      config_.publish_gnss_[GNSS1_ID] ? config_.gnss_data_rate_[GNSS1_ID] : 1,
+      config_.publish_gnss_[GNSS2_ID] ? config_.gnss_data_rate_[GNSS2_ID] : 1,
+      config_.publish_filter_ ? config_.filter_data_rate_ : 1
     }
   );  // NOLINT(whitespace/parens)  No way to get around this
-  m_timer_update_rate_hz = std::min(2 * max_rate, 1000);
-  MICROSTRAIN_INFO(m_node, "Setting spin rate to <%f> hz", m_timer_update_rate_hz);
+  timer_update_rate_hz_ = std::min(2 * max_rate, 1000);
+  MICROSTRAIN_INFO(node_, "Setting spin rate to <%f> hz", timer_update_rate_hz_);
   return true;
 }
 
 void MicrostrainNodeBase::parse_and_publish()
 {
-  mscl::MipDataPackets packets = m_config.m_inertial_device->getDataPackets(1000);
+  mscl::MipDataPackets packets = config_.inertial_device_->getDataPackets(1000);
 
   for (mscl::MipDataPacket packet : packets)
   {
-    m_parser.parse_mip_packet(packet);
+    parser_.parseMIPPacket(packet);
   }
 
   // Only get the status packet at 1 Hz
-  if (m_status_counter++ >= m_timer_update_rate_hz / 2)
+  if (status_counter_++ >= timer_update_rate_hz_ / 2)
   {
-    m_publishers.publish_device_status();
-    m_status_counter = 0;
+    publishers_.publishDeviceStatus();
+    status_counter_ = 0;
   }
 
   // Save raw data, if enabled
-  if (m_config.m_raw_file_enable)
+  if (config_.raw_file_enable_)
   {
-    mscl::ConnectionDebugDataVec raw_packets = m_config.m_inertial_device->connection().getDebugData();
+    mscl::ConnectionDebugDataVec raw_packets = config_.inertial_device_->connection().getDebugData();
 
     for (mscl::ConnectionDebugData raw_packet : raw_packets)
     {
       const mscl::Bytes& raw_packet_bytes = raw_packet.data();
-      m_config.m_raw_file.write(reinterpret_cast<const char*>(raw_packet_bytes.data()), raw_packet_bytes.size());
+      config_.raw_file_.write(reinterpret_cast<const char*>(raw_packet_bytes.data()), raw_packet_bytes.size());
     }
   }
 }
 
-}  // namespace Microstrain
+}  // namespace microstrain

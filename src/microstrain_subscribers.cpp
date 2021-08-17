@@ -15,40 +15,40 @@
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 #include "ros_mscl_common/microstrain_subscribers.h"
 
-namespace Microstrain
+namespace microstrain
 {
 MicrostrainSubscribers::MicrostrainSubscribers(RosNodeType* node, MicrostrainConfig* config)
-  : m_node(node), m_config(config)
+  : node_(node), config_(config)
 {
 }
 
-bool MicrostrainSubscribers::configure_subscribers()
+bool MicrostrainSubscribers::configure()
 {
   // Clear the ZUPT listener flags
-  m_vel_still = false;
-  m_ang_still = false;
+  vel_still_ = false;
+  ang_still_ = false;
 
   // Create a topic listener for ZUPTs
-  if (m_config->m_velocity_zupt == 1 &&
-      m_config->m_inertial_device->features().supportsCommand(mscl::MipTypes::Command::CMD_EF_CMDED_ZERO_VEL_UPDATE))
+  if (config_->velocity_zupt_ == 1 &&
+      config_->inertial_device_->features().supportsCommand(mscl::MipTypes::Command::CMD_EF_CMDED_ZERO_VEL_UPDATE))
   {
-    m_filter_vel_state_sub = create_subscriber<BoolMsg>(m_node, m_config->m_velocity_zupt_topic, 1000,
-                                                        &MicrostrainSubscribers::velocity_zupt_callback, this);
+    filter_vel_state_sub_ = create_subscriber<BoolMsg>(node_, config_->velocity_zupt_topic_, 1000,
+                                                        &MicrostrainSubscribers::velZuptCallback, this);
   }
 
   // Create a topic listener for angular ZUPTs
-  if (m_config->m_angular_zupt == 1 && m_config->m_inertial_device->features().supportsCommand(
+  if (config_->angular_zupt_ == 1 && config_->inertial_device_->features().supportsCommand(
                                            mscl::MipTypes::Command::CMD_EF_CMDED_ZERO_ANG_RATE_UPDATE))
   {
-    m_filter_ang_state_sub = create_subscriber<>(m_node, m_config->m_angular_zupt_topic.c_str(), 1000,
-                                                 &MicrostrainSubscribers::ang_zupt_callback, this);
+    filter_ang_state_sub_ = create_subscriber<>(node_, config_->angular_zupt_topic_.c_str(), 1000,
+                                                 &MicrostrainSubscribers::angZuptCallback, this);
   }
 
   // Create a topic listener for external GNSS updates
-  if (m_config->m_filter_enable_external_gps_time_update &&
-      m_config->m_inertial_device->features().supportsCommand(mscl::MipTypes::Command::CMD_GPS_TIME_UPDATE))
+  if (config_->filter_enable_external_gps_time_update_ &&
+      config_->inertial_device_->features().supportsCommand(mscl::MipTypes::Command::CMD_GPS_TIME_UPDATE))
   {
-    m_external_gps_time_sub = create_subscriber<>(m_node, m_config->m_external_gps_time_topic.c_str(), 1000,
+    external_gps_time_sub_ = create_subscriber<>(node_, config_->external_gps_time_topic_.c_str(), 1000,
                                                   &MicrostrainSubscribers::external_gps_time_callback, this);
   }
   return true;
@@ -57,15 +57,15 @@ bool MicrostrainSubscribers::configure_subscribers()
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 // Velocity ZUPT Callback
 /////////////////////////////////////////////////////////////////////////////////////////////////////
-void MicrostrainSubscribers::velocity_zupt_callback(const BoolMsg& state)
+void MicrostrainSubscribers::velZuptCallback(const BoolMsg& state)
 {
-  if (m_vel_still != state.data)
+  if (vel_still_ != state.data)
   {
-    m_vel_still = state.data;
+    vel_still_ = state.data;
 
-    if (m_vel_still)
+    if (vel_still_)
     {
-      m_vel_zupt_timer = create_timer<MicrostrainSubscribers>(m_node, 5, &MicrostrainSubscribers::vel_zupt, this);
+      vel_zupt_timer_ = create_timer<MicrostrainSubscribers>(node_, 5, &MicrostrainSubscribers::velZupt, this);
     }
   }
 }
@@ -75,25 +75,25 @@ void MicrostrainSubscribers::velocity_zupt_callback(const BoolMsg& state)
 //
 // Note: Handles sending the ZUPT command regularly while stationary
 /////////////////////////////////////////////////////////////////////////////////////////////////////
-void MicrostrainSubscribers::vel_zupt()
+void MicrostrainSubscribers::velZupt()
 {
-  if (!m_vel_still)
+  if (!vel_still_)
   {
-    stop_timer(m_vel_zupt_timer);
+    stop_timer(vel_zupt_timer_);
     return;
   }
 
-  if (m_config->m_inertial_device &&
-      m_config->m_inertial_device->features().supportsCommand(mscl::MipTypes::Command::CMD_EF_CMDED_ZERO_VEL_UPDATE))
+  if (config_->inertial_device_ &&
+      config_->inertial_device_->features().supportsCommand(mscl::MipTypes::Command::CMD_EF_CMDED_ZERO_VEL_UPDATE))
   {
     try
     {
-      MICROSTRAIN_INFO(m_node, "Sending velzupt");
-      m_config->m_inertial_device->cmdedVelZUPT();
+      MICROSTRAIN_INFO(node_, "Sending velzupt");
+      config_->inertial_device_->cmdedVelZUPT();
     }
     catch (mscl::Error& e)
     {
-      MICROSTRAIN_ERROR(m_node, "Error: %s", e.what());
+      MICROSTRAIN_ERROR(node_, "Error: %s", e.what());
     }
   }
 }
@@ -101,15 +101,15 @@ void MicrostrainSubscribers::vel_zupt()
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 // Angular Rate ZUPT Callback
 /////////////////////////////////////////////////////////////////////////////////////////////////////
-void MicrostrainSubscribers::ang_zupt_callback(const BoolMsg& state)
+void MicrostrainSubscribers::angZuptCallback(const BoolMsg& state)
 {
-  if (m_ang_still != state.data)
+  if (ang_still_ != state.data)
   {
-    m_ang_still = state.data;
+    ang_still_ = state.data;
 
-    if (m_ang_still)
+    if (ang_still_)
     {
-      m_ang_zupt_timer = create_timer<MicrostrainSubscribers>(m_node, 5, &MicrostrainSubscribers::ang_zupt, this);
+      ang_zupt_timer_ = create_timer<MicrostrainSubscribers>(node_, 5, &MicrostrainSubscribers::angZupt, this);
     }
   }
 }
@@ -119,24 +119,24 @@ void MicrostrainSubscribers::ang_zupt_callback(const BoolMsg& state)
 //
 // Note: Handles sending the ZUPT command regularly while not rotating
 /////////////////////////////////////////////////////////////////////////////////////////////////////
-void MicrostrainSubscribers::ang_zupt()
+void MicrostrainSubscribers::angZupt()
 {
-  if (!m_ang_still)
+  if (!ang_still_)
   {
-    stop_timer(m_ang_zupt_timer);
+    stop_timer(ang_zupt_timer_);
     return;
   }
 
-  if (m_config->m_inertial_device &&
-      m_config->m_inertial_device->features().supportsCommand(mscl::MipTypes::Command::CMD_EF_CMDED_ZERO_VEL_UPDATE))
+  if (config_->inertial_device_ &&
+      config_->inertial_device_->features().supportsCommand(mscl::MipTypes::Command::CMD_EF_CMDED_ZERO_VEL_UPDATE))
   {
     try
     {
-      m_config->m_inertial_device->cmdedAngRateZUPT();
+      config_->inertial_device_->cmdedAngRateZUPT();
     }
     catch (mscl::Error& e)
     {
-      MICROSTRAIN_ERROR(m_node, "Error: %s", e.what());
+      MICROSTRAIN_ERROR(node_, "Error: %s", e.what());
     }
   }
 }
@@ -146,26 +146,26 @@ void MicrostrainSubscribers::ang_zupt()
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 void MicrostrainSubscribers::external_gps_time_callback(const TimeReferenceMsg& time)
 {
-  if (m_config->m_inertial_device)
+  if (config_->inertial_device_)
   {
     try
     {
-      int64_t utcTime = get_time_ref_sec(time.time_ref) + m_config->m_gps_leap_seconds - UTC_GPS_EPOCH_DUR;
+      int64_t utcTime = get_time_ref_sec(time.time_ref) + config_->gps_leap_seconds_ - UTC_GPS_EPOCH_DUR;
 
       int64_t secs = utcTime % static_cast<int32_t>(SECS_PER_WEEK);
 
       int weeks = (utcTime - secs) / SECS_PER_WEEK;
 
-      m_config->m_inertial_device->setGPSTimeUpdate(mscl::MipTypes::TimeFrame::TIME_FRAME_WEEKS, weeks);
-      m_config->m_inertial_device->setGPSTimeUpdate(mscl::MipTypes::TimeFrame::TIME_FRAME_SECONDS, secs);
+      config_->inertial_device_->setGPSTimeUpdate(mscl::MipTypes::TimeFrame::TIME_FRAME_WEEKS, weeks);
+      config_->inertial_device_->setGPSTimeUpdate(mscl::MipTypes::TimeFrame::TIME_FRAME_SECONDS, secs);
 
-      MICROSTRAIN_INFO(m_node, "GPS Update: w%i, s%ld", weeks, secs);
+      MICROSTRAIN_INFO(node_, "GPS Update: w%i, s%ld", weeks, secs);
     }
     catch (mscl::Error& e)
     {
-      MICROSTRAIN_ERROR(m_node, "Error: %s", e.what());
+      MICROSTRAIN_ERROR(node_, "Error: %s", e.what());
     }
   }
 }
 
-}  // namespace Microstrain
+}  // namespace microstrain

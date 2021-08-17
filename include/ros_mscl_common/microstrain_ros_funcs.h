@@ -15,7 +15,7 @@
 #include <memory>
 #include "ros_mscl_common/microstrain_defs.h"
 
-namespace Microstrain
+namespace microstrain
 {
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -166,6 +166,6 @@ inline void stop_timer(RosTimerType timer)
 #error "Unsupported ROS version. -DMICROSTRAIN_ROS_VERSION must be set to 1 or 2"
 #endif
 
-}  // namespace Microstrain
+}  // namespace microstrain
 
 #endif  // ROS_MSCL_COMMON_MICROSTRAIN_ROS_FUNCS_H

@@ -25,7 +25,7 @@
 /// \brief Contains functions for micostrain driver
 ///
 /////////////////////////////////////////////////////////////////////////////////////////////////////
-namespace Microstrain
+namespace microstrain
 {
 ///
 /// \brief Contains publishers for microstrain node
@@ -36,66 +36,66 @@ public:
   MicrostrainPublishers() = default;
   MicrostrainPublishers(RosNodeType* node, MicrostrainConfig* config);
 
-  bool configure_publishers();
-  void publish_device_status();
+  bool configure();
+  void publishDeviceStatus();
 
   // IMU Publishers
-  ImuPubType m_imu_pub;
-  MagneticFieldPubType m_mag_pub;
-  GPSCorrelationTimestampStampedPubType m_gps_corr_pub;
+  ImuPubType imu_pub_;
+  MagneticFieldPubType mag_pub_;
+  GPSCorrelationTimestampStampedPubType gps_corr_pub_;
 
   // GNSS Publishers
-  NavSatFixPubType m_gnss_pub[NUM_GNSS];
-  OdometryPubType m_gnss_odom_pub[NUM_GNSS];
-  TimeReferencePubType m_gnss_time_pub[NUM_GNSS];
-  GNSSAidingStatusPubType m_gnss_aiding_status_pub[NUM_GNSS];
-  GNSSDualAntennaStatusPubType m_gnss_dual_antenna_status_pub;
+  NavSatFixPubType gnss_pub_[NUM_GNSS];
+  OdometryPubType gnss_odom_pub_[NUM_GNSS];
+  TimeReferencePubType gnss_time_pub_[NUM_GNSS];
+  GNSSAidingStatusPubType gnss_aiding_status_pub_[NUM_GNSS];
+  GNSSDualAntennaStatusPubType gnss_dual_antenna_status_pub_;
 
   // RTK Data publisher
-  RTKStatusPubType m_rtk_pub;
+  RTKStatusPubType rtk_pub_;
 
   // Filter Publishers
-  FilterStatusPubType m_filter_status_pub;
-  FilterHeadingPubType m_filter_heading_pub;
-  FilterHeadingStatePubType m_filter_heading_state_pub;
-  OdometryPubType m_filter_pub;
-  ImuPubType m_filtered_imu_pub;
-  OdometryPubType m_filter_relative_pos_pub;
+  FilterStatusPubType filter_status_pub_;
+  FilterHeadingPubType filter_heading_pub_;
+  FilterHeadingStatePubType filter_heading_state_pub_;
+  OdometryPubType filter_pub_;
+  ImuPubType filtered_imu_pub_;
+  OdometryPubType filter_relative_pos_pub_;
 
   // Device Status Publisher
-  StatusPubType m_device_status_pub;
+  StatusPubType device_status_pub_;
 
   // IMU Messages
-  ImuMsg m_imu_msg;
-  MagneticFieldMsg m_mag_msg;
-  GPSCorrelationTimestampStampedMsg m_gps_corr_msg;
+  ImuMsg imu_msg_;
+  MagneticFieldMsg mag_msg_;
+  GPSCorrelationTimestampStampedMsg gps_corr_msg_;
 
   // GNSS Messages
-  NavSatFixMsg m_gnss_msg[NUM_GNSS];
-  OdometryMsg m_gnss_odom_msg[NUM_GNSS];
-  TimeReferenceMsg m_gnss_time_msg[NUM_GNSS];
-  GNSSAidingStatusMsg m_gnss_aiding_status_msg[NUM_GNSS];
-  GNSSDualAntennaStatusMsg m_gnss_dual_antenna_status_msg;
+  NavSatFixMsg gnss_msg_[NUM_GNSS];
+  OdometryMsg gnss_odom_msg_[NUM_GNSS];
+  TimeReferenceMsg gnss_time_msg_[NUM_GNSS];
+  GNSSAidingStatusMsg gnss_aiding_status_msg_[NUM_GNSS];
+  GNSSDualAntennaStatusMsg gnss_dual_antenna_status_msg_;
 
   // RTK Messages
-  RTKStatusMsg m_rtk_msg;
+  RTKStatusMsg rtk_msg_;
 
   // Filter Messages
-  OdometryMsg m_filter_msg;
-  ImuMsg m_filtered_imu_msg;
-  OdometryMsg m_filter_relative_pos_msg;
-  FilterStatusMsg m_filter_status_msg;
-  FilterHeadingStateMsg m_filter_heading_state_msg;
-  FilterHeadingMsg m_filter_heading_msg;
+  OdometryMsg filter_msg_;
+  ImuMsg filtered_imu_msg_;
+  OdometryMsg filter_relative_pos_msg_;
+  FilterStatusMsg filter_status_msg_;
+  FilterHeadingStateMsg filter_heading_state_msg_;
+  FilterHeadingMsg filter_heading_msg_;
 
   // Device Status Message
-  StatusMsg m_device_status_msg;
+  StatusMsg device_status_msg_;
 
 private:
-  RosNodeType* m_node;
-  MicrostrainConfig* m_config;
+  RosNodeType* node_;
+  MicrostrainConfig* config_;
 };  // struct MicrostrainPublishers
 
-}  // namespace Microstrain
+}  // namespace microstrain
 
 #endif  // ROS_MSCL_COMMON_MICROSTRAIN_PUBLISHERS_H

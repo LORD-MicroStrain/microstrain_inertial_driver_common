@@ -197,7 +197,7 @@
 #error "Unsupported ROS version. -DMICROSTRAIN_ROS_VERSION must be set to 1 or 2"
 #endif
 
-namespace Microstrain
+namespace microstrain
 {
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -686,6 +686,6 @@ constexpr auto USTRAIN_G =
 constexpr auto GNSS1_ID = 0;
 constexpr auto GNSS2_ID = 1;
 constexpr auto NUM_GNSS = 2;
-}  // namespace Microstrain
+}  // namespace microstrain
 
 #endif  // ROS_MSCL_COMMON_MICROSTRAIN_DEFS_H

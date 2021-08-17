@@ -18,106 +18,106 @@
 #include <memory>
 #include "ros_mscl_common/microstrain_config.h"
 
-namespace Microstrain
+namespace microstrain
 {
-MicrostrainConfig::MicrostrainConfig(RosNodeType* node) : m_node(node)
+MicrostrainConfig::MicrostrainConfig(RosNodeType* node) : node_(node)
 {
 }
 
 bool MicrostrainConfig::configure(RosNodeType* node)
 {
   // Initialize some default and static config
-  m_imu_frame_id = "sensor";
-  m_gnss_frame_id[GNSS1_ID] = "gnss1_antenna_wgs84_ned";
-  m_gnss_frame_id[GNSS2_ID] = "gnss2_antenna_wgs84_ned";
-  m_filter_frame_id = "sensor_wgs84_ned";
-  m_filter_child_frame_id = "sensor";
-  m_t_ned2enu = tf2::Matrix3x3(0, 1, 0, 1, 0, 0, 0, 0, -1);
+  imu_frame_id_ = "sensor";
+  gnss_frame_id_[GNSS1_ID] = "gnss1_antenna_wgs84_ned";
+  gnss_frame_id_[GNSS2_ID] = "gnss2_antenna_wgs84_ned";
+  filter_frame_id_ = "sensor_wgs84_ned";
+  filter_child_frame_id_ = "sensor";
+  t_ned2enu_ = tf2::Matrix3x3(0, 1, 0, 1, 0, 0, 0, 0, -1);
 
   ///
   /// Generic configuration used by the rest of the driver
   ///
 
   // Device
-  get_param<bool>(node, "use_device_timestamp", m_use_device_timestamp, false);
-  get_param<bool>(node, "use_enu_frame", m_use_enu_frame, false);
+  get_param<bool>(node, "use_device_timestamp", use_device_timestamp_, false);
+  get_param<bool>(node, "use_enu_frame", use_enu_frame_, false);
 
   // If using ENU frame, reflect in the device frame id
-  if (m_use_enu_frame)
+  if (use_enu_frame_)
   {
-    m_gnss_frame_id[GNSS1_ID] = "gnss1_antenna_wgs84_enu";
-    m_gnss_frame_id[GNSS2_ID] = "gnss2_antenna_wgs84_enu";
-    m_filter_frame_id = "sensor_wgs84_enu";
+    gnss_frame_id_[GNSS1_ID] = "gnss1_antenna_wgs84_enu";
+    gnss_frame_id_[GNSS2_ID] = "gnss2_antenna_wgs84_enu";
+    filter_frame_id_ = "sensor_wgs84_enu";
   }
 
   // IMU
-  get_param<bool>(node, "publish_imu", m_publish_imu, true);
-  get_param<bool>(node, "publish_gps_corr", m_publish_gps_corr, false);
-  get_param<int32_t>(node, "imu_data_rate", m_imu_data_rate, 10);
-  get_param<std::vector<double>>(node, "imu_orientation_cov", m_imu_orientation_cov, default_matrix);
-  get_param<std::vector<double>>(node, "imu_linear_cov", m_imu_linear_cov, default_matrix);
-  get_param<std::vector<double>>(node, "imu_angular_cov", m_imu_angular_cov, default_matrix);
-  get_param<std::string>(node, "imu_frame_id", m_imu_frame_id, m_imu_frame_id);
+  get_param<bool>(node, "publish_imu", publish_imu_, true);
+  get_param<bool>(node, "publish_gps_corr", publish_gps_corr_, false);
+  get_param<int32_t>(node, "imu_data_rate", imu_data_rate_, 10);
+  get_param<std::vector<double>>(node, "imu_orientation_cov", imu_orientation_cov_, DEFAULT_MATRIX);
+  get_param<std::vector<double>>(node, "imu_linear_cov", imu_linear_cov_, DEFAULT_MATRIX);
+  get_param<std::vector<double>>(node, "imu_angular_cov", imu_angular_cov_, DEFAULT_MATRIX);
+  get_param<std::string>(node, "imu_frame_id", imu_frame_id_, imu_frame_id_);
 
   // GNSS 1/2
-  get_param<bool>(node, "publish_gnss1", m_publish_gnss[GNSS1_ID], false);
-  get_param<bool>(node, "publish_gnss2", m_publish_gnss[GNSS2_ID], false);
-  get_param<int32_t>(node, "gnss1_data_rate", m_gnss_data_rate[GNSS1_ID], 1);
-  get_param<int32_t>(node, "gnss2_data_rate", m_gnss_data_rate[GNSS2_ID], 1);
-  get_param<std::vector<double>>(node, "gnss1_antenna_offset", m_gnss_antenna_offset[GNSS1_ID], default_vector);
-  get_param<std::vector<double>>(node, "gnss2_antenna_offset", m_gnss_antenna_offset[GNSS2_ID], default_vector);
-  get_param<std::string>(node, "gnss1_frame_id", m_gnss_frame_id[GNSS1_ID], m_gnss_frame_id[GNSS1_ID]);
-  get_param<std::string>(node, "gnss2_frame_id", m_gnss_frame_id[GNSS2_ID], m_gnss_frame_id[GNSS2_ID]);
+  get_param<bool>(node, "publish_gnss1", publish_gnss_[GNSS1_ID], false);
+  get_param<bool>(node, "publish_gnss2", publish_gnss_[GNSS2_ID], false);
+  get_param<int32_t>(node, "gnss1_data_rate", gnss_data_rate_[GNSS1_ID], 1);
+  get_param<int32_t>(node, "gnss2_data_rate", gnss_data_rate_[GNSS2_ID], 1);
+  get_param<std::vector<double>>(node, "gnss1_antenna_offset", gnss_antenna_offset_[GNSS1_ID], DEFAULT_VECTOR);
+  get_param<std::vector<double>>(node, "gnss2_antenna_offset", gnss_antenna_offset_[GNSS2_ID], DEFAULT_VECTOR);
+  get_param<std::string>(node, "gnss1_frame_id", gnss_frame_id_[GNSS1_ID], gnss_frame_id_[GNSS1_ID]);
+  get_param<std::string>(node, "gnss2_frame_id", gnss_frame_id_[GNSS2_ID], gnss_frame_id_[GNSS2_ID]);
 
   // FILTER
-  get_param<bool>(node, "publish_filter", m_publish_filter, false);
-  get_param<int32_t>(node, "filter_data_rate", m_filter_data_rate, 10);
-  get_param<std::string>(node, "filter_frame_id", m_filter_frame_id, m_filter_frame_id);
-  get_param<bool>(node, "publish_relative_position", m_publish_filter_relative_pos, false);
-  get_param<double>(node, "gps_leap_seconds", m_gps_leap_seconds, 18.0);
-  get_param<bool>(node, "filter_angular_zupt", m_angular_zupt, false);
-  get_param<bool>(node, "filter_velocity_zupt", m_velocity_zupt, false);
-  get_param<bool>(node, "filter_enable_gnss_heading_aiding", m_filter_enable_gnss_heading_aiding, true);
-  get_param<bool>(node, "filter_enable_gnss_pos_vel_aiding", m_filter_enable_gnss_pos_vel_aiding, true);
-  get_param<bool>(node, "filter_enable_altimeter_aiding", m_filter_enable_altimeter_aiding, false);
-  get_param<bool>(node, "filter_enable_odometer_aiding", m_filter_enable_odometer_aiding, false);
-  get_param<bool>(node, "filter_enable_magnetometer_aiding", m_filter_enable_magnetometer_aiding, false);
-  get_param<bool>(node, "filter_enable_external_heading_aiding", m_filter_enable_external_heading_aiding, false);
-  get_param<bool>(node, "filter_enable_external_gps_time_update", m_filter_enable_external_gps_time_update, false);
-  get_param<bool>(node, "filter_enable_wheeled_vehicle_constraint", m_filter_enable_wheeled_vehicle_constraint, false);
-  get_param<bool>(node, "filter_enable_vertical_gyro_constraint", m_filter_enable_vertical_gyro_constraint, false);
-  get_param<bool>(node, "filter_enable_gnss_antenna_cal", m_filter_enable_gnss_antenna_cal, false);
-  get_param<std::string>(node, "filter_velocity_zupt_topic", m_velocity_zupt_topic, std::string("/moving_vel"));
-  get_param<std::string>(node, "filter_angular_zupt_topic", m_angular_zupt_topic, std::string("/moving_ang"));
-  get_param<std::string>(node, "filter_external_gps_time_topic", m_external_gps_time_topic,
+  get_param<bool>(node, "publish_filter", publish_filter_, false);
+  get_param<int32_t>(node, "filter_data_rate", filter_data_rate_, 10);
+  get_param<std::string>(node, "filter_frame_id", filter_frame_id_, filter_frame_id_);
+  get_param<bool>(node, "publish_relative_position", publish_filter_relative_pos_, false);
+  get_param<double>(node, "gps_leap_seconds", gps_leap_seconds_, 18.0);
+  get_param<bool>(node, "filter_angular_zupt", angular_zupt_, false);
+  get_param<bool>(node, "filter_velocity_zupt", velocity_zupt_, false);
+  get_param<bool>(node, "filter_enable_gnss_heading_aiding", filter_enable_gnss_heading_aiding_, true);
+  get_param<bool>(node, "filter_enable_gnss_pos_vel_aiding", filter_enable_gnss_pos_vel_aiding_, true);
+  get_param<bool>(node, "filter_enable_altimeter_aiding", filter_enable_altimeter_aiding_, false);
+  get_param<bool>(node, "filter_enable_odometer_aiding", filter_enable_odometer_aiding_, false);
+  get_param<bool>(node, "filter_enable_magnetometer_aiding", filter_enable_magnetometer_aiding_, false);
+  get_param<bool>(node, "filter_enable_external_heading_aiding", filter_enable_external_heading_aiding_, false);
+  get_param<bool>(node, "filter_enable_external_gps_time_update", filter_enable_external_gps_time_update_, false);
+  get_param<bool>(node, "filter_enable_wheeled_vehicle_constraint", filter_enable_wheeled_vehicle_constraint_, false);
+  get_param<bool>(node, "filter_enable_vertical_gyro_constraint", filter_enable_vertical_gyro_constraint_, false);
+  get_param<bool>(node, "filter_enable_gnss_antenna_cal", filter_enable_gnss_antenna_cal_, false);
+  get_param<std::string>(node, "filter_velocity_zupt_topic", velocity_zupt_topic_, std::string("/moving_vel"));
+  get_param<std::string>(node, "filter_angular_zupt_topic", angular_zupt_topic_, std::string("/moving_ang"));
+  get_param<std::string>(node, "filter_external_gps_time_topic", external_gps_time_topic_,
                          std::string("/external_gps_time"));
 
   // Raw data file save
-  get_param<bool>(node, "raw_file_enable", m_raw_file_enable, false);
-  get_param<bool>(node, "raw_file_include_support_data", m_raw_file_include_support_data, false);
+  get_param<bool>(node, "raw_file_enable", raw_file_enable_, false);
+  get_param<bool>(node, "raw_file_include_support_data", raw_file_include_support_data_, false);
 
-  MICROSTRAIN_INFO(m_node, "Using MSCL Version: %s", mscl::MSCL_VERSION.str().c_str());
+  MICROSTRAIN_INFO(node_, "Using MSCL Version: %s", mscl::MSCL_VERSION.str().c_str());
 
   // Connect to the device and set it up if we were asked to
   bool device_setup;
   get_param<bool>(node, "device_setup", device_setup, false);
 
-  if (!connect_device(node))
+  if (!connectDevice(node))
     return false;
 
   if (device_setup)
   {
-    if (!setup_device(node))
+    if (!setupDevice(node))
       return false;
   }
 
-  if (!setup_raw_file(node))
+  if (!setupRawFile(node))
     return false;
 
   return true;
 }
 
-bool MicrostrainConfig::connect_device(RosNodeType* node)
+bool MicrostrainConfig::connectDevice(RosNodeType* node)
 {
   // Read the config required for only this section
   std::string port;
@@ -130,38 +130,38 @@ bool MicrostrainConfig::connect_device(RosNodeType* node)
     //
     // Initialize the serial interface to the device and create the inertial device object
     //
-    MICROSTRAIN_INFO(m_node, "Attempting to open serial port <%s> at <%d> \n", port.c_str(), baudrate);
+    MICROSTRAIN_INFO(node_, "Attempting to open serial port <%s> at <%d> \n", port.c_str(), baudrate);
 
     mscl::Connection connection = mscl::Connection::Serial(realpath(port.c_str(), 0), (uint32_t)baudrate);
-    m_inertial_device = std::unique_ptr<mscl::InertialNode>(new mscl::InertialNode(connection));
+    inertial_device_ = std::unique_ptr<mscl::InertialNode>(new mscl::InertialNode(connection));
 
     // Print the device info
-    MICROSTRAIN_INFO(m_node, "Model Name:    %s\n", m_inertial_device->modelName().c_str());
-    MICROSTRAIN_INFO(m_node, "Serial Number: %s\n", m_inertial_device->serialNumber().c_str());
+    MICROSTRAIN_INFO(node_, "Model Name:    %s\n", inertial_device_->modelName().c_str());
+    MICROSTRAIN_INFO(node_, "Serial Number: %s\n", inertial_device_->serialNumber().c_str());
 
     // Get supported features
-    m_supports_gnss1 = m_inertial_device->features().supportsCategory(mscl::MipTypes::DataClass::CLASS_GNSS) |
-                       m_inertial_device->features().supportsCategory(mscl::MipTypes::DataClass::CLASS_GNSS1);
-    m_supports_gnss2 = m_inertial_device->features().supportsCategory(mscl::MipTypes::DataClass::CLASS_GNSS2);
-    m_supports_rtk = m_inertial_device->features().supportsCategory(mscl::MipTypes::DataClass::CLASS_GNSS3);
-    m_supports_filter = m_inertial_device->features().supportsCategory(mscl::MipTypes::DataClass::CLASS_ESTFILTER);
-    m_supports_imu = m_inertial_device->features().supportsCategory(mscl::MipTypes::DataClass::CLASS_AHRS_IMU);
+    supports_gnss1_ = inertial_device_->features().supportsCategory(mscl::MipTypes::DataClass::CLASS_GNSS) |
+                       inertial_device_->features().supportsCategory(mscl::MipTypes::DataClass::CLASS_GNSS1);
+    supports_gnss2_ = inertial_device_->features().supportsCategory(mscl::MipTypes::DataClass::CLASS_GNSS2);
+    supports_rtk_ = inertial_device_->features().supportsCategory(mscl::MipTypes::DataClass::CLASS_GNSS3);
+    supports_filter_ = inertial_device_->features().supportsCategory(mscl::MipTypes::DataClass::CLASS_ESTFILTER);
+    supports_imu_ = inertial_device_->features().supportsCategory(mscl::MipTypes::DataClass::CLASS_AHRS_IMU);
   }
   catch (mscl::Error_Connection& e)
   {
     // TODO(rob): Log more information here
-    MICROSTRAIN_ERROR(m_node, "Device Disconnected");
+    MICROSTRAIN_ERROR(node_, "Device Disconnected");
     return false;
   }
   catch (mscl::Error& e)
   {
-    MICROSTRAIN_ERROR(m_node, "Error: %s", e.what());
+    MICROSTRAIN_ERROR(node_, "Error: %s", e.what());
     return false;
   }
   return true;
 }
 
-bool MicrostrainConfig::setup_device(RosNodeType* node)
+bool MicrostrainConfig::setupDevice(RosNodeType* node)
 {
   // Read the config used by this section
   bool save_settings;
@@ -174,100 +174,100 @@ bool MicrostrainConfig::setup_device(RosNodeType* node)
   get_param<bool>(node, "filter_reset_after_config", filter_reset_after_config, true);
 
   // Put into idle mode
-  MICROSTRAIN_INFO(m_node, "Setting to Idle: Stopping data streams and/or waking from sleep");
-  m_inertial_device->setToIdle();
+  MICROSTRAIN_INFO(node_, "Setting to Idle: Stopping data streams and/or waking from sleep");
+  inertial_device_->setToIdle();
 
   // GPIO config
-  if (m_inertial_device->features().supportsCommand(mscl::MipTypes::Command::CMD_GPIO_CONFIGURATION) && gpio_config)
+  if (inertial_device_->features().supportsCommand(mscl::MipTypes::Command::CMD_GPIO_CONFIGURATION) && gpio_config)
   {
-    if (!configure_gpio(node))
+    if (!configureGPIO(node))
       return false;
   }
 
   // IMU Setup
-  if (m_publish_imu && m_supports_imu)
+  if (publish_imu_ && supports_imu_)
   {
-    if (!configure_imu(node))
+    if (!configureIMU(node))
       return false;
   }
 
   // GNSS1 setup
-  if (m_publish_gnss[GNSS1_ID] && m_supports_gnss1)
+  if (publish_gnss_[GNSS1_ID] && supports_gnss1_)
   {
-    if (!configure_gnss(node, GNSS1_ID))
+    if (!configureGNSS(node, GNSS1_ID))
       return false;
   }
 
   // GNSS2 setup
-  if (m_publish_gnss[GNSS2_ID] && m_supports_gnss2)
+  if (publish_gnss_[GNSS2_ID] && supports_gnss2_)
   {
-    if (!configure_gnss(node, GNSS2_ID))
+    if (!configureGNSS(node, GNSS2_ID))
       return false;
   }
 
   // RTK Dongle
-  if (rtk_dongle_enable && m_supports_rtk)
+  if (rtk_dongle_enable && supports_rtk_)
   {
-    if (!configure_rtk(node))
+    if (!configureRTK(node))
       return false;
   }
 
   // Filter setup
-  if (m_publish_filter && m_supports_filter)
+  if (publish_filter_ && supports_filter_)
   {
-    if (!configure_filter(node))
+    if (!configureFilter(node))
       return false;
   }
 
   // Sensor2Vehicle setup
-  if (!configure_sensor2vehicle(node))
+  if (!configureSensor2vehicle(node))
     return false;
 
   // Support channel setup
-  if (m_raw_file_enable && m_raw_file_include_support_data)
+  if (raw_file_enable_ && raw_file_include_support_data_)
   {
-    if (m_inertial_device->features().supportsCommand(mscl::MipTypes::Command::CMD_FACTORY_STREAMING))
+    if (inertial_device_->features().supportsCommand(mscl::MipTypes::Command::CMD_FACTORY_STREAMING))
     {
-      MICROSTRAIN_INFO(m_node, "Enabling factory support channels");
-      m_inertial_device->setFactoryStreamingChannels(mscl::InertialTypes::FACTORY_STREAMING_ADDITIVE);
+      MICROSTRAIN_INFO(node_, "Enabling factory support channels");
+      inertial_device_->setFactoryStreamingChannels(mscl::InertialTypes::FACTORY_STREAMING_ADDITIVE);
     }
     else
     {
-      MICROSTRAIN_ERROR(m_node, "**The device does not support the factory streaming channels setup command!");
+      MICROSTRAIN_ERROR(node_, "**The device does not support the factory streaming channels setup command!");
     }
   }
 
   // Save the settings to the device, if enabled
   if (save_settings)
   {
-    MICROSTRAIN_INFO(m_node, "Saving the launch file configuration settings to the device");
-    m_inertial_device->saveSettingsAsStartup();
+    MICROSTRAIN_INFO(node_, "Saving the launch file configuration settings to the device");
+    inertial_device_->saveSettingsAsStartup();
   }
 
   // Reset the filter, if enabled
   if (filter_reset_after_config &&
-      m_inertial_device->features().supportsCommand(mscl::MipTypes::Command::CMD_EF_RESET_FILTER))
+      inertial_device_->features().supportsCommand(mscl::MipTypes::Command::CMD_EF_RESET_FILTER))
   {
-    MICROSTRAIN_INFO(m_node, "Resetting the filter after the configuration is complete.");
-    m_inertial_device->resetFilter();
+    MICROSTRAIN_INFO(node_, "Resetting the filter after the configuration is complete.");
+    inertial_device_->resetFilter();
   }
   else
   {
-    MICROSTRAIN_INFO(m_node, "Note: The filter was not reset after configuration.");
+    MICROSTRAIN_INFO(node_, "Note: The filter was not reset after configuration.");
   }
 
   // Resume the device
-  m_inertial_device->resume();
+  inertial_device_->resume();
   return true;
 }
 
-bool MicrostrainConfig::setup_raw_file(RosNodeType* node)
+bool MicrostrainConfig::setupRawFile(RosNodeType* node)
 {
   // Open raw data file, if enabled, and configure the device for raw data output
   std::string raw_file_directory;
   get_param<std::string>(node, "raw_file_directory", raw_file_directory, std::string("."));
 
-  if (m_raw_file_enable)
+  if (raw_file_enable_)
   {
     time_t raw_time;
     struct tm curr_time;
@@ -280,27 +280,27 @@ bool MicrostrainConfig::setup_raw_file(RosNodeType* node)
 
     std::string time_string(curr_time_buffer);
 
-    std::string filename = raw_file_directory + std::string("/") + m_inertial_device->modelName() + std::string("_") +
-                           m_inertial_device->serialNumber() + std::string("_") + time_string + std::string(".bin");
+    std::string filename = raw_file_directory + std::string("/") + inertial_device_->modelName() + std::string("_") +
+                           inertial_device_->serialNumber() + std::string("_") + time_string + std::string(".bin");
 
-    m_raw_file.open(filename, std::ios::out | std::ios::binary | std::ios::trunc);
+    raw_file_.open(filename, std::ios::out | std::ios::binary | std::ios::trunc);
 
-    if (!m_raw_file.is_open())
+    if (!raw_file_.is_open())
     {
-      MICROSTRAIN_ERROR(m_node, "ERROR opening raw binary datafile at %s", filename.c_str());
+      MICROSTRAIN_ERROR(node_, "ERROR opening raw binary datafile at %s", filename.c_str());
       return false;
     }
     else
     {
-      MICROSTRAIN_INFO(m_node, "Raw binary datafile opened at %s", filename.c_str());
+      MICROSTRAIN_INFO(node_, "Raw binary datafile opened at %s", filename.c_str());
     }
 
-    m_inertial_device->connection().debugMode(true);
+    inertial_device_->connection().debugMode(true);
   }
   return true;
 }
 
-bool MicrostrainConfig::configure_gpio(RosNodeType* node)
+bool MicrostrainConfig::configureGPIO(RosNodeType* node)
 {
   // Read the config required only by this section
   int32_t gpio1_feature;
@@ -336,48 +336,48 @@ bool MicrostrainConfig::configure_gpio(RosNodeType* node)
     gpioConfig.feature = static_cast<mscl::GpioConfiguration::Feature>(gpio1_feature);
     gpioConfig.behavior = gpio1_behavior;
     gpioConfig.pinMode.value(gpio1_pin_mode);
-    m_inertial_device->setGpioConfig(gpioConfig);
+    inertial_device_->setGpioConfig(gpioConfig);
 
-    MICROSTRAIN_INFO(m_node, "Configuring GPIO1 to feature: %i, behavior: %i, pinMode: %i", gpio1_feature,
+    MICROSTRAIN_INFO(node_, "Configuring GPIO1 to feature: %i, behavior: %i, pinMode: %i", gpio1_feature,
                      gpio1_behavior, gpio1_pin_mode);
 
     gpioConfig.pin = 2;
     gpioConfig.feature = static_cast<mscl::GpioConfiguration::Feature>(gpio2_feature);
     gpioConfig.behavior = gpio2_behavior;
     gpioConfig.pinMode.value(gpio4_pin_mode);
-    m_inertial_device->setGpioConfig(gpioConfig);
+    inertial_device_->setGpioConfig(gpioConfig);
 
-    MICROSTRAIN_INFO(m_node, "Configuring GPIO2 to feature: %i, behavior: %i, pinMode: %i", gpio2_feature,
+    MICROSTRAIN_INFO(node_, "Configuring GPIO2 to feature: %i, behavior: %i, pinMode: %i", gpio2_feature,
                      gpio2_behavior, gpio2_pin_mode);
 
     gpioConfig.pin = 3;
     gpioConfig.feature = static_cast<mscl::GpioConfiguration::Feature>(gpio3_feature);
     gpioConfig.behavior = gpio3_behavior;
     gpioConfig.pinMode.value(gpio4_pin_mode);
-    m_inertial_device->setGpioConfig(gpioConfig);
+    inertial_device_->setGpioConfig(gpioConfig);
 
-    MICROSTRAIN_INFO(m_node, "Configuring GPIO3 to feature: %i, behavior: %i, pinMode: %i", gpio3_feature,
+    MICROSTRAIN_INFO(node_, "Configuring GPIO3 to feature: %i, behavior: %i, pinMode: %i", gpio3_feature,
                      gpio3_behavior, gpio3_pin_mode);
 
     gpioConfig.pin = 4;
     gpioConfig.feature = static_cast<mscl::GpioConfiguration::Feature>(gpio4_feature);
     gpioConfig.behavior = gpio4_behavior;
     gpioConfig.pinMode.value(gpio4_pin_mode);
-    m_inertial_device->setGpioConfig(gpioConfig);
+    inertial_device_->setGpioConfig(gpioConfig);
 
-    MICROSTRAIN_INFO(m_node, "Configuring GPIO4 to feature: %i, behavior: %i, pinMode: %i", gpio4_feature,
+    MICROSTRAIN_INFO(node_, "Configuring GPIO4 to feature: %i, behavior: %i, pinMode: %i", gpio4_feature,
                      gpio4_behavior, gpio4_pin_mode);
   }
   catch (mscl::Error& e)
   {
-    MICROSTRAIN_ERROR(m_node, "GPIO Config Error: %s", e.what());
+    MICROSTRAIN_ERROR(node_, "GPIO Config Error: %s", e.what());
     return false;
   }
 
   return true;
 }
 
-bool MicrostrainConfig::configure_imu(RosNodeType* node)
+bool MicrostrainConfig::configureIMU(RosNodeType* node)
 {
   // Read the config required only by this section
   int32_t declination_source;
@@ -385,9 +385,9 @@ bool MicrostrainConfig::configure_imu(RosNodeType* node)
   get_param<int32_t>(node, "filter_declination_source", declination_source, 2);
   get_param<double>(node, "filter_declination", declination, 0.23);
 
-  mscl::SampleRate imu_rate = mscl::SampleRate::Hertz(m_imu_data_rate);
+  mscl::SampleRate imu_rate = mscl::SampleRate::Hertz(imu_data_rate_);
 
-  MICROSTRAIN_INFO(m_node, "Setting IMU data to stream at %d hz", m_imu_data_rate);
+  MICROSTRAIN_INFO(node_, "Setting IMU data to stream at %d hz", imu_data_rate_);
 
   mscl::MipTypes::MipChannelFields ahrsChannels
   {
@@ -400,7 +400,7 @@ bool MicrostrainConfig::configure_imu(RosNodeType* node)
 
   mscl::MipChannels supportedChannels;
   for (mscl::MipTypes::ChannelField channel :
-       m_inertial_device->features().supportedChannelFields(mscl::MipTypes::DataClass::CLASS_AHRS_IMU))
+       inertial_device_->features().supportedChannelFields(mscl::MipTypes::DataClass::CLASS_AHRS_IMU))
   {
     if (std::find(ahrsChannels.begin(), ahrsChannels.end(), channel) != ahrsChannels.end())
     {
@@ -408,28 +408,28 @@ bool MicrostrainConfig::configure_imu(RosNodeType* node)
     }
   }
 
-  m_inertial_device->setActiveChannelFields(mscl::MipTypes::DataClass::CLASS_AHRS_IMU, supportedChannels);
+  inertial_device_->setActiveChannelFields(mscl::MipTypes::DataClass::CLASS_AHRS_IMU, supportedChannels);
 
-  if (m_inertial_device->features().supportsCommand(mscl::MipTypes::Command::CMD_EF_DECLINATION_SRC))
+  if (inertial_device_->features().supportsCommand(mscl::MipTypes::Command::CMD_EF_DECLINATION_SRC))
   {
-    MICROSTRAIN_INFO(m_node, "Setting Declination Source");
-    m_inertial_device->setDeclinationSource(mscl::GeographicSourceOptions(
+    MICROSTRAIN_INFO(node_, "Setting Declination Source");
+    inertial_device_->setDeclinationSource(mscl::GeographicSourceOptions(
         static_cast<mscl::InertialTypes::GeographicSourceOption>((uint8_t)declination_source), declination));
   }
   else
   {
-    MICROSTRAIN_INFO(m_node, "Note: Device does not support the declination source command.");
+    MICROSTRAIN_INFO(node_, "Note: Device does not support the declination source command.");
   }
 
-  m_inertial_device->enableDataStream(mscl::MipTypes::DataClass::CLASS_AHRS_IMU);
+  inertial_device_->enableDataStream(mscl::MipTypes::DataClass::CLASS_AHRS_IMU);
   return true;
 }
 
-bool MicrostrainConfig::configure_gnss(RosNodeType* node, uint8_t gnss_id)
+bool MicrostrainConfig::configureGNSS(RosNodeType* node, uint8_t gnss_id)
 {
-  mscl::SampleRate gnss1_rate = mscl::SampleRate::Hertz(m_gnss_data_rate[gnss_id]);
+  mscl::SampleRate gnss1_rate = mscl::SampleRate::Hertz(gnss_data_rate_[gnss_id]);
 
-  MICROSTRAIN_INFO(m_node, "Setting GNSS%d data to stream at %d hz", gnss_id, m_gnss_data_rate[gnss_id]);
+  MICROSTRAIN_INFO(node_, "Setting GNSS%d data to stream at %d hz", gnss_id, gnss_data_rate_[gnss_id]);
 
   mscl::MipTypes::MipChannelFields gnssChannels
   {
@@ -440,7 +440,7 @@ bool MicrostrainConfig::configure_gnss(RosNodeType* node, uint8_t gnss_id)
 
   mscl::MipTypes::DataClass gnss_data_class = mscl::MipTypes::DataClass::CLASS_GNSS;
 
-  if (m_inertial_device->features().supportsCategory(mscl::MipTypes::DataClass::CLASS_GNSS1) && gnss_id == GNSS1_ID)
+  if (inertial_device_->features().supportsCategory(mscl::MipTypes::DataClass::CLASS_GNSS1) && gnss_id == GNSS1_ID)
   {
     gnss_data_class = mscl::MipTypes::DataClass::CLASS_GNSS1;
 
@@ -449,7 +449,7 @@ bool MicrostrainConfig::configure_gnss(RosNodeType* node, uint8_t gnss_id)
     gnssChannels.push_back(mscl::MipTypes::ChannelField::CH_FIELD_GNSS_1_NED_VELOCITY);
     gnssChannels.push_back(mscl::MipTypes::ChannelField::CH_FIELD_GNSS_1_GPS_TIME);
   }
-  else if (m_inertial_device->features().supportsCategory(mscl::MipTypes::DataClass::CLASS_GNSS2) &&
+  else if (inertial_device_->features().supportsCategory(mscl::MipTypes::DataClass::CLASS_GNSS2) &&
            gnss_id == GNSS2_ID)
   {
     gnss_data_class = mscl::MipTypes::DataClass::CLASS_GNSS2;
@@ -461,7 +461,7 @@ bool MicrostrainConfig::configure_gnss(RosNodeType* node, uint8_t gnss_id)
   }
 
   mscl::MipChannels supportedChannels;
-  for (mscl::MipTypes::ChannelField channel : m_inertial_device->features().supportedChannelFields(gnss_data_class))
+  for (mscl::MipTypes::ChannelField channel : inertial_device_->features().supportedChannelFields(gnss_data_class))
   {
     if (std::find(gnssChannels.begin(), gnssChannels.end(), channel) != gnssChannels.end())
     {
@@ -470,51 +470,51 @@ bool MicrostrainConfig::configure_gnss(RosNodeType* node, uint8_t gnss_id)
   }
 
   // set the GNSS channel fields
-  m_inertial_device->setActiveChannelFields(gnss_data_class, supportedChannels);
+  inertial_device_->setActiveChannelFields(gnss_data_class, supportedChannels);
 
   // Set the antenna offset, if supported (needs to process 2 different ways for old devices vs. new for GNSS1)
-  mscl::PositionOffset antenna_offset(m_gnss_antenna_offset[gnss_id][0], m_gnss_antenna_offset[gnss_id][1],
-                                      m_gnss_antenna_offset[gnss_id][2]);
+  mscl::PositionOffset antenna_offset(gnss_antenna_offset_[gnss_id][0], gnss_antenna_offset_[gnss_id][1],
+                                      gnss_antenna_offset_[gnss_id][2]);
 
-  if (m_inertial_device->features().supportsCommand(mscl::MipTypes::Command::CMD_EF_ANTENNA_OFFSET))
+  if (inertial_device_->features().supportsCommand(mscl::MipTypes::Command::CMD_EF_ANTENNA_OFFSET))
   {
-    MICROSTRAIN_INFO(m_node, "Setting GNSS%d antenna offset to [%f, %f, %f]", gnss_id, antenna_offset.x(),
+    MICROSTRAIN_INFO(node_, "Setting GNSS%d antenna offset to [%f, %f, %f]", gnss_id, antenna_offset.x(),
                      antenna_offset.y(), antenna_offset.z());
-    m_inertial_device->setAntennaOffset(antenna_offset);
+    inertial_device_->setAntennaOffset(antenna_offset);
   }
-  else if (m_inertial_device->features().supportsCommand(mscl::MipTypes::Command::CMD_EF_MULTI_ANTENNA_OFFSET))
+  else if (inertial_device_->features().supportsCommand(mscl::MipTypes::Command::CMD_EF_MULTI_ANTENNA_OFFSET))
   {
-    MICROSTRAIN_INFO(m_node, "Setting GNSS%d antenna offset to [%f, %f, %f]", gnss_id, antenna_offset.x(),
+    MICROSTRAIN_INFO(node_, "Setting GNSS%d antenna offset to [%f, %f, %f]", gnss_id, antenna_offset.x(),
                      antenna_offset.y(), antenna_offset.z());
-    m_inertial_device->setMultiAntennaOffset(1, antenna_offset);
+    inertial_device_->setMultiAntennaOffset(1, antenna_offset);
   }
   else
   {
-    MICROSTRAIN_ERROR(m_node, "Could not set GNSS%d antenna offset!", gnss_id);
+    MICROSTRAIN_ERROR(node_, "Could not set GNSS%d antenna offset!", gnss_id);
     return false;
   }
 
   // Enable publishing aiding status messages
-  if (m_inertial_device->features().supportsCommand(mscl::MipTypes::Command::CMD_EF_AIDING_MEASUREMENT_ENABLE))
+  if (inertial_device_->features().supportsCommand(mscl::MipTypes::Command::CMD_EF_AIDING_MEASUREMENT_ENABLE))
   {
-    m_publish_gnss_aiding_status[gnss_id] = true;
+    publish_gnss_aiding_status_[gnss_id] = true;
   }
 
-  m_inertial_device->enableDataStream(gnss_data_class);
+  inertial_device_->enableDataStream(gnss_data_class);
   return true;
 }
 
-bool MicrostrainConfig::configure_rtk(RosNodeType* node)
+bool MicrostrainConfig::configureRTK(RosNodeType* node)
 {
   mscl::SampleRate gnss3_rate = mscl::SampleRate::Hertz(1);
 
-  MICROSTRAIN_INFO(m_node, "Setting RTK data to stream at 1 hz");
+  MICROSTRAIN_INFO(node_, "Setting RTK data to stream at 1 hz");
 
   mscl::MipTypes::MipChannelFields gnssChannels{ mscl::MipTypes::ChannelField::CH_FIELD_GNSS_3_RTK_CORRECTIONS_STATUS };
 
   mscl::MipChannels supportedChannels;
   for (mscl::MipTypes::ChannelField channel :
-       m_inertial_device->features().supportedChannelFields(mscl::MipTypes::DataClass::CLASS_GNSS3))
+       inertial_device_->features().supportedChannelFields(mscl::MipTypes::DataClass::CLASS_GNSS3))
   {
     if (std::find(gnssChannels.begin(), gnssChannels.end(), channel) != gnssChannels.end())
     {
@@ -523,24 +523,24 @@ bool MicrostrainConfig::configure_rtk(RosNodeType* node)
   }
 
   // set the GNSS channel fields
-  m_inertial_device->setActiveChannelFields(mscl::MipTypes::DataClass::CLASS_GNSS3, supportedChannels);
+  inertial_device_->setActiveChannelFields(mscl::MipTypes::DataClass::CLASS_GNSS3, supportedChannels);
 
-  if (m_inertial_device->features().supportsCommand(mscl::MipTypes::Command::CMD_GNSS_RTK_CONFIG))
+  if (inertial_device_->features().supportsCommand(mscl::MipTypes::Command::CMD_GNSS_RTK_CONFIG))
   {
-    MICROSTRAIN_INFO(m_node, "Setting RTK dongle enable to 1");
-    m_inertial_device->enableRtk(true);
-    m_publish_rtk = true;
+    MICROSTRAIN_INFO(node_, "Setting RTK dongle enable to 1");
+    inertial_device_->enableRtk(true);
+    publish_rtk_ = true;
   }
   else
   {
-    MICROSTRAIN_INFO(m_node, "Note: Device does not support the RTK dongle config command");
+    MICROSTRAIN_INFO(node_, "Note: Device does not support the RTK dongle config command");
   }
 
-  m_inertial_device->enableDataStream(mscl::MipTypes::DataClass::CLASS_GNSS3);
+  inertial_device_->enableDataStream(mscl::MipTypes::DataClass::CLASS_GNSS3);
   return true;
 }
 
-bool MicrostrainConfig::configure_filter(RosNodeType* node)
+bool MicrostrainConfig::configureFilter(RosNodeType* node)
 {
   // Read some generic filter info
   int heading_source;
@@ -586,18 +586,18 @@ bool MicrostrainConfig::configure_filter(RosNodeType* node)
   get_param<int32_t>(node, "filter_init_condition_src", filter_init_condition_src, 0);
   get_param<int32_t>(node, "filter_auto_heading_alignment_selector", filter_auto_heading_alignment_selector, 0);
   get_param<int32_t>(node, "filter_init_reference_frame", filter_init_reference_frame, 2);
-  get_param<std::vector<double>>(node, "filter_init_position", filter_init_position, default_vector);
-  get_param<std::vector<double>>(node, "filter_init_velocity", filter_init_velocity, default_vector);
-  get_param<std::vector<double>>(node, "filter_init_attitude", filter_init_attitude, default_vector);
+  get_param<std::vector<double>>(node, "filter_init_position", filter_init_position, DEFAULT_VECTOR);
+  get_param<std::vector<double>>(node, "filter_init_velocity", filter_init_velocity, DEFAULT_VECTOR);
+  get_param<std::vector<double>>(node, "filter_init_attitude", filter_init_attitude, DEFAULT_VECTOR);
   get_param<int32_t>(node, "filter_relative_position_frame", filter_relative_position_frame, 2);
-  get_param<std::vector<double>>(node, "filter_relative_position_ref", filter_relative_position_ref, default_vector);
-  get_param<std::vector<double>>(node, "filter_speed_lever_arm", filter_speed_lever_arm, default_vector);
+  get_param<std::vector<double>>(node, "filter_relative_position_ref", filter_relative_position_ref, DEFAULT_VECTOR);
+  get_param<std::vector<double>>(node, "filter_speed_lever_arm", filter_speed_lever_arm, DEFAULT_VECTOR);
   get_param<double>(node, "filter_gnss_antenna_cal_max_offset", filter_gnss_antenna_cal_max_offset, 0.1);
   get_param<int32_t>(node, "filter_pps_source", filter_pps_source, 1);
 
-  mscl::SampleRate filter_rate = mscl::SampleRate::Hertz(m_filter_data_rate);
+  mscl::SampleRate filter_rate = mscl::SampleRate::Hertz(filter_data_rate_);
 
-  MICROSTRAIN_INFO(m_node, "Setting Filter data to stream at %d hz", m_filter_data_rate);
+  MICROSTRAIN_INFO(node_, "Setting Filter data to stream at %d hz", filter_data_rate_);
 
   mscl::MipTypes::MipChannelFields navChannels
   {
@@ -619,12 +619,12 @@ bool MicrostrainConfig::configure_filter(RosNodeType* node)
 
   if (filter_enable_gnss_pos_vel_aiding)
     navChannels.push_back(mscl::MipTypes::ChannelField::CH_FIELD_ESTFILTER_POSITION_AIDING_STATUS);
-  if (m_filter_enable_gnss_heading_aiding)
+  if (filter_enable_gnss_heading_aiding_)
     navChannels.push_back(mscl::MipTypes::ChannelField::CH_FIELD_ESTFILTER_GNSS_DUAL_ANTENNA_STATUS);
 
   mscl::MipChannels supportedChannels;
   for (mscl::MipTypes::ChannelField channel :
-       m_inertial_device->features().supportedChannelFields(mscl::MipTypes::DataClass::CLASS_ESTFILTER))
+       inertial_device_->features().supportedChannelFields(mscl::MipTypes::DataClass::CLASS_ESTFILTER))
   {
     if (std::find(navChannels.begin(), navChannels.end(), channel) != navChannels.end())
     {
@@ -632,51 +632,51 @@ bool MicrostrainConfig::configure_filter(RosNodeType* node)
     }
   }
 
-  m_inertial_device->setActiveChannelFields(mscl::MipTypes::DataClass::CLASS_ESTFILTER, supportedChannels);
+  inertial_device_->setActiveChannelFields(mscl::MipTypes::DataClass::CLASS_ESTFILTER, supportedChannels);
 
   // set dynamics mode
-  if (m_inertial_device->features().supportsCommand(mscl::MipTypes::Command::CMD_EF_VEHIC_DYNAMICS_MODE))
+  if (inertial_device_->features().supportsCommand(mscl::MipTypes::Command::CMD_EF_VEHIC_DYNAMICS_MODE))
   {
-    mscl::VehicleModeTypes modes = m_inertial_device->features().supportedVehicleModeTypes();
+    mscl::VehicleModeTypes modes = inertial_device_->features().supportedVehicleModeTypes();
     if (std::find(modes.begin(), modes.end(), static_cast<mscl::InertialTypes::VehicleModeType>(dynamics_mode)) !=
         modes.end())
     {
-      MICROSTRAIN_INFO(m_node, "Setting dynamics mode to %#04X",
+      MICROSTRAIN_INFO(node_, "Setting dynamics mode to %#04X",
                        static_cast<mscl::InertialTypes::VehicleModeType>(dynamics_mode));
-      m_inertial_device->setVehicleDynamicsMode(static_cast<mscl::InertialTypes::VehicleModeType>(dynamics_mode));
+      inertial_device_->setVehicleDynamicsMode(static_cast<mscl::InertialTypes::VehicleModeType>(dynamics_mode));
     }
   }
   else
   {
-    MICROSTRAIN_INFO(m_node, "Note: The device does not support the vehicle dynamics mode command.");
+    MICROSTRAIN_INFO(node_, "Note: The device does not support the vehicle dynamics mode command.");
   }
 
   // Set PPS source
-  if (m_inertial_device->features().supportsCommand(mscl::MipTypes::Command::CMD_PPS_SOURCE))
+  if (inertial_device_->features().supportsCommand(mscl::MipTypes::Command::CMD_PPS_SOURCE))
   {
-    mscl::PpsSourceOptions sources = m_inertial_device->features().supportedPpsSourceOptions();
+    mscl::PpsSourceOptions sources = inertial_device_->features().supportedPpsSourceOptions();
     if (std::find(sources.begin(), sources.end(), static_cast<mscl::InertialTypes::PpsSource>(filter_pps_source)) !=
         sources.end())
     {
-      MICROSTRAIN_INFO(m_node, "Setting PPS source to %#04X",
+      MICROSTRAIN_INFO(node_, "Setting PPS source to %#04X",
                        static_cast<mscl::InertialTypes::PpsSource>(filter_pps_source));
-      m_inertial_device->setPpsSource(static_cast<mscl::InertialTypes::PpsSource>(filter_pps_source));
+      inertial_device_->setPpsSource(static_cast<mscl::InertialTypes::PpsSource>(filter_pps_source));
     }
   }
   else
   {
-    MICROSTRAIN_INFO(m_node, "Note: The device does not support the PPS source command.");
+    MICROSTRAIN_INFO(node_, "Note: The device does not support the PPS source command.");
   }
 
   // Set heading Source
-  if (m_inertial_device->features().supportsCommand(mscl::MipTypes::Command::CMD_EF_HEADING_UPDATE_CTRL))
+  if (inertial_device_->features().supportsCommand(mscl::MipTypes::Command::CMD_EF_HEADING_UPDATE_CTRL))
   {
-    for (mscl::HeadingUpdateOptions headingSources : m_inertial_device->features().supportedHeadingUpdateOptions())
+    for (mscl::HeadingUpdateOptions headingSources : inertial_device_->features().supportedHeadingUpdateOptions())
     {
       if (headingSources.AsOptionId() == static_cast<mscl::InertialTypes::HeadingUpdateEnableOption>(heading_source))
       {
-        MICROSTRAIN_INFO(m_node, "Setting heading source to %#04X", heading_source);
-        m_inertial_device->setHeadingUpdateControl(
+        MICROSTRAIN_INFO(node_, "Setting heading source to %#04X", heading_source);
+        inertial_device_->setHeadingUpdateControl(
             mscl::HeadingUpdateOptions(static_cast<mscl::InertialTypes::HeadingUpdateEnableOption>(heading_source)));
         break;
       }
@@ -684,144 +684,144 @@ bool MicrostrainConfig::configure_filter(RosNodeType* node)
 
     // Set the initial heading
     if ((heading_source == 0) &&
-        (m_inertial_device->features().supportsCommand(mscl::MipTypes::Command::CMD_EF_INIT_HEADING)))
+        (inertial_device_->features().supportsCommand(mscl::MipTypes::Command::CMD_EF_INIT_HEADING)))
     {
-      MICROSTRAIN_INFO(m_node, "Setting initial heading to %f", initial_heading);
-      m_inertial_device->setInitialHeading(initial_heading);
+      MICROSTRAIN_INFO(node_, "Setting initial heading to %f", initial_heading);
+      inertial_device_->setInitialHeading(initial_heading);
     }
   }
   else
   {
-    MICROSTRAIN_INFO(m_node, "Note: The device does not support the heading source command.");
+    MICROSTRAIN_INFO(node_, "Note: The device does not support the heading source command.");
   }
 
   // Set the filter autoinitialization, if suppored
-  if (m_inertial_device->features().supportsCommand(mscl::MipTypes::Command::CMD_EF_AUTO_INIT_CTRL))
+  if (inertial_device_->features().supportsCommand(mscl::MipTypes::Command::CMD_EF_AUTO_INIT_CTRL))
   {
-    MICROSTRAIN_INFO(m_node, "Setting autoinitialization to %d", filter_auto_init);
-    m_inertial_device->setAutoInitialization(filter_auto_init);
+    MICROSTRAIN_INFO(node_, "Setting autoinitialization to %d", filter_auto_init);
+    inertial_device_->setAutoInitialization(filter_auto_init);
   }
   else
   {
-    MICROSTRAIN_INFO(m_node, "Note: The device does not support the filter autoinitialization command.");
+    MICROSTRAIN_INFO(node_, "Note: The device does not support the filter autoinitialization command.");
   }
 
   // (GQ7 and GX5-45 only) Set the filter adaptive settings
-  if (m_inertial_device->features().supportsCommand(mscl::MipTypes::Command::CMD_EF_ADAPTIVE_FILTER_OPTIONS))
+  if (inertial_device_->features().supportsCommand(mscl::MipTypes::Command::CMD_EF_ADAPTIVE_FILTER_OPTIONS))
   {
-    MICROSTRAIN_INFO(m_node, "Setting autoadaptive options to: level = %d, time_limit = %d", filter_adaptive_level,
+    MICROSTRAIN_INFO(node_, "Setting autoadaptive options to: level = %d, time_limit = %d", filter_adaptive_level,
                      filter_adaptive_time_limit_ms);
     mscl::AutoAdaptiveFilterOptions options(
         static_cast<mscl::InertialTypes::AutoAdaptiveFilteringLevel>(filter_adaptive_level),
         (uint16_t)filter_adaptive_time_limit_ms);
 
-    m_inertial_device->setAdaptiveFilterOptions(options);
+    inertial_device_->setAdaptiveFilterOptions(options);
   }
   else
   {
-    MICROSTRAIN_INFO(m_node, "Note: The device does not support the filte adaptive settings command.");
+    MICROSTRAIN_INFO(node_, "Note: The device does not support the filte adaptive settings command.");
   }
 
   // (GQ7 only) Set the filter aiding settings
-  if (m_inertial_device->features().supportsCommand(mscl::MipTypes::Command::CMD_EF_AIDING_MEASUREMENT_ENABLE))
+  if (inertial_device_->features().supportsCommand(mscl::MipTypes::Command::CMD_EF_AIDING_MEASUREMENT_ENABLE))
   {
-    MICROSTRAIN_INFO(m_node,
+    MICROSTRAIN_INFO(node_,
                      "Filter aiding set to: pos/vel = %d, gnss heading = %d, altimeter = %d, odometer = %d, "
                      "magnetometer = %d, external heading = %d",
-                     m_filter_enable_gnss_heading_aiding, m_filter_enable_gnss_heading_aiding,
+                     filter_enable_gnss_heading_aiding_, filter_enable_gnss_heading_aiding_,
                      filter_enable_altimeter_aiding, filter_enable_odometer_aiding, filter_enable_magnetometer_aiding,
                      filter_enable_external_heading_aiding);
 
-    m_inertial_device->enableDisableAidingMeasurement(mscl::InertialTypes::AidingMeasurementSource::GNSS_POS_VEL_AIDING,
+    inertial_device_->enableDisableAidingMeasurement(mscl::InertialTypes::AidingMeasurementSource::GNSS_POS_VEL_AIDING,
                                                       filter_enable_gnss_pos_vel_aiding);
-    m_inertial_device->enableDisableAidingMeasurement(mscl::InertialTypes::AidingMeasurementSource::GNSS_HEADING_AIDING,
-                                                      m_filter_enable_gnss_heading_aiding);
-    m_inertial_device->enableDisableAidingMeasurement(mscl::InertialTypes::AidingMeasurementSource::ALTIMETER_AIDING,
+    inertial_device_->enableDisableAidingMeasurement(mscl::InertialTypes::AidingMeasurementSource::GNSS_HEADING_AIDING,
+                                                      filter_enable_gnss_heading_aiding_);
+    inertial_device_->enableDisableAidingMeasurement(mscl::InertialTypes::AidingMeasurementSource::ALTIMETER_AIDING,
                                                       filter_enable_altimeter_aiding);
-    m_inertial_device->enableDisableAidingMeasurement(mscl::InertialTypes::AidingMeasurementSource::ODOMETER_AIDING,
+    inertial_device_->enableDisableAidingMeasurement(mscl::InertialTypes::AidingMeasurementSource::ODOMETER_AIDING,
                                                       filter_enable_odometer_aiding);
-    m_inertial_device->enableDisableAidingMeasurement(mscl::InertialTypes::AidingMeasurementSource::MAGNETOMETER_AIDING,
+    inertial_device_->enableDisableAidingMeasurement(mscl::InertialTypes::AidingMeasurementSource::MAGNETOMETER_AIDING,
                                                       filter_enable_magnetometer_aiding);
-    m_inertial_device->enableDisableAidingMeasurement(
+    inertial_device_->enableDisableAidingMeasurement(
         mscl::InertialTypes::AidingMeasurementSource::EXTERNAL_HEADING_AIDING, filter_enable_external_heading_aiding);
   }
   else
   {
-    MICROSTRAIN_INFO(m_node, "Note: The device does not support the filter aiding command.");
+    MICROSTRAIN_INFO(node_, "Note: The device does not support the filter aiding command.");
   }
 
   // (GQ7 only) Set the filter relative position frame settings
-  if (m_publish_filter_relative_pos &&
-      m_inertial_device->features().supportsCommand(mscl::MipTypes::Command::CMD_EF_RELATIVE_POSITION_REF))
+  if (publish_filter_relative_pos_ &&
+      inertial_device_->features().supportsCommand(mscl::MipTypes::Command::CMD_EF_RELATIVE_POSITION_REF))
   {
     mscl::PositionReferenceConfiguration ref;
     ref.position = mscl::Position(filter_relative_position_ref[0], filter_relative_position_ref[1],
                                   filter_relative_position_ref[2],
                                   static_cast<mscl::PositionVelocityReferenceFrame>(filter_relative_position_frame));
 
-    MICROSTRAIN_INFO(m_node, "Setting reference position to: [%f, %f, %f], ref frame = %d",
+    MICROSTRAIN_INFO(node_, "Setting reference position to: [%f, %f, %f], ref frame = %d",
                      filter_relative_position_ref[0], filter_relative_position_ref[1], filter_relative_position_ref[2],
                      filter_relative_position_frame);
-    m_inertial_device->setRelativePositionReference(ref);
+    inertial_device_->setRelativePositionReference(ref);
   }
   else
   {
-    MICROSTRAIN_INFO(m_node, "Note: The device does not support the relative position command.");
+    MICROSTRAIN_INFO(node_, "Note: The device does not support the relative position command.");
   }
 
   // (GQ7 only) Set the filter speed lever arm
-  if (m_inertial_device->features().supportsCommand(mscl::MipTypes::Command::CMD_EF_SPEED_MEASUREMENT_OFFSET))
+  if (inertial_device_->features().supportsCommand(mscl::MipTypes::Command::CMD_EF_SPEED_MEASUREMENT_OFFSET))
   {
     mscl::PositionOffset offset(filter_speed_lever_arm[0], filter_speed_lever_arm[1], filter_speed_lever_arm[2]);
 
-    m_inertial_device->setSpeedMeasurementOffset(offset);
+    inertial_device_->setSpeedMeasurementOffset(offset);
   }
   else
   {
-    MICROSTRAIN_INFO(m_node, "Note: The device does not support the filter speed lever arm command.");
+    MICROSTRAIN_INFO(node_, "Note: The device does not support the filter speed lever arm command.");
   }
 
   // (GQ7 only) Set the wheeled vehicle constraint
-  if (m_inertial_device->features().supportsCommand(mscl::MipTypes::Command::CMD_EF_WHEELED_VEHICLE_CONSTRAINT))
+  if (inertial_device_->features().supportsCommand(mscl::MipTypes::Command::CMD_EF_WHEELED_VEHICLE_CONSTRAINT))
   {
-    MICROSTRAIN_INFO(m_node, "Setting wheeled vehicle contraint enable to %d",
+    MICROSTRAIN_INFO(node_, "Setting wheeled vehicle contraint enable to %d",
                      filter_enable_wheeled_vehicle_constraint);
-    m_inertial_device->enableWheeledVehicleConstraint(filter_enable_wheeled_vehicle_constraint);
+    inertial_device_->enableWheeledVehicleConstraint(filter_enable_wheeled_vehicle_constraint);
   }
   else
   {
-    MICROSTRAIN_INFO(m_node, "Note: The device does not support the wheeled vehicle constraint command.");
+    MICROSTRAIN_INFO(node_, "Note: The device does not support the wheeled vehicle constraint command.");
   }
 
   // (GQ7 only) Set the vertical gyro constraint
-  if (m_inertial_device->features().supportsCommand(mscl::MipTypes::Command::CMD_EF_VERTICAL_GYRO_CONSTRAINT))
+  if (inertial_device_->features().supportsCommand(mscl::MipTypes::Command::CMD_EF_VERTICAL_GYRO_CONSTRAINT))
   {
-    MICROSTRAIN_INFO(m_node, "Setting vertical gyro contraint enable to %d", filter_enable_vertical_gyro_constraint);
-    m_inertial_device->enableVerticalGyroConstraint(filter_enable_vertical_gyro_constraint);
+    MICROSTRAIN_INFO(node_, "Setting vertical gyro contraint enable to %d", filter_enable_vertical_gyro_constraint);
+    inertial_device_->enableVerticalGyroConstraint(filter_enable_vertical_gyro_constraint);
   }
   else
   {
-    MICROSTRAIN_INFO(m_node, "Note: The device does not support the vertical gyro constraint command.");
+    MICROSTRAIN_INFO(node_, "Note: The device does not support the vertical gyro constraint command.");
   }
 
   // (GQ7 only) Set the GNSS antenna calibration settings
-  if (m_inertial_device->features().supportsCommand(mscl::MipTypes::Command::CMD_EF_GNSS_ANTENNA_LEVER_ARM_CAL))
+  if (inertial_device_->features().supportsCommand(mscl::MipTypes::Command::CMD_EF_GNSS_ANTENNA_LEVER_ARM_CAL))
   {
     mscl::AntennaLeverArmCalConfiguration config;
     config.enabled = filter_enable_gnss_antenna_cal;
     config.maxOffsetError = filter_gnss_antenna_cal_max_offset;
 
-    MICROSTRAIN_INFO(m_node, "Setting GNSS antenna calibration to: enable = %d, max_offset = %f",
+    MICROSTRAIN_INFO(node_, "Setting GNSS antenna calibration to: enable = %d, max_offset = %f",
                      filter_enable_gnss_antenna_cal, filter_gnss_antenna_cal_max_offset);
-    m_inertial_device->setAntennaLeverArmCal(config);
+    inertial_device_->setAntennaLeverArmCal(config);
   }
   else
   {
-    MICROSTRAIN_INFO(m_node, "Note: The device does not support the GNSS antenna calibration command.");
+    MICROSTRAIN_INFO(node_, "Note: The device does not support the GNSS antenna calibration command.");
   }
 
   // (GQ7 only) Set the filter initialization settings
-  if (m_inertial_device->features().supportsCommand(mscl::MipTypes::Command::CMD_EF_INITIALIZATION_CONFIG))
+  if (inertial_device_->features().supportsCommand(mscl::MipTypes::Command::CMD_EF_INITIALIZATION_CONFIG))
   {
     mscl::FilterInitializationValues filter_config;
 
@@ -854,22 +854,22 @@ bool MicrostrainConfig::configure_filter(RosNodeType* node)
     // API Variable: referenceFrame
     filter_config.referenceFrame = static_cast<mscl::PositionVelocityReferenceFrame>(filter_init_reference_frame);
 
-    m_inertial_device->setInitialFilterConfiguration(filter_config);
+    inertial_device_->setInitialFilterConfiguration(filter_config);
   }
   else
   {
-    MICROSTRAIN_INFO(m_node, "Note: The device does not support the next-gen filter initialization command.");
+    MICROSTRAIN_INFO(node_, "Note: The device does not support the next-gen filter initialization command.");
   }
 
   // Enable dual antenna messages
-  m_publish_gnss_dual_antenna_status = m_filter_enable_gnss_heading_aiding;
+  publish_gnss_dual_antenna_status_ = filter_enable_gnss_heading_aiding_;
 
   // Enable the filter datastream
-  m_inertial_device->enableDataStream(mscl::MipTypes::DataClass::CLASS_ESTFILTER);
+  inertial_device_->enableDataStream(mscl::MipTypes::DataClass::CLASS_ESTFILTER);
   return true;
 }
 
-bool MicrostrainConfig::configure_sensor2vehicle(RosNodeType* node)
+bool MicrostrainConfig::configureSensor2vehicle(RosNodeType* node)
 {
   int filter_sensor2vehicle_frame_selector;
   std::vector<double> filter_sensor2vehicle_frame_transformation_euler(3, 0.0);
@@ -877,45 +877,45 @@ bool MicrostrainConfig::configure_sensor2vehicle(RosNodeType* node)
   std::vector<double> filter_sensor2vehicle_frame_transformation_quaternion(4, 0.0);
   get_param<int32_t>(node, "filter_sensor2vehicle_frame_selector", filter_sensor2vehicle_frame_selector, 0);
   get_param<std::vector<double>>(node, "filter_sensor2vehicle_frame_transformation_euler",
-                                 filter_sensor2vehicle_frame_transformation_euler, default_vector);
+                                 filter_sensor2vehicle_frame_transformation_euler, DEFAULT_VECTOR);
   get_param<std::vector<double>>(node, "filter_sensor2vehicle_frame_transformation_matrix",
-                                 filter_sensor2vehicle_frame_transformation_matrix, default_matrix);
+                                 filter_sensor2vehicle_frame_transformation_matrix, DEFAULT_MATRIX);
   get_param<std::vector<double>>(node, "filter_sensor2vehicle_frame_transformation_quaternion",
-                                 filter_sensor2vehicle_frame_transformation_quaternion, default_quaternion);
+                                 filter_sensor2vehicle_frame_transformation_quaternion, DEFAULT_QUATERNION);
 
   // Euler Angles
   if (filter_sensor2vehicle_frame_selector == 1)
   {
     // Old style - set rotation (inverse of transformation)
-    if (m_inertial_device->features().supportsCommand(mscl::MipTypes::Command::CMD_EF_SENS_VEHIC_FRAME_ROTATION_EULER))
+    if (inertial_device_->features().supportsCommand(mscl::MipTypes::Command::CMD_EF_SENS_VEHIC_FRAME_ROTATION_EULER))
     {
       // Invert the angles for "rotation"
       mscl::EulerAngles angles(-filter_sensor2vehicle_frame_transformation_euler[0],
                                -filter_sensor2vehicle_frame_transformation_euler[1],
                                -filter_sensor2vehicle_frame_transformation_euler[2]);
 
-      MICROSTRAIN_INFO(m_node, "Setting sensor2vehicle frame rotation with euler angles [%f, %f, %f]",
+      MICROSTRAIN_INFO(node_, "Setting sensor2vehicle frame rotation with euler angles [%f, %f, %f]",
                        -filter_sensor2vehicle_frame_transformation_euler[0],
                        -filter_sensor2vehicle_frame_transformation_euler[1],
                        -filter_sensor2vehicle_frame_transformation_euler[2]);
-      m_inertial_device->setSensorToVehicleRotation_eulerAngles(angles);
+      inertial_device_->setSensorToVehicleRotation_eulerAngles(angles);
     }
-    else if (m_inertial_device->features().supportsCommand(
+    else if (inertial_device_->features().supportsCommand(
                  mscl::MipTypes::Command::CMD_EF_SENS_VEHIC_FRAME_TRANSFORM_EULER))
     {
       mscl::EulerAngles angles(filter_sensor2vehicle_frame_transformation_euler[0],
                                filter_sensor2vehicle_frame_transformation_euler[1],
                                filter_sensor2vehicle_frame_transformation_euler[2]);
 
-      MICROSTRAIN_INFO(m_node, "Setting sensor2vehicle frame transformation with euler angles [%f, %f, %f]",
+      MICROSTRAIN_INFO(node_, "Setting sensor2vehicle frame transformation with euler angles [%f, %f, %f]",
                        filter_sensor2vehicle_frame_transformation_euler[0],
                        filter_sensor2vehicle_frame_transformation_euler[1],
                        filter_sensor2vehicle_frame_transformation_euler[2]);
-      m_inertial_device->setSensorToVehicleTransform_eulerAngles(angles);
+      inertial_device_->setSensorToVehicleTransform_eulerAngles(angles);
     }
     else
     {
-      MICROSTRAIN_ERROR(m_node, "**Failed to set sensor2vehicle frame transformation with euler angles!");
+      MICROSTRAIN_ERROR(node_, "**Failed to set sensor2vehicle frame transformation with euler angles!");
       return false;
     }
   }
@@ -923,7 +923,7 @@ bool MicrostrainConfig::configure_sensor2vehicle(RosNodeType* node)
   else if (filter_sensor2vehicle_frame_selector == 2)
   {
     // Old style - set rotation (inverse of transformation)
-    if (m_inertial_device->features().supportsCommand(mscl::MipTypes::Command::CMD_EF_SENS_VEHIC_FRAME_ROTATION_DCM))
+    if (inertial_device_->features().supportsCommand(mscl::MipTypes::Command::CMD_EF_SENS_VEHIC_FRAME_ROTATION_DCM))
     {
       // Transpose the matrix for "rotation"
       mscl::Matrix_3x3 dcm(
@@ -933,10 +933,10 @@ bool MicrostrainConfig::configure_sensor2vehicle(RosNodeType* node)
           filter_sensor2vehicle_frame_transformation_matrix[2], filter_sensor2vehicle_frame_transformation_matrix[5],
           filter_sensor2vehicle_frame_transformation_matrix[8]);
 
-      MICROSTRAIN_INFO(m_node, "Setting sensor2vehicle frame rotation with a matrix");
-      m_inertial_device->setSensorToVehicleRotation_matrix(dcm);
+      MICROSTRAIN_INFO(node_, "Setting sensor2vehicle frame rotation with a matrix");
+      inertial_device_->setSensorToVehicleRotation_matrix(dcm);
     }
-    else if (m_inertial_device->features().supportsCommand(
+    else if (inertial_device_->features().supportsCommand(
                  mscl::MipTypes::Command::CMD_EF_SENS_VEHIC_FRAME_TRANSFORM_DCM))
     {
       mscl::Matrix_3x3 dcm(
@@ -946,12 +946,12 @@ bool MicrostrainConfig::configure_sensor2vehicle(RosNodeType* node)
           filter_sensor2vehicle_frame_transformation_matrix[6], filter_sensor2vehicle_frame_transformation_matrix[7],
           filter_sensor2vehicle_frame_transformation_matrix[8]);
 
-      MICROSTRAIN_INFO(m_node, "Setting sensor2vehicle frame transformation with a matrix");
-      m_inertial_device->setSensorToVehicleTransform_matrix(dcm);
+      MICROSTRAIN_INFO(node_, "Setting sensor2vehicle frame transformation with a matrix");
+      inertial_device_->setSensorToVehicleTransform_matrix(dcm);
     }
     else
     {
-      MICROSTRAIN_ERROR(m_node, "**Failed to set sensor2vehicle frame transformation with a matrix!");
+      MICROSTRAIN_ERROR(node_, "**Failed to set sensor2vehicle frame transformation with a matrix!");
       return false;
     }
   }
@@ -959,7 +959,7 @@ bool MicrostrainConfig::configure_sensor2vehicle(RosNodeType* node)
   else if (filter_sensor2vehicle_frame_selector == 3)
   {
     // Old style - set rotation (inverse of transformation)
-    if (m_inertial_device->features().supportsCommand(mscl::MipTypes::Command::CMD_EF_SENS_VEHIC_FRAME_ROTATION_QUAT))
+    if (inertial_device_->features().supportsCommand(mscl::MipTypes::Command::CMD_EF_SENS_VEHIC_FRAME_ROTATION_QUAT))
     {
       // Invert the quaternion for "rotation" (note: device uses aerospace quaternion definition [w, -i, -j, -k])
       mscl::Quaternion quat(filter_sensor2vehicle_frame_transformation_quaternion[3],
@@ -967,14 +967,14 @@ bool MicrostrainConfig::configure_sensor2vehicle(RosNodeType* node)
                             -filter_sensor2vehicle_frame_transformation_quaternion[1],
                             -filter_sensor2vehicle_frame_transformation_quaternion[2]);
 
-      MICROSTRAIN_INFO(m_node, "Setting sensor2vehicle frame rotation with quaternion [%f %f %f %f]",
+      MICROSTRAIN_INFO(node_, "Setting sensor2vehicle frame rotation with quaternion [%f %f %f %f]",
                        -filter_sensor2vehicle_frame_transformation_quaternion[0],
                        -filter_sensor2vehicle_frame_transformation_quaternion[1],
                        -filter_sensor2vehicle_frame_transformation_quaternion[2],
                        filter_sensor2vehicle_frame_transformation_quaternion[3]);
-      m_inertial_device->setSensorToVehicleRotation_quaternion(quat);
+      inertial_device_->setSensorToVehicleRotation_quaternion(quat);
     }
-    else if (m_inertial_device->features().supportsCommand(
+    else if (inertial_device_->features().supportsCommand(
                  mscl::MipTypes::Command::CMD_EF_SENS_VEHIC_FRAME_TRANSFORM_QUAT))
     {
       // No inversion for transformation (note: device uses aerospace quaternion definition [w, i, j, k])
@@ -983,20 +983,20 @@ bool MicrostrainConfig::configure_sensor2vehicle(RosNodeType* node)
                             filter_sensor2vehicle_frame_transformation_quaternion[1],
                             filter_sensor2vehicle_frame_transformation_quaternion[2]);
 
-      MICROSTRAIN_INFO(m_node, "Setting sensor2vehicle frame transformation with quaternion [%f %f %f %f]",
+      MICROSTRAIN_INFO(node_, "Setting sensor2vehicle frame transformation with quaternion [%f %f %f %f]",
                        filter_sensor2vehicle_frame_transformation_quaternion[0],
                        filter_sensor2vehicle_frame_transformation_quaternion[1],
                        filter_sensor2vehicle_frame_transformation_quaternion[2],
                        filter_sensor2vehicle_frame_transformation_quaternion[3]);
-      m_inertial_device->setSensorToVehicleTransform_quaternion(quat);
+      inertial_device_->setSensorToVehicleTransform_quaternion(quat);
     }
     else
     {
-      MICROSTRAIN_ERROR(m_node, "**Failed to set sensor2vehicle frame transformation with quaternion!");
+      MICROSTRAIN_ERROR(node_, "**Failed to set sensor2vehicle frame transformation with quaternion!");
       return false;
     }
   }
   return true;
 }
 
-}  // namespace Microstrain
+}  // namespace microstrain

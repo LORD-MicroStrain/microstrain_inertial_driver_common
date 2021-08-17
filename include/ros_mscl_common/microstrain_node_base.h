@@ -34,7 +34,7 @@
 ///
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
-namespace Microstrain
+namespace microstrain
 {
 ///
 /// \brief Contains configuration information
@@ -50,17 +50,17 @@ protected:
   bool initialize(RosNodeType* init_node);
   bool configure(RosNodeType* config_node);
 
-  RosNodeType* m_node;
-  MicrostrainConfig m_config;
-  MicrostrainPublishers m_publishers;
-  MicrostrainSubscribers m_subscribers;
-  MicrostrainServices m_services;
-  MicrostrainParser m_parser;
+  RosNodeType* node_;
+  MicrostrainConfig config_;
+  MicrostrainPublishers publishers_;
+  MicrostrainSubscribers subscribers_;
+  MicrostrainServices services_;
+  MicrostrainParser parser_;
 
-  double m_timer_update_rate_hz;
-  int32_t m_status_counter;
+  double timer_update_rate_hz_;
+  int32_t status_counter_;
 };  // MicrostrainNodeBase class
 
-}  // namespace Microstrain
+}  // namespace microstrain
 
 #endif  // ROS_MSCL_COMMON_MICROSTRAIN_NODE_BASE_H
