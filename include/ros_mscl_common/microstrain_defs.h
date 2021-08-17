@@ -1,24 +1,29 @@
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 // Parker-Lord GX5-Series Driver Definition File
-// 
+//
 // Copyright (c) 2017, Brian Bingham
 // Copyright (c)  2020, Parker Hannifin Corp
-// 
+//
 // This code is licensed under MIT license (see LICENSE file for details)
-// 
+//
 /////////////////////////////////////////////////////////////////////////////////////////////////////
-#ifndef _MICROSTRAIN_DEFS_H
-#define _MICROSTRAIN_DEFS_H
+#ifndef ROS_MSCL_COMMON_MICROSTRAIN_DEFS_H
+#define ROS_MSCL_COMMON_MICROSTRAIN_DEFS_H
 
-// TODO: Move template functions to this function or some other common file?
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+// Common Includes
+//
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+#include <memory>
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 // ROS1 Includes
 //
 /////////////////////////////////////////////////////////////////////////////////////////////////////
-#if MICROSTRAIN_ROS_VERSION==1
+#if MICROSTRAIN_ROS_VERSION == 1
 #include "ros/ros.h"
 
 #include "sensor_msgs/NavSatFix.h"
@@ -31,8 +36,6 @@
 #include "std_msgs/Int8.h"
 #include "std_msgs/Int16MultiArray.h"
 #include "std_msgs/MultiArrayLayout.h"
-#include "std_srvs/Empty.h"
-#include "std_srvs/Trigger.h"
 #include "std_msgs/Bool.h"
 #include "std_msgs/String.h"
 #include "tf2_geometry_msgs/tf2_geometry_msgs.h"
@@ -102,13 +105,12 @@
 #include "mscl_msgs/SetRelativePositionReference.h"
 #include "mscl_msgs/GetRelativePositionReference.h"
 
-
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 // ROS2 Includes
 //
 /////////////////////////////////////////////////////////////////////////////////////////////////////
-#elif MICROSTRAIN_ROS_VERSION==2
+#elif MICROSTRAIN_ROS_VERSION == 2
 #include "rclcpp/rclcpp.hpp"
 #include "rclcpp_lifecycle/lifecycle_node.hpp"
 #include "rclcpp_lifecycle/lifecycle_publisher.hpp"
@@ -195,63 +197,58 @@
 #error "Unsupported ROS version. -DMICROSTRAIN_ROS_VERSION must be set to 1 or 2"
 #endif
 
-namespace Microstrain {
-
+namespace Microstrain
+{
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 // ROS1 Defines
 //
 /////////////////////////////////////////////////////////////////////////////////////////////////////
-#if MICROSTRAIN_ROS_VERSION==1
+#if MICROSTRAIN_ROS_VERSION == 1
 ///
 /// ROS1 Types
 ///
-using RosNodeType   = ::ros::NodeHandle;
-using RosTimerType  = std::shared_ptr<::ros::Timer>;
+using RosNodeType = ::ros::NodeHandle;
+using RosTimerType = std::shared_ptr<::ros::Timer>;
 using RosHeaderType = ::std_msgs::Header;
 
-
 // ROS1 Publisher Messgae Types
-using OdometryMsg                       = ::nav_msgs::Odometry;
-using ImuMsg                            = ::sensor_msgs::Imu;
-using NavSatFixMsg                      = ::sensor_msgs::NavSatFix;
-using MagneticFieldMsg                  = ::sensor_msgs::MagneticField;
-using TimeReferenceMsg                  = ::sensor_msgs::TimeReference;
-using StatusMsg                         = ::mscl_msgs::Status;
-using RTKStatusMsg                      = ::mscl_msgs::RTKStatus;
-using FilterStatusMsg                   = ::mscl_msgs::FilterStatus;
-using FilterHeadingMsg                  = ::mscl_msgs::FilterHeading;
-using GNSSAidingStatusMsg               = ::mscl_msgs::GNSSAidingStatus;
-using GNSSDualAntennaStatusMsg          = ::mscl_msgs::GNSSDualAntennaStatus;
-using FilterHeadingStateMsg             = ::mscl_msgs::FilterHeadingState;
+using OdometryMsg = ::nav_msgs::Odometry;
+using ImuMsg = ::sensor_msgs::Imu;
+using NavSatFixMsg = ::sensor_msgs::NavSatFix;
+using MagneticFieldMsg = ::sensor_msgs::MagneticField;
+using TimeReferenceMsg = ::sensor_msgs::TimeReference;
+using StatusMsg = ::mscl_msgs::Status;
+using RTKStatusMsg = ::mscl_msgs::RTKStatus;
+using FilterStatusMsg = ::mscl_msgs::FilterStatus;
+using FilterHeadingMsg = ::mscl_msgs::FilterHeading;
+using GNSSAidingStatusMsg = ::mscl_msgs::GNSSAidingStatus;
+using GNSSDualAntennaStatusMsg = ::mscl_msgs::GNSSDualAntennaStatus;
+using FilterHeadingStateMsg = ::mscl_msgs::FilterHeadingState;
 using GPSCorrelationTimestampStampedMsg = ::mscl_msgs::GPSCorrelationTimestampStamped;
 
-
 // ROS1 Publisher Types
-using OdometryPubType                       = std::shared_ptr<::ros::Publisher>;
-using ImuPubType                            = std::shared_ptr<::ros::Publisher>;
-using NavSatFixPubType                      = std::shared_ptr<::ros::Publisher>;
-using MagneticFieldPubType                  = std::shared_ptr<::ros::Publisher>;
-using TimeReferencePubType                  = std::shared_ptr<::ros::Publisher>;
-using StatusPubType                         = std::shared_ptr<::ros::Publisher>;
-using RTKStatusPubType                      = std::shared_ptr<::ros::Publisher>;
-using FilterStatusPubType                   = std::shared_ptr<::ros::Publisher>;
-using FilterHeadingPubType                  = std::shared_ptr<::ros::Publisher>;
-using GNSSAidingStatusPubType               = std::shared_ptr<::ros::Publisher>;
-using GNSSDualAntennaStatusPubType          = std::shared_ptr<::ros::Publisher>;
-using FilterHeadingStatePubType             = std::shared_ptr<::ros::Publisher>;
+using OdometryPubType = std::shared_ptr<::ros::Publisher>;
+using ImuPubType = std::shared_ptr<::ros::Publisher>;
+using NavSatFixPubType = std::shared_ptr<::ros::Publisher>;
+using MagneticFieldPubType = std::shared_ptr<::ros::Publisher>;
+using TimeReferencePubType = std::shared_ptr<::ros::Publisher>;
+using StatusPubType = std::shared_ptr<::ros::Publisher>;
+using RTKStatusPubType = std::shared_ptr<::ros::Publisher>;
+using FilterStatusPubType = std::shared_ptr<::ros::Publisher>;
+using FilterHeadingPubType = std::shared_ptr<::ros::Publisher>;
+using GNSSAidingStatusPubType = std::shared_ptr<::ros::Publisher>;
+using GNSSDualAntennaStatusPubType = std::shared_ptr<::ros::Publisher>;
+using FilterHeadingStatePubType = std::shared_ptr<::ros::Publisher>;
 using GPSCorrelationTimestampStampedPubType = std::shared_ptr<::ros::Publisher>;
 
-
 // ROS1 Subscriber Message Types
-using BoolMsg          = ::std_msgs::Bool;
+using BoolMsg = ::std_msgs::Bool;
 using TimeReferenceMsg = ::sensor_msgs::TimeReference;
 
-
 // ROS1 Subscriber Types
-using BoolSubType          = std::shared_ptr<::ros::Subscriber>;
+using BoolSubType = std::shared_ptr<::ros::Subscriber>;
 using TimeReferenceSubType = std::shared_ptr<::ros::Subscriber>;
-
 
 // ROS1 Service Message Types
 using TriggerServiceMsg = std_srvs::Trigger;
@@ -337,7 +334,6 @@ using GetRelativePositionReferenceServiceMsg = ::mscl_msgs::GetRelativePositionR
 
 using DeviceSettingsServiceMsg = ::mscl_msgs::DeviceSettings;
 
-
 // ROS1 Service Types
 using TriggerServiceType = std::shared_ptr<::ros::ServiceServer>;
 using EmptyServiceType = std::shared_ptr<::ros::ServiceServer>;
@@ -422,7 +418,6 @@ using GetRelativePositionReferenceServiceType = std::shared_ptr<::ros::ServiceSe
 
 using DeviceSettingsServiceType = std::shared_ptr<::ros::ServiceServer>;
 
-
 ///
 /// ROS1 Logging
 ///
@@ -434,62 +429,57 @@ using DeviceSettingsServiceType = std::shared_ptr<::ros::ServiceServer>;
 
 #define MICROSTRAIN_DEBUG_THROTTLE(NODE, PERIOD, ...) ROS_DEBUG_THROTTLE(PERIOD, __VA_ARGS__)
 
-
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 // ROS2 Defines
 //
 /////////////////////////////////////////////////////////////////////////////////////////////////////
-#elif MICROSTRAIN_ROS_VERSION==2
+#elif MICROSTRAIN_ROS_VERSION == 2
 ///
 /// ROS2 Types
 ///
-using RosNodeType   = ::rclcpp_lifecycle::LifecycleNode;
-using RosTimerType  = ::rclcpp::TimerBase::SharedPtr;
+using RosNodeType = ::rclcpp_lifecycle::LifecycleNode;
+using RosTimerType = ::rclcpp::TimerBase::SharedPtr;
 using RosHeaderType = ::std_msgs::msg::Header;
 
-
 // ROS2 Publisher Message Types
-using OdometryMsg                       = ::nav_msgs::msg::Odometry;
-using ImuMsg                            = ::sensor_msgs::msg::Imu;
-using NavSatFixMsg                      = ::sensor_msgs::msg::NavSatFix;
-using MagneticFieldMsg                  = ::sensor_msgs::msg::MagneticField;
-using TimeReferenceMsg                  = ::sensor_msgs::msg::TimeReference;
-using StatusMsg                         = ::mscl_msgs::msg::Status;
-using RTKStatusMsg                      = ::mscl_msgs::msg::RTKStatus;
-using FilterStatusMsg                   = ::mscl_msgs::msg::FilterStatus;
-using FilterHeadingMsg                  = ::mscl_msgs::msg::FilterHeading;
-using GNSSAidingStatusMsg               = ::mscl_msgs::msg::GNSSAidingStatus;
-using GNSSDualAntennaStatusMsg          = ::mscl_msgs::msg::GNSSDualAntennaStatus;
-using FilterHeadingStateMsg             = ::mscl_msgs::msg::FilterHeadingState;
+using OdometryMsg = ::nav_msgs::msg::Odometry;
+using ImuMsg = ::sensor_msgs::msg::Imu;
+using NavSatFixMsg = ::sensor_msgs::msg::NavSatFix;
+using MagneticFieldMsg = ::sensor_msgs::msg::MagneticField;
+using TimeReferenceMsg = ::sensor_msgs::msg::TimeReference;
+using StatusMsg = ::mscl_msgs::msg::Status;
+using RTKStatusMsg = ::mscl_msgs::msg::RTKStatus;
+using FilterStatusMsg = ::mscl_msgs::msg::FilterStatus;
+using FilterHeadingMsg = ::mscl_msgs::msg::FilterHeading;
+using GNSSAidingStatusMsg = ::mscl_msgs::msg::GNSSAidingStatus;
+using GNSSDualAntennaStatusMsg = ::mscl_msgs::msg::GNSSDualAntennaStatus;
+using FilterHeadingStateMsg = ::mscl_msgs::msg::FilterHeadingState;
 using GPSCorrelationTimestampStampedMsg = ::mscl_msgs::msg::GPSCorrelationTimestampStamped;
 
-
 // ROS2 Publisher Types
-using OdometryPubType                       = ::rclcpp_lifecycle::LifecyclePublisher<OdometryMsg>::SharedPtr;
-using ImuPubType                            = ::rclcpp_lifecycle::LifecyclePublisher<ImuMsg>::SharedPtr;
-using NavSatFixPubType                      = ::rclcpp_lifecycle::LifecyclePublisher<NavSatFixMsg>::SharedPtr;
-using MagneticFieldPubType                  = ::rclcpp_lifecycle::LifecyclePublisher<MagneticFieldMsg>::SharedPtr;
-using TimeReferencePubType                  = ::rclcpp_lifecycle::LifecyclePublisher<TimeReferenceMsg>::SharedPtr;
-using StatusPubType                         = ::rclcpp_lifecycle::LifecyclePublisher<StatusMsg>::SharedPtr;
-using RTKStatusPubType                      = ::rclcpp_lifecycle::LifecyclePublisher<RTKStatusMsg>::SharedPtr;
-using FilterStatusPubType                   = ::rclcpp_lifecycle::LifecyclePublisher<FilterStatusMsg>::SharedPtr;
-using FilterHeadingPubType                  = ::rclcpp_lifecycle::LifecyclePublisher<FilterHeadingMsg>::SharedPtr;
-using GNSSAidingStatusPubType               = ::rclcpp_lifecycle::LifecyclePublisher<GNSSAidingStatusMsg>::SharedPtr;
-using GNSSDualAntennaStatusPubType          = ::rclcpp_lifecycle::LifecyclePublisher<GNSSDualAntennaStatusMsg>::SharedPtr;
-using FilterHeadingStatePubType             = ::rclcpp_lifecycle::LifecyclePublisher<FilterHeadingStateMsg>::SharedPtr;
-using GPSCorrelationTimestampStampedPubType = ::rclcpp_lifecycle::LifecyclePublisher<GPSCorrelationTimestampStampedMsg>::SharedPtr;
-
+using OdometryPubType = ::rclcpp_lifecycle::LifecyclePublisher<OdometryMsg>::SharedPtr;
+using ImuPubType = ::rclcpp_lifecycle::LifecyclePublisher<ImuMsg>::SharedPtr;
+using NavSatFixPubType = ::rclcpp_lifecycle::LifecyclePublisher<NavSatFixMsg>::SharedPtr;
+using MagneticFieldPubType = ::rclcpp_lifecycle::LifecyclePublisher<MagneticFieldMsg>::SharedPtr;
+using TimeReferencePubType = ::rclcpp_lifecycle::LifecyclePublisher<TimeReferenceMsg>::SharedPtr;
+using StatusPubType = ::rclcpp_lifecycle::LifecyclePublisher<StatusMsg>::SharedPtr;
+using RTKStatusPubType = ::rclcpp_lifecycle::LifecyclePublisher<RTKStatusMsg>::SharedPtr;
+using FilterStatusPubType = ::rclcpp_lifecycle::LifecyclePublisher<FilterStatusMsg>::SharedPtr;
+using FilterHeadingPubType = ::rclcpp_lifecycle::LifecyclePublisher<FilterHeadingMsg>::SharedPtr;
+using GNSSAidingStatusPubType = ::rclcpp_lifecycle::LifecyclePublisher<GNSSAidingStatusMsg>::SharedPtr;
+using GNSSDualAntennaStatusPubType = ::rclcpp_lifecycle::LifecyclePublisher<GNSSDualAntennaStatusMsg>::SharedPtr;
+using FilterHeadingStatePubType = ::rclcpp_lifecycle::LifecyclePublisher<FilterHeadingStateMsg>::SharedPtr;
+using GPSCorrelationTimestampStampedPubType =
+    ::rclcpp_lifecycle::LifecyclePublisher<GPSCorrelationTimestampStampedMsg>::SharedPtr;
 
 // ROS2 Subscriber Message Types
-using BoolMsg          = ::std_msgs::msg::Bool;
+using BoolMsg = ::std_msgs::msg::Bool;
 using TimeReferenceMsg = ::sensor_msgs::msg::TimeReference;
 
-
 // ROS2 Subscriber Types
-using BoolSubType          = ::rclcpp::Subscription<BoolMsg>::SharedPtr;
+using BoolSubType = ::rclcpp::Subscription<BoolMsg>::SharedPtr;
 using TimeReferenceSubType = ::rclcpp::Subscription<TimeReferenceMsg>::SharedPtr;
-
 
 // ROS2 Service Message Types
 using TriggerServiceMsg = std_srvs::srv::Trigger;
@@ -575,7 +565,6 @@ using GetRelativePositionReferenceServiceMsg = mscl_msgs::srv::GetRelativePositi
 
 using DeviceSettingsServiceMsg = mscl_msgs::srv::DeviceSettings;
 
-
 // ROS2 Service Types
 using TriggerServiceType = ::rclcpp::Service<TriggerServiceMsg>::SharedPtr;
 using EmptyServiceType = ::rclcpp::Service<EmptyServiceMsg>::SharedPtr;
@@ -604,7 +593,8 @@ using GetSensor2VehicleRotationServiceType = ::rclcpp::Service<GetSensor2Vehicle
 using SetSensor2VehicleOffsetServiceType = ::rclcpp::Service<SetSensor2VehicleOffsetServiceMsg>::SharedPtr;
 using GetSensor2VehicleOffsetServiceType = ::rclcpp::Service<GetSensor2VehicleOffsetServiceMsg>::SharedPtr;
 
-using GetSensor2VehicleTransformationServiceType = ::rclcpp::Service<GetSensor2VehicleTransformationServiceMsg>::SharedPtr;
+using GetSensor2VehicleTransformationServiceType =
+    ::rclcpp::Service<GetSensor2VehicleTransformationServiceMsg>::SharedPtr;
 
 using InitFilterEulerServiceType = ::rclcpp::Service<InitFilterEulerServiceMsg>::SharedPtr;
 using InitFilterHeadingServiceType = ::rclcpp::Service<InitFilterHeadingServiceMsg>::SharedPtr;
@@ -624,8 +614,10 @@ using GetDynamicsModeServiceType = ::rclcpp::Service<GetDynamicsModeServiceMsg>:
 using SetZeroAngleUpdateThresholdServiceType = ::rclcpp::Service<SetZeroAngleUpdateThresholdServiceMsg>::SharedPtr;
 using GetZeroAngleUpdateThresholdServiceType = ::rclcpp::Service<GetZeroAngleUpdateThresholdServiceMsg>::SharedPtr;
 
-using SetZeroVelocityUpdateThresholdServiceType = ::rclcpp::Service<SetZeroVelocityUpdateThresholdServiceMsg>::SharedPtr;
-using GetZeroVelocityUpdateThresholdServiceType = ::rclcpp::Service<GetZeroVelocityUpdateThresholdServiceMsg>::SharedPtr;
+using SetZeroVelocityUpdateThresholdServiceType =
+    ::rclcpp::Service<SetZeroVelocityUpdateThresholdServiceMsg>::SharedPtr;
+using GetZeroVelocityUpdateThresholdServiceType =
+    ::rclcpp::Service<GetZeroVelocityUpdateThresholdServiceMsg>::SharedPtr;
 
 using SetTareOrientationServiceType = ::rclcpp::Service<SetTareOrientationServiceMsg>::SharedPtr;
 
@@ -660,7 +652,6 @@ using GetRelativePositionReferenceServiceType = ::rclcpp::Service<GetRelativePos
 
 using DeviceSettingsServiceType = ::rclcpp::Service<DeviceSettingsServiceMsg>::SharedPtr;
 
-
 ///
 /// ROS2 Logging
 ///
@@ -670,7 +661,8 @@ using DeviceSettingsServiceType = ::rclcpp::Service<DeviceSettingsServiceMsg>::S
 #define MICROSTRAIN_ERROR(NODE, ...) RCLCPP_ERROR(NODE->get_logger(), __VA_ARGS__)
 #define MICROSTRAIN_FATAL(NODE, ...) RCLCPP_FATAL(NODE->get_logger(), __VA_ARGS__)
 
-#define MICROSTRAIN_DEBUG_THROTTLE(NODE, PERIOD, ...) RCLCPP_DEBUG_THROTTLE(NODE->get_logger(), *NODE->get_clock(), PERIOD, __VA_ARGS__)
+#define MICROSTRAIN_DEBUG_THROTTLE(NODE, PERIOD, ...)                                                                  \
+  RCLCPP_DEBUG_THROTTLE(NODE->get_logger(), *NODE->get_clock(), PERIOD, __VA_ARGS__)
 #else
 #error "Unsupported ROS version. -DMICROSTRAIN_ROS_VERSION must be set to 1 or 2"
 #endif
@@ -682,16 +674,18 @@ using DeviceSettingsServiceType = ::rclcpp::Service<DeviceSettingsServiceMsg>::S
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 constexpr auto NUM_COMMAND_LINE_ARGUMENTS = 3;
 
-constexpr auto DEFAULT_PACKET_TIMEOUT_MS = 1000; //milliseconds
+constexpr auto DEFAULT_PACKET_TIMEOUT_MS = 1000;  // milliseconds
 
-constexpr auto SECS_PER_WEEK = (60L*60*24*7);
+constexpr auto SECS_PER_WEEK = (60L * 60 * 24 * 7);
 constexpr auto UTC_GPS_EPOCH_DUR = (315964800);
 
-constexpr auto USTRAIN_G = 9.80665;  // from section 5.1.1 in https://www.microstrain.com/sites/default/files/3dm-gx5-25_dcp_manual_8500-0065_reference_document.pdf
+constexpr auto USTRAIN_G =
+    9.80665;  // from section 5.1.1 in
+              // https://www.microstrain.com/sites/default/files/3dm-gx5-25_dcp_manual_8500-0065_reference_document.pdf
 
 constexpr auto GNSS1_ID = 0;
 constexpr auto GNSS2_ID = 1;
 constexpr auto NUM_GNSS = 2;
 }  // namespace Microstrain
 
-#endif  // _MICROSTRAIN_DEFS_H
+#endif  // ROS_MSCL_COMMON_MICROSTRAIN_DEFS_H

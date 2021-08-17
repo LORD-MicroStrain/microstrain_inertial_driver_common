@@ -29,7 +29,7 @@ function(download_mscl)
   # Get the release ID for the version we are trying to download
   set(MSCL_LIST_REPO_URL "https://api.github.com/repos/${MSCL_GITHUB_ORG}/${MSCL_GITHUB_REPO}/releases/tags/${MSCL_GITHUB_TAG}")
   execute_process(
-    COMMAND ${CMAKE_COMMAND} -E env /bin/bash -c "curl -fsSl '${MSCL_LIST_REPO_URL}' | jq '.assets[] | select(.name==\"${MSCL_GITHUB_ARTIFACT}\") | .url' | sed 's/\"//g'"
+    COMMAND ${CMAKE_COMMAND} -E env /bin/bash -c "curl -fsSl '${MSCL_LIST_REPO_URL}' | jq '.assets[] | select(.name==\"${MSCL_GITHUB_ARTIFACT}\") | .url' | sed 's/\"// g'"
     OUTPUT_VARIABLE MSCL_DOWNLOAD_LINK
   )
 

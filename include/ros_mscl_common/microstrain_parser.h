@@ -1,26 +1,25 @@
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 // Parker-Lord GX5-Series Driver Definition File
-// 
+//
 // Copyright (c) 2017, Brian Bingham
 // Copyright (c)  2020, Parker Hannifin Corp
-// 
+//
 // This code is licensed under MIT license (see LICENSE file for details)
-// 
+//
 /////////////////////////////////////////////////////////////////////////////////////////////////////
-#ifndef _MICROSTRAIN_PARSER_H
-#define _MICROSTRAIN_PARSER_H
+#ifndef ROS_MSCL_COMMON_MICROSTRAIN_PARSER_H
+#define ROS_MSCL_COMMON_MICROSTRAIN_PARSER_H
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 // Include Files
 //
 /////////////////////////////////////////////////////////////////////////////////////////////////////
-#include "microstrain_defs.h"
-#include "microstrain_ros_funcs.h"
-#include "microstrain_config.h"
-#include "microstrain_publishers.h"
-
+#include "ros_mscl_common/microstrain_defs.h"
+#include "ros_mscl_common/microstrain_ros_funcs.h"
+#include "ros_mscl_common/microstrain_config.h"
+#include "ros_mscl_common/microstrain_publishers.h"
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 ///
@@ -29,19 +28,18 @@
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 namespace Microstrain
 {
-
 ///
 /// \brief Contains publishers for microstrain node
 ///
 class MicrostrainParser
 {
- public:
+public:
   MicrostrainParser() = default;
   MicrostrainParser(RosNodeType* node, MicrostrainConfig* config, MicrostrainPublishers* publishers);
 
   void parse_mip_packet(const mscl::MipDataPacket& packet);
 
- private:
+private:
   void parse_imu_packet(const mscl::MipDataPacket& packet);
   void parse_filter_packet(const mscl::MipDataPacket& packet);
   void parse_gnss_packet(const mscl::MipDataPacket& packet, int gnss_id);
@@ -65,8 +63,8 @@ class MicrostrainParser
   uint32_t m_gnss_checksum_error_packet_count[NUM_GNSS];
   uint32_t m_filter_checksum_error_packet_count;
 
-  //Data field storage
-  //IMU
+  // Data field storage  // D
+  // IMU
   float m_curr_imu_mag_x;
   float m_curr_imu_mag_y;
   float m_curr_imu_mag_z;
@@ -104,6 +102,6 @@ class MicrostrainParser
   float m_curr_filter_att_uncert_yaw;
 };  // struct MicrostrainParser
 
-} // namespace Microstrain
+}  // namespace Microstrain
 
-#endif  // _MICROSTRAIN_PARSER_H
+#endif  // ROS_MSCL_COMMON_MICROSTRAIN_PARSER_H

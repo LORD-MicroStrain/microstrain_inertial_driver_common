@@ -1,25 +1,24 @@
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 // Parker-Lord GX5-Series Driver Definition File
-// 
+//
 // Copyright (c) 2017, Brian Bingham
 // Copyright (c)  2020, Parker Hannifin Corp
-// 
+//
 // This code is licensed under MIT license (see LICENSE file for details)
-// 
+//
 /////////////////////////////////////////////////////////////////////////////////////////////////////
-#ifndef _MICROSTRAIN_SUBSCRIBERS_H
-#define _MICROSTRAIN_SUBSCRIBERS_H
+#ifndef ROS_MSCL_COMMON_MICROSTRAIN_SUBSCRIBERS_H
+#define ROS_MSCL_COMMON_MICROSTRAIN_SUBSCRIBERS_H
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 // Include Files
 //
 /////////////////////////////////////////////////////////////////////////////////////////////////////
-#include "microstrain_defs.h"
-#include "microstrain_ros_funcs.h"
-#include "microstrain_config.h"
-
+#include "ros_mscl_common/microstrain_defs.h"
+#include "ros_mscl_common/microstrain_ros_funcs.h"
+#include "ros_mscl_common/microstrain_config.h"
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 ///
@@ -28,13 +27,12 @@
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 namespace Microstrain
 {
-
 ///
 /// \brief Contains publishers for microstrain node
 ///
 class MicrostrainSubscribers
 {
- public:
+public:
   MicrostrainSubscribers() = default;
   MicrostrainSubscribers(RosNodeType* node, MicrostrainConfig* config);
 
@@ -43,21 +41,22 @@ class MicrostrainSubscribers
   void velocity_zupt_callback(const BoolMsg& state);
   void vel_zupt_start();
   void vel_zupt();
-  
+
   void ang_zupt_callback(const BoolMsg& state);
   void ang_zupt_start();
   void ang_zupt();
 
   void external_gps_time_callback(const TimeReferenceMsg& time);
-  
-  //ZUPT subscribers
+
+  // ZUPT subscribers
   BoolSubType m_filter_vel_state_sub;
   BoolSubType m_filter_ang_state_sub;
 
-  //External GNSS subscriber
+  // External GNSS subscriber
   TimeReferenceSubType m_external_gps_time_sub;
- private:
-  //Node Information
+
+private:
+  // Node Information
   RosNodeType* m_node;
   MicrostrainConfig* m_config;
 
@@ -68,6 +67,6 @@ class MicrostrainSubscribers
   RosTimerType m_ang_zupt_timer;
 };  // struct MicrostrainPublishers
 
-} // namespace Microstrain
+}  // namespace Microstrain
 
-#endif  // _MICROSTRAIN_3DM_GX5_45_H
+#endif  // ROS_MSCL_COMMON_MICROSTRAIN_SUBSCRIBERS_H

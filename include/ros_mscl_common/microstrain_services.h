@@ -1,25 +1,25 @@
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 // Parker-Lord GX5-Series Driver Definition File
-// 
+//
 // Copyright (c) 2017, Brian Bingham
 // Copyright (c)  2020, Parker Hannifin Corp
-// 
+//
 // This code is licensed under MIT license (see LICENSE file for details)
-// 
+//
 /////////////////////////////////////////////////////////////////////////////////////////////////////
-#ifndef _MICROSTRAIN_SERVICES_H
-#define _MICROSTRAIN_SERVICES_H
+#ifndef ROS_MSCL_COMMON_MICROSTRAIN_SERVICES_H
+#define ROS_MSCL_COMMON_MICROSTRAIN_SERVICES_H
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 // Include Files
 //
 /////////////////////////////////////////////////////////////////////////////////////////////////////
-#include "microstrain_defs.h"
-#include "microstrain_ros_funcs.h"
-#include "microstrain_config.h"
-
+#include <memory>
+#include "ros_mscl_common/microstrain_defs.h"
+#include "ros_mscl_common/microstrain_ros_funcs.h"
+#include "ros_mscl_common/microstrain_config.h"
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 ///
@@ -28,112 +28,136 @@
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 namespace Microstrain
 {
-
 ///
 /// \brief Contains publishers for microstrain node
 ///
 class MicrostrainServices
 {
- public:
+public:
   MicrostrainServices() = default;
   MicrostrainServices(RosNodeType* node, MicrostrainConfig* config);
 
   bool configure_services();
 
-  bool device_report(TriggerServiceMsg::Request &req, TriggerServiceMsg::Response &res);
-  bool get_basic_status(TriggerServiceMsg::Request &req, TriggerServiceMsg::Response &res);
-  bool get_diagnostic_report(TriggerServiceMsg::Request &req, TriggerServiceMsg::Response &res);
+  bool device_report(TriggerServiceMsg::Request& req, TriggerServiceMsg::Response& res);
+  bool get_basic_status(TriggerServiceMsg::Request& req, TriggerServiceMsg::Response& res);
+  bool get_diagnostic_report(TriggerServiceMsg::Request& req, TriggerServiceMsg::Response& res);
 
-  bool set_accel_bias(SetAccelBiasServiceMsg::Request &req, SetAccelBiasServiceMsg::Response &res);
-  bool get_accel_bias(GetAccelBiasServiceMsg::Request &req, GetAccelBiasServiceMsg::Response &res);
+  bool set_accel_bias(SetAccelBiasServiceMsg::Request& req, SetAccelBiasServiceMsg::Response& res);
+  bool get_accel_bias(GetAccelBiasServiceMsg::Request& req, GetAccelBiasServiceMsg::Response& res);
 
-  bool set_gyro_bias(SetGyroBiasServiceMsg::Request &req, SetGyroBiasServiceMsg::Response &res);
-  bool get_gyro_bias(GetGyroBiasServiceMsg::Request &req, GetGyroBiasServiceMsg::Response &res);
+  bool set_gyro_bias(SetGyroBiasServiceMsg::Request& req, SetGyroBiasServiceMsg::Response& res);
+  bool get_gyro_bias(GetGyroBiasServiceMsg::Request& req, GetGyroBiasServiceMsg::Response& res);
 
-  bool gyro_bias_capture(TriggerServiceMsg::Request &req, TriggerServiceMsg::Response &res);
+  bool gyro_bias_capture(TriggerServiceMsg::Request& req, TriggerServiceMsg::Response& res);
 
-  bool set_hard_iron_values(SetHardIronValuesServiceMsg::Request &req, SetHardIronValuesServiceMsg::Response &res);
-  bool get_hard_iron_values(GetHardIronValuesServiceMsg::Request &req, GetHardIronValuesServiceMsg::Response &res);
+  bool set_hard_iron_values(SetHardIronValuesServiceMsg::Request& req, SetHardIronValuesServiceMsg::Response& res);
+  bool get_hard_iron_values(GetHardIronValuesServiceMsg::Request& req, GetHardIronValuesServiceMsg::Response& res);
 
-  bool set_soft_iron_matrix(SetSoftIronMatrixServiceMsg::Request &req, SetSoftIronMatrixServiceMsg::Response &res);
-  bool get_soft_iron_matrix(GetSoftIronMatrixServiceMsg::Request &req, GetSoftIronMatrixServiceMsg::Response &res);
+  bool set_soft_iron_matrix(SetSoftIronMatrixServiceMsg::Request& req, SetSoftIronMatrixServiceMsg::Response& res);
+  bool get_soft_iron_matrix(GetSoftIronMatrixServiceMsg::Request& req, GetSoftIronMatrixServiceMsg::Response& res);
 
-  bool set_complementary_filter(SetComplementaryFilterServiceMsg::Request &req, SetComplementaryFilterServiceMsg::Response &res);
-  bool get_complementary_filter(GetComplementaryFilterServiceMsg::Request &req, GetComplementaryFilterServiceMsg::Response &res);
+  bool set_complementary_filter(SetComplementaryFilterServiceMsg::Request& req,
+                                SetComplementaryFilterServiceMsg::Response& res);
+  bool get_complementary_filter(GetComplementaryFilterServiceMsg::Request& req,
+                                GetComplementaryFilterServiceMsg::Response& res);
 
-  bool set_coning_sculling_comp(SetConingScullingCompServiceMsg::Request &req, SetConingScullingCompServiceMsg::Response &res);
-  bool get_coning_sculling_comp(GetConingScullingCompServiceMsg::Request &req, GetConingScullingCompServiceMsg::Response &res);
+  bool set_coning_sculling_comp(SetConingScullingCompServiceMsg::Request& req,
+                                SetConingScullingCompServiceMsg::Response& res);
+  bool get_coning_sculling_comp(GetConingScullingCompServiceMsg::Request& req,
+                                GetConingScullingCompServiceMsg::Response& res);
 
-  bool set_sensor2vehicle_rotation(SetSensor2VehicleRotationServiceMsg::Request &req, SetSensor2VehicleRotationServiceMsg::Response &res);
-  bool get_sensor2vehicle_rotation(GetSensor2VehicleRotationServiceMsg::Request &req, GetSensor2VehicleRotationServiceMsg::Response &res);
+  bool set_sensor2vehicle_rotation(SetSensor2VehicleRotationServiceMsg::Request& req,
+                                   SetSensor2VehicleRotationServiceMsg::Response& res);
+  bool get_sensor2vehicle_rotation(GetSensor2VehicleRotationServiceMsg::Request& req,
+                                   GetSensor2VehicleRotationServiceMsg::Response& res);
 
-  bool set_sensor2vehicle_offset(SetSensor2VehicleOffsetServiceMsg::Request &req, SetSensor2VehicleOffsetServiceMsg::Response &res);
-  bool get_sensor2vehicle_offset(GetSensor2VehicleOffsetServiceMsg::Request &req, GetSensor2VehicleOffsetServiceMsg::Response &res);
+  bool set_sensor2vehicle_offset(SetSensor2VehicleOffsetServiceMsg::Request& req,
+                                 SetSensor2VehicleOffsetServiceMsg::Response& res);
+  bool get_sensor2vehicle_offset(GetSensor2VehicleOffsetServiceMsg::Request& req,
+                                 GetSensor2VehicleOffsetServiceMsg::Response& res);
 
-  bool get_sensor2vehicle_transformation(GetSensor2VehicleTransformationServiceMsg::Request &req, GetSensor2VehicleTransformationServiceMsg::Response &res);
-    
-  bool reset_filter(EmptyServiceMsg::Request &req, EmptyServiceMsg::Response &resp);
+  bool get_sensor2vehicle_transformation(GetSensor2VehicleTransformationServiceMsg::Request& req,
+                                         GetSensor2VehicleTransformationServiceMsg::Response& res);
 
-  bool init_filter_euler(InitFilterEulerServiceMsg::Request &req, InitFilterEulerServiceMsg::Response &res);
-  bool init_filter_heading(InitFilterHeadingServiceMsg::Request &req, InitFilterHeadingServiceMsg::Response &res);
+  bool reset_filter(EmptyServiceMsg::Request& req, EmptyServiceMsg::Response& resp);
 
-  bool set_heading_source(SetHeadingSourceServiceMsg::Request &req, SetHeadingSourceServiceMsg::Response &res);
-  bool get_heading_source(GetHeadingSourceServiceMsg::Request &req, GetHeadingSourceServiceMsg::Response &res);
+  bool init_filter_euler(InitFilterEulerServiceMsg::Request& req, InitFilterEulerServiceMsg::Response& res);
+  bool init_filter_heading(InitFilterHeadingServiceMsg::Request& req, InitFilterHeadingServiceMsg::Response& res);
 
-  bool set_reference_position(SetReferencePositionServiceMsg::Request &req, SetReferencePositionServiceMsg::Response &res);
-  bool get_reference_position(GetReferencePositionServiceMsg::Request &req, GetReferencePositionServiceMsg::Response &res);
+  bool set_heading_source(SetHeadingSourceServiceMsg::Request& req, SetHeadingSourceServiceMsg::Response& res);
+  bool get_heading_source(GetHeadingSourceServiceMsg::Request& req, GetHeadingSourceServiceMsg::Response& res);
 
-  bool set_estimation_control_flags(SetEstimationControlFlagsServiceMsg::Request &req, SetEstimationControlFlagsServiceMsg::Response &res);
-  bool get_estimation_control_flags(GetEstimationControlFlagsServiceMsg::Request &req, GetEstimationControlFlagsServiceMsg::Response &res);
+  bool set_reference_position(SetReferencePositionServiceMsg::Request& req,
+                              SetReferencePositionServiceMsg::Response& res);
+  bool get_reference_position(GetReferencePositionServiceMsg::Request& req,
+                              GetReferencePositionServiceMsg::Response& res);
 
-  bool set_dynamics_mode(SetDynamicsModeServiceMsg::Request &req, SetDynamicsModeServiceMsg::Response &res);
-  bool get_dynamics_mode(GetDynamicsModeServiceMsg::Request &req, GetDynamicsModeServiceMsg::Response &res);
+  bool set_estimation_control_flags(SetEstimationControlFlagsServiceMsg::Request& req,
+                                    SetEstimationControlFlagsServiceMsg::Response& res);
+  bool get_estimation_control_flags(GetEstimationControlFlagsServiceMsg::Request& req,
+                                    GetEstimationControlFlagsServiceMsg::Response& res);
 
-  bool set_zero_angle_update_threshold(SetZeroAngleUpdateThresholdServiceMsg::Request &req, SetZeroAngleUpdateThresholdServiceMsg::Response &res);
-  bool get_zero_angle_update_threshold(GetZeroAngleUpdateThresholdServiceMsg::Request &req, GetZeroAngleUpdateThresholdServiceMsg::Response &res);
-  
-  bool set_zero_velocity_update_threshold(SetZeroVelocityUpdateThresholdServiceMsg::Request &req, SetZeroVelocityUpdateThresholdServiceMsg::Response &res);
-  bool get_zero_velocity_update_threshold(GetZeroVelocityUpdateThresholdServiceMsg::Request &req, GetZeroVelocityUpdateThresholdServiceMsg::Response &res);
+  bool set_dynamics_mode(SetDynamicsModeServiceMsg::Request& req, SetDynamicsModeServiceMsg::Response& res);
+  bool get_dynamics_mode(GetDynamicsModeServiceMsg::Request& req, GetDynamicsModeServiceMsg::Response& res);
 
-  bool set_tare_orientation(SetTareOrientationServiceMsg::Request &req, SetTareOrientationServiceMsg::Response &res);
-  
-  bool commanded_vel_zupt(TriggerServiceMsg::Request &req, TriggerServiceMsg::Response &res);
-  bool commanded_ang_rate_zupt(TriggerServiceMsg::Request &req, TriggerServiceMsg::Response &res);
+  bool set_zero_angle_update_threshold(SetZeroAngleUpdateThresholdServiceMsg::Request& req,
+                                       SetZeroAngleUpdateThresholdServiceMsg::Response& res);
+  bool get_zero_angle_update_threshold(GetZeroAngleUpdateThresholdServiceMsg::Request& req,
+                                       GetZeroAngleUpdateThresholdServiceMsg::Response& res);
 
-  bool set_accel_noise(SetAccelNoiseServiceMsg::Request &req, SetAccelNoiseServiceMsg::Response &res);
-  bool get_accel_noise(GetAccelNoiseServiceMsg::Request &req, GetAccelNoiseServiceMsg::Response &res);
+  bool set_zero_velocity_update_threshold(SetZeroVelocityUpdateThresholdServiceMsg::Request& req,
+                                          SetZeroVelocityUpdateThresholdServiceMsg::Response& res);
+  bool get_zero_velocity_update_threshold(GetZeroVelocityUpdateThresholdServiceMsg::Request& req,
+                                          GetZeroVelocityUpdateThresholdServiceMsg::Response& res);
 
-  bool set_gyro_noise(SetGyroNoiseServiceMsg::Request &req, SetGyroNoiseServiceMsg::Response &res);
-  bool get_gyro_noise(GetGyroNoiseServiceMsg::Request &req, GetGyroNoiseServiceMsg::Response &res);
+  bool set_tare_orientation(SetTareOrientationServiceMsg::Request& req, SetTareOrientationServiceMsg::Response& res);
 
-  bool set_mag_noise(SetMagNoiseServiceMsg::Request &req, SetMagNoiseServiceMsg::Response &res);
-  bool get_mag_noise(GetMagNoiseServiceMsg::Request &req, GetMagNoiseServiceMsg::Response &res);
+  bool commanded_vel_zupt(TriggerServiceMsg::Request& req, TriggerServiceMsg::Response& res);
+  bool commanded_ang_rate_zupt(TriggerServiceMsg::Request& req, TriggerServiceMsg::Response& res);
 
-  bool set_gyro_bias_model(SetGyroBiasModelServiceMsg::Request &req, SetGyroBiasModelServiceMsg::Response &res);
-  bool get_gyro_bias_model(GetGyroBiasModelServiceMsg::Request &req, GetGyroBiasModelServiceMsg::Response &res);
+  bool set_accel_noise(SetAccelNoiseServiceMsg::Request& req, SetAccelNoiseServiceMsg::Response& res);
+  bool get_accel_noise(GetAccelNoiseServiceMsg::Request& req, GetAccelNoiseServiceMsg::Response& res);
 
-  bool set_accel_bias_model(SetAccelBiasModelServiceMsg::Request &req, SetAccelBiasModelServiceMsg::Response &res);
-  bool get_accel_bias_model(GetAccelBiasModelServiceMsg::Request &req, GetAccelBiasModelServiceMsg::Response &res);
+  bool set_gyro_noise(SetGyroNoiseServiceMsg::Request& req, SetGyroNoiseServiceMsg::Response& res);
+  bool get_gyro_noise(GetGyroNoiseServiceMsg::Request& req, GetGyroNoiseServiceMsg::Response& res);
 
-  bool set_gravity_adaptive_vals(SetGravityAdaptiveValsServiceMsg::Request &req, SetGravityAdaptiveValsServiceMsg::Response &res);
-  bool get_gravity_adaptive_vals(GetGravityAdaptiveValsServiceMsg::Request &req, GetGravityAdaptiveValsServiceMsg::Response &res);
+  bool set_mag_noise(SetMagNoiseServiceMsg::Request& req, SetMagNoiseServiceMsg::Response& res);
+  bool get_mag_noise(GetMagNoiseServiceMsg::Request& req, GetMagNoiseServiceMsg::Response& res);
 
-  bool set_mag_adaptive_vals(SetMagAdaptiveValsServiceMsg::Request &req, SetMagAdaptiveValsServiceMsg::Response &res);
-  bool get_mag_adaptive_vals(GetMagAdaptiveValsServiceMsg::Request &req, GetMagAdaptiveValsServiceMsg::Response &res);
+  bool set_gyro_bias_model(SetGyroBiasModelServiceMsg::Request& req, SetGyroBiasModelServiceMsg::Response& res);
+  bool get_gyro_bias_model(GetGyroBiasModelServiceMsg::Request& req, GetGyroBiasModelServiceMsg::Response& res);
 
-  bool set_mag_dip_adaptive_vals(SetMagDipAdaptiveValsServiceMsg::Request &req, SetMagDipAdaptiveValsServiceMsg::Response &res);
-  bool get_mag_dip_adaptive_vals(GetMagDipAdaptiveValsServiceMsg::Request &req, GetMagDipAdaptiveValsServiceMsg::Response &res);
-  
-  bool external_heading_update(ExternalHeadingUpdateServiceMsg::Request &req, ExternalHeadingUpdateServiceMsg::Response &res);
+  bool set_accel_bias_model(SetAccelBiasModelServiceMsg::Request& req, SetAccelBiasModelServiceMsg::Response& res);
+  bool get_accel_bias_model(GetAccelBiasModelServiceMsg::Request& req, GetAccelBiasModelServiceMsg::Response& res);
 
-  bool set_relative_position_reference(SetRelativePositionReferenceServiceMsg::Request &req, SetRelativePositionReferenceServiceMsg::Response &res);
-  bool get_relative_position_reference(GetRelativePositionReferenceServiceMsg::Request &req, GetRelativePositionReferenceServiceMsg::Response &res);
+  bool set_gravity_adaptive_vals(SetGravityAdaptiveValsServiceMsg::Request& req,
+                                 SetGravityAdaptiveValsServiceMsg::Response& res);
+  bool get_gravity_adaptive_vals(GetGravityAdaptiveValsServiceMsg::Request& req,
+                                 GetGravityAdaptiveValsServiceMsg::Response& res);
 
-  bool device_settings(DeviceSettingsServiceMsg::Request &req, DeviceSettingsServiceMsg::Response &res);
+  bool set_mag_adaptive_vals(SetMagAdaptiveValsServiceMsg::Request& req, SetMagAdaptiveValsServiceMsg::Response& res);
+  bool get_mag_adaptive_vals(GetMagAdaptiveValsServiceMsg::Request& req, GetMagAdaptiveValsServiceMsg::Response& res);
 
-  void get_basic_status_ptr(const std::shared_ptr<TriggerServiceMsg::Request> req, std::shared_ptr<TriggerServiceMsg::Response> res);
+  bool set_mag_dip_adaptive_vals(SetMagDipAdaptiveValsServiceMsg::Request& req,
+                                 SetMagDipAdaptiveValsServiceMsg::Response& res);
+  bool get_mag_dip_adaptive_vals(GetMagDipAdaptiveValsServiceMsg::Request& req,
+                                 GetMagDipAdaptiveValsServiceMsg::Response& res);
 
- private:
+  bool external_heading_update(ExternalHeadingUpdateServiceMsg::Request& req,
+                               ExternalHeadingUpdateServiceMsg::Response& res);
+
+  bool set_relative_position_reference(SetRelativePositionReferenceServiceMsg::Request& req,
+                                       SetRelativePositionReferenceServiceMsg::Response& res);
+  bool get_relative_position_reference(GetRelativePositionReferenceServiceMsg::Request& req,
+                                       GetRelativePositionReferenceServiceMsg::Response& res);
+
+  bool device_settings(DeviceSettingsServiceMsg::Request& req, DeviceSettingsServiceMsg::Response& res);
+
+  void get_basic_status_ptr(const std::shared_ptr<TriggerServiceMsg::Request> req,
+                            std::shared_ptr<TriggerServiceMsg::Response> res);
+
+private:
   RosNodeType* m_node;
   MicrostrainConfig* m_config;
 
@@ -198,6 +222,6 @@ class MicrostrainServices
   GetRelativePositionReferenceServiceType m_get_relative_position_reference_service;
 };  // struct MicrostrainServices
 
-} // namespace Microstrain
+}  // namespace Microstrain
 
-#endif  // _MICROSTRAIN_SERVICES_H
+#endif  // ROS_MSCL_COMMON_MICROSTRAIN_SERVICES_H
