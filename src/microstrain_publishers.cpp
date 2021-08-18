@@ -13,7 +13,7 @@
 // Include Files
 //
 /////////////////////////////////////////////////////////////////////////////////////////////////////
-#include "ros_mscl_common/microstrain_publishers.h"
+#include "microstrain_common/microstrain_publishers.h"
 
 namespace microstrain
 {

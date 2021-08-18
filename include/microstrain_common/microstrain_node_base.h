@@ -9,8 +9,8 @@
 //
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
-#ifndef ROS_MSCL_COMMON_MICROSTRAIN_NODE_BASE_H
-#define ROS_MSCL_COMMON_MICROSTRAIN_NODE_BASE_H
+#ifndef MICROSTRAIN_COMMON_MICROSTRAIN_NODE_BASE_H
+#define MICROSTRAIN_COMMON_MICROSTRAIN_NODE_BASE_H
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -22,11 +22,11 @@
 #include <vector>
 #include <fstream>
 
-#include "ros_mscl_common/microstrain_config.h"
-#include "ros_mscl_common/microstrain_publishers.h"
-#include "ros_mscl_common/microstrain_subscribers.h"
-#include "ros_mscl_common/microstrain_services.h"
-#include "ros_mscl_common/microstrain_parser.h"
+#include "microstrain_common/microstrain_config.h"
+#include "microstrain_common/microstrain_publishers.h"
+#include "microstrain_common/microstrain_subscribers.h"
+#include "microstrain_common/microstrain_services.h"
+#include "microstrain_common/microstrain_parser.h"
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 ///
@@ -63,4 +63,4 @@ protected:
 
 }  // namespace microstrain
 
-#endif  // ROS_MSCL_COMMON_MICROSTRAIN_NODE_BASE_H
+#endif  // MICROSTRAIN_COMMON_MICROSTRAIN_NODE_BASE_H

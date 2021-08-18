@@ -14,7 +14,7 @@
 //
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 #include <algorithm>
-#include "ros_mscl_common/microstrain_node_base.h"
+#include "microstrain_common/microstrain_node_base.h"
 
 namespace microstrain
 {

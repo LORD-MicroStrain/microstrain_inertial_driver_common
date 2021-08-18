@@ -8,17 +8,17 @@
 // This code is licensed under MIT license (see LICENSE file for details)
 //
 /////////////////////////////////////////////////////////////////////////////////////////////////////
-#ifndef ROS_MSCL_COMMON_MICROSTRAIN_PUBLISHERS_H
-#define ROS_MSCL_COMMON_MICROSTRAIN_PUBLISHERS_H
+#ifndef MICROSTRAIN_COMMON_MICROSTRAIN_PUBLISHERS_H
+#define MICROSTRAIN_COMMON_MICROSTRAIN_PUBLISHERS_H
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 // Include Files
 //
 /////////////////////////////////////////////////////////////////////////////////////////////////////
-#include "ros_mscl_common/microstrain_defs.h"
-#include "ros_mscl_common/microstrain_ros_funcs.h"
-#include "ros_mscl_common/microstrain_config.h"
+#include "microstrain_common/microstrain_defs.h"
+#include "microstrain_common/microstrain_ros_funcs.h"
+#include "microstrain_common/microstrain_config.h"
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 ///
@@ -98,4 +98,4 @@ private:
 
 }  // namespace microstrain
 
-#endif  // ROS_MSCL_COMMON_MICROSTRAIN_PUBLISHERS_H
+#endif  // MICROSTRAIN_COMMON_MICROSTRAIN_PUBLISHERS_H

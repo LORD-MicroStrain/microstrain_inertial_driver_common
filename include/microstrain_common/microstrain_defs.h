@@ -8,8 +8,8 @@
 // This code is licensed under MIT license (see LICENSE file for details)
 //
 /////////////////////////////////////////////////////////////////////////////////////////////////////
-#ifndef ROS_MSCL_COMMON_MICROSTRAIN_DEFS_H
-#define ROS_MSCL_COMMON_MICROSTRAIN_DEFS_H
+#ifndef MICROSTRAIN_COMMON_MICROSTRAIN_DEFS_H
+#define MICROSTRAIN_COMMON_MICROSTRAIN_DEFS_H
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -40,70 +40,70 @@
 #include "std_msgs/String.h"
 #include "tf2_geometry_msgs/tf2_geometry_msgs.h"
 
-#include "mscl_msgs/Status.h"
-#include "mscl_msgs/RTKStatus.h"
-#include "mscl_msgs/FilterStatus.h"
-#include "mscl_msgs/FilterHeading.h"
-#include "mscl_msgs/FilterHeadingState.h"
-#include "mscl_msgs/GPSCorrelationTimestampStamped.h"
-#include "mscl_msgs/GNSSAidingStatus.h"
-#include "mscl_msgs/GNSSDualAntennaStatus.h"
+#include "microstrain_msgs/Status.h"
+#include "microstrain_msgs/RTKStatus.h"
+#include "microstrain_msgs/FilterStatus.h"
+#include "microstrain_msgs/FilterHeading.h"
+#include "microstrain_msgs/FilterHeadingState.h"
+#include "microstrain_msgs/GPSCorrelationTimestampStamped.h"
+#include "microstrain_msgs/GNSSAidingStatus.h"
+#include "microstrain_msgs/GNSSDualAntennaStatus.h"
 
 #include "std_srvs/Empty.h"
 #include "std_srvs/Trigger.h"
 
-#include "mscl_msgs/SetAccelBias.h"
-#include "mscl_msgs/GetAccelBias.h"
-#include "mscl_msgs/SetGyroBias.h"
-#include "mscl_msgs/GetGyroBias.h"
-#include "mscl_msgs/SetHardIronValues.h"
-#include "mscl_msgs/GetHardIronValues.h"
-#include "mscl_msgs/SetSoftIronMatrix.h"
-#include "mscl_msgs/GetSoftIronMatrix.h"
-#include "mscl_msgs/SetComplementaryFilter.h"
-#include "mscl_msgs/GetComplementaryFilter.h"
-#include "mscl_msgs/InitFilterEuler.h"
-#include "mscl_msgs/InitFilterHeading.h"
-#include "mscl_msgs/DeviceSettings.h"
-#include "mscl_msgs/SetAccelBiasModel.h"
-#include "mscl_msgs/GetAccelBiasModel.h"
-#include "mscl_msgs/SetGravityAdaptiveVals.h"
-#include "mscl_msgs/GetGravityAdaptiveVals.h"
-#include "mscl_msgs/SetSensor2VehicleRotation.h"
-#include "mscl_msgs/GetSensor2VehicleRotation.h"
-#include "mscl_msgs/SetSensor2VehicleOffset.h"
-#include "mscl_msgs/GetSensor2VehicleOffset.h"
-#include "mscl_msgs/SetReferencePosition.h"
-#include "mscl_msgs/GetReferencePosition.h"
-#include "mscl_msgs/SetConingScullingComp.h"
-#include "mscl_msgs/GetConingScullingComp.h"
-#include "mscl_msgs/SetEstimationControlFlags.h"
-#include "mscl_msgs/GetEstimationControlFlags.h"
-#include "mscl_msgs/SetDynamicsMode.h"
-#include "mscl_msgs/GetDynamicsMode.h"
-#include "mscl_msgs/SetZeroAngleUpdateThreshold.h"
-#include "mscl_msgs/GetZeroAngleUpdateThreshold.h"
-#include "mscl_msgs/SetZeroVelocityUpdateThreshold.h"
-#include "mscl_msgs/GetZeroVelocityUpdateThreshold.h"
-#include "mscl_msgs/SetTareOrientation.h"
-#include "mscl_msgs/SetAccelNoise.h"
-#include "mscl_msgs/GetAccelNoise.h"
-#include "mscl_msgs/SetGyroNoise.h"
-#include "mscl_msgs/GetGyroNoise.h"
-#include "mscl_msgs/SetMagNoise.h"
-#include "mscl_msgs/GetMagNoise.h"
-#include "mscl_msgs/SetGyroBiasModel.h"
-#include "mscl_msgs/GetGyroBiasModel.h"
-#include "mscl_msgs/SetMagAdaptiveVals.h"
-#include "mscl_msgs/GetMagAdaptiveVals.h"
-#include "mscl_msgs/SetMagDipAdaptiveVals.h"
-#include "mscl_msgs/GetMagDipAdaptiveVals.h"
-#include "mscl_msgs/SetHeadingSource.h"
-#include "mscl_msgs/GetHeadingSource.h"
-#include "mscl_msgs/GetSensor2VehicleTransformation.h"
-#include "mscl_msgs/ExternalHeadingUpdate.h"
-#include "mscl_msgs/SetRelativePositionReference.h"
-#include "mscl_msgs/GetRelativePositionReference.h"
+#include "microstrain_msgs/SetAccelBias.h"
+#include "microstrain_msgs/GetAccelBias.h"
+#include "microstrain_msgs/SetGyroBias.h"
+#include "microstrain_msgs/GetGyroBias.h"
+#include "microstrain_msgs/SetHardIronValues.h"
+#include "microstrain_msgs/GetHardIronValues.h"
+#include "microstrain_msgs/SetSoftIronMatrix.h"
+#include "microstrain_msgs/GetSoftIronMatrix.h"
+#include "microstrain_msgs/SetComplementaryFilter.h"
+#include "microstrain_msgs/GetComplementaryFilter.h"
+#include "microstrain_msgs/InitFilterEuler.h"
+#include "microstrain_msgs/InitFilterHeading.h"
+#include "microstrain_msgs/DeviceSettings.h"
+#include "microstrain_msgs/SetAccelBiasModel.h"
+#include "microstrain_msgs/GetAccelBiasModel.h"
+#include "microstrain_msgs/SetGravityAdaptiveVals.h"
+#include "microstrain_msgs/GetGravityAdaptiveVals.h"
+#include "microstrain_msgs/SetSensor2VehicleRotation.h"
+#include "microstrain_msgs/GetSensor2VehicleRotation.h"
+#include "microstrain_msgs/SetSensor2VehicleOffset.h"
+#include "microstrain_msgs/GetSensor2VehicleOffset.h"
+#include "microstrain_msgs/SetReferencePosition.h"
+#include "microstrain_msgs/GetReferencePosition.h"
+#include "microstrain_msgs/SetConingScullingComp.h"
+#include "microstrain_msgs/GetConingScullingComp.h"
+#include "microstrain_msgs/SetEstimationControlFlags.h"
+#include "microstrain_msgs/GetEstimationControlFlags.h"
+#include "microstrain_msgs/SetDynamicsMode.h"
+#include "microstrain_msgs/GetDynamicsMode.h"
+#include "microstrain_msgs/SetZeroAngleUpdateThreshold.h"
+#include "microstrain_msgs/GetZeroAngleUpdateThreshold.h"
+#include "microstrain_msgs/SetZeroVelocityUpdateThreshold.h"
+#include "microstrain_msgs/GetZeroVelocityUpdateThreshold.h"
+#include "microstrain_msgs/SetTareOrientation.h"
+#include "microstrain_msgs/SetAccelNoise.h"
+#include "microstrain_msgs/GetAccelNoise.h"
+#include "microstrain_msgs/SetGyroNoise.h"
+#include "microstrain_msgs/GetGyroNoise.h"
+#include "microstrain_msgs/SetMagNoise.h"
+#include "microstrain_msgs/GetMagNoise.h"
+#include "microstrain_msgs/SetGyroBiasModel.h"
+#include "microstrain_msgs/GetGyroBiasModel.h"
+#include "microstrain_msgs/SetMagAdaptiveVals.h"
+#include "microstrain_msgs/GetMagAdaptiveVals.h"
+#include "microstrain_msgs/SetMagDipAdaptiveVals.h"
+#include "microstrain_msgs/GetMagDipAdaptiveVals.h"
+#include "microstrain_msgs/SetHeadingSource.h"
+#include "microstrain_msgs/GetHeadingSource.h"
+#include "microstrain_msgs/GetSensor2VehicleTransformation.h"
+#include "microstrain_msgs/ExternalHeadingUpdate.h"
+#include "microstrain_msgs/SetRelativePositionReference.h"
+#include "microstrain_msgs/GetRelativePositionReference.h"
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -132,67 +132,67 @@
 #include "std_msgs/msg/string.hpp"
 #include "tf2_geometry_msgs/tf2_geometry_msgs.h"
 
-#include "mscl_msgs/msg/status.hpp"
-#include "mscl_msgs/msg/rtk_status.hpp"
-#include "mscl_msgs/msg/filter_status.hpp"
-#include "mscl_msgs/msg/filter_heading.hpp"
-#include "mscl_msgs/msg/filter_heading_state.hpp"
-#include "mscl_msgs/msg/gps_correlation_timestamp_stamped.hpp"
-#include "mscl_msgs/msg/gnss_aiding_status.hpp"
-#include "mscl_msgs/msg/gnss_dual_antenna_status.hpp"
+#include "microstrain_msgs/msg/status.hpp"
+#include "microstrain_msgs/msg/rtk_status.hpp"
+#include "microstrain_msgs/msg/filter_status.hpp"
+#include "microstrain_msgs/msg/filter_heading.hpp"
+#include "microstrain_msgs/msg/filter_heading_state.hpp"
+#include "microstrain_msgs/msg/gps_correlation_timestamp_stamped.hpp"
+#include "microstrain_msgs/msg/gnss_aiding_status.hpp"
+#include "microstrain_msgs/msg/gnss_dual_antenna_status.hpp"
 
-#include "mscl_msgs/srv/set_accel_bias.hpp"
-#include "mscl_msgs/srv/get_accel_bias.hpp"
-#include "mscl_msgs/srv/set_gyro_bias.hpp"
-#include "mscl_msgs/srv/get_gyro_bias.hpp"
-#include "mscl_msgs/srv/set_hard_iron_values.hpp"
-#include "mscl_msgs/srv/get_hard_iron_values.hpp"
-#include "mscl_msgs/srv/set_soft_iron_matrix.hpp"
-#include "mscl_msgs/srv/get_soft_iron_matrix.hpp"
-#include "mscl_msgs/srv/set_complementary_filter.hpp"
-#include "mscl_msgs/srv/get_complementary_filter.hpp"
-#include "mscl_msgs/srv/init_filter_euler.hpp"
-#include "mscl_msgs/srv/init_filter_heading.hpp"
-#include "mscl_msgs/srv/device_settings.hpp"
-#include "mscl_msgs/srv/set_accel_bias_model.hpp"
-#include "mscl_msgs/srv/get_accel_bias_model.hpp"
-#include "mscl_msgs/srv/set_gravity_adaptive_vals.hpp"
-#include "mscl_msgs/srv/get_gravity_adaptive_vals.hpp"
-#include "mscl_msgs/srv/set_sensor2_vehicle_rotation.hpp"
-#include "mscl_msgs/srv/get_sensor2_vehicle_rotation.hpp"
-#include "mscl_msgs/srv/set_sensor2_vehicle_offset.hpp"
-#include "mscl_msgs/srv/get_sensor2_vehicle_offset.hpp"
-#include "mscl_msgs/srv/set_reference_position.hpp"
-#include "mscl_msgs/srv/get_reference_position.hpp"
-#include "mscl_msgs/srv/set_coning_sculling_comp.hpp"
-#include "mscl_msgs/srv/get_coning_sculling_comp.hpp"
-#include "mscl_msgs/srv/set_estimation_control_flags.hpp"
-#include "mscl_msgs/srv/get_estimation_control_flags.hpp"
-#include "mscl_msgs/srv/set_dynamics_mode.hpp"
-#include "mscl_msgs/srv/get_dynamics_mode.hpp"
-#include "mscl_msgs/srv/set_zero_angle_update_threshold.hpp"
-#include "mscl_msgs/srv/get_zero_angle_update_threshold.hpp"
-#include "mscl_msgs/srv/set_zero_velocity_update_threshold.hpp"
-#include "mscl_msgs/srv/get_zero_velocity_update_threshold.hpp"
-#include "mscl_msgs/srv/set_tare_orientation.hpp"
-#include "mscl_msgs/srv/set_accel_noise.hpp"
-#include "mscl_msgs/srv/get_accel_noise.hpp"
-#include "mscl_msgs/srv/set_gyro_noise.hpp"
-#include "mscl_msgs/srv/get_gyro_noise.hpp"
-#include "mscl_msgs/srv/set_mag_noise.hpp"
-#include "mscl_msgs/srv/get_mag_noise.hpp"
-#include "mscl_msgs/srv/set_gyro_bias_model.hpp"
-#include "mscl_msgs/srv/get_gyro_bias_model.hpp"
-#include "mscl_msgs/srv/set_mag_adaptive_vals.hpp"
-#include "mscl_msgs/srv/get_mag_adaptive_vals.hpp"
-#include "mscl_msgs/srv/set_mag_dip_adaptive_vals.hpp"
-#include "mscl_msgs/srv/get_mag_dip_adaptive_vals.hpp"
-#include "mscl_msgs/srv/set_heading_source.hpp"
-#include "mscl_msgs/srv/get_heading_source.hpp"
-#include "mscl_msgs/srv/get_sensor2_vehicle_transformation.hpp"
-#include "mscl_msgs/srv/external_heading_update.hpp"
-#include "mscl_msgs/srv/set_relative_position_reference.hpp"
-#include "mscl_msgs/srv/get_relative_position_reference.hpp"
+#include "microstrain_msgs/srv/set_accel_bias.hpp"
+#include "microstrain_msgs/srv/get_accel_bias.hpp"
+#include "microstrain_msgs/srv/set_gyro_bias.hpp"
+#include "microstrain_msgs/srv/get_gyro_bias.hpp"
+#include "microstrain_msgs/srv/set_hard_iron_values.hpp"
+#include "microstrain_msgs/srv/get_hard_iron_values.hpp"
+#include "microstrain_msgs/srv/set_soft_iron_matrix.hpp"
+#include "microstrain_msgs/srv/get_soft_iron_matrix.hpp"
+#include "microstrain_msgs/srv/set_complementary_filter.hpp"
+#include "microstrain_msgs/srv/get_complementary_filter.hpp"
+#include "microstrain_msgs/srv/init_filter_euler.hpp"
+#include "microstrain_msgs/srv/init_filter_heading.hpp"
+#include "microstrain_msgs/srv/device_settings.hpp"
+#include "microstrain_msgs/srv/set_accel_bias_model.hpp"
+#include "microstrain_msgs/srv/get_accel_bias_model.hpp"
+#include "microstrain_msgs/srv/set_gravity_adaptive_vals.hpp"
+#include "microstrain_msgs/srv/get_gravity_adaptive_vals.hpp"
+#include "microstrain_msgs/srv/set_sensor2_vehicle_rotation.hpp"
+#include "microstrain_msgs/srv/get_sensor2_vehicle_rotation.hpp"
+#include "microstrain_msgs/srv/set_sensor2_vehicle_offset.hpp"
+#include "microstrain_msgs/srv/get_sensor2_vehicle_offset.hpp"
+#include "microstrain_msgs/srv/set_reference_position.hpp"
+#include "microstrain_msgs/srv/get_reference_position.hpp"
+#include "microstrain_msgs/srv/set_coning_sculling_comp.hpp"
+#include "microstrain_msgs/srv/get_coning_sculling_comp.hpp"
+#include "microstrain_msgs/srv/set_estimation_control_flags.hpp"
+#include "microstrain_msgs/srv/get_estimation_control_flags.hpp"
+#include "microstrain_msgs/srv/set_dynamics_mode.hpp"
+#include "microstrain_msgs/srv/get_dynamics_mode.hpp"
+#include "microstrain_msgs/srv/set_zero_angle_update_threshold.hpp"
+#include "microstrain_msgs/srv/get_zero_angle_update_threshold.hpp"
+#include "microstrain_msgs/srv/set_zero_velocity_update_threshold.hpp"
+#include "microstrain_msgs/srv/get_zero_velocity_update_threshold.hpp"
+#include "microstrain_msgs/srv/set_tare_orientation.hpp"
+#include "microstrain_msgs/srv/set_accel_noise.hpp"
+#include "microstrain_msgs/srv/get_accel_noise.hpp"
+#include "microstrain_msgs/srv/set_gyro_noise.hpp"
+#include "microstrain_msgs/srv/get_gyro_noise.hpp"
+#include "microstrain_msgs/srv/set_mag_noise.hpp"
+#include "microstrain_msgs/srv/get_mag_noise.hpp"
+#include "microstrain_msgs/srv/set_gyro_bias_model.hpp"
+#include "microstrain_msgs/srv/get_gyro_bias_model.hpp"
+#include "microstrain_msgs/srv/set_mag_adaptive_vals.hpp"
+#include "microstrain_msgs/srv/get_mag_adaptive_vals.hpp"
+#include "microstrain_msgs/srv/set_mag_dip_adaptive_vals.hpp"
+#include "microstrain_msgs/srv/get_mag_dip_adaptive_vals.hpp"
+#include "microstrain_msgs/srv/set_heading_source.hpp"
+#include "microstrain_msgs/srv/get_heading_source.hpp"
+#include "microstrain_msgs/srv/get_sensor2_vehicle_transformation.hpp"
+#include "microstrain_msgs/srv/external_heading_update.hpp"
+#include "microstrain_msgs/srv/set_relative_position_reference.hpp"
+#include "microstrain_msgs/srv/get_relative_position_reference.hpp"
 #else
 #error "Unsupported ROS version. -DMICROSTRAIN_ROS_VERSION must be set to 1 or 2"
 #endif
@@ -218,14 +218,14 @@ using ImuMsg = ::sensor_msgs::Imu;
 using NavSatFixMsg = ::sensor_msgs::NavSatFix;
 using MagneticFieldMsg = ::sensor_msgs::MagneticField;
 using TimeReferenceMsg = ::sensor_msgs::TimeReference;
-using StatusMsg = ::mscl_msgs::Status;
-using RTKStatusMsg = ::mscl_msgs::RTKStatus;
-using FilterStatusMsg = ::mscl_msgs::FilterStatus;
-using FilterHeadingMsg = ::mscl_msgs::FilterHeading;
-using GNSSAidingStatusMsg = ::mscl_msgs::GNSSAidingStatus;
-using GNSSDualAntennaStatusMsg = ::mscl_msgs::GNSSDualAntennaStatus;
-using FilterHeadingStateMsg = ::mscl_msgs::FilterHeadingState;
-using GPSCorrelationTimestampStampedMsg = ::mscl_msgs::GPSCorrelationTimestampStamped;
+using StatusMsg = ::microstrain_msgs::Status;
+using RTKStatusMsg = ::microstrain_msgs::RTKStatus;
+using FilterStatusMsg = ::microstrain_msgs::FilterStatus;
+using FilterHeadingMsg = ::microstrain_msgs::FilterHeading;
+using GNSSAidingStatusMsg = ::microstrain_msgs::GNSSAidingStatus;
+using GNSSDualAntennaStatusMsg = ::microstrain_msgs::GNSSDualAntennaStatus;
+using FilterHeadingStateMsg = ::microstrain_msgs::FilterHeadingState;
+using GPSCorrelationTimestampStampedMsg = ::microstrain_msgs::GPSCorrelationTimestampStamped;
 
 // ROS1 Publisher Types
 using OdometryPubType = std::shared_ptr<::ros::Publisher>;
@@ -254,85 +254,85 @@ using TimeReferenceSubType = std::shared_ptr<::ros::Subscriber>;
 using TriggerServiceMsg = std_srvs::Trigger;
 using EmptyServiceMsg = std_srvs::Empty;
 
-using SetAccelBiasServiceMsg = ::mscl_msgs::SetAccelBias;
-using GetAccelBiasServiceMsg = ::mscl_msgs::GetAccelBias;
+using SetAccelBiasServiceMsg = ::microstrain_msgs::SetAccelBias;
+using GetAccelBiasServiceMsg = ::microstrain_msgs::GetAccelBias;
 
-using SetGyroBiasServiceMsg = ::mscl_msgs::SetGyroBias;
-using GetGyroBiasServiceMsg = ::mscl_msgs::GetGyroBias;
+using SetGyroBiasServiceMsg = ::microstrain_msgs::SetGyroBias;
+using GetGyroBiasServiceMsg = ::microstrain_msgs::GetGyroBias;
 
-using SetHardIronValuesServiceMsg = ::mscl_msgs::SetHardIronValues;
-using GetHardIronValuesServiceMsg = ::mscl_msgs::GetHardIronValues;
+using SetHardIronValuesServiceMsg = ::microstrain_msgs::SetHardIronValues;
+using GetHardIronValuesServiceMsg = ::microstrain_msgs::GetHardIronValues;
 
-using SetSoftIronMatrixServiceMsg = ::mscl_msgs::SetSoftIronMatrix;
-using GetSoftIronMatrixServiceMsg = ::mscl_msgs::GetSoftIronMatrix;
+using SetSoftIronMatrixServiceMsg = ::microstrain_msgs::SetSoftIronMatrix;
+using GetSoftIronMatrixServiceMsg = ::microstrain_msgs::GetSoftIronMatrix;
 
-using SetComplementaryFilterServiceMsg = ::mscl_msgs::SetComplementaryFilter;
-using GetComplementaryFilterServiceMsg = ::mscl_msgs::GetComplementaryFilter;
+using SetComplementaryFilterServiceMsg = ::microstrain_msgs::SetComplementaryFilter;
+using GetComplementaryFilterServiceMsg = ::microstrain_msgs::GetComplementaryFilter;
 
-using SetConingScullingCompServiceMsg = ::mscl_msgs::SetConingScullingComp;
-using GetConingScullingCompServiceMsg = ::mscl_msgs::GetConingScullingComp;
+using SetConingScullingCompServiceMsg = ::microstrain_msgs::SetConingScullingComp;
+using GetConingScullingCompServiceMsg = ::microstrain_msgs::GetConingScullingComp;
 
-using SetSensor2VehicleRotationServiceMsg = ::mscl_msgs::SetSensor2VehicleRotation;
-using GetSensor2VehicleRotationServiceMsg = ::mscl_msgs::GetSensor2VehicleRotation;
+using SetSensor2VehicleRotationServiceMsg = ::microstrain_msgs::SetSensor2VehicleRotation;
+using GetSensor2VehicleRotationServiceMsg = ::microstrain_msgs::GetSensor2VehicleRotation;
 
-using SetSensor2VehicleOffsetServiceMsg = ::mscl_msgs::SetSensor2VehicleOffset;
-using GetSensor2VehicleOffsetServiceMsg = ::mscl_msgs::GetSensor2VehicleOffset;
+using SetSensor2VehicleOffsetServiceMsg = ::microstrain_msgs::SetSensor2VehicleOffset;
+using GetSensor2VehicleOffsetServiceMsg = ::microstrain_msgs::GetSensor2VehicleOffset;
 
-using GetSensor2VehicleTransformationServiceMsg = ::mscl_msgs::GetSensor2VehicleTransformation;
+using GetSensor2VehicleTransformationServiceMsg = ::microstrain_msgs::GetSensor2VehicleTransformation;
 
-using InitFilterEulerServiceMsg = ::mscl_msgs::InitFilterEuler;
-using InitFilterHeadingServiceMsg = ::mscl_msgs::InitFilterHeading;
+using InitFilterEulerServiceMsg = ::microstrain_msgs::InitFilterEuler;
+using InitFilterHeadingServiceMsg = ::microstrain_msgs::InitFilterHeading;
 
-using SetHeadingSourceServiceMsg = ::mscl_msgs::SetHeadingSource;
-using GetHeadingSourceServiceMsg = ::mscl_msgs::GetHeadingSource;
+using SetHeadingSourceServiceMsg = ::microstrain_msgs::SetHeadingSource;
+using GetHeadingSourceServiceMsg = ::microstrain_msgs::GetHeadingSource;
 
-using SetReferencePositionServiceMsg = ::mscl_msgs::SetReferencePosition;
-using GetReferencePositionServiceMsg = ::mscl_msgs::GetReferencePosition;
+using SetReferencePositionServiceMsg = ::microstrain_msgs::SetReferencePosition;
+using GetReferencePositionServiceMsg = ::microstrain_msgs::GetReferencePosition;
 
-using SetEstimationControlFlagsServiceMsg = ::mscl_msgs::SetEstimationControlFlags;
-using GetEstimationControlFlagsServiceMsg = ::mscl_msgs::GetEstimationControlFlags;
+using SetEstimationControlFlagsServiceMsg = ::microstrain_msgs::SetEstimationControlFlags;
+using GetEstimationControlFlagsServiceMsg = ::microstrain_msgs::GetEstimationControlFlags;
 
-using SetDynamicsModeServiceMsg = ::mscl_msgs::SetDynamicsMode;
-using GetDynamicsModeServiceMsg = ::mscl_msgs::GetDynamicsMode;
+using SetDynamicsModeServiceMsg = ::microstrain_msgs::SetDynamicsMode;
+using GetDynamicsModeServiceMsg = ::microstrain_msgs::GetDynamicsMode;
 
-using SetZeroAngleUpdateThresholdServiceMsg = ::mscl_msgs::SetZeroAngleUpdateThreshold;
-using GetZeroAngleUpdateThresholdServiceMsg = ::mscl_msgs::GetZeroAngleUpdateThreshold;
+using SetZeroAngleUpdateThresholdServiceMsg = ::microstrain_msgs::SetZeroAngleUpdateThreshold;
+using GetZeroAngleUpdateThresholdServiceMsg = ::microstrain_msgs::GetZeroAngleUpdateThreshold;
 
-using SetZeroVelocityUpdateThresholdServiceMsg = ::mscl_msgs::SetZeroVelocityUpdateThreshold;
-using GetZeroVelocityUpdateThresholdServiceMsg = ::mscl_msgs::GetZeroVelocityUpdateThreshold;
+using SetZeroVelocityUpdateThresholdServiceMsg = ::microstrain_msgs::SetZeroVelocityUpdateThreshold;
+using GetZeroVelocityUpdateThresholdServiceMsg = ::microstrain_msgs::GetZeroVelocityUpdateThreshold;
 
-using SetTareOrientationServiceMsg = ::mscl_msgs::SetTareOrientation;
+using SetTareOrientationServiceMsg = ::microstrain_msgs::SetTareOrientation;
 
-using SetAccelNoiseServiceMsg = ::mscl_msgs::SetAccelNoise;
-using GetAccelNoiseServiceMsg = ::mscl_msgs::GetAccelNoise;
+using SetAccelNoiseServiceMsg = ::microstrain_msgs::SetAccelNoise;
+using GetAccelNoiseServiceMsg = ::microstrain_msgs::GetAccelNoise;
 
-using SetGyroNoiseServiceMsg = ::mscl_msgs::SetGyroNoise;
-using GetGyroNoiseServiceMsg = ::mscl_msgs::GetGyroNoise;
+using SetGyroNoiseServiceMsg = ::microstrain_msgs::SetGyroNoise;
+using GetGyroNoiseServiceMsg = ::microstrain_msgs::GetGyroNoise;
 
-using SetMagNoiseServiceMsg = ::mscl_msgs::SetMagNoise;
-using GetMagNoiseServiceMsg = ::mscl_msgs::GetMagNoise;
+using SetMagNoiseServiceMsg = ::microstrain_msgs::SetMagNoise;
+using GetMagNoiseServiceMsg = ::microstrain_msgs::GetMagNoise;
 
-using SetGyroBiasModelServiceMsg = ::mscl_msgs::SetGyroBiasModel;
-using GetGyroBiasModelServiceMsg = ::mscl_msgs::GetGyroBiasModel;
+using SetGyroBiasModelServiceMsg = ::microstrain_msgs::SetGyroBiasModel;
+using GetGyroBiasModelServiceMsg = ::microstrain_msgs::GetGyroBiasModel;
 
-using SetAccelBiasModelServiceMsg = ::mscl_msgs::SetAccelBiasModel;
-using GetAccelBiasModelServiceMsg = ::mscl_msgs::GetAccelBiasModel;
+using SetAccelBiasModelServiceMsg = ::microstrain_msgs::SetAccelBiasModel;
+using GetAccelBiasModelServiceMsg = ::microstrain_msgs::GetAccelBiasModel;
 
-using SetGravityAdaptiveValsServiceMsg = ::mscl_msgs::SetGravityAdaptiveVals;
-using GetGravityAdaptiveValsServiceMsg = ::mscl_msgs::GetGravityAdaptiveVals;
+using SetGravityAdaptiveValsServiceMsg = ::microstrain_msgs::SetGravityAdaptiveVals;
+using GetGravityAdaptiveValsServiceMsg = ::microstrain_msgs::GetGravityAdaptiveVals;
 
-using SetMagAdaptiveValsServiceMsg = ::mscl_msgs::SetMagAdaptiveVals;
-using GetMagAdaptiveValsServiceMsg = ::mscl_msgs::GetMagAdaptiveVals;
+using SetMagAdaptiveValsServiceMsg = ::microstrain_msgs::SetMagAdaptiveVals;
+using GetMagAdaptiveValsServiceMsg = ::microstrain_msgs::GetMagAdaptiveVals;
 
-using SetMagDipAdaptiveValsServiceMsg = ::mscl_msgs::SetMagDipAdaptiveVals;
-using GetMagDipAdaptiveValsServiceMsg = ::mscl_msgs::GetMagDipAdaptiveVals;
+using SetMagDipAdaptiveValsServiceMsg = ::microstrain_msgs::SetMagDipAdaptiveVals;
+using GetMagDipAdaptiveValsServiceMsg = ::microstrain_msgs::GetMagDipAdaptiveVals;
 
-using ExternalHeadingUpdateServiceMsg = ::mscl_msgs::ExternalHeadingUpdate;
+using ExternalHeadingUpdateServiceMsg = ::microstrain_msgs::ExternalHeadingUpdate;
 
-using SetRelativePositionReferenceServiceMsg = ::mscl_msgs::SetRelativePositionReference;
-using GetRelativePositionReferenceServiceMsg = ::mscl_msgs::GetRelativePositionReference;
+using SetRelativePositionReferenceServiceMsg = ::microstrain_msgs::SetRelativePositionReference;
+using GetRelativePositionReferenceServiceMsg = ::microstrain_msgs::GetRelativePositionReference;
 
-using DeviceSettingsServiceMsg = ::mscl_msgs::DeviceSettings;
+using DeviceSettingsServiceMsg = ::microstrain_msgs::DeviceSettings;
 
 // ROS1 Service Types
 using TriggerServiceType = std::shared_ptr<::ros::ServiceServer>;
@@ -448,14 +448,14 @@ using ImuMsg = ::sensor_msgs::msg::Imu;
 using NavSatFixMsg = ::sensor_msgs::msg::NavSatFix;
 using MagneticFieldMsg = ::sensor_msgs::msg::MagneticField;
 using TimeReferenceMsg = ::sensor_msgs::msg::TimeReference;
-using StatusMsg = ::mscl_msgs::msg::Status;
-using RTKStatusMsg = ::mscl_msgs::msg::RTKStatus;
-using FilterStatusMsg = ::mscl_msgs::msg::FilterStatus;
-using FilterHeadingMsg = ::mscl_msgs::msg::FilterHeading;
-using GNSSAidingStatusMsg = ::mscl_msgs::msg::GNSSAidingStatus;
-using GNSSDualAntennaStatusMsg = ::mscl_msgs::msg::GNSSDualAntennaStatus;
-using FilterHeadingStateMsg = ::mscl_msgs::msg::FilterHeadingState;
-using GPSCorrelationTimestampStampedMsg = ::mscl_msgs::msg::GPSCorrelationTimestampStamped;
+using StatusMsg = ::microstrain_msgs::msg::Status;
+using RTKStatusMsg = ::microstrain_msgs::msg::RTKStatus;
+using FilterStatusMsg = ::microstrain_msgs::msg::FilterStatus;
+using FilterHeadingMsg = ::microstrain_msgs::msg::FilterHeading;
+using GNSSAidingStatusMsg = ::microstrain_msgs::msg::GNSSAidingStatus;
+using GNSSDualAntennaStatusMsg = ::microstrain_msgs::msg::GNSSDualAntennaStatus;
+using FilterHeadingStateMsg = ::microstrain_msgs::msg::FilterHeadingState;
+using GPSCorrelationTimestampStampedMsg = ::microstrain_msgs::msg::GPSCorrelationTimestampStamped;
 
 // ROS2 Publisher Types
 using OdometryPubType = ::rclcpp_lifecycle::LifecyclePublisher<OdometryMsg>::SharedPtr;
@@ -485,85 +485,85 @@ using TimeReferenceSubType = ::rclcpp::Subscription<TimeReferenceMsg>::SharedPtr
 using TriggerServiceMsg = std_srvs::srv::Trigger;
 using EmptyServiceMsg = std_srvs::srv::Empty;
 
-using SetAccelBiasServiceMsg = mscl_msgs::srv::SetAccelBias;
-using GetAccelBiasServiceMsg = mscl_msgs::srv::GetAccelBias;
+using SetAccelBiasServiceMsg = microstrain_msgs::srv::SetAccelBias;
+using GetAccelBiasServiceMsg = microstrain_msgs::srv::GetAccelBias;
 
-using SetGyroBiasServiceMsg = mscl_msgs::srv::SetGyroBias;
-using GetGyroBiasServiceMsg = mscl_msgs::srv::GetGyroBias;
+using SetGyroBiasServiceMsg = microstrain_msgs::srv::SetGyroBias;
+using GetGyroBiasServiceMsg = microstrain_msgs::srv::GetGyroBias;
 
-using SetHardIronValuesServiceMsg = mscl_msgs::srv::SetHardIronValues;
-using GetHardIronValuesServiceMsg = mscl_msgs::srv::GetHardIronValues;
+using SetHardIronValuesServiceMsg = microstrain_msgs::srv::SetHardIronValues;
+using GetHardIronValuesServiceMsg = microstrain_msgs::srv::GetHardIronValues;
 
-using SetSoftIronMatrixServiceMsg = mscl_msgs::srv::SetSoftIronMatrix;
-using GetSoftIronMatrixServiceMsg = mscl_msgs::srv::GetSoftIronMatrix;
+using SetSoftIronMatrixServiceMsg = microstrain_msgs::srv::SetSoftIronMatrix;
+using GetSoftIronMatrixServiceMsg = microstrain_msgs::srv::GetSoftIronMatrix;
 
-using SetComplementaryFilterServiceMsg = mscl_msgs::srv::SetComplementaryFilter;
-using GetComplementaryFilterServiceMsg = mscl_msgs::srv::GetComplementaryFilter;
+using SetComplementaryFilterServiceMsg = microstrain_msgs::srv::SetComplementaryFilter;
+using GetComplementaryFilterServiceMsg = microstrain_msgs::srv::GetComplementaryFilter;
 
-using SetConingScullingCompServiceMsg = mscl_msgs::srv::SetConingScullingComp;
-using GetConingScullingCompServiceMsg = mscl_msgs::srv::GetConingScullingComp;
+using SetConingScullingCompServiceMsg = microstrain_msgs::srv::SetConingScullingComp;
+using GetConingScullingCompServiceMsg = microstrain_msgs::srv::GetConingScullingComp;
 
-using SetSensor2VehicleRotationServiceMsg = mscl_msgs::srv::SetSensor2VehicleRotation;
-using GetSensor2VehicleRotationServiceMsg = mscl_msgs::srv::GetSensor2VehicleRotation;
+using SetSensor2VehicleRotationServiceMsg = microstrain_msgs::srv::SetSensor2VehicleRotation;
+using GetSensor2VehicleRotationServiceMsg = microstrain_msgs::srv::GetSensor2VehicleRotation;
 
-using SetSensor2VehicleOffsetServiceMsg = mscl_msgs::srv::SetSensor2VehicleOffset;
-using GetSensor2VehicleOffsetServiceMsg = mscl_msgs::srv::GetSensor2VehicleOffset;
+using SetSensor2VehicleOffsetServiceMsg = microstrain_msgs::srv::SetSensor2VehicleOffset;
+using GetSensor2VehicleOffsetServiceMsg = microstrain_msgs::srv::GetSensor2VehicleOffset;
 
-using GetSensor2VehicleTransformationServiceMsg = mscl_msgs::srv::GetSensor2VehicleTransformation;
+using GetSensor2VehicleTransformationServiceMsg = microstrain_msgs::srv::GetSensor2VehicleTransformation;
 
-using InitFilterEulerServiceMsg = mscl_msgs::srv::InitFilterEuler;
-using InitFilterHeadingServiceMsg = mscl_msgs::srv::InitFilterHeading;
+using InitFilterEulerServiceMsg = microstrain_msgs::srv::InitFilterEuler;
+using InitFilterHeadingServiceMsg = microstrain_msgs::srv::InitFilterHeading;
 
-using SetHeadingSourceServiceMsg = mscl_msgs::srv::SetHeadingSource;
-using GetHeadingSourceServiceMsg = mscl_msgs::srv::GetHeadingSource;
+using SetHeadingSourceServiceMsg = microstrain_msgs::srv::SetHeadingSource;
+using GetHeadingSourceServiceMsg = microstrain_msgs::srv::GetHeadingSource;
 
-using SetReferencePositionServiceMsg = mscl_msgs::srv::SetReferencePosition;
-using GetReferencePositionServiceMsg = mscl_msgs::srv::GetReferencePosition;
+using SetReferencePositionServiceMsg = microstrain_msgs::srv::SetReferencePosition;
+using GetReferencePositionServiceMsg = microstrain_msgs::srv::GetReferencePosition;
 
-using SetEstimationControlFlagsServiceMsg = mscl_msgs::srv::SetEstimationControlFlags;
-using GetEstimationControlFlagsServiceMsg = mscl_msgs::srv::GetEstimationControlFlags;
+using SetEstimationControlFlagsServiceMsg = microstrain_msgs::srv::SetEstimationControlFlags;
+using GetEstimationControlFlagsServiceMsg = microstrain_msgs::srv::GetEstimationControlFlags;
 
-using SetDynamicsModeServiceMsg = mscl_msgs::srv::SetDynamicsMode;
-using GetDynamicsModeServiceMsg = mscl_msgs::srv::GetDynamicsMode;
+using SetDynamicsModeServiceMsg = microstrain_msgs::srv::SetDynamicsMode;
+using GetDynamicsModeServiceMsg = microstrain_msgs::srv::GetDynamicsMode;
 
-using SetZeroAngleUpdateThresholdServiceMsg = mscl_msgs::srv::SetZeroAngleUpdateThreshold;
-using GetZeroAngleUpdateThresholdServiceMsg = mscl_msgs::srv::GetZeroAngleUpdateThreshold;
+using SetZeroAngleUpdateThresholdServiceMsg = microstrain_msgs::srv::SetZeroAngleUpdateThreshold;
+using GetZeroAngleUpdateThresholdServiceMsg = microstrain_msgs::srv::GetZeroAngleUpdateThreshold;
 
-using SetZeroVelocityUpdateThresholdServiceMsg = mscl_msgs::srv::SetZeroVelocityUpdateThreshold;
-using GetZeroVelocityUpdateThresholdServiceMsg = mscl_msgs::srv::GetZeroVelocityUpdateThreshold;
+using SetZeroVelocityUpdateThresholdServiceMsg = microstrain_msgs::srv::SetZeroVelocityUpdateThreshold;
+using GetZeroVelocityUpdateThresholdServiceMsg = microstrain_msgs::srv::GetZeroVelocityUpdateThreshold;
 
-using SetTareOrientationServiceMsg = mscl_msgs::srv::SetTareOrientation;
+using SetTareOrientationServiceMsg = microstrain_msgs::srv::SetTareOrientation;
 
-using SetAccelNoiseServiceMsg = mscl_msgs::srv::SetAccelNoise;
-using GetAccelNoiseServiceMsg = mscl_msgs::srv::GetAccelNoise;
+using SetAccelNoiseServiceMsg = microstrain_msgs::srv::SetAccelNoise;
+using GetAccelNoiseServiceMsg = microstrain_msgs::srv::GetAccelNoise;
 
-using SetGyroNoiseServiceMsg = mscl_msgs::srv::SetGyroNoise;
-using GetGyroNoiseServiceMsg = mscl_msgs::srv::GetGyroNoise;
+using SetGyroNoiseServiceMsg = microstrain_msgs::srv::SetGyroNoise;
+using GetGyroNoiseServiceMsg = microstrain_msgs::srv::GetGyroNoise;
 
-using SetMagNoiseServiceMsg = mscl_msgs::srv::SetMagNoise;
-using GetMagNoiseServiceMsg = mscl_msgs::srv::GetMagNoise;
+using SetMagNoiseServiceMsg = microstrain_msgs::srv::SetMagNoise;
+using GetMagNoiseServiceMsg = microstrain_msgs::srv::GetMagNoise;
 
-using SetGyroBiasModelServiceMsg = mscl_msgs::srv::SetGyroBiasModel;
-using GetGyroBiasModelServiceMsg = mscl_msgs::srv::GetGyroBiasModel;
+using SetGyroBiasModelServiceMsg = microstrain_msgs::srv::SetGyroBiasModel;
+using GetGyroBiasModelServiceMsg = microstrain_msgs::srv::GetGyroBiasModel;
 
-using SetAccelBiasModelServiceMsg = mscl_msgs::srv::SetAccelBiasModel;
-using GetAccelBiasModelServiceMsg = mscl_msgs::srv::GetAccelBiasModel;
+using SetAccelBiasModelServiceMsg = microstrain_msgs::srv::SetAccelBiasModel;
+using GetAccelBiasModelServiceMsg = microstrain_msgs::srv::GetAccelBiasModel;
 
-using SetGravityAdaptiveValsServiceMsg = mscl_msgs::srv::SetGravityAdaptiveVals;
-using GetGravityAdaptiveValsServiceMsg = mscl_msgs::srv::GetGravityAdaptiveVals;
+using SetGravityAdaptiveValsServiceMsg = microstrain_msgs::srv::SetGravityAdaptiveVals;
+using GetGravityAdaptiveValsServiceMsg = microstrain_msgs::srv::GetGravityAdaptiveVals;
 
-using SetMagAdaptiveValsServiceMsg = mscl_msgs::srv::SetMagAdaptiveVals;
-using GetMagAdaptiveValsServiceMsg = mscl_msgs::srv::GetMagAdaptiveVals;
+using SetMagAdaptiveValsServiceMsg = microstrain_msgs::srv::SetMagAdaptiveVals;
+using GetMagAdaptiveValsServiceMsg = microstrain_msgs::srv::GetMagAdaptiveVals;
 
-using SetMagDipAdaptiveValsServiceMsg = mscl_msgs::srv::SetMagDipAdaptiveVals;
-using GetMagDipAdaptiveValsServiceMsg = mscl_msgs::srv::GetMagDipAdaptiveVals;
+using SetMagDipAdaptiveValsServiceMsg = microstrain_msgs::srv::SetMagDipAdaptiveVals;
+using GetMagDipAdaptiveValsServiceMsg = microstrain_msgs::srv::GetMagDipAdaptiveVals;
 
-using ExternalHeadingUpdateServiceMsg = mscl_msgs::srv::ExternalHeadingUpdate;
+using ExternalHeadingUpdateServiceMsg = microstrain_msgs::srv::ExternalHeadingUpdate;
 
-using SetRelativePositionReferenceServiceMsg = mscl_msgs::srv::SetRelativePositionReference;
-using GetRelativePositionReferenceServiceMsg = mscl_msgs::srv::GetRelativePositionReference;
+using SetRelativePositionReferenceServiceMsg = microstrain_msgs::srv::SetRelativePositionReference;
+using GetRelativePositionReferenceServiceMsg = microstrain_msgs::srv::GetRelativePositionReference;
 
-using DeviceSettingsServiceMsg = mscl_msgs::srv::DeviceSettings;
+using DeviceSettingsServiceMsg = microstrain_msgs::srv::DeviceSettings;
 
 // ROS2 Service Types
 using TriggerServiceType = ::rclcpp::Service<TriggerServiceMsg>::SharedPtr;
@@ -688,4 +688,4 @@ constexpr auto GNSS2_ID = 1;
 constexpr auto NUM_GNSS = 2;
 }  // namespace microstrain
 
-#endif  // ROS_MSCL_COMMON_MICROSTRAIN_DEFS_H
+#endif  // MICROSTRAIN_COMMON_MICROSTRAIN_DEFS_H

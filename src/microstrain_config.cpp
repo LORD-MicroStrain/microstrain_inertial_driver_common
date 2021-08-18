@@ -16,7 +16,7 @@
 #include <vector>
 #include <string>
 #include <memory>
-#include "ros_mscl_common/microstrain_config.h"
+#include "microstrain_common/microstrain_config.h"
 
 namespace microstrain
 {

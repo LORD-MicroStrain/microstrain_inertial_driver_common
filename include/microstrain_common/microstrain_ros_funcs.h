@@ -8,12 +8,12 @@
 // This code is licensed under MIT license (see LICENSE file for details)
 //
 /////////////////////////////////////////////////////////////////////////////////////////////////////
-#ifndef ROS_MSCL_COMMON_MICROSTRAIN_ROS_FUNCS_H
-#define ROS_MSCL_COMMON_MICROSTRAIN_ROS_FUNCS_H
+#ifndef MICROSTRAIN_COMMON_MICROSTRAIN_ROS_FUNCS_H
+#define MICROSTRAIN_COMMON_MICROSTRAIN_ROS_FUNCS_H
 
 #include <string>
 #include <memory>
-#include "ros_mscl_common/microstrain_defs.h"
+#include "microstrain_common/microstrain_defs.h"
 
 namespace microstrain
 {
@@ -168,4 +168,4 @@ inline void stop_timer(RosTimerType timer)
 
 }  // namespace microstrain
 
-#endif  // ROS_MSCL_COMMON_MICROSTRAIN_ROS_FUNCS_H
+#endif  // MICROSTRAIN_COMMON_MICROSTRAIN_ROS_FUNCS_H
