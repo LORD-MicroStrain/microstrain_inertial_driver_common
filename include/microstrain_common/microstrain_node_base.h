@@ -35,7 +35,7 @@ public:
   /**
    * \brief Reads messages from the device, parses them, and publishes them. Meant to be executed in a loop
    */
-  void parse_and_publish();
+  void parseAndPublish();
 
 protected:
   /**

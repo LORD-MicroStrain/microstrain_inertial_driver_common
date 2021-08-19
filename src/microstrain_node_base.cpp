@@ -18,6 +18,29 @@
 
 namespace microstrain
 {
+
+void MicrostrainNodeBase::parseAndPublish()
+{
+  mscl::MipDataPackets packets = config_.inertial_device_->getDataPackets(1000);
+
+  for (mscl::MipDataPacket packet : packets)
+  {
+    parser_.parseMIPPacket(packet);
+  }
+
+  // Save raw data, if enabled
+  if (config_.raw_file_enable_)
+  {
+    mscl::ConnectionDebugDataVec raw_packets = config_.inertial_device_->connection().getDebugData();
+
+    for (mscl::ConnectionDebugData raw_packet : raw_packets)
+    {
+      const mscl::Bytes& raw_packet_bytes = raw_packet.data();
+      config_.raw_file_.write(reinterpret_cast<const char*>(raw_packet_bytes.data()), raw_packet_bytes.size());
+    }
+  }
+}
+
 bool MicrostrainNodeBase::initialize(RosNodeType* init_node)
 {
   node_ = init_node;
@@ -80,11 +103,9 @@ bool MicrostrainNodeBase::activate()
     return false;
   }
 
-  // Create the timers to execute at a specified interval
-  parsing_timer_ = create_timer<MicrostrainNodeBase>(node_, timer_update_rate_hz_,
-      &MicrostrainNodeBase::parse_and_publish, this);
-  device_status_timer_ = create_timer<MicrostrainPublishers>(node_, 1.0,
-      &MicrostrainPublishers::publishDeviceStatus, &publishers_);
+  // Resume the device
+  MICROSTRAIN_INFO(node_, "Resuming the device data streams");
+  config_.inertial_device_->resume();
 
   return true;
 }
@@ -135,28 +156,6 @@ bool MicrostrainNodeBase::shutdown()
     config_.raw_file_.close();
 
   return true;
-}
-
-void MicrostrainNodeBase::parse_and_publish()
-{
-  mscl::MipDataPackets packets = config_.inertial_device_->getDataPackets(1000);
-
-  for (mscl::MipDataPacket packet : packets)
-  {
-    parser_.parseMIPPacket(packet);
-  }
-
-  // Save raw data, if enabled
-  if (config_.raw_file_enable_)
-  {
-    mscl::ConnectionDebugDataVec raw_packets = config_.inertial_device_->connection().getDebugData();
-
-    for (mscl::ConnectionDebugData raw_packet : raw_packets)
-    {
-      const mscl::Bytes& raw_packet_bytes = raw_packet.data();
-      config_.raw_file_.write(reinterpret_cast<const char*>(raw_packet_bytes.data()), raw_packet_bytes.size());
-    }
-  }
 }
 
 }  // namespace microstrain
