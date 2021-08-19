@@ -11,39 +11,63 @@
 #ifndef MICROSTRAIN_COMMON_MICROSTRAIN_SUBSCRIBERS_H
 #define MICROSTRAIN_COMMON_MICROSTRAIN_SUBSCRIBERS_H
 
-/////////////////////////////////////////////////////////////////////////////////////////////////////
-//
-// Include Files
-//
-/////////////////////////////////////////////////////////////////////////////////////////////////////
 #include "microstrain_common/microstrain_defs.h"
 #include "microstrain_common/microstrain_ros_funcs.h"
 #include "microstrain_common/microstrain_config.h"
 
-/////////////////////////////////////////////////////////////////////////////////////////////////////
-///
-/// \brief Contains functions for micostrain driver
-///
-/////////////////////////////////////////////////////////////////////////////////////////////////////
 namespace microstrain
 {
-///
-/// \brief Contains publishers for microstrain node
-///
+
+/**
+ * Contains subscribers and the functions they call
+ */
 class MicrostrainSubscribers
 {
 public:
+  /**
+   * \brief Default Constructor
+   */
   MicrostrainSubscribers() = default;
+
+  /**
+   * \brief Constructs this class with a reference to the node, and a config object
+   * \param node  Reference to a node that will be saved to this class and used to log and interact with ROS
+   * \param config Reference to the config object that will be saved to this class and used to determine whether or not to enable the subscriptions
+   */
   MicrostrainSubscribers(RosNodeType* node, MicrostrainConfig* config);
 
-  bool configure();
+  /**
+   * \brief Activates the subscribers. After this function is called, the subscriptions will be ready to receive messages
+   * \return true if activation was successful and false if activation failed
+   */
+  bool activate();
 
+  /**
+   * \brief Callback that will start the velZupt task to send the velZupt command at 5 hz
+   * \param state  If the state is true, the task will be started, if the state is false, the task will be stopped
+   */
   void velZuptCallback(const BoolMsg& state);
+
+  /**
+   * \brief Sends the velZupt command. Meant to be called in a loop
+   */
   void velZupt();
 
+  /**
+   * \brief Callback that will start the angZupt task to send the angZupt command at 5 hz
+   * \param state  If the state is true, the task will be started, if the state is false, the task will be stopped
+   */
   void angZuptCallback(const BoolMsg& state);
+
+  /**
+   * \brief Sends the angZupt command. Meant to be called in a loop
+   */
   void angZupt();
 
+  /**
+   * \brief Accepts external GPS time to set time on the device
+   * \param time  Message containing external GPS time
+   */
   void external_gps_time_callback(const TimeReferenceMsg& time);
 
   // ZUPT subscribers

@@ -11,18 +11,14 @@
 #ifndef MICROSTRAIN_COMMON_MICROSTRAIN_DEFS_H
 #define MICROSTRAIN_COMMON_MICROSTRAIN_DEFS_H
 
-/////////////////////////////////////////////////////////////////////////////////////////////////////
-//
-// Common Includes
-//
-/////////////////////////////////////////////////////////////////////////////////////////////////////
+/**
+ * Common Includes
+ */
 #include <memory>
 
-/////////////////////////////////////////////////////////////////////////////////////////////////////
-//
-// ROS1 Includes
-//
-/////////////////////////////////////////////////////////////////////////////////////////////////////
+/**
+ * ROS1 Includes
+ */
 #if MICROSTRAIN_ROS_VERSION == 1
 #include "ros/ros.h"
 
@@ -105,11 +101,9 @@
 #include "microstrain_msgs/SetRelativePositionReference.h"
 #include "microstrain_msgs/GetRelativePositionReference.h"
 
-/////////////////////////////////////////////////////////////////////////////////////////////////////
-//
-// ROS2 Includes
-//
-/////////////////////////////////////////////////////////////////////////////////////////////////////
+/**
+ * ROS2 Includes
+ */
 #elif MICROSTRAIN_ROS_VERSION == 2
 #include "rclcpp/rclcpp.hpp"
 #include "rclcpp_lifecycle/lifecycle_node.hpp"
@@ -199,15 +193,11 @@
 
 namespace microstrain
 {
-/////////////////////////////////////////////////////////////////////////////////////////////////////
-//
-// ROS1 Defines
-//
-/////////////////////////////////////////////////////////////////////////////////////////////////////
+/**
+ * ROS1 Defines
+ */
 #if MICROSTRAIN_ROS_VERSION == 1
-///
-/// ROS1 Types
-///
+// ROS1 General Types
 using RosNodeType = ::ros::NodeHandle;
 using RosTimerType = std::shared_ptr<::ros::Timer>;
 using RosHeaderType = ::std_msgs::Header;
@@ -418,9 +408,7 @@ using GetRelativePositionReferenceServiceType = std::shared_ptr<::ros::ServiceSe
 
 using DeviceSettingsServiceType = std::shared_ptr<::ros::ServiceServer>;
 
-///
-/// ROS1 Logging
-///
+// ROS1 Logging
 #define MICROSTRAIN_DEBUG(NODE, ...) ROS_DEBUG(__VA_ARGS__)
 #define MICROSTRAIN_INFO(NODE, ...) ROS_INFO(__VA_ARGS__)
 #define MICROSTRAIN_WARN(NODE, ...) ROS_WARN(__VA_ARGS__)
@@ -428,16 +416,11 @@ using DeviceSettingsServiceType = std::shared_ptr<::ros::ServiceServer>;
 #define MICROSTRAIN_FATAL(NOE, ...) ROS_FATAL(__VA_ARGS__)
 
 #define MICROSTRAIN_DEBUG_THROTTLE(NODE, PERIOD, ...) ROS_DEBUG_THROTTLE(PERIOD, __VA_ARGS__)
-
-/////////////////////////////////////////////////////////////////////////////////////////////////////
-//
-// ROS2 Defines
-//
-/////////////////////////////////////////////////////////////////////////////////////////////////////
+/**
+ * ROS2 Defines
+ */
 #elif MICROSTRAIN_ROS_VERSION == 2
-///
-/// ROS2 Types
-///
+// ROS2 Generic Types
 using RosNodeType = ::rclcpp_lifecycle::LifecycleNode;
 using RosTimerType = ::rclcpp::TimerBase::SharedPtr;
 using RosHeaderType = ::std_msgs::msg::Header;
@@ -652,9 +635,7 @@ using GetRelativePositionReferenceServiceType = ::rclcpp::Service<GetRelativePos
 
 using DeviceSettingsServiceType = ::rclcpp::Service<DeviceSettingsServiceMsg>::SharedPtr;
 
-///
-/// ROS2 Logging
-///
+// ROS2 Logging
 #define MICROSTRAIN_DEBUG(NODE, ...) RCLCPP_DEBUG(NODE->get_logger(), __VA_ARGS__)
 #define MICROSTRAIN_INFO(NODE, ...) RCLCPP_INFO(NODE->get_logger(), __VA_ARGS__)
 #define MICROSTRAIN_WARN(NODE, ...) RCLCPP_WARN(NODE->get_logger(), __VA_ARGS__)
@@ -667,11 +648,9 @@ using DeviceSettingsServiceType = ::rclcpp::Service<DeviceSettingsServiceMsg>::S
 #error "Unsupported ROS version. -DMICROSTRAIN_ROS_VERSION must be set to 1 or 2"
 #endif
 
-/////////////////////////////////////////////////////////////////////////////////////////////////////
-//
-// Common Defines
-//
-/////////////////////////////////////////////////////////////////////////////////////////////////////
+/**
+ * Common Defines
+ */
 constexpr auto NUM_COMMAND_LINE_ARGUMENTS = 3;
 
 constexpr auto DEFAULT_PACKET_TIMEOUT_MS = 1000;  // milliseconds

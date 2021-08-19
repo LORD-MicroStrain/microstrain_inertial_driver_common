@@ -46,12 +46,6 @@ bool MicrostrainNodeBase::configure(RosNodeType* config_node)
     MICROSTRAIN_ERROR(node_, "Failed to configure publishers");
     return false;
   }
-  MICROSTRAIN_DEBUG(node_, "Configuring Subscribers");
-  if (!subscribers_.configure())
-  {
-    MICROSTRAIN_ERROR(node_, "Failed to configure subscribers");
-    return false;
-  }
   MICROSTRAIN_DEBUG(node_, "Configuring Services");
   if (!services_.configure())
   {
@@ -73,6 +67,76 @@ bool MicrostrainNodeBase::configure(RosNodeType* config_node)
   return true;
 }
 
+bool MicrostrainNodeBase::activate()
+{
+  if (!node_)
+    return false;
+
+  // Activate the subscribers
+  MICROSTRAIN_DEBUG(node_, "Activating Subscribers");
+  if (!subscribers_.activate())
+  {
+    MICROSTRAIN_ERROR(node_, "Failed to activate subscribers");
+    return false;
+  }
+
+  // Create the timers to execute at a specified interval
+  parsing_timer_ = create_timer<MicrostrainNodeBase>(node_, timer_update_rate_hz_,
+      &MicrostrainNodeBase::parse_and_publish, this);
+  device_status_timer_ = create_timer<MicrostrainPublishers>(node_, 1.0,
+      &MicrostrainPublishers::publishDeviceStatus, &publishers_);
+
+  return true;
+}
+
+bool MicrostrainNodeBase::deactivate()
+{
+  // Stop the timers.
+  stop_timer(parsing_timer_);
+  stop_timer(device_status_timer_);
+
+  // Set the device to idle
+  if (config_.inertial_device_)
+  {
+    try
+    {
+      config_.inertial_device_->setToIdle();
+    }
+    catch (const mscl::Error& e)
+    {
+      // Not much we can actually do at this point, so just log the error
+      MICROSTRAIN_ERROR(node_, "Unable to set node to idle: %s", e.what());
+      return false;
+    }
+  }
+
+  return true;
+}
+
+bool MicrostrainNodeBase::shutdown()
+{
+  // Disconnect the device
+  if (config_.inertial_device_)
+  {
+    try
+    {
+      config_.inertial_device_->connection().disconnect();
+    }
+    catch (const mscl::Error& e)
+    {
+      // Not much we can actually do at this point, so just log the error
+      MICROSTRAIN_ERROR(node_, "Unable to disconnect node: %s", e.what());
+      return false;
+    }
+  }
+
+  // Close the raw data file if enabled
+  if (config_.raw_file_enable_)
+    config_.raw_file_.close();
+
+  return true;
+}
+
 void MicrostrainNodeBase::parse_and_publish()
 {
   mscl::MipDataPackets packets = config_.inertial_device_->getDataPackets(1000);
@@ -80,13 +144,6 @@ void MicrostrainNodeBase::parse_and_publish()
   for (mscl::MipDataPacket packet : packets)
   {
     parser_.parseMIPPacket(packet);
-  }
-
-  // Only get the status packet at 1 Hz
-  if (status_counter_++ >= timer_update_rate_hz_ / 2)
-  {
-    publishers_.publishDeviceStatus();
-    status_counter_ = 0;
   }
 
   // Save raw data, if enabled

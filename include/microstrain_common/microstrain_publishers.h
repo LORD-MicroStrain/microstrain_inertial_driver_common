@@ -11,32 +11,40 @@
 #ifndef MICROSTRAIN_COMMON_MICROSTRAIN_PUBLISHERS_H
 #define MICROSTRAIN_COMMON_MICROSTRAIN_PUBLISHERS_H
 
-/////////////////////////////////////////////////////////////////////////////////////////////////////
-//
-// Include Files
-//
-/////////////////////////////////////////////////////////////////////////////////////////////////////
 #include "microstrain_common/microstrain_defs.h"
 #include "microstrain_common/microstrain_ros_funcs.h"
 #include "microstrain_common/microstrain_config.h"
 
-/////////////////////////////////////////////////////////////////////////////////////////////////////
-///
-/// \brief Contains functions for micostrain driver
-///
-/////////////////////////////////////////////////////////////////////////////////////////////////////
 namespace microstrain
 {
-///
-/// \brief Contains publishers for microstrain node
-///
+
+/**
+ * Contains ROS messages and the publishers that will publish them
+ */
 class MicrostrainPublishers
 {
 public:
+  /**
+   * \brief Default Constructor
+   */
   MicrostrainPublishers() = default;
+
+  /**
+   * \brief Constructs this class with a reference to the node, and a config object
+   * \param node  Reference to a node that will be saved to this class and used to log and interact with ROS
+   * \param config Reference to the config object that will be saved to this class and used to determine whether or not to publish
+   */
   MicrostrainPublishers(RosNodeType* node, MicrostrainConfig* config);
 
+  /**
+   * \brief Configures the publishers. After this function is called, the publishers will be created, but (ROS2 only) will not be activated
+   * \return true if configuration was successful and false if configuration failed
+   */
   bool configure();
+
+  /**
+   * \brief Publishes device status. This is useful as it happens at a different rate than the other publishers
+   */
   void publishDeviceStatus();
 
   // IMU Publishers

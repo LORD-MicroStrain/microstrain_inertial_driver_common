@@ -11,34 +11,39 @@
 #ifndef MICROSTRAIN_COMMON_MICROSTRAIN_SERVICES_H
 #define MICROSTRAIN_COMMON_MICROSTRAIN_SERVICES_H
 
-/////////////////////////////////////////////////////////////////////////////////////////////////////
-//
-// Include Files
-//
-/////////////////////////////////////////////////////////////////////////////////////////////////////
 #include <memory>
 #include "microstrain_common/microstrain_defs.h"
 #include "microstrain_common/microstrain_ros_funcs.h"
 #include "microstrain_common/microstrain_config.h"
 
-/////////////////////////////////////////////////////////////////////////////////////////////////////
-///
-/// \brief Contains functions for micostrain driver
-///
-/////////////////////////////////////////////////////////////////////////////////////////////////////
 namespace microstrain
 {
-///
-/// \brief Contains publishers for microstrain node
-///
+
+/**
+ * Contains service functions and service handles
+ */
 class MicrostrainServices
 {
 public:
+  /**
+   * Default Constructor
+   */
   MicrostrainServices() = default;
+
+  /**
+   * \brief Constructs this class with a reference to the node, and a config object
+   * \param node  Reference to a node that will be saved to this class and used to log and interact with ROS
+   * \param config Reference to the config object that will be saved to this class and used to determine whether or not to enable the services
+   */
   MicrostrainServices(RosNodeType* node, MicrostrainConfig* config);
 
+  /**
+   * \brief Configures the services. After this function is called, the services will be created, but (ROS2 only) will not be activated
+   * \return true if configuration was successful and false if configuration failed
+   */
   bool configure();
 
+  // TODO(robbiefish): Document all of these service functions
   bool deviceReport(TriggerServiceMsg::Request& req, TriggerServiceMsg::Response& res);
   bool getBasicStatus(TriggerServiceMsg::Request& req, TriggerServiceMsg::Response& res);
   bool getDiagnosticReport(TriggerServiceMsg::Request& req, TriggerServiceMsg::Response& res);

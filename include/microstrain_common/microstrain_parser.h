@@ -11,39 +11,67 @@
 #ifndef MICROSTRAIN_COMMON_MICROSTRAIN_PARSER_H
 #define MICROSTRAIN_COMMON_MICROSTRAIN_PARSER_H
 
-/////////////////////////////////////////////////////////////////////////////////////////////////////
-//
-// Include Files
-//
-/////////////////////////////////////////////////////////////////////////////////////////////////////
 #include "microstrain_common/microstrain_defs.h"
 #include "microstrain_common/microstrain_ros_funcs.h"
 #include "microstrain_common/microstrain_config.h"
 #include "microstrain_common/microstrain_publishers.h"
 
-/////////////////////////////////////////////////////////////////////////////////////////////////////
-///
-/// \brief Contains functions for micostrain driver
-///
-/////////////////////////////////////////////////////////////////////////////////////////////////////
 namespace microstrain
 {
-///
-/// \brief Contains publishers for microstrain node
-///
+
+/**
+ * Contains parsing code that will parse messages read from the device and publish them
+ */
 class MicrostrainParser
 {
 public:
+  /**
+   * \brief Default Constructor
+   */
   MicrostrainParser() = default;
+
+  /**
+   * \brief Constructs the object with a reference to the node, config and publishers
+   * \param node  Reference to a node that will be saved to this class and used to log and interact with ROS
+   * \param config Reference to the config object that will be saved to this class and used to interact with the device
+   * \param publishers Reference to the publishers object that will be saved to this class and used to publish parsed messages to the network
+   */
   MicrostrainParser(RosNodeType* node, MicrostrainConfig* config, MicrostrainPublishers* publishers);
 
+  /**
+   * \brief Highest level parsing function that will be called on each packet received from the device.
+   * \param packet The mip packet to parse
+   */
   void parseMIPPacket(const mscl::MipDataPacket& packet);
 
 private:
+  /**
+   * \brief Parses IMU packets if the MIP packet was an IMU packet and saves the data into a ROS message that will be published when it is filled out
+   * \param packet the IMU packet to parse
+   */
   void parseIMUPacket(const mscl::MipDataPacket& packet);
+
+  /**
+   * \brief Parses Filter packets if the MIP packet was a Filter packet and saves the data into a ROS message that will be published when it is filled out
+   * \param packet the IMU packet to parse
+   */
   void parseFilterPacket(const mscl::MipDataPacket& packet);
+
+  /**
+   * \brief Parses GNSS packets if the MIP packet was a GNSS packet and saves the data into a ROS message that will be published when it is filled out
+   * \param packet the IMU packet to parse
+   */
   void parseGNSSPacket(const mscl::MipDataPacket& packet, int gnss_id);
+
+  /**
+   * \brief Parses RTK packets if the MIP packet was a RTK packet and saves the data into a ROS message that will be published when it is filled out
+   * \param packet the IMU packet to parse
+   */
   void parseRTKPacket(const mscl::MipDataPacket& packet);
+
+  /**
+   * \brief Prints packet stats
+   */
   void printPacketStats();
 
   RosNodeType* node_;

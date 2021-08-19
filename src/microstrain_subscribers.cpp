@@ -22,7 +22,7 @@ MicrostrainSubscribers::MicrostrainSubscribers(RosNodeType* node, MicrostrainCon
 {
 }
 
-bool MicrostrainSubscribers::configure()
+bool MicrostrainSubscribers::activate()
 {
   // Clear the ZUPT listener flags
   vel_still_ = false;

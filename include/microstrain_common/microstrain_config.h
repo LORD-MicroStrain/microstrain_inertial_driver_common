@@ -12,11 +12,6 @@
 #ifndef MICROSTRAIN_COMMON_MICROSTRAIN_CONFIG_H
 #define MICROSTRAIN_COMMON_MICROSTRAIN_CONFIG_H
 
-/////////////////////////////////////////////////////////////////////////////////////////////////////
-//
-// Include Files
-//
-/////////////////////////////////////////////////////////////////////////////////////////////////////
 #include <stddef.h>
 #include <string>
 #include <vector>
@@ -28,12 +23,6 @@
 #include "microstrain_common/microstrain_defs.h"
 #include "microstrain_common/microstrain_ros_funcs.h"
 
-/////////////////////////////////////////////////////////////////////////////////////////////////////
-///
-/// \brief Contains functions for micostrain driver
-///
-/////////////////////////////////////////////////////////////////////////////////////////////////////
-
 namespace microstrain
 {
 
@@ -41,24 +30,92 @@ constexpr auto DEFAULT_MATRIX = { 9.0, 0.0 };
 constexpr auto DEFAULT_VECTOR = { 3.0, 0.0 };
 constexpr auto DEFAULT_QUATERNION = { 4.0, 0.0 };
 
-///
-/// \brief Contains configuration information
-///
+/**
+ * Contains configuration information for the node, configures the device on startup
+ *  This class holds the pointer to the MSCL device, so any communication to the device should be done through this class
+ */
 class MicrostrainConfig
 {
 public:
+  /**
+   * \brief Default Constructor
+   */
   MicrostrainConfig() = default;
+
+  /**
+   * \brief Constructs the config object with a reference to the ROS node. The reference will be saved as a member variable for later usage
+   * \param node  The ROS node that is constructing this object.
+   */
   explicit MicrostrainConfig(RosNodeType* node);
 
+  /**
+   * \brief Reads configuration, and configures the device
+   * \param node  The ROS node that contains configuration information. For ROS1 this is the private node handle ("~")
+   * \return true if configuration was successful and false if configuration failed
+   */
   bool configure(RosNodeType* node);
+
+  /**
+   * \brief Connects to the inertial device and sets up communication
+   * \param node  The ROS node that contains configuration information. For ROS1 this is the private node handle ("~")
+   * \return true if connection was successful and false if connection failed
+   */
   bool connectDevice(RosNodeType* node);
+
+  /**
+   * \brief Configures the device by reading options from the ROS config and sending them to the device
+   * \param node  The ROS node that contains configuration information. For ROS1 this is the private node handle ("~")
+   * \return true if configuration was successful and false if configuration failed
+   */
   bool setupDevice(RosNodeType* node);
+
+  /**
+   * \brief Creates the raw file and enables debug mode on the device to save data to a raw file
+   * \param node  The ROS node that contains configuration information. For ROS1 this is the private node handle ("~")
+   * \return true if configuration was successful and false if configuration failed
+   */
   bool setupRawFile(RosNodeType* node);
+
+  /**
+   * \brief Configures GPIO settings on the inertial device
+   * \param node  The ROS node that contains configuration information. For ROS1 this is the private node handle ("~")
+   * \return true if configuration was successful and false if configuration failed
+   */
   bool configureGPIO(RosNodeType* node);
+
+  /**
+   * \brief Configures IMU settings on the inertial device
+   * \param node  The ROS node that contains configuration information. For ROS1 this is the private node handle ("~")
+   * \return true if configuration was successful and false if configuration failed
+   */
   bool configureIMU(RosNodeType* node);
+
+  /**
+   * \brief Configures GNSS settings on the inertial device
+   * \param node  The ROS node that contains configuration information. For ROS1 this is the private node handle ("~")
+   * \return true if configuration was successful and false if configuration failed
+   */
   bool configureGNSS(RosNodeType* node, uint8_t gnss_id);
+
+  /**
+   * \brief Configures RTK settings on the inertial device
+   * \param node  The ROS node that contains configuration information. For ROS1 this is the private node handle ("~")
+   * \return true if configuration was successful and false if configuration failed
+   */
   bool configureRTK(RosNodeType* node);
+
+  /**
+   * \brief Configures Filter settings on the inertial device
+   * \param node  The ROS node that contains configuration information. For ROS1 this is the private node handle ("~")
+   * \return true if configuration was successful and false if configuration failed
+   */
   bool configureFilter(RosNodeType* node);
+
+  /**
+   * \brief Configures Sensor 2 Vehicle settings on the inertial device
+   * \param node  The ROS node that contains configuration information. For ROS1 this is the private node handle ("~")
+   * \return true if configuration was successful and false if configuration failed
+   */
   bool configureSensor2vehicle(RosNodeType* node);
 
   // Device pointer used to interact with the device
