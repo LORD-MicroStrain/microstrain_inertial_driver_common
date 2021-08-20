@@ -200,6 +200,7 @@ namespace microstrain
 // ROS1 General Types
 using RosNodeType = ::ros::NodeHandle;
 using RosTimerType = std::shared_ptr<::ros::Timer>;
+using RosRateType = ::ros::Rate;
 using RosHeaderType = ::std_msgs::Header;
 
 // ROS1 Publisher Messgae Types
@@ -423,6 +424,7 @@ using DeviceSettingsServiceType = std::shared_ptr<::ros::ServiceServer>;
 // ROS2 Generic Types
 using RosNodeType = ::rclcpp_lifecycle::LifecycleNode;
 using RosTimerType = ::rclcpp::TimerBase::SharedPtr;
+using RosRateType = ::rclcpp::Rate;
 using RosHeaderType = ::std_msgs::msg::Header;
 
 // ROS2 Publisher Message Types

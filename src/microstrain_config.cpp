@@ -13,6 +13,8 @@
 // Include Files
 //
 /////////////////////////////////////////////////////////////////////////////////////////////////////
+#include <errno.h>
+#include <sys/stat.h>
 #include <vector>
 #include <string>
 #include <memory>
@@ -122,22 +124,82 @@ bool MicrostrainConfig::connectDevice(RosNodeType* node)
   // Read the config required for only this section
   std::string port;
   int32_t baudrate;
+  bool poll_port;
+  double poll_rate_hz;
+  int32_t poll_max_tries;
   get_param<std::string>(node, "port", port, "/dev/ttyACM1");
   get_param<int32_t>(node, "baudrate", baudrate, 115200);
+  get_param<bool>(node, "poll_port", poll_port, false);
+  get_param<double>(node, "poll_rate_hz", poll_rate_hz, 1.0);
+  get_param<int32_t>(node, "poll_max_tries", poll_max_tries, 60);
+
+  // If we were asked to, poll the port until it exists
+  if (poll_port)
+  {
+    int32_t poll_tries = 0;
+    RosRateType poll_rate(poll_rate_hz);
+    struct stat port_stat;
+    while (stat(port.c_str(), &port_stat) != 0 && (poll_tries++ < poll_max_tries || poll_max_tries == -1))
+    {
+      // If the error isn't that the file does not exist, polling won't help, so we can fail here
+      if (errno != ENOENT)
+      {
+        MICROSTRAIN_ERROR(node_,
+            "Error while polling for file %s. File appears to exist, but stat returned error: %s",
+            port.c_str(), strerror(errno));
+        return false;
+      }
+
+      // Wait for the specified amount of time
+      MICROSTRAIN_WARN(node_, "%s doesn't exist yet. Waiting for file to appear...", port.c_str());
+      poll_rate.sleep();
+    }
+
+    // If the file still doesn't exist we can safely fail here.
+    if (stat(port.c_str(), &port_stat) != 0)
+    {
+      MICROSTRAIN_ERROR(node_, "Unable to open requested port, error: %s", strerror(errno));
+      return false;
+    }
+  } 
 
   try
   {
     //
     // Initialize the serial interface to the device and create the inertial device object
     //
-    MICROSTRAIN_INFO(node_, "Attempting to open serial port <%s> at <%d> \n", port.c_str(), baudrate);
+    MICROSTRAIN_INFO(node_, "Attempting to open serial port <%s> at <%d>", port.c_str(), baudrate);
 
     mscl::Connection connection = mscl::Connection::Serial(realpath(port.c_str(), 0), (uint32_t)baudrate);
     inertial_device_ = std::unique_ptr<mscl::InertialNode>(new mscl::InertialNode(connection));
 
+    // At this point, we have connected to the device but if it is streaming, reading information may fail. Retry a few times to accomodate
+    int32_t connect_tries = 0;
+    while (connect_tries++ < 3)
+    {
+      try
+      {
+        // Put into idle mode
+        MICROSTRAIN_INFO(node_, "Setting to Idle: Stopping data streams and/or waking from sleep");
+        inertial_device_->setToIdle();
+        break;  // If setting to idle succeeded, we don't need to loop anymore as the device can now communicate
+      }
+      catch (const mscl::Error_Communication& e)
+      {
+        MICROSTRAIN_WARN(node_,
+            "It looks like the device is streaming. Waiting a second before setting to idle again");
+        RosRateType rate(1.0);
+        rate.sleep();
+      }
+    }
+
     // Print the device info
-    MICROSTRAIN_INFO(node_, "Model Name:    %s\n", inertial_device_->modelName().c_str());
-    MICROSTRAIN_INFO(node_, "Serial Number: %s\n", inertial_device_->serialNumber().c_str());
+    MICROSTRAIN_INFO(node_, R"(
+      #######################
+      Model Name:    %s
+      Serial Number: %s
+      #######################
+    )", inertial_device_->modelName().c_str(), inertial_device_->serialNumber().c_str());
 
     // Get supported features
     supports_gnss1_ = inertial_device_->features().supportsCategory(mscl::MipTypes::DataClass::CLASS_GNSS) |
@@ -149,7 +211,6 @@ bool MicrostrainConfig::connectDevice(RosNodeType* node)
   }
   catch (mscl::Error_Connection& e)
   {
-    // TODO(rob): Log more information here
     MICROSTRAIN_ERROR(node_, "Device Disconnected");
     return false;
   }
@@ -172,10 +233,6 @@ bool MicrostrainConfig::setupDevice(RosNodeType* node)
   get_param<bool>(node, "gpio_config", gpio_config, false);
   get_param<bool>(node, "rtk_dongle_enable", rtk_dongle_enable, false);
   get_param<bool>(node, "filter_reset_after_config", filter_reset_after_config, true);
-
-  // Put into idle mode
-  MICROSTRAIN_INFO(node_, "Setting to Idle: Stopping data streams and/or waking from sleep");
-  inertial_device_->setToIdle();
 
   // GPIO config
   if (inertial_device_->features().supportsCommand(mscl::MipTypes::Command::CMD_GPIO_CONFIGURATION) && gpio_config)
