@@ -136,6 +136,10 @@ bool MicrostrainNodeBase::deactivate()
 
 bool MicrostrainNodeBase::shutdown()
 {
+  // Reset the timers
+  parsing_timer_.reset();
+  device_status_timer_.reset();
+
   // Disconnect the device
   if (config_.inertial_device_)
   {
