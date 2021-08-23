@@ -161,7 +161,7 @@ bool MicrostrainConfig::connectDevice(RosNodeType* node)
       MICROSTRAIN_ERROR(node_, "Unable to open requested port, error: %s", strerror(errno));
       return false;
     }
-  } 
+  }
 
   try
   {
@@ -173,7 +173,8 @@ bool MicrostrainConfig::connectDevice(RosNodeType* node)
     mscl::Connection connection = mscl::Connection::Serial(realpath(port.c_str(), 0), (uint32_t)baudrate);
     inertial_device_ = std::unique_ptr<mscl::InertialNode>(new mscl::InertialNode(connection));
 
-    // At this point, we have connected to the device but if it is streaming, reading information may fail. Retry a few times to accomodate
+    // At this point, we have connected to the device but if it is streaming.
+    // Reading information may fail. Retry a few times to accomodate
     int32_t set_to_idle_tries = 0;
     while (set_to_idle_tries++ < 3)
     {
@@ -286,7 +287,8 @@ bool MicrostrainConfig::setupDevice(RosNodeType* node)
     if (inertial_device_->features().supportsCommand(mscl::MipTypes::Command::CMD_FACTORY_STREAMING))
     {
       MICROSTRAIN_INFO(node_, "Enabling factory support channels");
-      inertial_device_->setFactoryStreamingChannels(mscl::InertialTypes::FACTORY_STREAMING_ADDITIVE);
+      // TODO(robbiefish): MERGE behavior is coming in sensorconnect 62.0.2. Change to the enum when that is released
+      inertial_device_->setFactoryStreamingChannels(static_cast<mscl::InertialTypes::FactoryStreamingOption>(0x01));
     }
     else
     {
@@ -535,19 +537,19 @@ bool MicrostrainConfig::configureGNSS(RosNodeType* node, uint8_t gnss_id)
 
   if (inertial_device_->features().supportsCommand(mscl::MipTypes::Command::CMD_EF_ANTENNA_OFFSET))
   {
-    MICROSTRAIN_INFO(node_, "Setting GNSS%d antenna offset to [%f, %f, %f]", gnss_id, antenna_offset.x(),
+    MICROSTRAIN_INFO(node_, "Setting GNSS%d antenna offset to [%f, %f, %f]", gnss_id + 1, antenna_offset.x(),
                      antenna_offset.y(), antenna_offset.z());
     inertial_device_->setAntennaOffset(antenna_offset);
   }
   else if (inertial_device_->features().supportsCommand(mscl::MipTypes::Command::CMD_EF_MULTI_ANTENNA_OFFSET))
   {
-    MICROSTRAIN_INFO(node_, "Setting GNSS%d antenna offset to [%f, %f, %f]", gnss_id, antenna_offset.x(),
+    MICROSTRAIN_INFO(node_, "Setting GNSS%d antenna offset to [%f, %f, %f]", gnss_id + 1, antenna_offset.x(),
                      antenna_offset.y(), antenna_offset.z());
-    inertial_device_->setMultiAntennaOffset(1, antenna_offset);
+    inertial_device_->setMultiAntennaOffset(gnss_id + 1, antenna_offset);
   }
   else
   {
-    MICROSTRAIN_ERROR(node_, "Could not set GNSS%d antenna offset!", gnss_id);
+    MICROSTRAIN_ERROR(node_, "Could not set GNSS%d antenna offset!", gnss_id + 1);
     return false;
   }
 
@@ -612,15 +614,6 @@ bool MicrostrainConfig::configureFilter(RosNodeType* node)
   // Read some QG7 specific filter options
   int filter_adaptive_level;
   int filter_adaptive_time_limit_ms;
-  bool filter_enable_gnss_pos_vel_aiding;
-  bool filter_enable_altimeter_aiding;
-  bool filter_enable_odometer_aiding;
-  bool filter_enable_magnetometer_aiding;
-  bool filter_enable_external_heading_aiding;
-  bool filter_enable_external_gps_time_update;
-  int filter_enable_acceleration_constraint;
-  int filter_enable_velocity_constraint;
-  int filter_enable_angular_constraint;
   int filter_init_condition_src;
   int filter_auto_heading_alignment_selector;
   int filter_init_reference_frame;
@@ -630,16 +623,10 @@ bool MicrostrainConfig::configureFilter(RosNodeType* node)
   int filter_relative_position_frame;
   std::vector<double> filter_relative_position_ref(3, 0.0);
   std::vector<double> filter_speed_lever_arm(3, 0.0);
-  bool filter_enable_wheeled_vehicle_constraint;
-  bool filter_enable_vertical_gyro_constraint;
-  bool filter_enable_gnss_antenna_cal;
   double filter_gnss_antenna_cal_max_offset;
   int filter_pps_source;
   get_param<int32_t>(node, "filter_adaptive_level", filter_adaptive_level, 2);
   get_param<int32_t>(node, "filter_adaptive_time_limit_ms", filter_adaptive_time_limit_ms, 15000);
-  get_param<int32_t>(node, "filter_enable_acceleration_constraint", filter_enable_acceleration_constraint, 0);
-  get_param<int32_t>(node, "filter_enable_velocity_constraint", filter_enable_velocity_constraint, 0);
-  get_param<int32_t>(node, "filter_enable_angular_constraint", filter_enable_angular_constraint, 0);
   get_param<int32_t>(node, "filter_init_condition_src", filter_init_condition_src, 0);
   get_param<int32_t>(node, "filter_auto_heading_alignment_selector", filter_auto_heading_alignment_selector, 0);
   get_param<int32_t>(node, "filter_init_reference_frame", filter_init_reference_frame, 2);
@@ -674,7 +661,7 @@ bool MicrostrainConfig::configureFilter(RosNodeType* node)
     mscl::MipTypes::ChannelField::CH_FIELD_ESTFILTER_NED_RELATIVE_POS
   };
 
-  if (filter_enable_gnss_pos_vel_aiding)
+  if (filter_enable_gnss_pos_vel_aiding_)
     navChannels.push_back(mscl::MipTypes::ChannelField::CH_FIELD_ESTFILTER_POSITION_AIDING_STATUS);
   if (filter_enable_gnss_heading_aiding_)
     navChannels.push_back(mscl::MipTypes::ChannelField::CH_FIELD_ESTFILTER_GNSS_DUAL_ANTENNA_STATUS);
@@ -786,21 +773,21 @@ bool MicrostrainConfig::configureFilter(RosNodeType* node)
                      "Filter aiding set to: pos/vel = %d, gnss heading = %d, altimeter = %d, odometer = %d, "
                      "magnetometer = %d, external heading = %d",
                      filter_enable_gnss_heading_aiding_, filter_enable_gnss_heading_aiding_,
-                     filter_enable_altimeter_aiding, filter_enable_odometer_aiding, filter_enable_magnetometer_aiding,
-                     filter_enable_external_heading_aiding);
+                     filter_enable_altimeter_aiding_, filter_enable_odometer_aiding_,
+                     filter_enable_magnetometer_aiding_, filter_enable_external_heading_aiding_);
 
     inertial_device_->enableDisableAidingMeasurement(mscl::InertialTypes::AidingMeasurementSource::GNSS_POS_VEL_AIDING,
-                                                      filter_enable_gnss_pos_vel_aiding);
+                                                      filter_enable_gnss_pos_vel_aiding_);
     inertial_device_->enableDisableAidingMeasurement(mscl::InertialTypes::AidingMeasurementSource::GNSS_HEADING_AIDING,
                                                       filter_enable_gnss_heading_aiding_);
     inertial_device_->enableDisableAidingMeasurement(mscl::InertialTypes::AidingMeasurementSource::ALTIMETER_AIDING,
-                                                      filter_enable_altimeter_aiding);
+                                                      filter_enable_altimeter_aiding_);
     inertial_device_->enableDisableAidingMeasurement(mscl::InertialTypes::AidingMeasurementSource::ODOMETER_AIDING,
-                                                      filter_enable_odometer_aiding);
+                                                      filter_enable_odometer_aiding_);
     inertial_device_->enableDisableAidingMeasurement(mscl::InertialTypes::AidingMeasurementSource::MAGNETOMETER_AIDING,
-                                                      filter_enable_magnetometer_aiding);
+                                                      filter_enable_magnetometer_aiding_);
     inertial_device_->enableDisableAidingMeasurement(
-        mscl::InertialTypes::AidingMeasurementSource::EXTERNAL_HEADING_AIDING, filter_enable_external_heading_aiding);
+        mscl::InertialTypes::AidingMeasurementSource::EXTERNAL_HEADING_AIDING, filter_enable_external_heading_aiding_);
   }
   else
   {
@@ -842,8 +829,8 @@ bool MicrostrainConfig::configureFilter(RosNodeType* node)
   if (inertial_device_->features().supportsCommand(mscl::MipTypes::Command::CMD_EF_WHEELED_VEHICLE_CONSTRAINT))
   {
     MICROSTRAIN_INFO(node_, "Setting wheeled vehicle contraint enable to %d",
-                     filter_enable_wheeled_vehicle_constraint);
-    inertial_device_->enableWheeledVehicleConstraint(filter_enable_wheeled_vehicle_constraint);
+                     filter_enable_wheeled_vehicle_constraint_);
+    inertial_device_->enableWheeledVehicleConstraint(filter_enable_wheeled_vehicle_constraint_);
   }
   else
   {
@@ -853,8 +840,8 @@ bool MicrostrainConfig::configureFilter(RosNodeType* node)
   // (GQ7 only) Set the vertical gyro constraint
   if (inertial_device_->features().supportsCommand(mscl::MipTypes::Command::CMD_EF_VERTICAL_GYRO_CONSTRAINT))
   {
-    MICROSTRAIN_INFO(node_, "Setting vertical gyro contraint enable to %d", filter_enable_vertical_gyro_constraint);
-    inertial_device_->enableVerticalGyroConstraint(filter_enable_vertical_gyro_constraint);
+    MICROSTRAIN_INFO(node_, "Setting vertical gyro contraint enable to %d", filter_enable_vertical_gyro_constraint_);
+    inertial_device_->enableVerticalGyroConstraint(filter_enable_vertical_gyro_constraint_);
   }
   else
   {
@@ -865,11 +852,11 @@ bool MicrostrainConfig::configureFilter(RosNodeType* node)
   if (inertial_device_->features().supportsCommand(mscl::MipTypes::Command::CMD_EF_GNSS_ANTENNA_LEVER_ARM_CAL))
   {
     mscl::AntennaLeverArmCalConfiguration config;
-    config.enabled = filter_enable_gnss_antenna_cal;
+    config.enabled = filter_enable_gnss_antenna_cal_;
     config.maxOffsetError = filter_gnss_antenna_cal_max_offset;
 
     MICROSTRAIN_INFO(node_, "Setting GNSS antenna calibration to: enable = %d, max_offset = %f",
-                     filter_enable_gnss_antenna_cal, filter_gnss_antenna_cal_max_offset);
+                     filter_enable_gnss_antenna_cal_, filter_gnss_antenna_cal_max_offset);
     inertial_device_->setAntennaLeverArmCal(config);
   }
   else
