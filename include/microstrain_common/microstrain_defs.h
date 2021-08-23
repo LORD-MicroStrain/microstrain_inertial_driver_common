@@ -17,6 +17,16 @@
 #include <memory>
 
 /**
+ * Common Defines
+ */
+namespace microstrain
+{
+constexpr auto GNSS1_ID = 0;
+constexpr auto GNSS2_ID = 1;
+constexpr auto NUM_GNSS = 2;
+};  // namespace microstrain
+
+/**
  * ROS1 Includes
  */
 #if MICROSTRAIN_ROS_VERSION == 1
@@ -202,8 +212,11 @@ using RosNodeType = ::ros::NodeHandle;
 using RosTimerType = std::shared_ptr<::ros::Timer>;
 using RosRateType = ::ros::Rate;
 using RosHeaderType = ::std_msgs::Header;
+using RosPubType = std::shared_ptr<::ros::Publisher>;
+using RosSubType = std::shared_ptr<::ros::Subscriber>;
+using RosServiceType = std::shared_ptr<::ros::ServiceServer>;
 
-// ROS1 Publisher Messgae Types
+// ROS1 Publisher Message Types
 using OdometryMsg = ::nav_msgs::Odometry;
 using ImuMsg = ::sensor_msgs::Imu;
 using NavSatFixMsg = ::sensor_msgs::NavSatFix;
@@ -219,27 +232,27 @@ using FilterHeadingStateMsg = ::microstrain_msgs::FilterHeadingState;
 using GPSCorrelationTimestampStampedMsg = ::microstrain_msgs::GPSCorrelationTimestampStamped;
 
 // ROS1 Publisher Types
-using OdometryPubType = std::shared_ptr<::ros::Publisher>;
-using ImuPubType = std::shared_ptr<::ros::Publisher>;
-using NavSatFixPubType = std::shared_ptr<::ros::Publisher>;
-using MagneticFieldPubType = std::shared_ptr<::ros::Publisher>;
-using TimeReferencePubType = std::shared_ptr<::ros::Publisher>;
-using StatusPubType = std::shared_ptr<::ros::Publisher>;
-using RTKStatusPubType = std::shared_ptr<::ros::Publisher>;
-using FilterStatusPubType = std::shared_ptr<::ros::Publisher>;
-using FilterHeadingPubType = std::shared_ptr<::ros::Publisher>;
-using GNSSAidingStatusPubType = std::shared_ptr<::ros::Publisher>;
-using GNSSDualAntennaStatusPubType = std::shared_ptr<::ros::Publisher>;
-using FilterHeadingStatePubType = std::shared_ptr<::ros::Publisher>;
-using GPSCorrelationTimestampStampedPubType = std::shared_ptr<::ros::Publisher>;
+using OdometryPubType = RosPubType;
+using ImuPubType = RosPubType;
+using NavSatFixPubType = RosPubType;
+using MagneticFieldPubType = RosPubType;
+using TimeReferencePubType = RosPubType;
+using StatusPubType = RosPubType;
+using RTKStatusPubType = RosPubType;
+using FilterStatusPubType = RosPubType;
+using FilterHeadingPubType = RosPubType;
+using GNSSAidingStatusPubType = RosPubType;
+using GNSSDualAntennaStatusPubType = RosPubType;
+using FilterHeadingStatePubType = RosPubType;
+using GPSCorrelationTimestampStampedPubType = RosPubType;
 
 // ROS1 Subscriber Message Types
 using BoolMsg = ::std_msgs::Bool;
 using TimeReferenceMsg = ::sensor_msgs::TimeReference;
 
 // ROS1 Subscriber Types
-using BoolSubType = std::shared_ptr<::ros::Subscriber>;
-using TimeReferenceSubType = std::shared_ptr<::ros::Subscriber>;
+using BoolSubType = RosSubType;
+using TimeReferenceSubType = RosSubType;
 
 // ROS1 Service Message Types
 using TriggerServiceMsg = std_srvs::Trigger;
@@ -326,88 +339,88 @@ using GetRelativePositionReferenceServiceMsg = ::microstrain_msgs::GetRelativePo
 using DeviceSettingsServiceMsg = ::microstrain_msgs::DeviceSettings;
 
 // ROS1 Service Types
-using TriggerServiceType = std::shared_ptr<::ros::ServiceServer>;
-using EmptyServiceType = std::shared_ptr<::ros::ServiceServer>;
+using TriggerServiceType = RosServiceType;
+using EmptyServiceType = RosServiceType;
 
-using SetAccelBiasServiceType = std::shared_ptr<::ros::ServiceServer>;
-using GetAccelBiasServiceType = std::shared_ptr<::ros::ServiceServer>;
+using SetAccelBiasServiceType = RosServiceType;
+using GetAccelBiasServiceType = RosServiceType;
 
-using SetGyroBiasServiceType = std::shared_ptr<::ros::ServiceServer>;
-using GetGyroBiasServiceType = std::shared_ptr<::ros::ServiceServer>;
+using SetGyroBiasServiceType = RosServiceType;
+using GetGyroBiasServiceType = RosServiceType;
 
-using SetHardIronValuesServiceType = std::shared_ptr<::ros::ServiceServer>;
-using GetHardIronValuesServiceType = std::shared_ptr<::ros::ServiceServer>;
+using SetHardIronValuesServiceType = RosServiceType;
+using GetHardIronValuesServiceType = RosServiceType;
 
-using SetSoftIronMatrixServiceType = std::shared_ptr<::ros::ServiceServer>;
-using GetSoftIronMatrixServiceType = std::shared_ptr<::ros::ServiceServer>;
+using SetSoftIronMatrixServiceType = RosServiceType;
+using GetSoftIronMatrixServiceType = RosServiceType;
 
-using SetComplementaryFilterServiceType = std::shared_ptr<::ros::ServiceServer>;
-using GetComplementaryFilterServiceType = std::shared_ptr<::ros::ServiceServer>;
+using SetComplementaryFilterServiceType = RosServiceType;
+using GetComplementaryFilterServiceType = RosServiceType;
 
-using SetConingScullingCompServiceType = std::shared_ptr<::ros::ServiceServer>;
-using GetConingScullingCompServiceType = std::shared_ptr<::ros::ServiceServer>;
+using SetConingScullingCompServiceType = RosServiceType;
+using GetConingScullingCompServiceType = RosServiceType;
 
-using SetSensor2VehicleRotationServiceType = std::shared_ptr<::ros::ServiceServer>;
-using GetSensor2VehicleRotationServiceType = std::shared_ptr<::ros::ServiceServer>;
+using SetSensor2VehicleRotationServiceType = RosServiceType;
+using GetSensor2VehicleRotationServiceType = RosServiceType;
 
-using SetSensor2VehicleOffsetServiceType = std::shared_ptr<::ros::ServiceServer>;
-using GetSensor2VehicleOffsetServiceType = std::shared_ptr<::ros::ServiceServer>;
+using SetSensor2VehicleOffsetServiceType = RosServiceType;
+using GetSensor2VehicleOffsetServiceType = RosServiceType;
 
-using GetSensor2VehicleTransformationServiceType = std::shared_ptr<::ros::ServiceServer>;
+using GetSensor2VehicleTransformationServiceType = RosServiceType;
 
-using InitFilterEulerServiceType = std::shared_ptr<::ros::ServiceServer>;
-using InitFilterHeadingServiceType = std::shared_ptr<::ros::ServiceServer>;
+using InitFilterEulerServiceType = RosServiceType;
+using InitFilterHeadingServiceType = RosServiceType;
 
-using SetHeadingSourceServiceType = std::shared_ptr<::ros::ServiceServer>;
-using GetHeadingSourceServiceType = std::shared_ptr<::ros::ServiceServer>;
+using SetHeadingSourceServiceType = RosServiceType;
+using GetHeadingSourceServiceType = RosServiceType;
 
-using SetReferencePositionServiceType = std::shared_ptr<::ros::ServiceServer>;
-using GetReferencePositionServiceType = std::shared_ptr<::ros::ServiceServer>;
+using SetReferencePositionServiceType = RosServiceType;
+using GetReferencePositionServiceType = RosServiceType;
 
-using SetEstimationControlFlagsServiceType = std::shared_ptr<::ros::ServiceServer>;
-using GetEstimationControlFlagsServiceType = std::shared_ptr<::ros::ServiceServer>;
+using SetEstimationControlFlagsServiceType = RosServiceType;
+using GetEstimationControlFlagsServiceType = RosServiceType;
 
-using SetDynamicsModeServiceType = std::shared_ptr<::ros::ServiceServer>;
-using GetDynamicsModeServiceType = std::shared_ptr<::ros::ServiceServer>;
+using SetDynamicsModeServiceType = RosServiceType;
+using GetDynamicsModeServiceType = RosServiceType;
 
-using SetZeroAngleUpdateThresholdServiceType = std::shared_ptr<::ros::ServiceServer>;
-using GetZeroAngleUpdateThresholdServiceType = std::shared_ptr<::ros::ServiceServer>;
+using SetZeroAngleUpdateThresholdServiceType = RosServiceType;
+using GetZeroAngleUpdateThresholdServiceType = RosServiceType;
 
-using SetZeroVelocityUpdateThresholdServiceType = std::shared_ptr<::ros::ServiceServer>;
-using GetZeroVelocityUpdateThresholdServiceType = std::shared_ptr<::ros::ServiceServer>;
+using SetZeroVelocityUpdateThresholdServiceType = RosServiceType;
+using GetZeroVelocityUpdateThresholdServiceType = RosServiceType;
 
-using SetTareOrientationServiceType = std::shared_ptr<::ros::ServiceServer>;
+using SetTareOrientationServiceType = RosServiceType;
 
-using SetAccelNoiseServiceType = std::shared_ptr<::ros::ServiceServer>;
-using GetAccelNoiseServiceType = std::shared_ptr<::ros::ServiceServer>;
+using SetAccelNoiseServiceType = RosServiceType;
+using GetAccelNoiseServiceType = RosServiceType;
 
-using SetGyroNoiseServiceType = std::shared_ptr<::ros::ServiceServer>;
-using GetGyroNoiseServiceType = std::shared_ptr<::ros::ServiceServer>;
+using SetGyroNoiseServiceType = RosServiceType;
+using GetGyroNoiseServiceType = RosServiceType;
 
-using SetMagNoiseServiceType = std::shared_ptr<::ros::ServiceServer>;
-using GetMagNoiseServiceType = std::shared_ptr<::ros::ServiceServer>;
+using SetMagNoiseServiceType = RosServiceType;
+using GetMagNoiseServiceType = RosServiceType;
 
-using SetGyroBiasModelServiceType = std::shared_ptr<::ros::ServiceServer>;
-using GetGyroBiasModelServiceType = std::shared_ptr<::ros::ServiceServer>;
+using SetGyroBiasModelServiceType = RosServiceType;
+using GetGyroBiasModelServiceType = RosServiceType;
 
-using SetAccelBiasModelServiceType = std::shared_ptr<::ros::ServiceServer>;
-using GetAccelBiasModelServiceType = std::shared_ptr<::ros::ServiceServer>;
+using SetAccelBiasModelServiceType = RosServiceType;
+using GetAccelBiasModelServiceType = RosServiceType;
 
-using SetGravityAdaptiveValsServiceType = std::shared_ptr<::ros::ServiceServer>;
-using GetGravityAdaptiveValsServiceType = std::shared_ptr<::ros::ServiceServer>;
+using SetGravityAdaptiveValsServiceType = RosServiceType;
+using GetGravityAdaptiveValsServiceType = RosServiceType;
 
-using SetMagAdaptiveValsServiceType = std::shared_ptr<::ros::ServiceServer>;
-using GetMagAdaptiveValsServiceType = std::shared_ptr<::ros::ServiceServer>;
+using SetMagAdaptiveValsServiceType = RosServiceType;
+using GetMagAdaptiveValsServiceType = RosServiceType;
 
-using SetMagDipAdaptiveValsServiceType = std::shared_ptr<::ros::ServiceServer>;
-using GetMagDipAdaptiveValsServiceType = std::shared_ptr<::ros::ServiceServer>;
+using SetMagDipAdaptiveValsServiceType = RosServiceType;
+using GetMagDipAdaptiveValsServiceType = RosServiceType;
 
-using ExternalHeadingUpdateServiceType = std::shared_ptr<::ros::ServiceServer>;
+using ExternalHeadingUpdateServiceType = RosServiceType;
 
-using SetRelativePositionReferenceServiceType = std::shared_ptr<::ros::ServiceServer>;
-using GetRelativePositionReferenceServiceType = std::shared_ptr<::ros::ServiceServer>;
+using SetRelativePositionReferenceServiceType = RosServiceType;
+using GetRelativePositionReferenceServiceType = RosServiceType;
 
-using DeviceSettingsServiceType = std::shared_ptr<::ros::ServiceServer>;
+using DeviceSettingsServiceType = RosServiceType;
 
 // ROS1 Logging
 #define MICROSTRAIN_DEBUG(NODE, ...) ROS_DEBUG(__VA_ARGS__)
@@ -650,23 +663,6 @@ using DeviceSettingsServiceType = ::rclcpp::Service<DeviceSettingsServiceMsg>::S
 #error "Unsupported ROS version. -DMICROSTRAIN_ROS_VERSION must be set to 1 or 2"
 #endif
 
-/**
- * Common Defines
- */
-constexpr auto NUM_COMMAND_LINE_ARGUMENTS = 3;
-
-constexpr auto DEFAULT_PACKET_TIMEOUT_MS = 1000;  // milliseconds
-
-constexpr auto SECS_PER_WEEK = (60L * 60 * 24 * 7);
-constexpr auto UTC_GPS_EPOCH_DUR = (315964800);
-
-constexpr auto USTRAIN_G =
-    9.80665;  // from section 5.1.1 in
-              // https://www.microstrain.com/sites/default/files/3dm-gx5-25_dcp_manual_8500-0065_reference_document.pdf
-
-constexpr auto GNSS1_ID = 0;
-constexpr auto GNSS2_ID = 1;
-constexpr auto NUM_GNSS = 2;
 }  // namespace microstrain
 
 #endif  // MICROSTRAIN_COMMON_MICROSTRAIN_DEFS_H

@@ -17,6 +17,10 @@
 
 namespace microstrain
 {
+
+constexpr auto UTC_GPS_EPOCH_DUR = (315964800);
+constexpr auto SECS_PER_WEEK = (60L * 60 * 24 * 7);
+
 MicrostrainSubscribers::MicrostrainSubscribers(RosNodeType* node, MicrostrainConfig* config)
   : node_(node), config_(config)
 {

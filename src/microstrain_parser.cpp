@@ -18,6 +18,11 @@
 
 namespace microstrain
 {
+
+constexpr auto USTRAIN_G =
+    9.80665;  // from section 5.1.1 in
+              // https://www.microstrain.com/sites/default/files/3dm-gx5-25_dcp_manual_8500-0065_reference_document.pdf
+
 MicrostrainParser::MicrostrainParser(RosNodeType* node, MicrostrainConfig* config, MicrostrainPublishers* publishers)
   : node_(node), config_(config), publishers_(publishers)
 {

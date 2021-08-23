@@ -174,8 +174,8 @@ bool MicrostrainConfig::connectDevice(RosNodeType* node)
     inertial_device_ = std::unique_ptr<mscl::InertialNode>(new mscl::InertialNode(connection));
 
     // At this point, we have connected to the device but if it is streaming, reading information may fail. Retry a few times to accomodate
-    int32_t connect_tries = 0;
-    while (connect_tries++ < 3)
+    int32_t set_to_idle_tries = 0;
+    while (set_to_idle_tries++ < 3)
     {
       try
       {
