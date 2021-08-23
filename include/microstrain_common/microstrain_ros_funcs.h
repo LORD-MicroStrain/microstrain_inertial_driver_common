@@ -213,7 +213,14 @@ inline void set_seq(RosHeaderType* header, const uint32_t seq)
 template <class ConfigType>
 void get_param(RosNodeType* node, const std::string& param_name, ConfigType& param_val, const ConfigType& default_val)
 {
-  param_val = node->declare_parameter<ConfigType>(param_name, default_val);
+  if (node->has_parameter(param_name))
+  {
+    node->get_parameter_or<ConfigType>(param_name, param_val, default_val);
+  }
+  else
+  {
+    param_val = node->declare_parameter<ConfigType>(param_name, default_val);
+  }
 }
 
 /**
