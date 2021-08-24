@@ -13,7 +13,7 @@
 // Include Files
 //
 /////////////////////////////////////////////////////////////////////////////////////////////////////
-#include "microstrain_common/microstrain_subscribers.h"
+#include "microstrain_inertial_driver_common/microstrain_subscribers.h"
 
 namespace microstrain
 {

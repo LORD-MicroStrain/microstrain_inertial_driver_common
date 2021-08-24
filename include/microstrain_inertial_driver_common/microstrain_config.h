@@ -9,8 +9,8 @@
 //
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
-#ifndef MICROSTRAIN_COMMON_MICROSTRAIN_CONFIG_H
-#define MICROSTRAIN_COMMON_MICROSTRAIN_CONFIG_H
+#ifndef MICROSTRAIN_INERTIAL_DRIVER_COMMON_MICROSTRAIN_CONFIG_H
+#define MICROSTRAIN_INERTIAL_DRIVER_COMMON_MICROSTRAIN_CONFIG_H
 
 #include <stddef.h>
 #include <string>
@@ -20,8 +20,8 @@
 
 #include "mscl/mscl.h"
 
-#include "microstrain_common/microstrain_defs.h"
-#include "microstrain_common/microstrain_ros_funcs.h"
+#include "microstrain_inertial_driver_common/microstrain_defs.h"
+#include "microstrain_inertial_driver_common/microstrain_ros_funcs.h"
 
 namespace microstrain
 {
@@ -216,4 +216,4 @@ private:
 
 }  // namespace microstrain
 
-#endif  // MICROSTRAIN_COMMON_MICROSTRAIN_CONFIG_H
+#endif  // MICROSTRAIN_INERTIAL_DRIVER_COMMON_MICROSTRAIN_CONFIG_H

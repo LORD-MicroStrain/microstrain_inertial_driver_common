@@ -18,7 +18,7 @@
 #include <vector>
 #include <string>
 #include <memory>
-#include "microstrain_common/microstrain_config.h"
+#include "microstrain_inertial_driver_common/microstrain_config.h"
 
 namespace microstrain
 {

@@ -14,7 +14,7 @@
 //
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 #include <algorithm>
-#include "microstrain_common/microstrain_parser.h"
+#include "microstrain_inertial_driver_common/microstrain_parser.h"
 
 namespace microstrain
 {

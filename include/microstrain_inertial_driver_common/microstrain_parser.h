@@ -8,13 +8,13 @@
 // This code is licensed under MIT license (see LICENSE file for details)
 //
 /////////////////////////////////////////////////////////////////////////////////////////////////////
-#ifndef MICROSTRAIN_COMMON_MICROSTRAIN_PARSER_H
-#define MICROSTRAIN_COMMON_MICROSTRAIN_PARSER_H
+#ifndef MICROSTRAIN_INERTIAL_DRIVER_COMMON_MICROSTRAIN_PARSER_H
+#define MICROSTRAIN_INERTIAL_DRIVER_COMMON_MICROSTRAIN_PARSER_H
 
-#include "microstrain_common/microstrain_defs.h"
-#include "microstrain_common/microstrain_ros_funcs.h"
-#include "microstrain_common/microstrain_config.h"
-#include "microstrain_common/microstrain_publishers.h"
+#include "microstrain_inertial_driver_common/microstrain_defs.h"
+#include "microstrain_inertial_driver_common/microstrain_ros_funcs.h"
+#include "microstrain_inertial_driver_common/microstrain_config.h"
+#include "microstrain_inertial_driver_common/microstrain_publishers.h"
 
 namespace microstrain
 {
@@ -132,4 +132,4 @@ private:
 
 }  // namespace microstrain
 
-#endif  // MICROSTRAIN_COMMON_MICROSTRAIN_PARSER_H
+#endif  // MICROSTRAIN_INERTIAL_DRIVER_COMMON_MICROSTRAIN_PARSER_H
