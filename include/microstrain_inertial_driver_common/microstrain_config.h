@@ -26,9 +26,9 @@
 namespace microstrain
 {
 
-constexpr auto DEFAULT_MATRIX = { 9.0, 0.0 };
-constexpr auto DEFAULT_VECTOR = { 3.0, 0.0 };
-constexpr auto DEFAULT_QUATERNION = { 4.0, 0.0 };
+const std::vector<double> DEFAULT_MATRIX = { 9.0, 0.0 };
+const std::vector<double> DEFAULT_VECTOR = { 3.0, 0.0 };
+const std::vector<double> DEFAULT_QUATERNION = { 4.0, 0.0 };
 
 /**
  * Contains configuration information for the node, configures the device on startup
