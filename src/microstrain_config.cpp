@@ -75,6 +75,7 @@ bool MicrostrainConfig::configure(RosNodeType* node)
   get_param<bool>(node, "publish_filter", publish_filter_, false);
   get_param<int32_t>(node, "filter_data_rate", filter_data_rate_, 10);
   get_param<std::string>(node, "filter_frame_id", filter_frame_id_, filter_frame_id_);
+  get_param<std::string>(node, "filter_child_frame_id", filter_child_frame_id_, filter_child_frame_id_);
   get_param<bool>(node, "publish_relative_position", publish_filter_relative_pos_, false);
   get_param<double>(node, "gps_leap_seconds", gps_leap_seconds_, 18.0);
   get_param<bool>(node, "filter_angular_zupt", angular_zupt_, false);
