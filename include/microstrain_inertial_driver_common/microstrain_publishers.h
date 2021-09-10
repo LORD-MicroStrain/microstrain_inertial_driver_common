@@ -73,6 +73,9 @@ public:
   // Device Status Publisher
   StatusPubType device_status_pub_;
 
+  // Transform Broadcaster
+  TransformBroadcasterType transform_broadcaster_;
+
   // IMU Messages
   ImuMsg imu_msg_;
   MagneticFieldMsg mag_msg_;
@@ -98,6 +101,9 @@ public:
 
   // Device Status Message
   StatusMsg device_status_msg_;
+
+  // Published transforms
+  TransformStampedMsg filter_transform_msg_;
 
 private:
   RosNodeType* node_;

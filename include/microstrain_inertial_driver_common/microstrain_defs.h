@@ -31,12 +31,14 @@ constexpr auto NUM_GNSS = 2;
  */
 #if MICROSTRAIN_ROS_VERSION == 1
 #include "ros/ros.h"
+#include "tf2_ros/transform_broadcaster.h"
 
 #include "sensor_msgs/NavSatFix.h"
 #include "sensor_msgs/Imu.h"
 #include "sensor_msgs/TimeReference.h"
 #include "geometry_msgs/PoseWithCovarianceStamped.h"
 #include "geometry_msgs/Vector3.h"
+#include "geometry_msgs/TransformStamped.h"
 #include "sensor_msgs/MagneticField.h"
 #include "nav_msgs/Odometry.h"
 #include "std_msgs/Int8.h"
@@ -118,6 +120,7 @@ constexpr auto NUM_GNSS = 2;
 #include "rclcpp/rclcpp.hpp"
 #include "rclcpp_lifecycle/lifecycle_node.hpp"
 #include "rclcpp_lifecycle/lifecycle_publisher.hpp"
+#include "tf2_ros/transform_broadcaster.h"
 
 #include "lifecycle_msgs/msg/transition.hpp"
 #include "sensor_msgs/msg/nav_sat_fix.hpp"
@@ -125,6 +128,7 @@ constexpr auto NUM_GNSS = 2;
 #include "sensor_msgs/msg/time_reference.hpp"
 #include "geometry_msgs/msg/pose_with_covariance_stamped.hpp"
 #include "geometry_msgs/msg/vector3.hpp"
+#include "geometry_msgs/msg/transform_stamped.h"
 #include "sensor_msgs/msg/magnetic_field.hpp"
 #include "nav_msgs/msg/odometry.hpp"
 #include "std_msgs/msg/int8.hpp"
@@ -230,6 +234,7 @@ using GNSSAidingStatusMsg = ::microstrain_inertial_msgs::GNSSAidingStatus;
 using GNSSDualAntennaStatusMsg = ::microstrain_inertial_msgs::GNSSDualAntennaStatus;
 using FilterHeadingStateMsg = ::microstrain_inertial_msgs::FilterHeadingState;
 using GPSCorrelationTimestampStampedMsg = ::microstrain_inertial_msgs::GPSCorrelationTimestampStamped;
+using TransformStampedMsg = ::geometry_msgs::TransformStamped;
 
 // ROS1 Publisher Types
 using OdometryPubType = RosPubType;
@@ -245,6 +250,9 @@ using GNSSAidingStatusPubType = RosPubType;
 using GNSSDualAntennaStatusPubType = RosPubType;
 using FilterHeadingStatePubType = RosPubType;
 using GPSCorrelationTimestampStampedPubType = RosPubType;
+
+// ROS1 Transform Broadcaster
+using TransformBroadcasterType = std::shared_ptr<::tf2_ros::TransformBroadcaster>;
 
 // ROS1 Subscriber Message Types
 using BoolMsg = ::std_msgs::Bool;
@@ -454,6 +462,7 @@ using GNSSAidingStatusMsg = ::microstrain_inertial_msgs::msg::GNSSAidingStatus;
 using GNSSDualAntennaStatusMsg = ::microstrain_inertial_msgs::msg::GNSSDualAntennaStatus;
 using FilterHeadingStateMsg = ::microstrain_inertial_msgs::msg::FilterHeadingState;
 using GPSCorrelationTimestampStampedMsg = ::microstrain_inertial_msgs::msg::GPSCorrelationTimestampStamped;
+using TransformStampedMsg = ::geometry_msgs::msg::TransformStamped;
 
 // ROS2 Publisher Types
 using OdometryPubType = ::rclcpp_lifecycle::LifecyclePublisher<OdometryMsg>::SharedPtr;
@@ -470,6 +479,9 @@ using GNSSDualAntennaStatusPubType = ::rclcpp_lifecycle::LifecyclePublisher<GNSS
 using FilterHeadingStatePubType = ::rclcpp_lifecycle::LifecyclePublisher<FilterHeadingStateMsg>::SharedPtr;
 using GPSCorrelationTimestampStampedPubType =
     ::rclcpp_lifecycle::LifecyclePublisher<GPSCorrelationTimestampStampedMsg>::SharedPtr;
+
+// ROS2 Transform Broadcaster
+using TransformBroadcasterType = std::shared_ptr<::tf2_ros::TransformBroadcaster>;
 
 // ROS2 Subscriber Message Types
 using BoolMsg = ::std_msgs::msg::Bool;

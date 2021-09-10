@@ -78,6 +78,16 @@ void get_param(RosNodeType* node, const std::string& param_name, ConfigType& par
 }
 
 /**
+ * \brief Creates a transform broadcaster
+ * \param node The ROS node that the broadcaster will be associated with
+ * \return Initialized shared pointer containing a transdorm broadcaster
+ */
+inline TransformBroadcasterType create_transform_broadcaster(RosNodeType* node)
+{
+  return std::make_shared<tf2_ros::TransformBroadcaster>();
+}
+
+/**
  * \brief Creates a ROS publisher
  * \tparam MessageType  The type of message that this publisher will publish
  * \param node  The ROS node to create the publisher on
@@ -221,6 +231,16 @@ void get_param(RosNodeType* node, const std::string& param_name, ConfigType& par
   {
     param_val = node->declare_parameter<ConfigType>(param_name, default_val);
   }
+}
+
+/**
+ * \brief Creates a transform broadcaster
+ * \param node The ROS node that the broadcaster will be associated with
+ * \return Initialized shared pointer containing a transdorm broadcaster
+ */
+inline TransformBroadcasterType create_transform_broadcaster(RosNodeType* node)
+{
+  return std::make_shared<tf2_ros::TransformBroadcaster>(node);
 }
 
 /**

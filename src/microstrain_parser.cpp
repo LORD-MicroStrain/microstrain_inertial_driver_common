@@ -286,6 +286,8 @@ void MicrostrainParser::parseFilterPacket(const mscl::MipDataPacket& packet)
   publishers_->filter_relative_pos_msg_.header.stamp = to_ros_time(time);
   publishers_->filter_relative_pos_msg_.header.frame_id = config_->filter_frame_id_;
   publishers_->filter_relative_pos_msg_.child_frame_id = config_->filter_child_frame_id_;
+  publishers_->filter_transform_msg_.header = publishers_->filter_relative_pos_msg_.header;  // Same header for the transform
+  publishers_->filter_transform_msg_.child_frame_id = publishers_->filter_relative_pos_msg_.child_frame_id;
 
   // Get the list of data elements
   const mscl::MipDataPoints& points = packet.data();
@@ -441,7 +443,7 @@ void MicrostrainParser::parseFilterPacket(const mscl::MipDataPacket& packet)
         {
           publishers_->filter_msg_.pose.pose.orientation.y = quaternion.as_floatAt(1);
           publishers_->filter_msg_.pose.pose.orientation.x = quaternion.as_floatAt(2);
-          publishers_->filter_msg_.pose.pose.orientation.z = - quaternion.as_floatAt(3);
+          publishers_->filter_msg_.pose.pose.orientation.z = -quaternion.as_floatAt(3);
           publishers_->filter_msg_.pose.pose.orientation.w = quaternion.as_floatAt(0);
         }
         else
@@ -455,6 +457,8 @@ void MicrostrainParser::parseFilterPacket(const mscl::MipDataPacket& packet)
         publishers_->filtered_imu_msg_.orientation = publishers_->filter_msg_.pose.pose.orientation;
         publishers_->filter_relative_pos_msg_.pose.pose.orientation =
             publishers_->filter_msg_.pose.pose.orientation;
+        publishers_->filter_transform_msg_.transform.rotation =
+            publishers_->filter_relative_pos_msg_.pose.pose.orientation;
       }
       break;
 
@@ -497,9 +501,9 @@ void MicrostrainParser::parseFilterPacket(const mscl::MipDataPacket& packet)
           curr_filter_angular_rate_z_ = point.as_float();
           if (config_->use_enu_frame_)
           {
-            publishers_->filter_msg_.twist.twist.angular.z = - curr_filter_angular_rate_z_;
-            publishers_->filtered_imu_msg_.angular_velocity.z = - curr_filter_angular_rate_z_;
-            publishers_->filter_relative_pos_msg_.twist.twist.angular.z = - curr_filter_angular_rate_z_;
+            publishers_->filter_msg_.twist.twist.angular.z = -curr_filter_angular_rate_z_;
+            publishers_->filtered_imu_msg_.angular_velocity.z = -curr_filter_angular_rate_z_;
+            publishers_->filter_relative_pos_msg_.twist.twist.angular.z = -curr_filter_angular_rate_z_;
           }
           else
           {
@@ -669,27 +673,45 @@ void MicrostrainParser::parseFilterPacket(const mscl::MipDataPacket& packet)
           double rel_pos_north = point.as_double();
 
           if (config_->use_enu_frame_)
+          {
             publishers_->filter_relative_pos_msg_.pose.pose.position.y = rel_pos_north;
+            publishers_->filter_transform_msg_.transform.translation.y = rel_pos_north;
+          }
           else
+          {
             publishers_->filter_relative_pos_msg_.pose.pose.position.x = rel_pos_north;
+            publishers_->filter_transform_msg_.transform.translation.x = rel_pos_north;
+          }
         }
         else if (point.qualifier() == mscl::MipTypes::CH_Y)
         {
           double rel_pos_east = point.as_double();
 
           if (config_->use_enu_frame_)
+          {
             publishers_->filter_relative_pos_msg_.pose.pose.position.x = rel_pos_east;
+            publishers_->filter_transform_msg_.transform.translation.x = rel_pos_east;
+          }
           else
+          {
             publishers_->filter_relative_pos_msg_.pose.pose.position.y = rel_pos_east;
+            publishers_->filter_transform_msg_.transform.translation.y = rel_pos_east;
+          }
         }
         else if (point.qualifier() == mscl::MipTypes::CH_Z)
         {
           double rel_pos_down = point.as_double();
 
           if (config_->use_enu_frame_)
+          {
             publishers_->filter_relative_pos_msg_.pose.pose.position.z = -rel_pos_down;
+            publishers_->filter_transform_msg_.transform.translation.z = -rel_pos_down;
+          }
           else
+          {
             publishers_->filter_relative_pos_msg_.pose.pose.position.z = rel_pos_down;
+            publishers_->filter_transform_msg_.transform.translation.z = rel_pos_down;
+          }
         }
       }
       break;
@@ -795,7 +817,10 @@ void MicrostrainParser::parseFilterPacket(const mscl::MipDataPacket& packet)
   }
 
   if (config_->publish_filter_relative_pos_)
+  {
     publishers_->filter_relative_pos_pub_->publish(publishers_->filter_relative_pos_msg_);
+    publishers_->transform_broadcaster_->sendTransform(publishers_->filter_transform_msg_);
+  }
 
   for (i = 0; i < NUM_GNSS; i++)
   {
