@@ -284,7 +284,7 @@ void MicrostrainParser::parseFilterPacket(const mscl::MipDataPacket& packet)
   // Nav relative position odom timestamp and frame (note: Relative position frame is NED for both pos and vel)
   set_seq(&publishers_->filter_relative_pos_msg_.header, filter_valid_packet_count_);
   publishers_->filter_relative_pos_msg_.header.stamp = to_ros_time(time);
-  publishers_->filter_relative_pos_msg_.header.frame_id = config_->filter_child_frame_id_;
+  publishers_->filter_relative_pos_msg_.header.frame_id = config_->filter_frame_id_;
   publishers_->filter_relative_pos_msg_.child_frame_id = config_->filter_child_frame_id_;
 
   // Get the list of data elements
@@ -439,10 +439,10 @@ void MicrostrainParser::parseFilterPacket(const mscl::MipDataPacket& packet)
 
         if (config_->use_enu_frame_)
         {
-          tf2::Quaternion q_ned2enu, qbody2ned(quaternion.as_floatAt(1), quaternion.as_floatAt(2),
-                                               quaternion.as_floatAt(3), quaternion.as_floatAt(0));
-          config_->t_ned2enu_.getRotation(q_ned2enu);
-          publishers_->filter_msg_.pose.pose.orientation = tf2::toMsg(q_ned2enu * qbody2ned);
+          publishers_->filter_msg_.pose.pose.orientation.y = quaternion.as_floatAt(1);
+          publishers_->filter_msg_.pose.pose.orientation.x = quaternion.as_floatAt(2);
+          publishers_->filter_msg_.pose.pose.orientation.z = - quaternion.as_floatAt(3);
+          publishers_->filter_msg_.pose.pose.orientation.w = quaternion.as_floatAt(0);
         }
         else
         {
@@ -463,23 +463,50 @@ void MicrostrainParser::parseFilterPacket(const mscl::MipDataPacket& packet)
         if (point.qualifier() == mscl::MipTypes::CH_X)
         {
           curr_filter_angular_rate_x_ = point.as_float();
-          publishers_->filter_msg_.twist.twist.angular.x = curr_filter_angular_rate_x_;
-          publishers_->filtered_imu_msg_.angular_velocity.x = curr_filter_angular_rate_x_;
-          publishers_->filter_relative_pos_msg_.twist.twist.angular.x = curr_filter_angular_rate_x_;
+          if (config_->use_enu_frame_)
+          {
+            publishers_->filter_msg_.twist.twist.angular.y = curr_filter_angular_rate_x_;
+            publishers_->filtered_imu_msg_.angular_velocity.y = curr_filter_angular_rate_x_;
+            publishers_->filter_relative_pos_msg_.twist.twist.angular.y = curr_filter_angular_rate_x_;
+          }
+          else
+          {
+            publishers_->filter_msg_.twist.twist.angular.x = curr_filter_angular_rate_x_;
+            publishers_->filtered_imu_msg_.angular_velocity.x = curr_filter_angular_rate_x_;
+            publishers_->filter_relative_pos_msg_.twist.twist.angular.x = curr_filter_angular_rate_x_;
+          }
         }
         else if (point.qualifier() == mscl::MipTypes::CH_Y)
         {
           curr_filter_angular_rate_y_ = point.as_float();
-          publishers_->filter_msg_.twist.twist.angular.y = curr_filter_angular_rate_y_;
-          publishers_->filtered_imu_msg_.angular_velocity.y = curr_filter_angular_rate_y_;
-          publishers_->filter_relative_pos_msg_.twist.twist.angular.y = curr_filter_angular_rate_y_;
+          if (config_->use_enu_frame_)
+          {
+            publishers_->filter_msg_.twist.twist.angular.x = curr_filter_angular_rate_y_;
+            publishers_->filtered_imu_msg_.angular_velocity.x = curr_filter_angular_rate_y_;
+            publishers_->filter_relative_pos_msg_.twist.twist.angular.x = curr_filter_angular_rate_y_;
+          }
+          else
+          {
+            publishers_->filter_msg_.twist.twist.angular.y = curr_filter_angular_rate_y_;
+            publishers_->filtered_imu_msg_.angular_velocity.y = curr_filter_angular_rate_y_;
+            publishers_->filter_relative_pos_msg_.twist.twist.angular.y = curr_filter_angular_rate_y_;
+          }
         }
         else if (point.qualifier() == mscl::MipTypes::CH_Z)
         {
           curr_filter_angular_rate_z_ = point.as_float();
-          publishers_->filter_msg_.twist.twist.angular.z = curr_filter_angular_rate_z_;
-          publishers_->filtered_imu_msg_.angular_velocity.z = curr_filter_angular_rate_z_;
-          publishers_->filter_relative_pos_msg_.twist.twist.angular.z = curr_filter_angular_rate_z_;
+          if (config_->use_enu_frame_)
+          {
+            publishers_->filter_msg_.twist.twist.angular.z = - curr_filter_angular_rate_z_;
+            publishers_->filtered_imu_msg_.angular_velocity.z = - curr_filter_angular_rate_z_;
+            publishers_->filter_relative_pos_msg_.twist.twist.angular.z = - curr_filter_angular_rate_z_;
+          }
+          else
+          {
+            publishers_->filter_msg_.twist.twist.angular.z = curr_filter_angular_rate_z_;
+            publishers_->filtered_imu_msg_.angular_velocity.z = curr_filter_angular_rate_z_;
+            publishers_->filter_relative_pos_msg_.twist.twist.angular.z = curr_filter_angular_rate_z_;
+          }
         }
       }
       break;
