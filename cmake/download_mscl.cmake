@@ -13,12 +13,18 @@ function(download_mscl)
     # Allow the MSCL version to be overridden
     set(MSCL_VERSION "${download_mscl_VERSION}" CACHE STRING "Version of MSCL to download and build with")
 
+    # Normally we would just check cmake system processor, but the buildfarm builds arm on an arm64 machine, so we would download the wrong library
+    execute_process(
+      COMMAND ${CMAKE_COMMAND} -E env /bin/bash -c "${CMAKE_CXX_COMPILER} -dumpmachine"
+      OUTPUT_VARIABLE TARGET_ARCHITECTURE
+    )
+
     # Convert the CMake architecture to the format that MSCL uses
-    if("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "x86_64")
+    if("${TARGET_ARCHITECTURE}" MATCHES ".*x86_64.*")
       set(MSCL_ARCH "amd64")
-    elseif("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "aarch64")
+    elseif("${TARGET_ARCHITECTURE}" MATCHES ".*aarch64.*")
       set(MSCL_ARCH "arm64")
-    elseif("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "armhf")
+    elseif("${TARGET_ARCHITECTURE}" MATCHES ".*arm.*")
       set(MSCL_ARCH "armhf")
     else()
       message(FATAL_ERROR "Unsupported architecture: ${CMAKE_SYSTEM_PROCESSOR}")
