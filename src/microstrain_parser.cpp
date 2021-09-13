@@ -120,10 +120,16 @@ void MicrostrainParser::parseIMUPacket(const mscl::MipDataPacket& packet)
         else if (point.qualifier() == mscl::MipTypes::CH_Y)
         {
           publishers_->imu_msg_.linear_acceleration.y = USTRAIN_G * point.as_float();
+
+          if (config_->use_enu_frame_)
+            publishers_->imu_msg_.linear_acceleration.y *= -1.0;
         }
         else if (point.qualifier() == mscl::MipTypes::CH_Z)
         {
           publishers_->imu_msg_.linear_acceleration.z = USTRAIN_G * point.as_float();
+
+          if (config_->use_enu_frame_)
+            publishers_->imu_msg_.linear_acceleration.z *= -1.0;
         }
       }
       break;
@@ -140,10 +146,16 @@ void MicrostrainParser::parseIMUPacket(const mscl::MipDataPacket& packet)
         else if (point.qualifier() == mscl::MipTypes::CH_Y)
         {
           publishers_->imu_msg_.angular_velocity.y = point.as_float();
+
+          if (config_->use_enu_frame_)
+            publishers_->imu_msg_.angular_velocity.y *= -1.0;
         }
         else if (point.qualifier() == mscl::MipTypes::CH_Z)
         {
           publishers_->imu_msg_.angular_velocity.z = point.as_float();
+
+          if (config_->use_enu_frame_)
+            publishers_->imu_msg_.angular_velocity.z *= -1.0;
         }
       }
       break;
@@ -161,11 +173,19 @@ void MicrostrainParser::parseIMUPacket(const mscl::MipDataPacket& packet)
         else if (point.qualifier() == mscl::MipTypes::CH_Y)
         {
           curr_imu_mag_y_ = point.as_float();
+
+          if (config_->use_enu_frame_)
+            curr_imu_mag_y_ *= -1.0;
+
           publishers_->mag_msg_.magnetic_field.y = curr_imu_mag_y_;
         }
         else if (point.qualifier() == mscl::MipTypes::CH_Z)
         {
           curr_imu_mag_z_ = point.as_float();
+
+          if (config_->use_enu_frame_)
+            curr_imu_mag_z_ *= -1.0;
+
           publishers_->mag_msg_.magnetic_field.z = curr_imu_mag_z_;
         }
       }
@@ -183,10 +203,16 @@ void MicrostrainParser::parseIMUPacket(const mscl::MipDataPacket& packet)
 
           if (config_->use_enu_frame_)
           {
-            tf2::Quaternion q_ned2enu, qbody2ned(quaternion.as_floatAt(1), quaternion.as_floatAt(2),
-                                                 quaternion.as_floatAt(3), quaternion.as_floatAt(0));
+            tf2::Quaternion q_ned2enu, q_body2enu, q_vehiclebody2sensorbody,
+                            qbody2ned(quaternion.as_floatAt(1), quaternion.as_floatAt(2),
+                                      quaternion.as_floatAt(3), quaternion.as_floatAt(0));
+
             config_->t_ned2enu_.getRotation(q_ned2enu);
-            publishers_->imu_msg_.orientation = tf2::toMsg(q_ned2enu * qbody2ned);
+            config_->t_vehiclebody2sensorbody_.getRotation(q_vehiclebody2sensorbody);
+
+            q_body2enu = q_ned2enu*qbody2ned*q_vehiclebody2sensorbody;
+
+            publishers_->imu_msg_.orientation = tf2::toMsg(q_body2enu);
           }
           else
           {
@@ -441,10 +467,16 @@ void MicrostrainParser::parseFilterPacket(const mscl::MipDataPacket& packet)
 
         if (config_->use_enu_frame_)
         {
-          publishers_->filter_msg_.pose.pose.orientation.y = quaternion.as_floatAt(1);
-          publishers_->filter_msg_.pose.pose.orientation.x = quaternion.as_floatAt(2);
-          publishers_->filter_msg_.pose.pose.orientation.z = -quaternion.as_floatAt(3);
-          publishers_->filter_msg_.pose.pose.orientation.w = quaternion.as_floatAt(0);
+          tf2::Quaternion q_body2enu, q_ned2enu, q_vehiclebody2sensorbody, 
+                          qbody2ned(quaternion.as_floatAt(1), quaternion.as_floatAt(2),
+                                    quaternion.as_floatAt(3), quaternion.as_floatAt(0));
+
+          config_->t_ned2enu_.getRotation(q_ned2enu);
+          config_->t_vehiclebody2sensorbody_.getRotation(q_vehiclebody2sensorbody);
+
+          q_body2enu = q_ned2enu*qbody2ned*q_vehiclebody2sensorbody;
+
+          publishers_->filter_msg_.pose.pose.orientation = tf2::toMsg(q_body2enu);
         }
         else
         {
@@ -467,50 +499,32 @@ void MicrostrainParser::parseFilterPacket(const mscl::MipDataPacket& packet)
         if (point.qualifier() == mscl::MipTypes::CH_X)
         {
           curr_filter_angular_rate_x_ = point.as_float();
-          if (config_->use_enu_frame_)
-          {
-            publishers_->filter_msg_.twist.twist.angular.y = curr_filter_angular_rate_x_;
-            publishers_->filtered_imu_msg_.angular_velocity.y = curr_filter_angular_rate_x_;
-            publishers_->filter_relative_pos_msg_.twist.twist.angular.y = curr_filter_angular_rate_x_;
-          }
-          else
-          {
-            publishers_->filter_msg_.twist.twist.angular.x = curr_filter_angular_rate_x_;
-            publishers_->filtered_imu_msg_.angular_velocity.x = curr_filter_angular_rate_x_;
-            publishers_->filter_relative_pos_msg_.twist.twist.angular.x = curr_filter_angular_rate_x_;
-          }
+
+          publishers_->filter_msg_.twist.twist.angular.x = curr_filter_angular_rate_x_;
+          publishers_->filtered_imu_msg_.angular_velocity.x = curr_filter_angular_rate_x_;
+          publishers_->filter_relative_pos_msg_.twist.twist.angular.x = curr_filter_angular_rate_x_;
         }
         else if (point.qualifier() == mscl::MipTypes::CH_Y)
         {
           curr_filter_angular_rate_y_ = point.as_float();
-          if (config_->use_enu_frame_)
-          {
-            publishers_->filter_msg_.twist.twist.angular.x = curr_filter_angular_rate_y_;
-            publishers_->filtered_imu_msg_.angular_velocity.x = curr_filter_angular_rate_y_;
-            publishers_->filter_relative_pos_msg_.twist.twist.angular.x = curr_filter_angular_rate_y_;
-          }
-          else
-          {
-            publishers_->filter_msg_.twist.twist.angular.y = curr_filter_angular_rate_y_;
-            publishers_->filtered_imu_msg_.angular_velocity.y = curr_filter_angular_rate_y_;
-            publishers_->filter_relative_pos_msg_.twist.twist.angular.y = curr_filter_angular_rate_y_;
-          }
+
+          if(config_->use_enu_frame_)
+            curr_filter_angular_rate_y_ *= -1.0;
+
+          publishers_->filter_msg_.twist.twist.angular.y = curr_filter_angular_rate_y_;
+          publishers_->filtered_imu_msg_.angular_velocity.y = curr_filter_angular_rate_y_;
+          publishers_->filter_relative_pos_msg_.twist.twist.angular.y = curr_filter_angular_rate_y_;
         }
         else if (point.qualifier() == mscl::MipTypes::CH_Z)
         {
           curr_filter_angular_rate_z_ = point.as_float();
-          if (config_->use_enu_frame_)
-          {
-            publishers_->filter_msg_.twist.twist.angular.z = -curr_filter_angular_rate_z_;
-            publishers_->filtered_imu_msg_.angular_velocity.z = -curr_filter_angular_rate_z_;
-            publishers_->filter_relative_pos_msg_.twist.twist.angular.z = -curr_filter_angular_rate_z_;
-          }
-          else
-          {
-            publishers_->filter_msg_.twist.twist.angular.z = curr_filter_angular_rate_z_;
-            publishers_->filtered_imu_msg_.angular_velocity.z = curr_filter_angular_rate_z_;
-            publishers_->filter_relative_pos_msg_.twist.twist.angular.z = curr_filter_angular_rate_z_;
-          }
+
+          if(config_->use_enu_frame_)
+            curr_filter_angular_rate_z_ *= -1.0;
+
+          publishers_->filter_msg_.twist.twist.angular.z = curr_filter_angular_rate_z_;
+          publishers_->filtered_imu_msg_.angular_velocity.z = curr_filter_angular_rate_z_;
+          publishers_->filter_relative_pos_msg_.twist.twist.angular.z = curr_filter_angular_rate_z_;
         }
       }
       break;
@@ -519,15 +533,27 @@ void MicrostrainParser::parseFilterPacket(const mscl::MipDataPacket& packet)
       {
         if (point.qualifier() == mscl::MipTypes::CH_X)
         {
-          publishers_->filtered_imu_msg_.linear_acceleration.x = point.as_float();
+          float accel_x = point.as_float();
+
+          publishers_->filtered_imu_msg_.linear_acceleration.x = accel_x;
         }
         else if (point.qualifier() == mscl::MipTypes::CH_Y)
         {
-          publishers_->filtered_imu_msg_.linear_acceleration.y = point.as_float();
+          float accel_y = point.as_float();
+
+          if(config_->use_enu_frame_)
+            accel_y *= -1.0;
+
+          publishers_->filtered_imu_msg_.linear_acceleration.y = accel_y;
         }
         else if (point.qualifier() == mscl::MipTypes::CH_Z)
         {
-          publishers_->filtered_imu_msg_.linear_acceleration.z = point.as_float();
+          float accel_z = point.as_float();
+
+          if(config_->use_enu_frame_)
+            accel_z *= -1.0;
+
+          publishers_->filtered_imu_msg_.linear_acceleration.z = accel_z;
         }
       }
       break;

@@ -35,6 +35,7 @@ bool MicrostrainConfig::configure(RosNodeType* node)
   filter_frame_id_ = "sensor_wgs84_ned";
   filter_child_frame_id_ = "sensor";
   t_ned2enu_ = tf2::Matrix3x3(0, 1, 0, 1, 0, 0, 0, 0, -1);
+  t_vehiclebody2sensorbody_ = tf2::Matrix3x3(1, 0, 0, 0, -1, 0, 0, 0, -1);
 
   ///
   /// Generic configuration used by the rest of the driver
