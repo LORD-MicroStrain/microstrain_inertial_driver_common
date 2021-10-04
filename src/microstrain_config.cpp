@@ -271,6 +271,11 @@ bool MicrostrainConfig::setupDevice(RosNodeType* node)
     if (!configureRTK(node))
       return false;
   }
+  else
+  {
+    // TODO(robbiefish): This only works for GQ7 right now
+    inertial_device_->enableRtk(false);
+  }
 
   // Filter setup
   if (publish_filter_ && supports_filter_)
