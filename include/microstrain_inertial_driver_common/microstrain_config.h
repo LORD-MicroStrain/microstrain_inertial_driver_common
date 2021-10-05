@@ -168,6 +168,7 @@ public:
   bool publish_gnss_dual_antenna_status_;
   bool publish_filter_;
   bool publish_filter_relative_pos_;
+  bool publish_filter_aiding_measurement_summary_;
   bool publish_rtk_;
 
   // ZUPT, angular ZUPT topic listener variables

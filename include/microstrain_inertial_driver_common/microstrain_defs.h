@@ -53,6 +53,7 @@ constexpr auto NUM_GNSS = 2;
 #include "microstrain_inertial_msgs/FilterStatus.h"
 #include "microstrain_inertial_msgs/FilterHeading.h"
 #include "microstrain_inertial_msgs/FilterHeadingState.h"
+#include "microstrain_inertial_msgs/FilterAidingMeasurementSummary.h"
 #include "microstrain_inertial_msgs/GPSCorrelationTimestampStamped.h"
 #include "microstrain_inertial_msgs/GNSSAidingStatus.h"
 #include "microstrain_inertial_msgs/GNSSDualAntennaStatus.h"
@@ -145,6 +146,7 @@ constexpr auto NUM_GNSS = 2;
 #include "microstrain_inertial_msgs/msg/filter_status.hpp"
 #include "microstrain_inertial_msgs/msg/filter_heading.hpp"
 #include "microstrain_inertial_msgs/msg/filter_heading_state.hpp"
+#include "microstrain_inertial_msgs/msg/filter_aiding_measurement_summary.h"
 #include "microstrain_inertial_msgs/msg/gps_correlation_timestamp_stamped.hpp"
 #include "microstrain_inertial_msgs/msg/gnss_aiding_status.hpp"
 #include "microstrain_inertial_msgs/msg/gnss_dual_antenna_status.hpp"
@@ -230,6 +232,8 @@ using StatusMsg = ::microstrain_inertial_msgs::Status;
 using RTKStatusMsg = ::microstrain_inertial_msgs::RTKStatus;
 using FilterStatusMsg = ::microstrain_inertial_msgs::FilterStatus;
 using FilterHeadingMsg = ::microstrain_inertial_msgs::FilterHeading;
+using FilterAidingMeasurementSummaryMsg = ::microstrain_inertial_msgs::FilterAidingMeasurementSummary;
+using FilterAidingMeasurementSummaryIndicatorMsg = ::microstrain_inertial_msgs::FilterAidingMeasurementSummaryIndicator;
 using GNSSAidingStatusMsg = ::microstrain_inertial_msgs::GNSSAidingStatus;
 using GNSSDualAntennaStatusMsg = ::microstrain_inertial_msgs::GNSSDualAntennaStatus;
 using FilterHeadingStateMsg = ::microstrain_inertial_msgs::FilterHeadingState;
@@ -246,6 +250,7 @@ using StatusPubType = RosPubType;
 using RTKStatusPubType = RosPubType;
 using FilterStatusPubType = RosPubType;
 using FilterHeadingPubType = RosPubType;
+using FilterAidingMeasurementSummaryPubType = RosPubType;
 using GNSSAidingStatusPubType = RosPubType;
 using GNSSDualAntennaStatusPubType = RosPubType;
 using FilterHeadingStatePubType = RosPubType;
@@ -458,6 +463,8 @@ using StatusMsg = ::microstrain_inertial_msgs::msg::Status;
 using RTKStatusMsg = ::microstrain_inertial_msgs::msg::RTKStatus;
 using FilterStatusMsg = ::microstrain_inertial_msgs::msg::FilterStatus;
 using FilterHeadingMsg = ::microstrain_inertial_msgs::msg::FilterHeading;
+using FilterAidingMeasurementSummaryMsg = ::microstrain_inertial_msgs::msg::FilterAidingMeasurementSummary;
+using FilterAidingMeasurementSummaryIndicatorMsg = ::microstrain_inertial_msgs::msg::FilterAidingMeasurementSummaryIndicator;
 using GNSSAidingStatusMsg = ::microstrain_inertial_msgs::msg::GNSSAidingStatus;
 using GNSSDualAntennaStatusMsg = ::microstrain_inertial_msgs::msg::GNSSDualAntennaStatus;
 using FilterHeadingStateMsg = ::microstrain_inertial_msgs::msg::FilterHeadingState;
@@ -474,6 +481,7 @@ using StatusPubType = ::rclcpp_lifecycle::LifecyclePublisher<StatusMsg>::SharedP
 using RTKStatusPubType = ::rclcpp_lifecycle::LifecyclePublisher<RTKStatusMsg>::SharedPtr;
 using FilterStatusPubType = ::rclcpp_lifecycle::LifecyclePublisher<FilterStatusMsg>::SharedPtr;
 using FilterHeadingPubType = ::rclcpp_lifecycle::LifecyclePublisher<FilterHeadingMsg>::SharedPtr;
+using FilterAidingMeasurementSummaryPubType = ::rclcpp_lifecycle::LifecyclePublisher<FilterAidingMeasurementSummaryMsg>::SharedPtr;
 using GNSSAidingStatusPubType = ::rclcpp_lifecycle::LifecyclePublisher<GNSSAidingStatusMsg>::SharedPtr;
 using GNSSDualAntennaStatusPubType = ::rclcpp_lifecycle::LifecyclePublisher<GNSSDualAntennaStatusMsg>::SharedPtr;
 using FilterHeadingStatePubType = ::rclcpp_lifecycle::LifecyclePublisher<FilterHeadingStateMsg>::SharedPtr;

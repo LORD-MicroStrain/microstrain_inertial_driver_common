@@ -113,6 +113,12 @@ bool MicrostrainPublishers::configure()
     {
       filter_relative_pos_pub_ = create_publisher<OdometryMsg>(node_, "nav/relative_pos/odom", 100);
     }
+
+    if (config_->publish_filter_aiding_measurement_summary_)
+    {
+      filter_aiding_measurement_summary_pub_ =
+          create_publisher<FilterAidingMeasurementSummaryMsg>(node_, "nav/aiding_summary", 100);
+    }
   }
   return true;
 }

@@ -283,6 +283,7 @@ void MicrostrainParser::parseFilterPacket(const mscl::MipDataPacket& packet)
 {
   bool gnss_aiding_status_received[NUM_GNSS] = { false };
   bool gnss_dual_antenna_status_received = false;
+  bool filter_aiding_measurement_summary_received = false;
   int i;
 
   // Update diagnostics
@@ -818,6 +819,55 @@ void MicrostrainParser::parseFilterPacket(const mscl::MipDataPacket& packet)
       }
       break;
 
+      case mscl::MipTypes::CH_FIELD_ESTFILTER_AIDING_MEASURE_SUMMARY:
+      {
+        if (point.hasAddlIdentifiers())
+        {
+          FilterAidingMeasurementSummaryIndicatorMsg* indicator = nullptr;
+          for (const auto& identifier : point.addlIdentifiers())
+          {
+            if (identifier.identifierType() == mscl::MipChannelIdentifier::AIDING_MEASUREMENT_TYPE)
+            {
+              switch (identifier.id())
+              {
+                case mscl::MipChannelIdentifier::AidingMeasurementTypes::GNSS:
+                  indicator = &(publishers_->filter_aiding_measurement_summary_msg_.gnss);
+                  break;
+                case mscl::MipChannelIdentifier::AidingMeasurementTypes::DUAL_ANTENNA:
+                  indicator = &(publishers_->filter_aiding_measurement_summary_msg_.dual_antenna);
+                  break;
+                case mscl::MipChannelIdentifier::AidingMeasurementTypes::HEADING:
+                  indicator = &(publishers_->filter_aiding_measurement_summary_msg_.heading);
+                  break;
+                case mscl::MipChannelIdentifier::AidingMeasurementTypes::PRESSURE:
+                  indicator = &(publishers_->filter_aiding_measurement_summary_msg_.pressure);
+                  break;
+                case mscl::MipChannelIdentifier::AidingMeasurementTypes::MAGNETOMETER:
+                  indicator = &(publishers_->filter_aiding_measurement_summary_msg_.magnetometer);
+                  break;
+                case mscl::MipChannelIdentifier::AidingMeasurementTypes::SPEED:
+                  indicator = &(publishers_->filter_aiding_measurement_summary_msg_.speed);
+                  break;
+                default:
+                  continue;
+              }
+            }
+          }
+
+          if (indicator != nullptr)
+          {
+            const uint8_t indicator_bits = point.as_uint8();
+            indicator->enabled = indicator_bits & mscl::InertialTypes::AidingMeasurementStatus::AIDING_MEASUREMENT_ENABLED;
+            indicator->used = indicator_bits & mscl::InertialTypes::AidingMeasurementStatus::AIDING_MEASUREMENT_USED;
+            indicator->residual_high_warning = indicator_bits & mscl::InertialTypes::AidingMeasurementStatus::AIDING_MEASUREMENT_WARNING_RESIDUAL_HIGH;
+            indicator->sample_time_warning = indicator_bits & mscl::InertialTypes::AidingMeasurementStatus::AIDING_MEASUREMENT_WARNING_SAMPLE_TIME;
+            indicator->configuration_error = indicator_bits & mscl::InertialTypes::AidingMeasurementStatus::AIDING_MEASUREMENT_CONFIG_ERROR;
+            indicator->max_num_meas_exceeded = indicator_bits & mscl::InertialTypes::AidingMeasurementStatus::AIDING_MEASUREMENT_MAX_COUNT_EXCEEDED;
+            filter_aiding_measurement_summary_received = true;
+          }
+        }
+      }
+
       default:
         break;
     }
@@ -853,6 +903,9 @@ void MicrostrainParser::parseFilterPacket(const mscl::MipDataPacket& packet)
     if (config_->publish_gnss_aiding_status_[i] && gnss_aiding_status_received[i])
       publishers_->gnss_aiding_status_pub_[i]->publish(publishers_->gnss_aiding_status_msg_[i]);
   }
+
+  if (config_->publish_filter_aiding_measurement_summary_ && filter_aiding_measurement_summary_received)
+    publishers_->filter_aiding_measurement_summary_pub_->publish(publishers_->filter_aiding_measurement_summary_msg_);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////

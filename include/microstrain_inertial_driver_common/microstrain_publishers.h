@@ -66,6 +66,7 @@ public:
   FilterStatusPubType filter_status_pub_;
   FilterHeadingPubType filter_heading_pub_;
   FilterHeadingStatePubType filter_heading_state_pub_;
+  FilterAidingMeasurementSummaryPubType filter_aiding_measurement_summary_pub_;
   OdometryPubType filter_pub_;
   ImuPubType filtered_imu_pub_;
   OdometryPubType filter_relative_pos_pub_;
@@ -98,6 +99,7 @@ public:
   FilterStatusMsg filter_status_msg_;
   FilterHeadingStateMsg filter_heading_state_msg_;
   FilterHeadingMsg filter_heading_msg_;
+  FilterAidingMeasurementSummaryMsg filter_aiding_measurement_summary_msg_;
 
   // Device Status Message
   StatusMsg device_status_msg_;
