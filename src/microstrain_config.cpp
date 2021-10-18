@@ -512,6 +512,7 @@ bool MicrostrainConfig::configureGNSS(RosNodeType* node, uint8_t gnss_id)
     gnssChannels.push_back(mscl::MipTypes::ChannelField::CH_FIELD_GNSS_1_LLH_POSITION);
     gnssChannels.push_back(mscl::MipTypes::ChannelField::CH_FIELD_GNSS_1_NED_VELOCITY);
     gnssChannels.push_back(mscl::MipTypes::ChannelField::CH_FIELD_GNSS_1_GPS_TIME);
+    gnssChannels.push_back(mscl::MipTypes::ChannelField::CH_FIELD_GNSS_1_FIX_INFO);
   }
   else if (inertial_device_->features().supportsCategory(mscl::MipTypes::DataClass::CLASS_GNSS2) &&
            gnss_id == GNSS2_ID)
@@ -522,6 +523,7 @@ bool MicrostrainConfig::configureGNSS(RosNodeType* node, uint8_t gnss_id)
     gnssChannels.push_back(mscl::MipTypes::ChannelField::CH_FIELD_GNSS_2_LLH_POSITION);
     gnssChannels.push_back(mscl::MipTypes::ChannelField::CH_FIELD_GNSS_2_NED_VELOCITY);
     gnssChannels.push_back(mscl::MipTypes::ChannelField::CH_FIELD_GNSS_2_GPS_TIME);
+    gnssChannels.push_back(mscl::MipTypes::ChannelField::CH_FIELD_GNSS_2_FIX_INFO);
   }
 
   mscl::MipChannels supportedChannels;
@@ -559,10 +561,7 @@ bool MicrostrainConfig::configureGNSS(RosNodeType* node, uint8_t gnss_id)
   }
 
   // Enable publishing aiding status messages
-  if (inertial_device_->features().supportsCommand(mscl::MipTypes::Command::CMD_EF_AIDING_MEASUREMENT_ENABLE))
-  {
-    publish_gnss_aiding_status_[gnss_id] = true;
-  }
+  publish_gnss_aiding_status_[gnss_id] = inertial_device_->features().supportsCommand(mscl::MipTypes::Command::CMD_EF_AIDING_MEASUREMENT_ENABLE);
 
   inertial_device_->enableDataStream(gnss_data_class);
   return true;

@@ -44,7 +44,7 @@ public:
   bool configure();
 
   // TODO(robbiefish): Document all of these service functions
-  bool deviceReport(TriggerServiceMsg::Request& req, TriggerServiceMsg::Response& res);
+  bool deviceReport(DeviceReportServiceMsg::Request& req, DeviceReportServiceMsg::Response& res);
   bool getBasicStatus(TriggerServiceMsg::Request& req, TriggerServiceMsg::Response& res);
   bool getDiagnosticReport(TriggerServiceMsg::Request& req, TriggerServiceMsg::Response& res);
 
@@ -165,7 +165,7 @@ private:
 
   TriggerServiceType get_basic_status_service_;
   TriggerServiceType get_diagnostic_report_service_;
-  TriggerServiceType device_report_service_;
+  DeviceReportServiceType device_report_service_;
   SetTareOrientationServiceType set_tare_orientation_service_;
   SetComplementaryFilterServiceType set_complementary_filter_service_;
   GetComplementaryFilterServiceType get_complementary_filter_service_;

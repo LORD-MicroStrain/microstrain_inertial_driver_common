@@ -57,7 +57,7 @@ public:
   OdometryPubType gnss_odom_pub_[NUM_GNSS];
   TimeReferencePubType gnss_time_pub_[NUM_GNSS];
   GNSSAidingStatusPubType gnss_aiding_status_pub_[NUM_GNSS];
-  GNSSDualAntennaStatusPubType gnss_dual_antenna_status_pub_;
+  GNSSFixInfoPubType gnss_fix_info_pub_[NUM_GNSS];
 
   // RTK Data publisher
   RTKStatusPubType rtk_pub_;
@@ -70,6 +70,7 @@ public:
   OdometryPubType filter_pub_;
   ImuPubType filtered_imu_pub_;
   OdometryPubType filter_relative_pos_pub_;
+  GNSSDualAntennaStatusPubType gnss_dual_antenna_status_pub_;
 
   // Device Status Publisher
   StatusPubType device_status_pub_;
@@ -87,7 +88,7 @@ public:
   OdometryMsg gnss_odom_msg_[NUM_GNSS];
   TimeReferenceMsg gnss_time_msg_[NUM_GNSS];
   GNSSAidingStatusMsg gnss_aiding_status_msg_[NUM_GNSS];
-  GNSSDualAntennaStatusMsg gnss_dual_antenna_status_msg_;
+  GNSSFixInfoMsg gnss_fix_info_msg_[NUM_GNSS];
 
   // RTK Messages
   RTKStatusMsg rtk_msg_;
@@ -100,6 +101,7 @@ public:
   FilterHeadingStateMsg filter_heading_state_msg_;
   FilterHeadingMsg filter_heading_msg_;
   FilterAidingMeasurementSummaryMsg filter_aiding_measurement_summary_msg_;
+  GNSSDualAntennaStatusMsg gnss_dual_antenna_status_msg_;
 
   // Device Status Message
   StatusMsg device_status_msg_;

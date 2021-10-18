@@ -334,28 +334,32 @@ bool MicrostrainServices::configure()
 // Get Device Report
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
-bool MicrostrainServices::deviceReport(TriggerServiceMsg::Request& req, TriggerServiceMsg::Response& res)
+bool MicrostrainServices::deviceReport(DeviceReportServiceMsg::Request& req, DeviceReportServiceMsg::Response& res)
 {
   res.success = false;
-
   if (config_->inertial_device_)
   {
     try
     {
-      MICROSTRAIN_INFO(node_, "Model Name       => %s\n", config_->inertial_device_->modelName().c_str());
-      MICROSTRAIN_INFO(node_, "Model Number     => %s\n", config_->inertial_device_->modelNumber().c_str());
-      MICROSTRAIN_INFO(node_, "Serial Number    => %s\n", config_->inertial_device_->serialNumber().c_str());
-      MICROSTRAIN_INFO(node_, "Options          => %s\n", config_->inertial_device_->deviceOptions().c_str());
-      MICROSTRAIN_INFO(node_, "Firmware Version => %s\n\n",
-                       config_->inertial_device_->firmwareVersion().str().c_str());
+      res.model_name = config_->inertial_device_->modelName();
+      res.model_number = config_->inertial_device_->modelNumber();
+      res.serial_number = config_->inertial_device_->serialNumber();
+      res.options = config_->inertial_device_->deviceOptions();
+      res.firmware_version = config_->inertial_device_->firmwareVersion().str();
+      MICROSTRAIN_DEBUG(node_, "Model Name       => %s\n", res.model_name.c_str());
+      MICROSTRAIN_DEBUG(node_, "Model Number     => %s\n", res.model_number.c_str());
+      MICROSTRAIN_DEBUG(node_, "Serial Number    => %s\n", res.serial_number.c_str());
+      MICROSTRAIN_DEBUG(node_, "Options          => %s\n", res.options.c_str());
+      MICROSTRAIN_DEBUG(node_, "Firmware Version => %s\n\n",
+                       res.firmware_version.c_str());
       res.success = true;
     }
     catch (mscl::Error& e)
     {
       MICROSTRAIN_ERROR(node_, "Error: %s", e.what());
+      res.success = false;
     }
   }
-
   return res.success;
 }
 

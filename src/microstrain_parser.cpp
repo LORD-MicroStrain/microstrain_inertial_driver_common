@@ -821,37 +821,53 @@ void MicrostrainParser::parseFilterPacket(const mscl::MipDataPacket& packet)
 
       case mscl::MipTypes::CH_FIELD_ESTFILTER_AIDING_MEASURE_SUMMARY:
       {
+        if (point.qualifier() == mscl::MipTypes::CH_TIME_OF_WEEK)
+        {
+          filter_aiding_measurement_summary_received = true;
+          publishers_->filter_aiding_measurement_summary_msg_.gps_tow = point.as_float();
+        }
         if (point.hasAddlIdentifiers())
         {
+          uint8_t source = 0;
+          mscl::MipChannelIdentifier::AidingMeasurementTypes type;
           FilterAidingMeasurementSummaryIndicatorMsg* indicator = nullptr;
           for (const auto& identifier : point.addlIdentifiers())
           {
             if (identifier.identifierType() == mscl::MipChannelIdentifier::AIDING_MEASUREMENT_TYPE)
             {
-              switch (identifier.id())
-              {
-                case mscl::MipChannelIdentifier::AidingMeasurementTypes::GNSS:
-                  indicator = &(publishers_->filter_aiding_measurement_summary_msg_.gnss);
-                  break;
-                case mscl::MipChannelIdentifier::AidingMeasurementTypes::DUAL_ANTENNA:
-                  indicator = &(publishers_->filter_aiding_measurement_summary_msg_.dual_antenna);
-                  break;
-                case mscl::MipChannelIdentifier::AidingMeasurementTypes::HEADING:
-                  indicator = &(publishers_->filter_aiding_measurement_summary_msg_.heading);
-                  break;
-                case mscl::MipChannelIdentifier::AidingMeasurementTypes::PRESSURE:
-                  indicator = &(publishers_->filter_aiding_measurement_summary_msg_.pressure);
-                  break;
-                case mscl::MipChannelIdentifier::AidingMeasurementTypes::MAGNETOMETER:
-                  indicator = &(publishers_->filter_aiding_measurement_summary_msg_.magnetometer);
-                  break;
-                case mscl::MipChannelIdentifier::AidingMeasurementTypes::SPEED:
-                  indicator = &(publishers_->filter_aiding_measurement_summary_msg_.speed);
-                  break;
-                default:
-                  continue;
-              }
+              type = static_cast<mscl::MipChannelIdentifier::AidingMeasurementTypes>(identifier.id());
             }
+            else if (identifier.identifierType() == mscl::MipChannelIdentifier::GNSS_RECEIVER_ID)
+            {
+              source = identifier.id() - 1;
+            }
+          }
+
+          switch (type)
+          {
+            case mscl::MipChannelIdentifier::AidingMeasurementTypes::GNSS:
+              if (source == GNSS1_ID)
+                indicator = &(publishers_->filter_aiding_measurement_summary_msg_.gnss1);
+              else if (source == GNSS2_ID)
+                indicator = &(publishers_->filter_aiding_measurement_summary_msg_.gnss2);
+              break;
+            case mscl::MipChannelIdentifier::AidingMeasurementTypes::DUAL_ANTENNA:
+              indicator = &(publishers_->filter_aiding_measurement_summary_msg_.dual_antenna);
+              break;
+            case mscl::MipChannelIdentifier::AidingMeasurementTypes::HEADING:
+              indicator = &(publishers_->filter_aiding_measurement_summary_msg_.heading);
+              break;
+            case mscl::MipChannelIdentifier::AidingMeasurementTypes::PRESSURE:
+              indicator = &(publishers_->filter_aiding_measurement_summary_msg_.pressure);
+              break;
+            case mscl::MipChannelIdentifier::AidingMeasurementTypes::MAGNETOMETER:
+              indicator = &(publishers_->filter_aiding_measurement_summary_msg_.magnetometer);
+              break;
+            case mscl::MipChannelIdentifier::AidingMeasurementTypes::SPEED:
+              indicator = &(publishers_->filter_aiding_measurement_summary_msg_.speed);
+              break;
+            default:
+              continue;
           }
 
           if (indicator != nullptr)
@@ -863,7 +879,6 @@ void MicrostrainParser::parseFilterPacket(const mscl::MipDataPacket& packet)
             indicator->sample_time_warning = indicator_bits & mscl::InertialTypes::AidingMeasurementStatus::AIDING_MEASUREMENT_WARNING_SAMPLE_TIME;
             indicator->configuration_error = indicator_bits & mscl::InertialTypes::AidingMeasurementStatus::AIDING_MEASUREMENT_CONFIG_ERROR;
             indicator->max_num_meas_exceeded = indicator_bits & mscl::InertialTypes::AidingMeasurementStatus::AIDING_MEASUREMENT_MAX_COUNT_EXCEEDED;
-            filter_aiding_measurement_summary_received = true;
           }
         }
       }
@@ -1041,6 +1056,25 @@ void MicrostrainParser::parseGNSSPacket(const mscl::MipDataPacket& packet, int g
         }
       }
       break;
+
+      case mscl::MipTypes::ChannelField::CH_FIELD_GNSS_1_FIX_INFO:
+      case mscl::MipTypes::ChannelField::CH_FIELD_GNSS_2_FIX_INFO:
+      {
+        if (point.qualifier() == mscl::MipTypes::CH_FIX_TYPE)
+        {
+          publishers_->gnss_fix_info_msg_[gnss_id].fix_type = point.as_uint8();
+        }
+        else if (point.qualifier() == mscl::MipTypes::CH_SV_COUNT)
+        {
+          publishers_->gnss_fix_info_msg_[gnss_id].num_sv = point.as_uint8();
+        }
+        else if (point.qualifier() == mscl::MipTypes::CH_FLAGS)
+        {
+          publishers_->gnss_fix_info_msg_[gnss_id].sbas_used = point.as_uint16() & mscl::InertialTypes::GnssFixFlags::FIX_SBAS_CORRECTIONS;
+          publishers_->gnss_fix_info_msg_[gnss_id].dngss_used = point.as_uint16() & mscl::InertialTypes::GnssFixFlags::FIX_DGNSS_CORRECTIONS;
+        }
+      }
+      break;
     }
   }
 
@@ -1049,6 +1083,7 @@ void MicrostrainParser::parseGNSSPacket(const mscl::MipDataPacket& packet, int g
   {
     publishers_->gnss_pub_[gnss_id]->publish(publishers_->gnss_msg_[gnss_id]);
     publishers_->gnss_odom_pub_[gnss_id]->publish(publishers_->gnss_odom_msg_[gnss_id]);
+    publishers_->gnss_fix_info_pub_[gnss_id]->publish(publishers_->gnss_fix_info_msg_[gnss_id]);
 
     if (time_valid)
       publishers_->gnss_time_pub_[gnss_id]->publish(publishers_->gnss_time_msg_[gnss_id]);

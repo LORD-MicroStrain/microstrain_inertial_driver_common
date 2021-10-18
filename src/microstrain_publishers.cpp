@@ -61,6 +61,7 @@ bool MicrostrainPublishers::configure()
     gnss_pub_[GNSS1_ID] = create_publisher<NavSatFixMsg>(node_, "gnss1/fix", 100);
     gnss_odom_pub_[GNSS1_ID] = create_publisher<OdometryMsg>(node_, "gnss1/odom", 100);
     gnss_time_pub_[GNSS1_ID] = create_publisher<TimeReferenceMsg>(node_, "gnss1/time_ref", 100);
+    gnss_fix_info_pub_[GNSS1_ID] = create_publisher<GNSSFixInfoMsg>(node_, "gnss1/fix_info", 100);
 
     if (config_->inertial_device_->features().supportsCommand(
             mscl::MipTypes::Command::CMD_EF_AIDING_MEASUREMENT_ENABLE))
@@ -76,6 +77,7 @@ bool MicrostrainPublishers::configure()
     gnss_pub_[GNSS2_ID] = create_publisher<NavSatFixMsg>(node_, "gnss2/fix", 100);
     gnss_odom_pub_[GNSS2_ID] = create_publisher<OdometryMsg>(node_, "gnss2/odom", 100);
     gnss_time_pub_[GNSS2_ID] = create_publisher<TimeReferenceMsg>(node_, "gnss2/time_ref", 100);
+    gnss_fix_info_pub_[GNSS2_ID] = create_publisher<GNSSFixInfoMsg>(node_, "gnss2/fix_info", 100);
 
     if (config_->inertial_device_->features().supportsCommand(
             mscl::MipTypes::Command::CMD_EF_AIDING_MEASUREMENT_ENABLE))
