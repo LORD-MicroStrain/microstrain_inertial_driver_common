@@ -35,7 +35,7 @@ bool MicrostrainServices::configure()
   if (config_->inertial_device_->features().supportsCommand(mscl::MipTypes::Command::CMD_GET_DEVICE_INFO))
   {
     device_report_service_ =
-        create_service<TriggerServiceMsg>(node_, "device_report", &MicrostrainServices::deviceReport, this);
+        create_service<DeviceReportServiceMsg>(node_, "device_report", &MicrostrainServices::deviceReport, this);
   }
 
   // IMU tare orientation service

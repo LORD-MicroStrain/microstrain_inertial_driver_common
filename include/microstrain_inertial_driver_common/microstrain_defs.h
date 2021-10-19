@@ -148,7 +148,7 @@ constexpr auto NUM_GNSS = 2;
 #include "microstrain_inertial_msgs/msg/filter_status.hpp"
 #include "microstrain_inertial_msgs/msg/filter_heading.hpp"
 #include "microstrain_inertial_msgs/msg/filter_heading_state.hpp"
-#include "microstrain_inertial_msgs/msg/filter_aiding_measurement_summary.h"
+#include "microstrain_inertial_msgs/msg/filter_aiding_measurement_summary.hpp"
 #include "microstrain_inertial_msgs/msg/gps_correlation_timestamp_stamped.hpp"
 #include "microstrain_inertial_msgs/msg/gnss_aiding_status.hpp"
 #include "microstrain_inertial_msgs/msg/gnss_dual_antenna_status.hpp"
@@ -493,7 +493,7 @@ using FilterHeadingPubType = ::rclcpp_lifecycle::LifecyclePublisher<FilterHeadin
 using FilterAidingMeasurementSummaryPubType = ::rclcpp_lifecycle::LifecyclePublisher<FilterAidingMeasurementSummaryMsg>::SharedPtr;
 using GNSSAidingStatusPubType = ::rclcpp_lifecycle::LifecyclePublisher<GNSSAidingStatusMsg>::SharedPtr;
 using GNSSDualAntennaStatusPubType = ::rclcpp_lifecycle::LifecyclePublisher<GNSSDualAntennaStatusMsg>::SharedPtr;
-using GNSSFixInfoPubType = ::rcpcpp_lifecycle::LifecyclePublisher<GNSSFixInfoMsg>::SharedPtr;
+using GNSSFixInfoPubType = ::rclcpp_lifecycle::LifecyclePublisher<GNSSFixInfoMsg>::SharedPtr;
 using FilterHeadingStatePubType = ::rclcpp_lifecycle::LifecyclePublisher<FilterHeadingStateMsg>::SharedPtr;
 using GPSCorrelationTimestampStampedPubType =
     ::rclcpp_lifecycle::LifecyclePublisher<GPSCorrelationTimestampStampedMsg>::SharedPtr;
