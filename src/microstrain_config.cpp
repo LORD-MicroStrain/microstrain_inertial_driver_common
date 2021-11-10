@@ -65,6 +65,7 @@ bool MicrostrainConfig::configure(RosNodeType* node)
   // GNSS 1/2
   get_param<bool>(node, "publish_gnss1", publish_gnss_[GNSS1_ID], false);
   get_param<bool>(node, "publish_gnss2", publish_gnss_[GNSS2_ID], false);
+  get_param<bool>(node, "rtk_dongle_enable", publish_rtk_, false);
   get_param<int32_t>(node, "gnss1_data_rate", gnss_data_rate_[GNSS1_ID], 1);
   get_param<int32_t>(node, "gnss2_data_rate", gnss_data_rate_[GNSS2_ID], 1);
   get_param<std::vector<double>>(node, "gnss1_antenna_offset", gnss_antenna_offset_[GNSS1_ID], DEFAULT_VECTOR);
@@ -76,6 +77,7 @@ bool MicrostrainConfig::configure(RosNodeType* node)
   get_param<bool>(node, "publish_filter", publish_filter_, false);
   get_param<int32_t>(node, "filter_data_rate", filter_data_rate_, 10);
   get_param<std::string>(node, "filter_frame_id", filter_frame_id_, filter_frame_id_);
+  get_param<std::string>(node, "filter_child_frame_id", filter_child_frame_id_, filter_child_frame_id_);
   get_param<bool>(node, "publish_relative_position", publish_filter_relative_pos_, false);
   get_param<double>(node, "gps_leap_seconds", gps_leap_seconds_, 18.0);
   get_param<bool>(node, "filter_angular_zupt", angular_zupt_, false);
@@ -94,6 +96,9 @@ bool MicrostrainConfig::configure(RosNodeType* node)
   get_param<std::string>(node, "filter_angular_zupt_topic", angular_zupt_topic_, std::string("/moving_ang"));
   get_param<std::string>(node, "filter_external_gps_time_topic", external_gps_time_topic_,
                          std::string("/external_gps_time"));
+
+  // Enable dual antenna messages
+  publish_gnss_dual_antenna_status_ = filter_enable_gnss_heading_aiding_;
 
   // Raw data file save
   get_param<bool>(node, "raw_file_enable", raw_file_enable_, false);
@@ -229,11 +234,9 @@ bool MicrostrainConfig::setupDevice(RosNodeType* node)
   // Read the config used by this section
   bool save_settings;
   bool gpio_config;
-  bool rtk_dongle_enable;
   bool filter_reset_after_config;
   get_param<bool>(node, "save_settings", save_settings, true);
   get_param<bool>(node, "gpio_config", gpio_config, false);
-  get_param<bool>(node, "rtk_dongle_enable", rtk_dongle_enable, false);
   get_param<bool>(node, "filter_reset_after_config", filter_reset_after_config, true);
 
   // GPIO config
@@ -265,7 +268,7 @@ bool MicrostrainConfig::setupDevice(RosNodeType* node)
   }
 
   // RTK Dongle
-  if (rtk_dongle_enable && supports_rtk_)
+  if (supports_rtk_)
   {
     if (!configureRTK(node))
       return false;
@@ -566,37 +569,38 @@ bool MicrostrainConfig::configureGNSS(RosNodeType* node, uint8_t gnss_id)
 
 bool MicrostrainConfig::configureRTK(RosNodeType* node)
 {
-  mscl::SampleRate gnss3_rate = mscl::SampleRate::Hertz(1);
-
-  MICROSTRAIN_INFO(node_, "Setting RTK data to stream at 1 hz");
-
-  mscl::MipTypes::MipChannelFields gnssChannels{ mscl::MipTypes::ChannelField::CH_FIELD_GNSS_3_RTK_CORRECTIONS_STATUS };
-
-  mscl::MipChannels supportedChannels;
-  for (mscl::MipTypes::ChannelField channel :
-       inertial_device_->features().supportedChannelFields(mscl::MipTypes::DataClass::CLASS_GNSS3))
+  if (publish_rtk_)
   {
-    if (std::find(gnssChannels.begin(), gnssChannels.end(), channel) != gnssChannels.end())
+    mscl::SampleRate gnss3_rate = mscl::SampleRate::Hertz(1);
+
+    MICROSTRAIN_INFO(node_, "Setting RTK data to stream at 1 hz");
+
+    mscl::MipTypes::MipChannelFields gnssChannels{ mscl::MipTypes::ChannelField::CH_FIELD_GNSS_3_RTK_CORRECTIONS_STATUS };
+
+    mscl::MipChannels supportedChannels;
+    for (mscl::MipTypes::ChannelField channel :
+        inertial_device_->features().supportedChannelFields(mscl::MipTypes::DataClass::CLASS_GNSS3))
     {
-      supportedChannels.push_back(mscl::MipChannel(channel, gnss3_rate));
+      if (std::find(gnssChannels.begin(), gnssChannels.end(), channel) != gnssChannels.end())
+      {
+        supportedChannels.push_back(mscl::MipChannel(channel, gnss3_rate));
+      }
     }
+
+    inertial_device_->enableDataStream(mscl::MipTypes::DataClass::CLASS_GNSS3);
   }
 
-  // set the GNSS channel fields
-  inertial_device_->setActiveChannelFields(mscl::MipTypes::DataClass::CLASS_GNSS3, supportedChannels);
-
+  // Check if the device even supports the RTK command, and enable/disable accordingly
   if (inertial_device_->features().supportsCommand(mscl::MipTypes::Command::CMD_GNSS_RTK_CONFIG))
   {
-    MICROSTRAIN_INFO(node_, "Setting RTK dongle enable to 1");
-    inertial_device_->enableRtk(true);
-    publish_rtk_ = true;
+    MICROSTRAIN_INFO(node_, "Setting RTK dongle enable to %d", publish_rtk_);
+    inertial_device_->enableRtk(publish_rtk_);
   }
   else
   {
     MICROSTRAIN_INFO(node_, "Note: Device does not support the RTK dongle config command");
   }
 
-  inertial_device_->enableDataStream(mscl::MipTypes::DataClass::CLASS_GNSS3);
   return true;
 }
 
@@ -905,9 +909,6 @@ bool MicrostrainConfig::configureFilter(RosNodeType* node)
   {
     MICROSTRAIN_INFO(node_, "Note: The device does not support the next-gen filter initialization command.");
   }
-
-  // Enable dual antenna messages
-  publish_gnss_dual_antenna_status_ = filter_enable_gnss_heading_aiding_;
 
   // Enable the filter datastream
   inertial_device_->enableDataStream(mscl::MipTypes::DataClass::CLASS_ESTFILTER);

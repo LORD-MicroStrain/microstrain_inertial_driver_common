@@ -29,6 +29,9 @@ bool MicrostrainPublishers::configure()
     device_status_pub_ = create_publisher<StatusMsg>(node_, "device/status", 100);
   }
 
+  // Create the transorm broadcaster
+  transform_broadcaster_ = create_transform_broadcaster(node_);
+
   // Publish IMU data, if enabled
   if (config_->publish_imu_)
   {
