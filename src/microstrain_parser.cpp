@@ -84,6 +84,14 @@ void MicrostrainParser::parseAuxString(const std::string& aux_string)
       break;
     }
 
+    // If there is another $ between the first $ and the end string, the first $ might have been part of a MIP message, so start over at the second $
+    const size_t possible_mid_index = aux_string.find('$', nmea_start_index + 1);
+    if (possible_mid_index != std::string::npos && possible_mid_index < nmea_end_index)
+    {
+      search_index = possible_mid_index;
+      continue;
+    }
+
     // Get the NMEA substring, and update the index for the next iteration
     const std::string& nmea_sentence = aux_string.substr(nmea_start_index, nmea_end_index - nmea_start_index);
     search_index = nmea_end_index + 1;
