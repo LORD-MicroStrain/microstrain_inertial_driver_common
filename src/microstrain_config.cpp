@@ -227,7 +227,8 @@ bool MicrostrainConfig::connectDevice(RosNodeType* node)
     if (supports_rtk_ && (subscribe_rtcm_ || publish_nmea_))
     {
       MICROSTRAIN_INFO(node_, "Attempting to open aux serial port <%s> at <%d>", aux_port.c_str(), baudrate);
-      aux_connection_ = mscl::Connection::Serial(realpath(port.c_str(), 0), (uint32_t)baudrate);
+      aux_connection_ = std::unique_ptr<mscl::Connection>(new mscl::Connection(mscl::Connection::Serial(realpath(aux_port.c_str(), 0), (uint32_t)baudrate)));
+      aux_connection_->rawByteMode(true);
     }
 
   }

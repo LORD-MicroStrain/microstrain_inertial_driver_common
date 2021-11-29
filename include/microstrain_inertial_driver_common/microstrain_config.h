@@ -120,7 +120,7 @@ public:
 
   // Device pointer used to interact with the device
   std::unique_ptr<mscl::InertialNode> inertial_device_;
-  mscl::Connection aux_connection_;
+  std::unique_ptr<mscl::Connection> aux_connection_;
 
   // Config read from the device
   bool supports_gnss1_;

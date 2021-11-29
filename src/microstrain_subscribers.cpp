@@ -188,7 +188,7 @@ void MicrostrainSubscribers::rtcmCallback(const RTCMMsg& rtcm)
 {
   try
   {
-    config_->aux_connection_.write(rtcm.data);
+    config_->aux_connection_->write(rtcm.data);
   }
   catch (mscl::Error& e)
   {

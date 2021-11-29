@@ -29,6 +29,11 @@ void MicrostrainNodeBase::parseAndPublish()
   }
 
   // TODO(robbiefish): If we can publish NMEA messages, do that here
+  const auto& nmea_sentence = config_.aux_connection_->getRawBytesStr();
+  if (nmea_sentence.size() > 0)
+  {
+    std::cout << nmea_sentence << std::endl;
+  }
 
   // Save raw data, if enabled
   if (config_.raw_file_enable_)
