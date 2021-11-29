@@ -28,6 +28,8 @@ void MicrostrainNodeBase::parseAndPublish()
     parser_.parseMIPPacket(packet);
   }
 
+  // TODO(robbiefish): If we can publish NMEA messages, do that here
+
   // Save raw data, if enabled
   if (config_.raw_file_enable_)
   {
