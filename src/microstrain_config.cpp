@@ -34,6 +34,7 @@ bool MicrostrainConfig::configure(RosNodeType* node)
   gnss_frame_id_[GNSS2_ID] = "gnss2_antenna_wgs84_ned";
   filter_frame_id_ = "sensor_wgs84_ned";
   filter_child_frame_id_ = "sensor";
+  nmea_frame_id_ = "nmea";
   t_ned2enu_ = tf2::Matrix3x3(0, 1, 0, 1, 0, 0, 0, 0, -1);
   t_vehiclebody2sensorbody_ = tf2::Matrix3x3(1, 0, 0, 0, -1, 0, 0, 0, -1);
 
@@ -77,6 +78,7 @@ bool MicrostrainConfig::configure(RosNodeType* node)
   get_param<bool>(node, "subscribe_rtcm", subscribe_rtcm_, false);
   get_param<std::string>(node, "rtcm_topic", rtcm_topic_, std::string("/rtcm"));
   get_param<bool>(node, "publish_nmea", publish_nmea_, false);
+  get_param<std::string>(node, "nmea_frame_id", nmea_frame_id_, nmea_frame_id_);
 
   // FILTER
   get_param<bool>(node, "publish_filter", publish_filter_, false);

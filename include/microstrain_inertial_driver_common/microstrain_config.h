@@ -155,6 +155,7 @@ public:
   std::string gnss_frame_id_[NUM_GNSS];
   std::string filter_frame_id_;
   std::string filter_child_frame_id_;
+  std::string nmea_frame_id_;
 
   // Topic strings
   std::string velocity_zupt_topic_;

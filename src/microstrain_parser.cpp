@@ -63,6 +63,40 @@ void MicrostrainParser::parseMIPPacket(const mscl::MipDataPacket& packet)
   }
 }
 
+void MicrostrainParser::parseAuxString(const std::string& aux_string)
+{
+  // Each string may have more than one NMEA message
+  size_t search_index = 0;
+  while (search_index < aux_string.size())
+  {
+    // If we can't find a $, there are no more NMEA sentences, so exit early
+    const size_t nmea_start_index = aux_string.find('$', search_index);
+    if (nmea_start_index == std::string::npos)
+    {
+      break;
+    }
+
+    // Search for the end of the NMEA string
+    const size_t nmea_end_index = aux_string.find("\r\n", nmea_start_index + 1) + 1;
+    if (nmea_end_index == std::string::npos)
+    {
+      MICROSTRAIN_WARN(node_, "Malformed NMEA sentence received. Ignoring sentence");
+      break;
+    }
+
+    // Get the NMEA substring, and update the index for the next iteration
+    const std::string& nmea_sentence = aux_string.substr(nmea_start_index, nmea_end_index - nmea_start_index);
+    search_index = nmea_end_index + 1;
+
+    // Publish the NMEA sentence to ROS
+    std::cout << nmea_sentence << std::endl;
+    publishers_->nmea_sentence_msg_.header.stamp = ros_time_now(node_);
+    publishers_->nmea_sentence_msg_.header.frame_id = config_->nmea_frame_id_;
+    publishers_->nmea_sentence_msg_.sentence = nmea_sentence;
+    publishers_->nmea_sentence_pub_->publish(publishers_->nmea_sentence_msg_);
+  }
+}
+
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 // MIP IMU Packet Parsing Function
 /////////////////////////////////////////////////////////////////////////////////////////////////////
