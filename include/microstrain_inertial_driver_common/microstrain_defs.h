@@ -501,7 +501,7 @@ using RTCMMsg = ::mavros_msgs::msg::RTCM;
 // ROS2 Subscriber Types
 using BoolSubType = ::rclcpp::Subscription<BoolMsg>::SharedPtr;
 using TimeReferenceSubType = ::rclcpp::Subscription<TimeReferenceMsg>::SharedPtr;
-using RTCMSubType = rclcpp::Subscription<RTCMMsg>::ShardPtr;
+using RTCMSubType = rclcpp::Subscription<RTCMMsg>::SharedPtr;
 
 // ROS2 Service Message Types
 using TriggerServiceMsg = std_srvs::srv::Trigger;
