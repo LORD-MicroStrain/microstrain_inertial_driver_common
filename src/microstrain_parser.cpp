@@ -76,6 +76,15 @@ void MicrostrainParser::parseAuxString(const std::string& aux_string)
       break;
     }
 
+    // Make sure that what follows the dollar sign is a string that is 5 characters long and a comma
+    const size_t first_comma_index = aux_string.find(',', nmea_start_index + 1);
+    if (first_comma_index == std::string::npos || first_comma_index - nmea_start_index > 6)
+    {
+      // This is either an invalid NMEA message, or a MIP packet, either way skip it
+      search_index++;
+      continue;
+    }
+
     // Search for the end of the NMEA string
     const size_t nmea_end_index = aux_string.find("\r\n", nmea_start_index + 1) + 1;
     if (nmea_end_index == std::string::npos)
@@ -93,11 +102,10 @@ void MicrostrainParser::parseAuxString(const std::string& aux_string)
     }
 
     // Get the NMEA substring, and update the index for the next iteration
-    const std::string& nmea_sentence = aux_string.substr(nmea_start_index, nmea_end_index - nmea_start_index);
+    const std::string& nmea_sentence = aux_string.substr(nmea_start_index, (nmea_end_index - nmea_start_index) + 1);
     search_index = nmea_end_index + 1;
 
     // Publish the NMEA sentence to ROS
-    std::cout << nmea_sentence << std::endl;
     publishers_->nmea_sentence_msg_.header.stamp = ros_time_now(node_);
     publishers_->nmea_sentence_msg_.header.frame_id = config_->nmea_frame_id_;
     publishers_->nmea_sentence_msg_.sentence = nmea_sentence;
