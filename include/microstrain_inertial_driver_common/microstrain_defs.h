@@ -57,6 +57,8 @@ constexpr auto NUM_GNSS = 2;
 #include "microstrain_inertial_msgs/GNSSAidingStatus.h"
 #include "microstrain_inertial_msgs/GNSSDualAntennaStatus.h"
 
+#include "microstrain_inertial_msgs/InputSpeedMeasurement.h"
+
 #include "std_srvs/Empty.h"
 #include "std_srvs/Trigger.h"
 
@@ -112,6 +114,7 @@ constexpr auto NUM_GNSS = 2;
 #include "microstrain_inertial_msgs/ExternalHeadingUpdate.h"
 #include "microstrain_inertial_msgs/SetRelativePositionReference.h"
 #include "microstrain_inertial_msgs/GetRelativePositionReference.h"
+#include "microstrain_inertial_msgs/SetFilterSpeedLeverArm.h"
 
 /**
  * ROS2 Includes
@@ -148,6 +151,8 @@ constexpr auto NUM_GNSS = 2;
 #include "microstrain_inertial_msgs/msg/gps_correlation_timestamp_stamped.hpp"
 #include "microstrain_inertial_msgs/msg/gnss_aiding_status.hpp"
 #include "microstrain_inertial_msgs/msg/gnss_dual_antenna_status.hpp"
+
+#include "microstrain_inertial_msgs/msg/input_speed_measurement.hpp"
 
 #include "microstrain_inertial_msgs/srv/set_accel_bias.hpp"
 #include "microstrain_inertial_msgs/srv/get_accel_bias.hpp"
@@ -201,6 +206,7 @@ constexpr auto NUM_GNSS = 2;
 #include "microstrain_inertial_msgs/srv/external_heading_update.hpp"
 #include "microstrain_inertial_msgs/srv/set_relative_position_reference.hpp"
 #include "microstrain_inertial_msgs/srv/get_relative_position_reference.hpp"
+#include "microstrain_inertial_msgs/srv/set_filter_speed_lever_arm.hpp"
 #else
 #error "Unsupported ROS version. -DMICROSTRAIN_ROS_VERSION must be set to 1 or 2"
 #endif
@@ -257,10 +263,12 @@ using TransformBroadcasterType = std::shared_ptr<::tf2_ros::TransformBroadcaster
 // ROS1 Subscriber Message Types
 using BoolMsg = ::std_msgs::Bool;
 using TimeReferenceMsg = ::sensor_msgs::TimeReference;
+using InputSpeedMeasurementMsg = ::microstrain_inertial_msgs::InputSpeedMeasurement;
 
 // ROS1 Subscriber Types
 using BoolSubType = RosSubType;
 using TimeReferenceSubType = RosSubType;
+using InputSpeedMeasurementSubType = RosSubType;
 
 // ROS1 Service Message Types
 using TriggerServiceMsg = std_srvs::Trigger;
@@ -346,6 +354,8 @@ using GetRelativePositionReferenceServiceMsg = ::microstrain_inertial_msgs::GetR
 
 using DeviceSettingsServiceMsg = ::microstrain_inertial_msgs::DeviceSettings;
 
+using SetFilterSpeedLeverArmServiceMsg = ::microstrain_inertial_msgs::SetFilterSpeedLeverArm;
+
 // ROS1 Service Types
 using TriggerServiceType = RosServiceType;
 using EmptyServiceType = RosServiceType;
@@ -430,6 +440,8 @@ using GetRelativePositionReferenceServiceType = RosServiceType;
 
 using DeviceSettingsServiceType = RosServiceType;
 
+using SetFilterSpeedLeverArmServiceType = RosServiceType;
+
 // ROS1 Logging
 #define MICROSTRAIN_DEBUG(NODE, ...) ROS_DEBUG(__VA_ARGS__)
 #define MICROSTRAIN_INFO(NODE, ...) ROS_INFO(__VA_ARGS__)
@@ -486,10 +498,12 @@ using TransformBroadcasterType = std::shared_ptr<::tf2_ros::TransformBroadcaster
 // ROS2 Subscriber Message Types
 using BoolMsg = ::std_msgs::msg::Bool;
 using TimeReferenceMsg = ::sensor_msgs::msg::TimeReference;
+using InputSpeedMeasurementMsg = ::microstrain_inertial_msg::msg::InputSpeedMeasurement;
 
 // ROS2 Subscriber Types
 using BoolSubType = ::rclcpp::Subscription<BoolMsg>::SharedPtr;
 using TimeReferenceSubType = ::rclcpp::Subscription<TimeReferenceMsg>::SharedPtr;
+using InputSpeedMeasurementSubType = ::rclcpp::Subscription<InputSpeedMeasurementMsg>::SharedPtr;
 
 // ROS2 Service Message Types
 using TriggerServiceMsg = std_srvs::srv::Trigger;
@@ -574,6 +588,8 @@ using SetRelativePositionReferenceServiceMsg = microstrain_inertial_msgs::srv::S
 using GetRelativePositionReferenceServiceMsg = microstrain_inertial_msgs::srv::GetRelativePositionReference;
 
 using DeviceSettingsServiceMsg = microstrain_inertial_msgs::srv::DeviceSettings;
+
+using SetFilterSpeedLeverArmServiceMsg = microstrain_inertial_msgs::srv::SetFilterSpeedLeverArm;
 
 // ROS2 Service Types
 using TriggerServiceType = ::rclcpp::Service<TriggerServiceMsg>::SharedPtr;
@@ -661,6 +677,8 @@ using SetRelativePositionReferenceServiceType = ::rclcpp::Service<SetRelativePos
 using GetRelativePositionReferenceServiceType = ::rclcpp::Service<GetRelativePositionReferenceServiceMsg>::SharedPtr;
 
 using DeviceSettingsServiceType = ::rclcpp::Service<DeviceSettingsServiceMsg>::SharedPtr;
+
+using SetFilterSpeedLeverArmServiceType = ::rclcpp::Service<SetFilterSpeedLeverArmServiceMsg>::SharedPtr;
 
 // ROS2 Logging
 #define MICROSTRAIN_DEBUG(NODE, ...) RCLCPP_DEBUG(NODE->get_logger(), __VA_ARGS__)

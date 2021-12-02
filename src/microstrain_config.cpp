@@ -73,6 +73,9 @@ bool MicrostrainConfig::configure(RosNodeType* node)
   get_param<std::string>(node, "gnss1_frame_id", gnss_frame_id_[GNSS1_ID], gnss_frame_id_[GNSS1_ID]);
   get_param<std::string>(node, "gnss2_frame_id", gnss_frame_id_[GNSS2_ID], gnss_frame_id_[GNSS2_ID]);
 
+  // HARDWARE ODOM
+  get_param<bool>(node, "enable_hardware_odometer", enable_hardware_odometer_, false);
+
   // FILTER
   get_param<bool>(node, "publish_filter", publish_filter_, false);
   get_param<int32_t>(node, "filter_data_rate", filter_data_rate_, 10);
@@ -96,6 +99,7 @@ bool MicrostrainConfig::configure(RosNodeType* node)
   get_param<std::string>(node, "filter_angular_zupt_topic", angular_zupt_topic_, std::string("/moving_ang"));
   get_param<std::string>(node, "filter_external_gps_time_topic", external_gps_time_topic_,
                          std::string("/external_gps_time"));
+  get_param<std::string>(node, "filter_external_speed_topic", external_speed_topic_, "/external_speed");
 
   // Enable dual antenna messages
   publish_gnss_dual_antenna_status_ = filter_enable_gnss_heading_aiding_;
@@ -611,10 +615,14 @@ bool MicrostrainConfig::configureFilter(RosNodeType* node)
   float initial_heading;
   bool filter_auto_init = true;
   int dynamics_mode;
+  float hardware_odometer_scaling;
+  float hardware_odometer_uncertainty;
   get_param<int32_t>(node, "filter_heading_source", heading_source, 0x1);
   get_param<float>(node, "filter_initial_heading", initial_heading, 0.0);
   get_param<bool>(node, "filter_auto_init", filter_auto_init, true);
   get_param<int32_t>(node, "filter_dynamics_mode", dynamics_mode, 1);
+  get_param<float>(node, "odometer_scaling", hardware_odometer_scaling, 0.0);
+  get_param<float>(node, "odometer_uncertainty", hardware_odometer_uncertainty, 0.0);
 
   // Read some QG7 specific filter options
   int filter_adaptive_level;
@@ -908,6 +916,20 @@ bool MicrostrainConfig::configureFilter(RosNodeType* node)
   else
   {
     MICROSTRAIN_INFO(node_, "Note: The device does not support the next-gen filter initialization command.");
+  }
+
+  // Configure the hardware odometer settings  
+  if (inertial_device_->features().supportsCommand(mscl::MipTypes::Command::CMD_ODOMETER_SETTINGS))
+  {
+    mscl::OdometerConfiguration odom_config;
+    odom_config.mode(enable_hardware_odometer_ ? odom_config.QUADRATURE : odom_config.DISABLED);
+    odom_config.scaling(hardware_odometer_scaling);
+    odom_config.uncertainty(hardware_odometer_uncertainty);
+    inertial_device_->setOdometerConfig(odom_config);
+  }
+  else
+  {
+    MICROSTRAIN_INFO(node_, "Note: The device does not support the odometer settings command");
   }
 
   // Enable the filter datastream
