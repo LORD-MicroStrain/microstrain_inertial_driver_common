@@ -498,7 +498,7 @@ using TransformBroadcasterType = std::shared_ptr<::tf2_ros::TransformBroadcaster
 // ROS2 Subscriber Message Types
 using BoolMsg = ::std_msgs::msg::Bool;
 using TimeReferenceMsg = ::sensor_msgs::msg::TimeReference;
-using InputSpeedMeasurementMsg = ::microstrain_inertial_msg::msg::InputSpeedMeasurement;
+using InputSpeedMeasurementMsg = ::microstrain_inertial_msgs::msg::InputSpeedMeasurement;
 
 // ROS2 Subscriber Types
 using BoolSubType = ::rclcpp::Subscription<BoolMsg>::SharedPtr;
