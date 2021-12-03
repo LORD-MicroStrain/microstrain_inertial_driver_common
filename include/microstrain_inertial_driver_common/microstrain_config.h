@@ -120,6 +120,7 @@ public:
 
   // Device pointer used to interact with the device
   std::unique_ptr<mscl::InertialNode> inertial_device_;
+  std::unique_ptr<mscl::Connection> aux_connection_;
 
   // Config read from the device
   bool supports_gnss1_;
@@ -154,6 +155,7 @@ public:
   std::string gnss_frame_id_[NUM_GNSS];
   std::string filter_frame_id_;
   std::string filter_child_frame_id_;
+  std::string nmea_frame_id_;
 
   // Topic strings
   std::string velocity_zupt_topic_;
@@ -169,6 +171,11 @@ public:
   bool publish_filter_;
   bool publish_filter_relative_pos_;
   bool publish_rtk_;
+  bool publish_nmea_;
+
+  // RTCM subscriber
+  bool subscribe_rtcm_;
+  std::string rtcm_topic_;
 
   // ZUPT, angular ZUPT topic listener variables
   bool angular_zupt_;

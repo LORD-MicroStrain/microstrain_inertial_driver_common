@@ -33,9 +33,14 @@ class MicrostrainNodeBase
 {
 public:
   /**
-   * \brief Reads messages from the device, parses them, and publishes them. Meant to be executed in a loop
+   * \brief Reads messages from the main port of the device, parses them, and publishes them. Meant to be executed in a loop
    */
-  void parseAndPublish();
+  void parseAndPublishMain();
+
+  /**
+   * \brief Reads messages from the aux port of the device, parses them, and publishes them. Meant to be executed in a loop
+   */
+  void parseAndPublishAux();
 
 protected:
   /**
@@ -82,7 +87,8 @@ protected:
 
   double timer_update_rate_hz_;
 
-  RosTimerType parsing_timer_;
+  RosTimerType main_parsing_timer_;
+  RosTimerType aux_parsing_timer_;
   RosTimerType device_status_timer_;
 };  // MicrostrainNodeBase class
 

@@ -68,7 +68,13 @@ public:
    * \brief Accepts external GPS time to set time on the device
    * \param time  Message containing external GPS time
    */
-  void external_gps_time_callback(const TimeReferenceMsg& time);
+  void externalGpsTimeCallback(const TimeReferenceMsg& time);
+
+  /**
+   * \brief Accepts RTCM corrections from a ROS topic
+   * \param rtcm Message containing 
+   */
+  void rtcmCallback(const RTCMMsg& rtcm);
 
   // ZUPT subscribers
   BoolSubType filter_vel_state_sub_;
@@ -76,6 +82,9 @@ public:
 
   // External GNSS subscriber
   TimeReferenceSubType external_gps_time_sub_;
+
+  // RTCM subscriber
+  RTCMSubType rtcm_sub_;
 
 private:
   // Node Information
