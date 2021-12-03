@@ -64,6 +64,22 @@ bool MicrostrainSubscribers::activate()
     rtcm_sub_ = create_subscriber<>(node_, config_->rtcm_topic_.c_str(), 1000,
                                     &MicrostrainSubscribers::rtcmCallback, this);
   }
+
+  // Create a topic listener for external speed updates
+  if (config_->filter_enable_odometer_aiding_ &&
+      config_->inertial_device_->features().supportsCommand(mscl::MipTypes::Command::CMD_EF_EXTERN_SPEED_UPDATE))
+  {
+    if (!config_->enable_hardware_odometer_)
+    {
+      external_speed_sub_ = create_subscriber<>(node_, config_->external_speed_topic_.c_str(), 1000,
+                                                &MicrostrainSubscribers::externalSpeedCallback, this);
+    }
+    else
+    {
+      MICROSTRAIN_WARN(node_, "Note: Not enabling external speed subscriber as hardware odometer is enabled");
+    }
+  }
+
   return true;
 }
 
@@ -173,6 +189,24 @@ void MicrostrainSubscribers::externalGpsTimeCallback(const TimeReferenceMsg& tim
       config_->inertial_device_->setGPSTimeUpdate(mscl::MipTypes::TimeFrame::TIME_FRAME_SECONDS, secs);
 
       MICROSTRAIN_INFO(node_, "GPS Update: w%i, s%ld", weeks, secs);
+    }
+    catch (mscl::Error& e)
+    {
+      MICROSTRAIN_ERROR(node_, "Error: %s", e.what());
+    }
+  }
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+// External Speed Callback
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+void MicrostrainSubscribers::externalSpeedCallback(const InputSpeedMeasurementMsg& speed)
+{
+  if (config_->inertial_device_)
+  {
+    try
+    {
+      config_->inertial_device_->sendExternalSpeedMeasurementUpdate(speed.gps_tow, speed.speed, speed.speed_uncertainty);
     }
     catch (mscl::Error& e)
     {

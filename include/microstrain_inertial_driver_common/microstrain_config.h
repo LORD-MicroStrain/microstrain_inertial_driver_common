@@ -137,6 +137,9 @@ public:
   // Flag for using device timestamp instead of PC received time
   bool use_device_timestamp_;
 
+  // Whether to enable the hardware odometer through the GPIO pins
+  bool enable_hardware_odometer_;
+
   // FILTER
   double gps_leap_seconds_;
   bool filter_enable_gnss_heading_aiding_;
@@ -161,6 +164,7 @@ public:
   std::string velocity_zupt_topic_;
   std::string angular_zupt_topic_;
   std::string external_gps_time_topic_;
+  std::string external_speed_topic_;
 
   // Publish data flags
   bool publish_imu_;

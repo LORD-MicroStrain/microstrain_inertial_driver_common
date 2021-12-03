@@ -327,6 +327,14 @@ bool MicrostrainServices::configure()
     get_relative_position_reference_service_ = create_service<GetRelativePositionReferenceServiceMsg>(
         node_, "get_relative_position_reference", &MicrostrainServices::getRelativePositionReference, this);
   }
+
+  // Filter Speed Lever Arm Service
+  if (config_->inertial_device_->features().supportsCommand(mscl::MipTypes::Command::CMD_EF_SPEED_MEASUREMENT_OFFSET))
+  {
+    set_filter_speed_lever_arm_service_ = create_service<SetFilterSpeedLeverArmServiceMsg>(
+        node_, "set_filter_speed_lever_arm", &MicrostrainServices::setFilterSpeedLeverArm, this);
+  }
+
   return true;
 }
 
@@ -2459,6 +2467,29 @@ bool MicrostrainServices::getRelativePositionReference(GetRelativePositionRefere
       res.position.y = ref.position.y();
       res.position.z = ref.position.z();
 
+      res.success = true;
+    }
+    catch (mscl::Error& e)
+    {
+      MICROSTRAIN_ERROR(node_, "Error: %s", e.what());
+    }
+  }
+
+  return res.success;
+}
+
+bool MicrostrainServices::setFilterSpeedLeverArm(SetFilterSpeedLeverArmServiceMsg::Request& req,
+                              SetFilterSpeedLeverArmServiceMsg::Response& res)
+{
+  res.success = false;
+
+  if (config_->inertial_device_)
+  {
+    try
+    {
+      mscl::PositionOffset offset(req.offset.x, req.offset.y, req.offset.z);
+
+      config_->inertial_device_->setSpeedMeasurementOffset(offset);
       res.success = true;
     }
     catch (mscl::Error& e)
