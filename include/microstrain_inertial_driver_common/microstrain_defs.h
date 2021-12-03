@@ -47,6 +47,8 @@ constexpr auto NUM_GNSS = 2;
 #include "std_msgs/Bool.h"
 #include "std_msgs/String.h"
 #include "tf2_geometry_msgs/tf2_geometry_msgs.h"
+#include "mavros_msgs/RTCM.h"
+#include "nmea_msgs/Sentence.h"
 
 #include "microstrain_inertial_msgs/Status.h"
 #include "microstrain_inertial_msgs/RTKStatus.h"
@@ -142,6 +144,8 @@ constexpr auto NUM_GNSS = 2;
 #include "std_msgs/msg/bool.hpp"
 #include "std_msgs/msg/string.hpp"
 #include "tf2_geometry_msgs/tf2_geometry_msgs.h"
+#include "mavros_msgs/msg/rtcm.hpp"
+#include "nmea_msgs/msg/sentence.hpp"
 
 #include "microstrain_inertial_msgs/msg/status.hpp"
 #include "microstrain_inertial_msgs/msg/rtk_status.hpp"
@@ -232,6 +236,7 @@ using ImuMsg = ::sensor_msgs::Imu;
 using NavSatFixMsg = ::sensor_msgs::NavSatFix;
 using MagneticFieldMsg = ::sensor_msgs::MagneticField;
 using TimeReferenceMsg = ::sensor_msgs::TimeReference;
+using NMEASentenceMsg = ::nmea_msgs::Sentence;
 using StatusMsg = ::microstrain_inertial_msgs::Status;
 using RTKStatusMsg = ::microstrain_inertial_msgs::RTKStatus;
 using FilterStatusMsg = ::microstrain_inertial_msgs::FilterStatus;
@@ -248,6 +253,7 @@ using ImuPubType = RosPubType;
 using NavSatFixPubType = RosPubType;
 using MagneticFieldPubType = RosPubType;
 using TimeReferencePubType = RosPubType;
+using NMEASentencePubType = RosPubType;
 using StatusPubType = RosPubType;
 using RTKStatusPubType = RosPubType;
 using FilterStatusPubType = RosPubType;
@@ -264,11 +270,13 @@ using TransformBroadcasterType = std::shared_ptr<::tf2_ros::TransformBroadcaster
 using BoolMsg = ::std_msgs::Bool;
 using TimeReferenceMsg = ::sensor_msgs::TimeReference;
 using InputSpeedMeasurementMsg = ::microstrain_inertial_msgs::InputSpeedMeasurement;
+using RTCMMsg = ::mavros_msgs::RTCM;
 
 // ROS1 Subscriber Types
 using BoolSubType = RosSubType;
 using TimeReferenceSubType = RosSubType;
 using InputSpeedMeasurementSubType = RosSubType;
+using RTCMSubType = RosSubType;
 
 // ROS1 Service Message Types
 using TriggerServiceMsg = std_srvs::Trigger;
@@ -466,6 +474,7 @@ using ImuMsg = ::sensor_msgs::msg::Imu;
 using NavSatFixMsg = ::sensor_msgs::msg::NavSatFix;
 using MagneticFieldMsg = ::sensor_msgs::msg::MagneticField;
 using TimeReferenceMsg = ::sensor_msgs::msg::TimeReference;
+using NMEASentenceMsg = ::nmea_msgs::msg::Sentence;
 using StatusMsg = ::microstrain_inertial_msgs::msg::Status;
 using RTKStatusMsg = ::microstrain_inertial_msgs::msg::RTKStatus;
 using FilterStatusMsg = ::microstrain_inertial_msgs::msg::FilterStatus;
@@ -482,6 +491,7 @@ using ImuPubType = ::rclcpp_lifecycle::LifecyclePublisher<ImuMsg>::SharedPtr;
 using NavSatFixPubType = ::rclcpp_lifecycle::LifecyclePublisher<NavSatFixMsg>::SharedPtr;
 using MagneticFieldPubType = ::rclcpp_lifecycle::LifecyclePublisher<MagneticFieldMsg>::SharedPtr;
 using TimeReferencePubType = ::rclcpp_lifecycle::LifecyclePublisher<TimeReferenceMsg>::SharedPtr;
+using NMEASentencePubType = ::rclcpp_lifecycle::LifecyclePublisher<NMEASentenceMsg>::SharedPtr;
 using StatusPubType = ::rclcpp_lifecycle::LifecyclePublisher<StatusMsg>::SharedPtr;
 using RTKStatusPubType = ::rclcpp_lifecycle::LifecyclePublisher<RTKStatusMsg>::SharedPtr;
 using FilterStatusPubType = ::rclcpp_lifecycle::LifecyclePublisher<FilterStatusMsg>::SharedPtr;
@@ -499,11 +509,13 @@ using TransformBroadcasterType = std::shared_ptr<::tf2_ros::TransformBroadcaster
 using BoolMsg = ::std_msgs::msg::Bool;
 using TimeReferenceMsg = ::sensor_msgs::msg::TimeReference;
 using InputSpeedMeasurementMsg = ::microstrain_inertial_msgs::msg::InputSpeedMeasurement;
+using RTCMMsg = ::mavros_msgs::msg::RTCM;
 
 // ROS2 Subscriber Types
 using BoolSubType = ::rclcpp::Subscription<BoolMsg>::SharedPtr;
 using TimeReferenceSubType = ::rclcpp::Subscription<TimeReferenceMsg>::SharedPtr;
 using InputSpeedMeasurementSubType = ::rclcpp::Subscription<InputSpeedMeasurementMsg>::SharedPtr;
+using RTCMSubType = rclcpp::Subscription<RTCMMsg>::SharedPtr;
 
 // ROS2 Service Message Types
 using TriggerServiceMsg = std_srvs::srv::Trigger;

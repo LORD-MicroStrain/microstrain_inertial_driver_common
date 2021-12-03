@@ -44,6 +44,12 @@ public:
    */
   void parseMIPPacket(const mscl::MipDataPacket& packet);
 
+  /**
+   * \brief Parsing function that will parse the strings returned by the aux port of a GQ7
+   * \param aux_string The string read from the aux port 
+   */
+  void parseAuxString(const std::string& aux_string);
+
 private:
   /**
    * \brief Parses IMU packets if the MIP packet was an IMU packet and saves the data into a ROS message that will be published when it is filled out

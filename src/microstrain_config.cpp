@@ -34,6 +34,7 @@ bool MicrostrainConfig::configure(RosNodeType* node)
   gnss_frame_id_[GNSS2_ID] = "gnss2_antenna_wgs84_ned";
   filter_frame_id_ = "sensor_wgs84_ned";
   filter_child_frame_id_ = "sensor";
+  nmea_frame_id_ = "nmea";
   t_ned2enu_ = tf2::Matrix3x3(0, 1, 0, 1, 0, 0, 0, 0, -1);
   t_vehiclebody2sensorbody_ = tf2::Matrix3x3(1, 0, 0, 0, -1, 0, 0, 0, -1);
 
@@ -65,7 +66,6 @@ bool MicrostrainConfig::configure(RosNodeType* node)
   // GNSS 1/2
   get_param<bool>(node, "publish_gnss1", publish_gnss_[GNSS1_ID], false);
   get_param<bool>(node, "publish_gnss2", publish_gnss_[GNSS2_ID], false);
-  get_param<bool>(node, "rtk_dongle_enable", publish_rtk_, false);
   get_param<int32_t>(node, "gnss1_data_rate", gnss_data_rate_[GNSS1_ID], 1);
   get_param<int32_t>(node, "gnss2_data_rate", gnss_data_rate_[GNSS2_ID], 1);
   get_param<std::vector<double>>(node, "gnss1_antenna_offset", gnss_antenna_offset_[GNSS1_ID], DEFAULT_VECTOR);
@@ -75,6 +75,13 @@ bool MicrostrainConfig::configure(RosNodeType* node)
 
   // HARDWARE ODOM
   get_param<bool>(node, "enable_hardware_odometer", enable_hardware_odometer_, false);
+
+  // RTK/GQ7 specific
+  get_param<bool>(node, "rtk_dongle_enable", publish_rtk_, false);
+  get_param<bool>(node, "subscribe_rtcm", subscribe_rtcm_, false);
+  get_param<std::string>(node, "rtcm_topic", rtcm_topic_, std::string("/rtcm"));
+  get_param<bool>(node, "publish_nmea", publish_nmea_, false);
+  get_param<std::string>(node, "nmea_frame_id", nmea_frame_id_, nmea_frame_id_);
 
   // FILTER
   get_param<bool>(node, "publish_filter", publish_filter_, false);
@@ -133,11 +140,13 @@ bool MicrostrainConfig::connectDevice(RosNodeType* node)
 {
   // Read the config required for only this section
   std::string port;
+  std::string aux_port;
   int32_t baudrate;
   bool poll_port;
   double poll_rate_hz;
   int32_t poll_max_tries;
-  get_param<std::string>(node, "port", port, "/dev/ttyACM1");
+  get_param<std::string>(node, "port", port, "/dev/ttyACM0");
+  get_param<std::string>(node, "aux_port", aux_port, "/dev/ttyACM1");
   get_param<int32_t>(node, "baudrate", baudrate, 115200);
   get_param<bool>(node, "poll_port", poll_port, false);
   get_param<double>(node, "poll_rate_hz", poll_rate_hz, 1.0);
@@ -219,6 +228,15 @@ bool MicrostrainConfig::connectDevice(RosNodeType* node)
     supports_rtk_ = inertial_device_->features().supportsCategory(mscl::MipTypes::DataClass::CLASS_GNSS3);
     supports_filter_ = inertial_device_->features().supportsCategory(mscl::MipTypes::DataClass::CLASS_ESTFILTER);
     supports_imu_ = inertial_device_->features().supportsCategory(mscl::MipTypes::DataClass::CLASS_AHRS_IMU);
+
+    // Connect the aux port if we were asked to stream RTCM corrections
+    if (supports_rtk_ && (subscribe_rtcm_ || publish_nmea_))
+    {
+      MICROSTRAIN_INFO(node_, "Attempting to open aux serial port <%s> at <%d>", aux_port.c_str(), baudrate);
+      aux_connection_ = std::unique_ptr<mscl::Connection>(new mscl::Connection(mscl::Connection::Serial(realpath(aux_port.c_str(), 0), (uint32_t)baudrate)));
+      aux_connection_->rawByteMode(true);
+    }
+
   }
   catch (mscl::Error_Connection& e)
   {
@@ -295,8 +313,7 @@ bool MicrostrainConfig::setupDevice(RosNodeType* node)
     if (inertial_device_->features().supportsCommand(mscl::MipTypes::Command::CMD_FACTORY_STREAMING))
     {
       MICROSTRAIN_INFO(node_, "Enabling factory support channels");
-      // TODO(robbiefish): MERGE behavior is coming in sensorconnect 62.0.2. Change to the enum when that is released
-      inertial_device_->setFactoryStreamingChannels(static_cast<mscl::InertialTypes::FactoryStreamingOption>(0x01));
+      inertial_device_->setFactoryStreamingChannels(mscl::InertialTypes::FactoryStreamingOption::FACTORY_STREAMING_MERGE);
     }
     else
     {

@@ -52,8 +52,17 @@ bool MicrostrainSubscribers::activate()
   if (config_->filter_enable_external_gps_time_update_ &&
       config_->inertial_device_->features().supportsCommand(mscl::MipTypes::Command::CMD_GPS_TIME_UPDATE))
   {
+    MICROSTRAIN_INFO(node_, "Subscribed to %s for external GPS time", config_->external_gps_time_topic_.c_str());
     external_gps_time_sub_ = create_subscriber<>(node_, config_->external_gps_time_topic_.c_str(), 1000,
-                                                  &MicrostrainSubscribers::external_gps_time_callback, this);
+                                                  &MicrostrainSubscribers::externalGpsTimeCallback, this);
+  }
+
+  // Create a topic listener for external RTCM updates
+  if (config_->subscribe_rtcm_ && config_->supports_rtk_)
+  {
+    MICROSTRAIN_INFO(node_, "Subscribed to %s for RTCM corrections", config_->rtcm_topic_.c_str());
+    rtcm_sub_ = create_subscriber<>(node_, config_->rtcm_topic_.c_str(), 1000,
+                                    &MicrostrainSubscribers::rtcmCallback, this);
   }
 
   // Create a topic listener for external speed updates
@@ -164,7 +173,7 @@ void MicrostrainSubscribers::angZupt()
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 // External GPS Time Callback
 /////////////////////////////////////////////////////////////////////////////////////////////////////
-void MicrostrainSubscribers::external_gps_time_callback(const TimeReferenceMsg& time)
+void MicrostrainSubscribers::externalGpsTimeCallback(const TimeReferenceMsg& time)
 {
   if (config_->inertial_device_)
   {
@@ -203,6 +212,21 @@ void MicrostrainSubscribers::externalSpeedCallback(const InputSpeedMeasurementMs
     {
       MICROSTRAIN_ERROR(node_, "Error: %s", e.what());
     }
+  }
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+// RTCM Callback
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+void MicrostrainSubscribers::rtcmCallback(const RTCMMsg& rtcm)
+{
+  try
+  {
+    config_->aux_connection_->write(rtcm.data);
+  }
+  catch (mscl::Error& e)
+  {
+    MICROSTRAIN_ERROR(node_, "Error sending RTCM corrections: %s", e.what());
   }
 }
 

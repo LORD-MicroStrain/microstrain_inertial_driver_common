@@ -19,10 +19,9 @@
 namespace microstrain
 {
 
-void MicrostrainNodeBase::parseAndPublish()
+void MicrostrainNodeBase::parseAndPublishMain()
 {
   mscl::MipDataPackets packets = config_.inertial_device_->getDataPackets(1000);
-
   for (mscl::MipDataPacket packet : packets)
   {
     parser_.parseMIPPacket(packet);
@@ -39,6 +38,11 @@ void MicrostrainNodeBase::parseAndPublish()
       config_.raw_file_.write(reinterpret_cast<const char*>(raw_packet_bytes.data()), raw_packet_bytes.size());
     }
   }
+}
+
+void MicrostrainNodeBase::parseAndPublishAux()
+{
+  parser_.parseAuxString(config_.aux_connection_->getRawBytesStr());
 }
 
 bool MicrostrainNodeBase::initialize(RosNodeType* init_node)
@@ -113,7 +117,8 @@ bool MicrostrainNodeBase::activate()
 bool MicrostrainNodeBase::deactivate()
 {
   // Stop the timers.
-  stop_timer(parsing_timer_);
+  stop_timer(main_parsing_timer_);
+  stop_timer(aux_parsing_timer_);
   stop_timer(device_status_timer_);
 
   // Set the device to idle
@@ -127,7 +132,6 @@ bool MicrostrainNodeBase::deactivate()
     {
       // Not much we can actually do at this point, so just log the error
       MICROSTRAIN_ERROR(node_, "Unable to set node to idle: %s", e.what());
-      return false;
     }
   }
 
@@ -137,7 +141,8 @@ bool MicrostrainNodeBase::deactivate()
 bool MicrostrainNodeBase::shutdown()
 {
   // Reset the timers
-  parsing_timer_.reset();
+  main_parsing_timer_.reset();
+  aux_parsing_timer_.reset();
   device_status_timer_.reset();
 
   // Disconnect the device
@@ -151,7 +156,20 @@ bool MicrostrainNodeBase::shutdown()
     {
       // Not much we can actually do at this point, so just log the error
       MICROSTRAIN_ERROR(node_, "Unable to disconnect node: %s", e.what());
-      return false;
+    }
+  }
+
+  // Disconnect the aux device
+  if (config_.aux_connection_)
+  {
+    try
+    {
+      config_.aux_connection_->disconnect();
+    }
+    catch (const mscl::Error& e)
+    {
+      // Not much we can actually do at this point, so just log the error
+      MICROSTRAIN_ERROR(node_, "Unable to disconnect aux port: %s", e.what());
     }
   }
 
