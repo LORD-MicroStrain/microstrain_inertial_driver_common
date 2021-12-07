@@ -63,6 +63,56 @@ void MicrostrainParser::parseMIPPacket(const mscl::MipDataPacket& packet)
   }
 }
 
+void MicrostrainParser::parseAuxString(const std::string& aux_string)
+{
+  // Each string may have more than one NMEA message
+  size_t search_index = 0;
+  while (search_index < aux_string.size())
+  {
+    // If we can't find a $, there are no more NMEA sentences, so exit early
+    const size_t nmea_start_index = aux_string.find('$', search_index);
+    if (nmea_start_index == std::string::npos)
+    {
+      break;
+    }
+
+    // Make sure that what follows the dollar sign is a string that is 5 characters long and a comma
+    const size_t first_comma_index = aux_string.find(',', nmea_start_index + 1);
+    if (first_comma_index == std::string::npos || first_comma_index - nmea_start_index > 6)
+    {
+      // This is either an invalid NMEA message, or a MIP packet, either way skip it
+      search_index++;
+      continue;
+    }
+
+    // Search for the end of the NMEA string
+    const size_t nmea_end_index = aux_string.find("\r\n", nmea_start_index + 1) + 1;
+    if (nmea_end_index == std::string::npos)
+    {
+      MICROSTRAIN_WARN(node_, "Malformed NMEA sentence received. Ignoring sentence");
+      break;
+    }
+
+    // If there is another $ between the first $ and the end string, the first $ might have been part of a MIP message, so start over at the second $
+    const size_t possible_mid_index = aux_string.find('$', nmea_start_index + 1);
+    if (possible_mid_index != std::string::npos && possible_mid_index < nmea_end_index)
+    {
+      search_index = possible_mid_index;
+      continue;
+    }
+
+    // Get the NMEA substring, and update the index for the next iteration
+    const std::string& nmea_sentence = aux_string.substr(nmea_start_index, (nmea_end_index - nmea_start_index) + 1);
+    search_index = nmea_end_index + 1;
+
+    // Publish the NMEA sentence to ROS
+    publishers_->nmea_sentence_msg_.header.stamp = ros_time_now(node_);
+    publishers_->nmea_sentence_msg_.header.frame_id = config_->nmea_frame_id_;
+    publishers_->nmea_sentence_msg_.sentence = nmea_sentence;
+    publishers_->nmea_sentence_pub_->publish(publishers_->nmea_sentence_msg_);
+  }
+}
+
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 // MIP IMU Packet Parsing Function
 /////////////////////////////////////////////////////////////////////////////////////////////////////

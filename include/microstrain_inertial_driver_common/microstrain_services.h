@@ -159,6 +159,9 @@ public:
 
   bool deviceSettings(DeviceSettingsServiceMsg::Request& req, DeviceSettingsServiceMsg::Response& res);
 
+  bool setFilterSpeedLeverArm(SetFilterSpeedLeverArmServiceMsg::Request& req,
+                                SetFilterSpeedLeverArmServiceMsg::Response& res);
+
 private:
   RosNodeType* node_;
   MicrostrainConfig* config_;
@@ -222,6 +225,7 @@ private:
   ExternalHeadingUpdateServiceType external_heading_service_;
   SetRelativePositionReferenceServiceType set_relative_position_reference_service_;
   GetRelativePositionReferenceServiceType get_relative_position_reference_service_;
+  SetFilterSpeedLeverArmServiceType set_filter_speed_lever_arm_service_;
 };  // struct MicrostrainServices
 
 }  // namespace microstrain

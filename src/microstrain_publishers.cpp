@@ -122,6 +122,13 @@ bool MicrostrainPublishers::configure()
           create_publisher<FilterAidingMeasurementSummaryMsg>(node_, "nav/aiding_summary", 100);
     }
   }
+
+  // If the device supports RTK (has an aux port), and we were asked to, stream NMEA sentences
+  if (config_->supports_rtk_ && config_->publish_nmea_)
+  {
+    MICROSTRAIN_INFO(node_, "Publishing NMEA sentences from aux port");
+    nmea_sentence_pub_ = create_publisher<NMEASentenceMsg>(node_, "nmea/sentence", 100);
+  }
   return true;
 }
 

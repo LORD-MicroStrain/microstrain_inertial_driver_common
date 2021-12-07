@@ -120,6 +120,7 @@ public:
 
   // Device pointer used to interact with the device
   std::unique_ptr<mscl::InertialNode> inertial_device_;
+  std::unique_ptr<mscl::Connection> aux_connection_;
 
   // Config read from the device
   bool supports_gnss1_;
@@ -135,6 +136,9 @@ public:
 
   // Flag for using device timestamp instead of PC received time
   bool use_device_timestamp_;
+
+  // Whether to enable the hardware odometer through the GPIO pins
+  bool enable_hardware_odometer_;
 
   // FILTER
   double gps_leap_seconds_;
@@ -154,11 +158,13 @@ public:
   std::string gnss_frame_id_[NUM_GNSS];
   std::string filter_frame_id_;
   std::string filter_child_frame_id_;
+  std::string nmea_frame_id_;
 
   // Topic strings
   std::string velocity_zupt_topic_;
   std::string angular_zupt_topic_;
   std::string external_gps_time_topic_;
+  std::string external_speed_topic_;
 
   // Publish data flags
   bool publish_imu_;
@@ -170,6 +176,11 @@ public:
   bool publish_filter_relative_pos_;
   bool publish_filter_aiding_measurement_summary_;
   bool publish_rtk_;
+  bool publish_nmea_;
+
+  // RTCM subscriber
+  bool subscribe_rtcm_;
+  std::string rtcm_topic_;
 
   // ZUPT, angular ZUPT topic listener variables
   bool angular_zupt_;

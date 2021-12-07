@@ -75,6 +75,9 @@ public:
   // Device Status Publisher
   StatusPubType device_status_pub_;
 
+  // NMEA Sentence Publisher
+  NMEASentencePubType nmea_sentence_pub_;
+
   // Transform Broadcaster
   TransformBroadcasterType transform_broadcaster_;
 
@@ -105,6 +108,9 @@ public:
 
   // Device Status Message
   StatusMsg device_status_msg_;
+
+  // NMEA Sentence Message
+  NMEASentenceMsg nmea_sentence_msg_;
 
   // Published transforms
   TransformStampedMsg filter_transform_msg_;
