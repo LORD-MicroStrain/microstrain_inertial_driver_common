@@ -143,9 +143,15 @@ constexpr auto NUM_GNSS = 2;
 #include "std_srvs/srv/trigger.hpp"
 #include "std_msgs/msg/bool.hpp"
 #include "std_msgs/msg/string.hpp"
-#include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
 #include "mavros_msgs/msg/rtcm.hpp"
 #include "nmea_msgs/msg/sentence.hpp"
+
+// .h header was deprecated in rolling and will likely be removed in future releases.
+#if MICROSTRAIN_ROLLING == 1
+#include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
+#else
+#include "tf2_geometry_msgs/tf2_geometry_msgs.h"
+#endif
 
 #include "microstrain_inertial_msgs/msg/status.hpp"
 #include "microstrain_inertial_msgs/msg/rtk_status.hpp"
