@@ -2,6 +2,9 @@
 # Note: Feature support is device-dependent and some of the following settings may have no affect on your device.
 # Please consult your device's documentation for supported features
 
+#
+# NOTE: This file will not work if specified as the params_file argument in ROS2. If you want to override parameters for ROS2, start with https://github.com/LORD-MicroStrain/microstrain_inertial/blob/ros2/microstrain_inertial_driver/config/empty.yml
+#
 
 # ****************************************************************** 
 # General Settings 
