@@ -608,6 +608,9 @@ bool MicrostrainConfig::configureRTK(RosNodeType* node)
       }
     }
 
+    // set the GNSS channel fields
+    inertial_device_->setActiveChannelFields(mscl::MipTypes::DataClass::CLASS_GNSS3, supportedChannels);
+
     inertial_device_->enableDataStream(mscl::MipTypes::DataClass::CLASS_GNSS3);
   }
 
