@@ -52,6 +52,7 @@ constexpr auto NUM_GNSS = 2;
 
 #include "microstrain_inertial_msgs/Status.h"
 #include "microstrain_inertial_msgs/RTKStatus.h"
+#include "microstrain_inertial_msgs/RTKStatus_v1.h"
 #include "microstrain_inertial_msgs/FilterStatus.h"
 #include "microstrain_inertial_msgs/FilterHeading.h"
 #include "microstrain_inertial_msgs/FilterHeadingState.h"
@@ -251,6 +252,7 @@ using TimeReferenceMsg = ::sensor_msgs::TimeReference;
 using NMEASentenceMsg = ::nmea_msgs::Sentence;
 using StatusMsg = ::microstrain_inertial_msgs::Status;
 using RTKStatusMsg = ::microstrain_inertial_msgs::RTKStatus;
+using RTKStatusMsg_v1 = ::microstrain_inertial_msgs::RTKStatus_v1;
 using FilterStatusMsg = ::microstrain_inertial_msgs::FilterStatus;
 using FilterHeadingMsg = ::microstrain_inertial_msgs::FilterHeading;
 using FilterAidingMeasurementSummaryMsg = ::microstrain_inertial_msgs::FilterAidingMeasurementSummary;
@@ -271,6 +273,7 @@ using TimeReferencePubType = RosPubType;
 using NMEASentencePubType = RosPubType;
 using StatusPubType = RosPubType;
 using RTKStatusPubType = RosPubType;
+using RTKStatusPubType_v1 = RosPubType;
 using FilterStatusPubType = RosPubType;
 using FilterHeadingPubType = RosPubType;
 using FilterAidingMeasurementSummaryPubType = RosPubType;

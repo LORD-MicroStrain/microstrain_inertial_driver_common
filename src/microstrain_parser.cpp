@@ -1159,6 +1159,9 @@ void MicrostrainParser::parseRTKPacket(const mscl::MipDataPacket& packet)
   // Get the list of data elements
   const mscl::MipDataPoints& points = packet.data();
 
+  // RTK version from status flags. 1 == v2
+  uint8_t version = 1;
+
   // Loop over data elements and map them
   for (mscl::MipDataPoint point : points)
   {
@@ -1184,12 +1187,43 @@ void MicrostrainParser::parseRTKPacket(const mscl::MipDataPacket& packet)
           // Decode dongle status
           mscl::RTKDeviceStatusFlags dongle_status(point.as_uint32());
 
-          publishers_->rtk_msg_.dongle_controller_state = dongle_status.controllerState();
-          publishers_->rtk_msg_.dongle_platform_state = dongle_status.platformState();
-          publishers_->rtk_msg_.dongle_controller_status = dongle_status.controllerStatusCode();
-          publishers_->rtk_msg_.dongle_platform_status = dongle_status.platformStatusCode();
-          publishers_->rtk_msg_.dongle_reset_reason = dongle_status.resetReason();
-          publishers_->rtk_msg_.dongle_signal_quality = dongle_status.signalQuality();
+          // Get the RTK version from the status flags
+          version = dongle_status.version();
+
+          switch (version)
+          {
+            // v1
+            case 0:
+            {
+              // Cast to v1 dongle
+              mscl::RTKDeviceStatusFlags_v1 dongle_status_v1 = dongle_status;
+
+              publishers_->rtk_msg_v1_.dongle_version = version;
+              publishers_->rtk_msg_v1_.dongle_controller_state = dongle_status_v1.controllerState();
+              publishers_->rtk_msg_v1_.dongle_platform_state = dongle_status_v1.platformState();
+              publishers_->rtk_msg_v1_.dongle_controller_status = dongle_status_v1.controllerStatusCode();
+              publishers_->rtk_msg_v1_.dongle_platform_status = dongle_status_v1.platformStatusCode();
+              publishers_->rtk_msg_v1_.dongle_reset_reason = dongle_status_v1.resetReason();
+              publishers_->rtk_msg_v1_.dongle_signal_quality = dongle_status_v1.signalQuality();
+              break;
+            }
+            // v2
+            default:
+            {
+              publishers_->rtk_msg_.dongle_version = version;
+              publishers_->rtk_msg_.dongle_modem_state = dongle_status.modemState();
+              publishers_->rtk_msg_.dongle_connection_type = dongle_status.connectionType();
+              publishers_->rtk_msg_.dongle_rssi = -dongle_status.rssi();
+              publishers_->rtk_msg_.dongle_signal_quality = dongle_status.signalQuality();
+              publishers_->rtk_msg_.dongle_tower_change_indicator = dongle_status.towerChangeIndicator();
+              publishers_->rtk_msg_.dongle_nmea_timeout = dongle_status.nmeaTimeout();
+              publishers_->rtk_msg_.dongle_server_timeout = dongle_status.serverTimeout();
+              publishers_->rtk_msg_.dongle_rtcm_timeout = dongle_status.rtcmTimeout();
+              publishers_->rtk_msg_.dongle_out_of_range = dongle_status.deviceOutOfRange();
+              publishers_->rtk_msg_.dongle_corrections_unavailable = dongle_status.correctionsUnavailable();
+              break;
+            }
+          }
         }
         else if (point.qualifier() == mscl::MipTypes::CH_GPS_CORRECTION_LATENCY)
         {
@@ -1214,7 +1248,31 @@ void MicrostrainParser::parseRTKPacket(const mscl::MipDataPacket& packet)
 
   // Publish
   if (config_->publish_rtk_)
-    publishers_->rtk_pub_->publish(publishers_->rtk_msg_);
+  {
+    switch (version)
+    {
+      // v1
+      case 0:
+      {
+        publishers_->rtk_msg_v1_.gps_tow = publishers_->rtk_msg_.gps_tow;
+        publishers_->rtk_msg_v1_.gps_week = publishers_->rtk_msg_.gps_week;
+        publishers_->rtk_msg_v1_.epoch_status = publishers_->rtk_msg_.epoch_status;
+        publishers_->rtk_msg_v1_.gps_correction_latency = publishers_->rtk_msg_.gps_correction_latency;
+        publishers_->rtk_msg_v1_.glonass_correction_latency = publishers_->rtk_msg_.glonass_correction_latency;
+        publishers_->rtk_msg_v1_.galileo_correction_latency = publishers_->rtk_msg_.galileo_correction_latency;
+        publishers_->rtk_msg_v1_.beidou_correction_latency = publishers_->rtk_msg_.beidou_correction_latency;
+
+        publishers_->rtk_pub_v1_->publish(publishers_->rtk_msg_v1_);
+        break;
+      }
+      // v2
+      default:
+      {
+        publishers_->rtk_pub_->publish(publishers_->rtk_msg_);
+        break;
+      }
+    }
+  }
 }
 
 void MicrostrainParser::printPacketStats()
