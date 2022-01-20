@@ -61,7 +61,7 @@ public:
 
   // RTK Data publisher
   RTKStatusPubType rtk_pub_;
-  RTKStatusPubType_v1 rtk_pub_v1_;
+  RTKStatusPubTypeV1 rtk_pub_v1_;
 
   // Filter Publishers
   FilterStatusPubType filter_status_pub_;
@@ -96,7 +96,7 @@ public:
 
   // RTK Messages
   RTKStatusMsg rtk_msg_;
-  RTKStatusMsg_v1 rtk_msg_v1_;
+  RTKStatusMsgV1 rtk_msg_v1_;
 
   // Filter Messages
   OdometryMsg filter_msg_;
