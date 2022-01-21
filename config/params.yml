@@ -61,7 +61,7 @@ use_device_timestamp : False
 # NOTE: This can be used in conjunction with use_device_timestamp in which case, the device timestmap will be used for sensor_msgs/TimeReference messages, and ROS time will be used for all other messages
 #       false - Use PC received time for timestamping
 #       true  - Use ROS time for timestamping all non sensor_msgs/TimeReference messages
-use_ros_time : True
+use_ros_time : False
 
 # Controls if the driver creates a raw binary file
 #      false - Do not create the file
