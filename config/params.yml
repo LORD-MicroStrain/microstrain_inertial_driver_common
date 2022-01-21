@@ -140,7 +140,7 @@ filter_data_rate : 10
 #     0 = None, 1 = Euler Angles, 2 - matrix, 3 - quaternion
 #     Notes: These are different ways of setting the same parameter in the device.
 #            The different options are provided as a convenience.
-#            Support for matrix and quaternion options is firmware version dependent (Quaternion not currently supported on GQ7)
+#            Support for matrix and quaternion options is firmware version dependent (GQ7 supports Quaternion as of firmware 1.0.07)
 #            Quaternion order is [i, j, k, w]
 filter_sensor2vehicle_frame_selector : 1
 
