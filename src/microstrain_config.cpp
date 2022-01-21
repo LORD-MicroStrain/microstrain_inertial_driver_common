@@ -44,6 +44,7 @@ bool MicrostrainConfig::configure(RosNodeType* node)
 
   // Device
   get_param<bool>(node, "use_device_timestamp", use_device_timestamp_, false);
+  get_param<bool>(node, "use_ros_time", use_ros_time_, false);
   get_param<bool>(node, "use_enu_frame", use_enu_frame_, false);
 
   // If using ENU frame, reflect in the device frame id

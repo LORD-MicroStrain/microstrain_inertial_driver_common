@@ -113,6 +113,18 @@ void MicrostrainParser::parseAuxString(const std::string& aux_string)
   }
 }
 
+RosTimeType MicrostrainParser::getPacketTimestamp(const mscl::MipDataPacket& packet) const
+{
+  if (packet.hasDeviceTime() && config_->use_device_timestamp_)
+  {
+    return to_ros_time(packet.deviceTimestamp().nanoseconds());
+  }
+  else
+  {
+    return to_ros_time(packet.collectedTimestamp().nanoseconds());
+  }
+}
+
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 // MIP IMU Packet Parsing Function
 /////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -123,17 +135,11 @@ void MicrostrainParser::parseIMUPacket(const mscl::MipDataPacket& packet)
   imu_valid_packet_count_++;
 
   // Handle time
-  uint64_t time = packet.collectedTimestamp().nanoseconds();
-
-  // Check if the user wants to use the device timestamp instead of PC collected time
-  if (packet.hasDeviceTime() && config_->use_device_timestamp_)
-  {
-    time = packet.deviceTimestamp().nanoseconds();
-  }
+  const RosTimeType packet_time = getPacketTimestamp(packet);
 
   // IMU timestamp
   set_seq(&publishers_->imu_msg_.header, imu_valid_packet_count_);
-  publishers_->imu_msg_.header.stamp = to_ros_time(time);
+  publishers_->imu_msg_.header.stamp = config_->use_ros_time_ ? ros_time_now(node_) : packet_time;
   publishers_->imu_msg_.header.frame_id = config_->imu_frame_id_;
 
   // Magnetometer timestamp
@@ -340,27 +346,21 @@ void MicrostrainParser::parseFilterPacket(const mscl::MipDataPacket& packet)
   filter_valid_packet_count_++;
 
   // Handle time
-  uint64_t time = packet.collectedTimestamp().nanoseconds();
-
-  // Check if the user wants to use the device timestamp instead of PC collected time
-  if (packet.hasDeviceTime() && config_->use_device_timestamp_)
-  {
-    time = packet.deviceTimestamp().nanoseconds();
-  }
+  const RosTimeType packet_time = getPacketTimestamp(packet);
 
   // Filtered IMU timestamp and frame
   set_seq(&publishers_->filtered_imu_msg_.header, filter_valid_packet_count_);
-  publishers_->filtered_imu_msg_.header.stamp = to_ros_time(time);
+  publishers_->filtered_imu_msg_.header.stamp = config_->use_ros_time_ ? ros_time_now(node_) : packet_time;
   publishers_->filtered_imu_msg_.header.frame_id = config_->filter_frame_id_;
 
   // Nav odom timestamp and frame
   set_seq(&publishers_->filter_msg_.header, filter_valid_packet_count_);
-  publishers_->filter_msg_.header.stamp = to_ros_time(time);
+  publishers_->filter_msg_.header.stamp = config_->use_ros_time_ ? ros_time_now(node_) : packet_time;
   publishers_->filter_msg_.header.frame_id = config_->filter_frame_id_;
 
   // Nav relative position odom timestamp and frame (note: Relative position frame is NED for both pos and vel)
   set_seq(&publishers_->filter_relative_pos_msg_.header, filter_valid_packet_count_);
-  publishers_->filter_relative_pos_msg_.header.stamp = to_ros_time(time);
+  publishers_->filter_relative_pos_msg_.header.stamp = config_->use_ros_time_ ? ros_time_now(node_) : packet_time;
   publishers_->filter_relative_pos_msg_.header.frame_id = config_->filter_frame_id_;
   publishers_->filter_relative_pos_msg_.child_frame_id = config_->filter_child_frame_id_;
   publishers_->filter_transform_msg_.header = publishers_->filter_relative_pos_msg_.header;  // Same header for the transform
@@ -987,24 +987,17 @@ void MicrostrainParser::parseGNSSPacket(const mscl::MipDataPacket& packet, int g
   gnss_valid_packet_count_[gnss_id]++;
 
   // Handle time
-  uint64_t time = packet.collectedTimestamp().nanoseconds();
-  bool time_valid = false;
-
-  // Check if the user wants to use the device timestamp instead of PC collected time
-  if (packet.hasDeviceTime() && config_->use_device_timestamp_)
-  {
-    time = packet.deviceTimestamp().nanoseconds();
-    time_valid = true;
-  }
+  const bool time_valid = packet.hasDeviceTime() && config_->use_device_timestamp_;
+  const RosTimeType packet_time = getPacketTimestamp(packet);
 
   // GPS Fix time
   set_seq(&publishers_->gnss_msg_[gnss_id].header, gnss_valid_packet_count_[gnss_id]);
-  publishers_->gnss_msg_[gnss_id].header.stamp = to_ros_time(time);
+  publishers_->gnss_msg_[gnss_id].header.stamp = config_->use_ros_time_ ? ros_time_now(node_) : packet_time;
   publishers_->gnss_msg_[gnss_id].header.frame_id = config_->gnss_frame_id_[gnss_id];
 
   // GPS Odom time
   set_seq(&publishers_->gnss_odom_msg_[gnss_id].header, gnss_valid_packet_count_[gnss_id]);
-  publishers_->gnss_odom_msg_[gnss_id].header.stamp = to_ros_time(time);
+  publishers_->gnss_odom_msg_[gnss_id].header.stamp = config_->use_ros_time_ ? ros_time_now(node_) : packet_time;
   publishers_->gnss_odom_msg_[gnss_id].header.frame_id = config_->gnss_frame_id_[gnss_id];
   // publishers_->gnss_odom_msg_[gnss_id].child_frame_id  = config_->gnss_odom_child_frame_id_[gnss_id];
 
@@ -1012,7 +1005,7 @@ void MicrostrainParser::parseGNSSPacket(const mscl::MipDataPacket& packet, int g
   set_seq(&publishers_->gnss_time_msg_[gnss_id].header, gnss_valid_packet_count_[gnss_id]);
   publishers_->gnss_time_msg_[gnss_id].header.stamp = ros_time_now(node_);
   publishers_->gnss_time_msg_[gnss_id].header.frame_id = config_->gnss_frame_id_[gnss_id];
-  publishers_->gnss_time_msg_[gnss_id].time_ref = to_ros_time(time);
+  publishers_->gnss_time_msg_[gnss_id].time_ref = packet_time;
 
   // Get the list of data elements
   const mscl::MipDataPoints& points = packet.data();
@@ -1148,13 +1141,6 @@ void MicrostrainParser::parseRTKPacket(const mscl::MipDataPacket& packet)
 {
   // Update diagnostics
   rtk_valid_packet_count_++;
-
-  // Handle time
-  uint64_t time = packet.collectedTimestamp().nanoseconds();
-
-  // Check if the user wants to use the device timestamp instead of PC collected time
-  if (packet.hasDeviceTime() && config_->use_device_timestamp_)
-    time = packet.deviceTimestamp().nanoseconds();
 
   // Get the list of data elements
   const mscl::MipDataPoints& points = packet.data();

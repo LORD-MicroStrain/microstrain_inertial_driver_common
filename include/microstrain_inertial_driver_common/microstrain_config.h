@@ -137,6 +137,9 @@ public:
   // Flag for using device timestamp instead of PC received time
   bool use_device_timestamp_;
 
+  // Flag for using ROS time instead of PC received time. If this is and use_device_timestamp_ is set, this will be preferred when setting message timestamps
+  bool use_ros_time_;
+
   // Whether to enable the hardware odometer through the GPIO pins
   bool enable_hardware_odometer_;
 

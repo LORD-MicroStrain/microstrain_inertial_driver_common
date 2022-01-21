@@ -235,6 +235,7 @@ namespace microstrain
 #if MICROSTRAIN_ROS_VERSION == 1
 // ROS1 General Types
 using RosNodeType = ::ros::NodeHandle;
+using RosTimeType = ::ros::Time;
 using RosTimerType = std::shared_ptr<::ros::Timer>;
 using RosRateType = ::ros::Rate;
 using RosHeaderType = ::std_msgs::Header;
@@ -483,6 +484,7 @@ using SetFilterSpeedLeverArmServiceType = RosServiceType;
 #elif MICROSTRAIN_ROS_VERSION == 2
 // ROS2 Generic Types
 using RosNodeType = ::rclcpp_lifecycle::LifecycleNode;
+using RosTimeType = ::rclcpp::Time;
 using RosTimerType = ::rclcpp::TimerBase::SharedPtr;
 using RosRateType = ::rclcpp::Rate;
 using RosHeaderType = ::std_msgs::msg::Header;
