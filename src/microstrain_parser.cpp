@@ -1184,8 +1184,11 @@ void MicrostrainParser::parseRTKPacket(const mscl::MipDataPacket& packet)
         }
         else if (point.qualifier() == mscl::MipTypes::CH_FLAGS)
         {
+          // Raw status flags value
+          mscl::uint32 raw_value = point.as_uint32();
+
           // Decode dongle status
-          mscl::RTKDeviceStatusFlags dongle_status(point.as_uint32());
+          mscl::RTKDeviceStatusFlags dongle_status(raw_value);
 
           // Get the RTK version from the status flags
           version = dongle_status.version();
@@ -1198,6 +1201,7 @@ void MicrostrainParser::parseRTKPacket(const mscl::MipDataPacket& packet)
               // Cast to v1 dongle
               mscl::RTKDeviceStatusFlags_v1 dongle_status_v1 = dongle_status;
 
+              publishers_->rtk_msg_v1_.raw_status_flags = raw_value;
               publishers_->rtk_msg_v1_.dongle_version = version;
               publishers_->rtk_msg_v1_.dongle_controller_state = dongle_status_v1.controllerState();
               publishers_->rtk_msg_v1_.dongle_platform_state = dongle_status_v1.platformState();
@@ -1210,6 +1214,7 @@ void MicrostrainParser::parseRTKPacket(const mscl::MipDataPacket& packet)
             // v2
             default:
             {
+              publishers_->rtk_msg_.raw_status_flags = raw_value;
               publishers_->rtk_msg_.dongle_version = version;
               publishers_->rtk_msg_.dongle_modem_state = dongle_status.modemState();
               publishers_->rtk_msg_.dongle_connection_type = dongle_status.connectionType();
