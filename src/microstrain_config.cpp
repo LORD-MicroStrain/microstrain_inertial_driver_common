@@ -583,6 +583,10 @@ bool MicrostrainConfig::configureGNSS(RosNodeType* node, uint8_t gnss_id)
 
   // Enable publishing aiding status messages
   publish_gnss_aiding_status_[gnss_id] = inertial_device_->features().supportsCommand(mscl::MipTypes::Command::CMD_EF_AIDING_MEASUREMENT_ENABLE);
+  if (!publish_gnss_aiding_status_[gnss_id])
+  {
+    MICROSTRAIN_INFO(node_, "Note: Device not support publishing GNSS Aiding measurements.");
+  }
 
   inertial_device_->enableDataStream(gnss_data_class);
   return true;
@@ -843,9 +847,10 @@ bool MicrostrainConfig::configureFilter(RosNodeType* node)
                      filter_relative_position_frame);
     inertial_device_->setRelativePositionReference(ref);
   }
-  else
+  else if (publish_filter_relative_pos_)
   {
-    MICROSTRAIN_INFO(node_, "Note: The device does not support the relative position command.");
+    MICROSTRAIN_ERROR(node_, "The device does not support the relative position command, but it was requested with \"publish_relative_position\"");
+    return false;
   }
 
   // (GQ7 only) Set the filter speed lever arm

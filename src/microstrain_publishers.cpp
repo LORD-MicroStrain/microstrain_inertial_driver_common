@@ -94,8 +94,6 @@ bool MicrostrainPublishers::configure()
   }
 
   // If the device has a kalman filter, publish relevant topics
-  MICROSTRAIN_INFO(node_, "checking if we should publish filter data %d %d", config_->publish_filter_,
-                   config_->supports_filter_);
   if (config_->publish_filter_ && config_->supports_filter_)
   {
     MICROSTRAIN_INFO(node_, "Publishing Filter data.");
