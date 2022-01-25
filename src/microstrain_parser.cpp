@@ -965,7 +965,7 @@ void MicrostrainParser::parseFilterPacket(const mscl::MipDataPacket& packet)
 
   for (i = 0; i < NUM_GNSS; i++)
   {
-    if (config_->publish_gnss_aiding_status_[i] && gnss_aiding_status_received[i])
+    if (config_->publish_gnss_[i] && config_->publish_gnss_aiding_status_[i] && gnss_aiding_status_received[i])
       publishers_->gnss_aiding_status_pub_[i]->publish(publishers_->gnss_aiding_status_msg_[i]);
   }
 
