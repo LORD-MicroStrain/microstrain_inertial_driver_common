@@ -28,7 +28,7 @@ namespace microstrain
  * \param node  Unused in this function as the ros time function is static
  * \return Current ROS time
  */
-inline ::ros::Time ros_time_now(RosNodeType* node)
+inline RosTimeType ros_time_now(RosNodeType* node)
 {
   return ros::Time::now();
 }
@@ -38,7 +38,7 @@ inline ::ros::Time ros_time_now(RosNodeType* node)
  * \param time  The current time in nanoseconds
  * \return ROS time at the specified nanoseconds
  */
-inline ::ros::Time to_ros_time(int64_t time)
+inline RosTimeType to_ros_time(int64_t time)
 {
   return ros::Time().fromNSec(time);
 }
@@ -177,7 +177,7 @@ inline void stop_timer(RosTimerType timer)
  * \param node  Unused in this function as the ros time function is static
  * \return Current ROS time
  */
-inline ::rclcpp::Time ros_time_now(RosNodeType* node)
+inline RosTimeType ros_time_now(RosNodeType* node)
 {
   return node->get_clock()->now();
 }
@@ -187,7 +187,7 @@ inline ::rclcpp::Time ros_time_now(RosNodeType* node)
  * \param time  The current time in nanoseconds
  * \return ROS time at the specified nanoseconds
  */
-inline ::rclcpp::Time to_ros_time(int64_t time)
+inline RosTimeType to_ros_time(int64_t time)
 {
   return ::rclcpp::Time(time);
 }

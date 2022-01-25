@@ -113,6 +113,18 @@ void MicrostrainParser::parseAuxString(const std::string& aux_string)
   }
 }
 
+RosTimeType MicrostrainParser::getPacketTimestamp(const mscl::MipDataPacket& packet) const
+{
+  if (packet.hasDeviceTime() && config_->use_device_timestamp_)
+  {
+    return to_ros_time(packet.deviceTimestamp().nanoseconds());
+  }
+  else
+  {
+    return to_ros_time(packet.collectedTimestamp().nanoseconds());
+  }
+}
+
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 // MIP IMU Packet Parsing Function
 /////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -123,17 +135,11 @@ void MicrostrainParser::parseIMUPacket(const mscl::MipDataPacket& packet)
   imu_valid_packet_count_++;
 
   // Handle time
-  uint64_t time = packet.collectedTimestamp().nanoseconds();
-
-  // Check if the user wants to use the device timestamp instead of PC collected time
-  if (packet.hasDeviceTime() && config_->use_device_timestamp_)
-  {
-    time = packet.deviceTimestamp().nanoseconds();
-  }
+  const RosTimeType packet_time = getPacketTimestamp(packet);
 
   // IMU timestamp
   set_seq(&publishers_->imu_msg_.header, imu_valid_packet_count_);
-  publishers_->imu_msg_.header.stamp = to_ros_time(time);
+  publishers_->imu_msg_.header.stamp = config_->use_ros_time_ ? ros_time_now(node_) : packet_time;
   publishers_->imu_msg_.header.frame_id = config_->imu_frame_id_;
 
   // Magnetometer timestamp
@@ -340,27 +346,21 @@ void MicrostrainParser::parseFilterPacket(const mscl::MipDataPacket& packet)
   filter_valid_packet_count_++;
 
   // Handle time
-  uint64_t time = packet.collectedTimestamp().nanoseconds();
-
-  // Check if the user wants to use the device timestamp instead of PC collected time
-  if (packet.hasDeviceTime() && config_->use_device_timestamp_)
-  {
-    time = packet.deviceTimestamp().nanoseconds();
-  }
+  const RosTimeType packet_time = getPacketTimestamp(packet);
 
   // Filtered IMU timestamp and frame
   set_seq(&publishers_->filtered_imu_msg_.header, filter_valid_packet_count_);
-  publishers_->filtered_imu_msg_.header.stamp = to_ros_time(time);
+  publishers_->filtered_imu_msg_.header.stamp = config_->use_ros_time_ ? ros_time_now(node_) : packet_time;
   publishers_->filtered_imu_msg_.header.frame_id = config_->filter_frame_id_;
 
   // Nav odom timestamp and frame
   set_seq(&publishers_->filter_msg_.header, filter_valid_packet_count_);
-  publishers_->filter_msg_.header.stamp = to_ros_time(time);
+  publishers_->filter_msg_.header.stamp = config_->use_ros_time_ ? ros_time_now(node_) : packet_time;
   publishers_->filter_msg_.header.frame_id = config_->filter_frame_id_;
 
   // Nav relative position odom timestamp and frame (note: Relative position frame is NED for both pos and vel)
   set_seq(&publishers_->filter_relative_pos_msg_.header, filter_valid_packet_count_);
-  publishers_->filter_relative_pos_msg_.header.stamp = to_ros_time(time);
+  publishers_->filter_relative_pos_msg_.header.stamp = config_->use_ros_time_ ? ros_time_now(node_) : packet_time;
   publishers_->filter_relative_pos_msg_.header.frame_id = config_->filter_frame_id_;
   publishers_->filter_relative_pos_msg_.child_frame_id = config_->filter_child_frame_id_;
   publishers_->filter_transform_msg_.header = publishers_->filter_relative_pos_msg_.header;  // Same header for the transform
@@ -987,24 +987,17 @@ void MicrostrainParser::parseGNSSPacket(const mscl::MipDataPacket& packet, int g
   gnss_valid_packet_count_[gnss_id]++;
 
   // Handle time
-  uint64_t time = packet.collectedTimestamp().nanoseconds();
-  bool time_valid = false;
-
-  // Check if the user wants to use the device timestamp instead of PC collected time
-  if (packet.hasDeviceTime() && config_->use_device_timestamp_)
-  {
-    time = packet.deviceTimestamp().nanoseconds();
-    time_valid = true;
-  }
+  const bool time_valid = packet.hasDeviceTime() && config_->use_device_timestamp_;
+  const RosTimeType packet_time = getPacketTimestamp(packet);
 
   // GPS Fix time
   set_seq(&publishers_->gnss_msg_[gnss_id].header, gnss_valid_packet_count_[gnss_id]);
-  publishers_->gnss_msg_[gnss_id].header.stamp = to_ros_time(time);
+  publishers_->gnss_msg_[gnss_id].header.stamp = config_->use_ros_time_ ? ros_time_now(node_) : packet_time;
   publishers_->gnss_msg_[gnss_id].header.frame_id = config_->gnss_frame_id_[gnss_id];
 
   // GPS Odom time
   set_seq(&publishers_->gnss_odom_msg_[gnss_id].header, gnss_valid_packet_count_[gnss_id]);
-  publishers_->gnss_odom_msg_[gnss_id].header.stamp = to_ros_time(time);
+  publishers_->gnss_odom_msg_[gnss_id].header.stamp = config_->use_ros_time_ ? ros_time_now(node_) : packet_time;
   publishers_->gnss_odom_msg_[gnss_id].header.frame_id = config_->gnss_frame_id_[gnss_id];
   // publishers_->gnss_odom_msg_[gnss_id].child_frame_id  = config_->gnss_odom_child_frame_id_[gnss_id];
 
@@ -1012,7 +1005,7 @@ void MicrostrainParser::parseGNSSPacket(const mscl::MipDataPacket& packet, int g
   set_seq(&publishers_->gnss_time_msg_[gnss_id].header, gnss_valid_packet_count_[gnss_id]);
   publishers_->gnss_time_msg_[gnss_id].header.stamp = ros_time_now(node_);
   publishers_->gnss_time_msg_[gnss_id].header.frame_id = config_->gnss_frame_id_[gnss_id];
-  publishers_->gnss_time_msg_[gnss_id].time_ref = to_ros_time(time);
+  publishers_->gnss_time_msg_[gnss_id].time_ref = packet_time;
 
   // Get the list of data elements
   const mscl::MipDataPoints& points = packet.data();
@@ -1149,15 +1142,11 @@ void MicrostrainParser::parseRTKPacket(const mscl::MipDataPacket& packet)
   // Update diagnostics
   rtk_valid_packet_count_++;
 
-  // Handle time
-  uint64_t time = packet.collectedTimestamp().nanoseconds();
-
-  // Check if the user wants to use the device timestamp instead of PC collected time
-  if (packet.hasDeviceTime() && config_->use_device_timestamp_)
-    time = packet.deviceTimestamp().nanoseconds();
-
   // Get the list of data elements
   const mscl::MipDataPoints& points = packet.data();
+
+  // RTK version from status flags. 1 == v2
+  uint8_t version = 1;
 
   // Loop over data elements and map them
   for (mscl::MipDataPoint point : points)
@@ -1181,15 +1170,51 @@ void MicrostrainParser::parseRTKPacket(const mscl::MipDataPacket& packet)
         }
         else if (point.qualifier() == mscl::MipTypes::CH_FLAGS)
         {
-          // Decode dongle status
-          mscl::RTKDeviceStatusFlags dongle_status(point.as_uint32());
+          // Raw status flags value
+          mscl::uint32 raw_value = point.as_uint32();
 
-          publishers_->rtk_msg_.dongle_controller_state = dongle_status.controllerState();
-          publishers_->rtk_msg_.dongle_platform_state = dongle_status.platformState();
-          publishers_->rtk_msg_.dongle_controller_status = dongle_status.controllerStatusCode();
-          publishers_->rtk_msg_.dongle_platform_status = dongle_status.platformStatusCode();
-          publishers_->rtk_msg_.dongle_reset_reason = dongle_status.resetReason();
-          publishers_->rtk_msg_.dongle_signal_quality = dongle_status.signalQuality();
+          // Decode dongle status
+          mscl::RTKDeviceStatusFlags dongle_status(raw_value);
+
+          // Get the RTK version from the status flags
+          version = dongle_status.version();
+
+          switch (version)
+          {
+            // v1
+            case 0:
+            {
+              // Cast to v1 dongle
+              mscl::RTKDeviceStatusFlags_v1 dongle_status_v1 = dongle_status;
+
+              publishers_->rtk_msg_v1_.raw_status_flags = raw_value;
+              publishers_->rtk_msg_v1_.dongle_version = version;
+              publishers_->rtk_msg_v1_.dongle_controller_state = dongle_status_v1.controllerState();
+              publishers_->rtk_msg_v1_.dongle_platform_state = dongle_status_v1.platformState();
+              publishers_->rtk_msg_v1_.dongle_controller_status = dongle_status_v1.controllerStatusCode();
+              publishers_->rtk_msg_v1_.dongle_platform_status = dongle_status_v1.platformStatusCode();
+              publishers_->rtk_msg_v1_.dongle_reset_reason = dongle_status_v1.resetReason();
+              publishers_->rtk_msg_v1_.dongle_signal_quality = dongle_status_v1.signalQuality();
+              break;
+            }
+            // v2
+            default:
+            {
+              publishers_->rtk_msg_.raw_status_flags = raw_value;
+              publishers_->rtk_msg_.dongle_version = version;
+              publishers_->rtk_msg_.dongle_modem_state = dongle_status.modemState();
+              publishers_->rtk_msg_.dongle_connection_type = dongle_status.connectionType();
+              publishers_->rtk_msg_.dongle_rssi = -dongle_status.rssi();
+              publishers_->rtk_msg_.dongle_signal_quality = dongle_status.signalQuality();
+              publishers_->rtk_msg_.dongle_tower_change_indicator = dongle_status.towerChangeIndicator();
+              publishers_->rtk_msg_.dongle_nmea_timeout = dongle_status.nmeaTimeout();
+              publishers_->rtk_msg_.dongle_server_timeout = dongle_status.serverTimeout();
+              publishers_->rtk_msg_.dongle_rtcm_timeout = dongle_status.rtcmTimeout();
+              publishers_->rtk_msg_.dongle_out_of_range = dongle_status.deviceOutOfRange();
+              publishers_->rtk_msg_.dongle_corrections_unavailable = dongle_status.correctionsUnavailable();
+              break;
+            }
+          }
         }
         else if (point.qualifier() == mscl::MipTypes::CH_GPS_CORRECTION_LATENCY)
         {
@@ -1214,7 +1239,31 @@ void MicrostrainParser::parseRTKPacket(const mscl::MipDataPacket& packet)
 
   // Publish
   if (config_->publish_rtk_)
-    publishers_->rtk_pub_->publish(publishers_->rtk_msg_);
+  {
+    switch (version)
+    {
+      // v1
+      case 0:
+      {
+        publishers_->rtk_msg_v1_.gps_tow = publishers_->rtk_msg_.gps_tow;
+        publishers_->rtk_msg_v1_.gps_week = publishers_->rtk_msg_.gps_week;
+        publishers_->rtk_msg_v1_.epoch_status = publishers_->rtk_msg_.epoch_status;
+        publishers_->rtk_msg_v1_.gps_correction_latency = publishers_->rtk_msg_.gps_correction_latency;
+        publishers_->rtk_msg_v1_.glonass_correction_latency = publishers_->rtk_msg_.glonass_correction_latency;
+        publishers_->rtk_msg_v1_.galileo_correction_latency = publishers_->rtk_msg_.galileo_correction_latency;
+        publishers_->rtk_msg_v1_.beidou_correction_latency = publishers_->rtk_msg_.beidou_correction_latency;
+
+        publishers_->rtk_pub_v1_->publish(publishers_->rtk_msg_v1_);
+        break;
+      }
+      // v2
+      default:
+      {
+        publishers_->rtk_pub_->publish(publishers_->rtk_msg_);
+        break;
+      }
+    }
+  }
 }
 
 void MicrostrainParser::printPacketStats()

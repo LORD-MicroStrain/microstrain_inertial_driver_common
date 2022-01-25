@@ -52,6 +52,13 @@ public:
 
 private:
   /**
+   * \brief Gets the packet timestamp from a MIP packet depending on whether we want to use the collected timestamp or device timestamp
+   * \param packet The MIP packet containing a collected timestamp and possibly a device timestamp
+   * \return ROS time type populated with the packet timestamp
+   */
+  RosTimeType getPacketTimestamp(const mscl::MipDataPacket& packet) const;
+
+  /**
    * \brief Parses IMU packets if the MIP packet was an IMU packet and saves the data into a ROS message that will be published when it is filled out
    * \param packet the IMU packet to parse
    */

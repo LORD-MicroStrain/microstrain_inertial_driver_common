@@ -52,6 +52,7 @@ constexpr auto NUM_GNSS = 2;
 
 #include "microstrain_inertial_msgs/Status.h"
 #include "microstrain_inertial_msgs/RTKStatus.h"
+#include "microstrain_inertial_msgs/RTKStatusV1.h"
 #include "microstrain_inertial_msgs/FilterStatus.h"
 #include "microstrain_inertial_msgs/FilterHeading.h"
 #include "microstrain_inertial_msgs/FilterHeadingState.h"
@@ -158,6 +159,7 @@ constexpr auto NUM_GNSS = 2;
 
 #include "microstrain_inertial_msgs/msg/status.hpp"
 #include "microstrain_inertial_msgs/msg/rtk_status.hpp"
+#include "microstrain_inertial_msgs/msg/rtk_status_v1.hpp"
 #include "microstrain_inertial_msgs/msg/filter_status.hpp"
 #include "microstrain_inertial_msgs/msg/filter_heading.hpp"
 #include "microstrain_inertial_msgs/msg/filter_heading_state.hpp"
@@ -235,6 +237,7 @@ namespace microstrain
 #if MICROSTRAIN_ROS_VERSION == 1
 // ROS1 General Types
 using RosNodeType = ::ros::NodeHandle;
+using RosTimeType = ::ros::Time;
 using RosTimerType = std::shared_ptr<::ros::Timer>;
 using RosRateType = ::ros::Rate;
 using RosHeaderType = ::std_msgs::Header;
@@ -251,6 +254,7 @@ using TimeReferenceMsg = ::sensor_msgs::TimeReference;
 using NMEASentenceMsg = ::nmea_msgs::Sentence;
 using StatusMsg = ::microstrain_inertial_msgs::Status;
 using RTKStatusMsg = ::microstrain_inertial_msgs::RTKStatus;
+using RTKStatusMsgV1 = ::microstrain_inertial_msgs::RTKStatusV1;
 using FilterStatusMsg = ::microstrain_inertial_msgs::FilterStatus;
 using FilterHeadingMsg = ::microstrain_inertial_msgs::FilterHeading;
 using FilterAidingMeasurementSummaryMsg = ::microstrain_inertial_msgs::FilterAidingMeasurementSummary;
@@ -271,6 +275,7 @@ using TimeReferencePubType = RosPubType;
 using NMEASentencePubType = RosPubType;
 using StatusPubType = RosPubType;
 using RTKStatusPubType = RosPubType;
+using RTKStatusPubTypeV1 = RosPubType;
 using FilterStatusPubType = RosPubType;
 using FilterHeadingPubType = RosPubType;
 using FilterAidingMeasurementSummaryPubType = RosPubType;
@@ -483,6 +488,7 @@ using SetFilterSpeedLeverArmServiceType = RosServiceType;
 #elif MICROSTRAIN_ROS_VERSION == 2
 // ROS2 Generic Types
 using RosNodeType = ::rclcpp_lifecycle::LifecycleNode;
+using RosTimeType = ::rclcpp::Time;
 using RosTimerType = ::rclcpp::TimerBase::SharedPtr;
 using RosRateType = ::rclcpp::Rate;
 using RosHeaderType = ::std_msgs::msg::Header;
@@ -496,6 +502,7 @@ using TimeReferenceMsg = ::sensor_msgs::msg::TimeReference;
 using NMEASentenceMsg = ::nmea_msgs::msg::Sentence;
 using StatusMsg = ::microstrain_inertial_msgs::msg::Status;
 using RTKStatusMsg = ::microstrain_inertial_msgs::msg::RTKStatus;
+using RTKStatusMsgV1 = ::microstrain_inertial_msgs::msg::RTKStatusV1;
 using FilterStatusMsg = ::microstrain_inertial_msgs::msg::FilterStatus;
 using FilterHeadingMsg = ::microstrain_inertial_msgs::msg::FilterHeading;
 using FilterAidingMeasurementSummaryMsg = ::microstrain_inertial_msgs::msg::FilterAidingMeasurementSummary;
@@ -516,6 +523,7 @@ using TimeReferencePubType = ::rclcpp_lifecycle::LifecyclePublisher<TimeReferenc
 using NMEASentencePubType = ::rclcpp_lifecycle::LifecyclePublisher<NMEASentenceMsg>::SharedPtr;
 using StatusPubType = ::rclcpp_lifecycle::LifecyclePublisher<StatusMsg>::SharedPtr;
 using RTKStatusPubType = ::rclcpp_lifecycle::LifecyclePublisher<RTKStatusMsg>::SharedPtr;
+using RTKStatusPubTypeV1 = ::rclcpp_lifecycle::LifecyclePublisher<RTKStatusMsgV1>::SharedPtr;
 using FilterStatusPubType = ::rclcpp_lifecycle::LifecyclePublisher<FilterStatusMsg>::SharedPtr;
 using FilterHeadingPubType = ::rclcpp_lifecycle::LifecyclePublisher<FilterHeadingMsg>::SharedPtr;
 using FilterAidingMeasurementSummaryPubType = ::rclcpp_lifecycle::LifecyclePublisher<FilterAidingMeasurementSummaryMsg>::SharedPtr;

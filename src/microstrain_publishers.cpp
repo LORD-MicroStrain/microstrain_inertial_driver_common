@@ -89,6 +89,7 @@ bool MicrostrainPublishers::configure()
   {
     MICROSTRAIN_INFO(node_, "Publishing RTK data.");
     rtk_pub_ = create_publisher<RTKStatusMsg>(node_, "rtk/status", 100);
+    rtk_pub_v1_ = create_publisher<RTKStatusMsgV1>(node_, "rtk/status_v1", 100);
   }
 
   // If the device has a kalman filter, publish relevant topics
