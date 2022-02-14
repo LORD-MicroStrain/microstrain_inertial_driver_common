@@ -581,6 +581,7 @@ void MicrostrainParser::parseFilterPacket(const mscl::MipDataPacket& packet)
       break;
 
       case mscl::MipTypes::CH_FIELD_ESTFILTER_COMPENSATED_ACCEL:
+      case mscl::MipTypes::CH_FIELD_ESTFILTER_ESTIMATED_LINEAR_ACCEL:
       {
         if (point.qualifier() == mscl::MipTypes::CH_X)
         {
