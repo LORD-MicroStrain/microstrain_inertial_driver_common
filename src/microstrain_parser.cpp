@@ -1170,6 +1170,7 @@ void MicrostrainParser::parseRTKPacket(const mscl::MipDataPacket& packet)
 
   // RTK version from status flags. 1 == v2
   uint8_t version = 1;
+  bool has_rtk_status = false;
 
   // Loop over data elements and map them
   for (mscl::MipDataPoint point : points)
@@ -1179,6 +1180,8 @@ void MicrostrainParser::parseRTKPacket(const mscl::MipDataPacket& packet)
       // RTK Correction Status
       case mscl::MipTypes::CH_FIELD_GNSS_3_RTK_CORRECTIONS_STATUS:
       {
+        has_rtk_status = true;
+
         if (point.qualifier() == mscl::MipTypes::CH_TIME_OF_WEEK)
         {
           publishers_->rtk_msg_.gps_tow = point.as_double();
@@ -1261,7 +1264,7 @@ void MicrostrainParser::parseRTKPacket(const mscl::MipDataPacket& packet)
   }
 
   // Publish
-  if (config_->publish_rtk_)
+  if (has_rtk_status)
   {
     switch (version)
     {
@@ -1276,13 +1279,15 @@ void MicrostrainParser::parseRTKPacket(const mscl::MipDataPacket& packet)
         publishers_->rtk_msg_v1_.galileo_correction_latency = publishers_->rtk_msg_.galileo_correction_latency;
         publishers_->rtk_msg_v1_.beidou_correction_latency = publishers_->rtk_msg_.beidou_correction_latency;
 
-        publishers_->rtk_pub_v1_->publish(publishers_->rtk_msg_v1_);
+        if (publishers_->rtk_pub_v1_ != nullptr)
+          publishers_->rtk_pub_v1_->publish(publishers_->rtk_msg_v1_);
         break;
       }
       // v2
       default:
       {
-        publishers_->rtk_pub_->publish(publishers_->rtk_msg_);
+        if (publishers_->rtk_pub_ != nullptr)
+          publishers_->rtk_pub_->publish(publishers_->rtk_msg_);
         break;
       }
     }

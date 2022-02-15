@@ -119,6 +119,12 @@ public:
   bool configureRTK(RosNodeType* node);
 
   /**
+   * \brief Configures RTK data rates on the inertial device. This is where the data being published will actually be setup to stream or disabled
+   * \return true if the data rates were configured and false if an error occured
+   */
+  bool configureRTKDataRates();
+
+  /**
    * \brief Configures Filter settings on the inertial device
    * \param node  The ROS node that contains configuration information. For ROS1 this is the private node handle ("~")
    * \return true if configuration was successful and false if configuration failed

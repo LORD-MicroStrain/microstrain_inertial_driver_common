@@ -102,6 +102,9 @@ bool MicrostrainConfig::configure(RosNodeType* node)
   get_param<bool>(node, "publish_nmea", publish_nmea_, false);
   get_param<std::string>(node, "nmea_frame_id", nmea_frame_id_, nmea_frame_id_);
 
+  // RTK Data rate
+  getDataRateParam(node, "rtk_status_data_rate", rtk_status_data_rate_, 1);
+
   // FILTER
   get_param<bool>(node, "publish_filter", publish_filter_, false);
   get_param<int32_t>(node, "filter_data_rate", filter_data_rate_, 10);
@@ -326,6 +329,10 @@ bool MicrostrainConfig::setupDevice(RosNodeType* node)
   {
     if (!configureRTK(node))
       return false;
+    
+    if (publish_rtk_)
+      if (!configureRTKDataRates())
+        return false;
   }
 
   // Filter setup
@@ -687,30 +694,6 @@ bool MicrostrainConfig::configureGNSSDataRates(uint8_t gnss_id)
 
 bool MicrostrainConfig::configureRTK(RosNodeType* node)
 {
-  if (publish_rtk_)
-  {
-    mscl::SampleRate gnss3_rate = mscl::SampleRate::Hertz(1);
-
-    MICROSTRAIN_INFO(node_, "Setting RTK data to stream at 1 hz");
-
-    mscl::MipTypes::MipChannelFields gnssChannels{ mscl::MipTypes::ChannelField::CH_FIELD_GNSS_3_RTK_CORRECTIONS_STATUS };
-
-    mscl::MipChannels supportedChannels;
-    for (mscl::MipTypes::ChannelField channel :
-        inertial_device_->features().supportedChannelFields(mscl::MipTypes::DataClass::CLASS_GNSS3))
-    {
-      if (std::find(gnssChannels.begin(), gnssChannels.end(), channel) != gnssChannels.end())
-      {
-        supportedChannels.push_back(mscl::MipChannel(channel, gnss3_rate));
-      }
-    }
-
-    // set the GNSS channel fields
-    inertial_device_->setActiveChannelFields(mscl::MipTypes::DataClass::CLASS_GNSS3, supportedChannels);
-
-    inertial_device_->enableDataStream(mscl::MipTypes::DataClass::CLASS_GNSS3);
-  }
-
   // Check if the device even supports the RTK command, and enable/disable accordingly
   if (inertial_device_->features().supportsCommand(mscl::MipTypes::Command::CMD_GNSS_RTK_CONFIG))
   {
@@ -723,6 +706,32 @@ bool MicrostrainConfig::configureRTK(RosNodeType* node)
   }
 
   return true;
+}
+
+bool MicrostrainConfig::configureRTKDataRates()
+{
+  // Streaming for /rtk/status or /rtk/status_v1 message
+  mscl::MipChannels channels_to_stream;
+  mscl::MipTypes::MipChannelFields rtk_status_fields
+  {
+    mscl::MipTypes::ChannelField::CH_FIELD_GNSS_3_RTK_CORRECTIONS_STATUS,
+  };
+  getSupportedMipChannels(mscl::MipTypes::DataClass::CLASS_GNSS3, rtk_status_fields, rtk_status_data_rate_, &channels_to_stream);
+
+  // Enable the data stream
+  try
+  {
+    inertial_device_->setActiveChannelFields(mscl::MipTypes::DataClass::CLASS_GNSS3, channels_to_stream);
+    inertial_device_->enableDataStream(mscl::MipTypes::DataClass::CLASS_GNSS3);
+  }
+  catch (const mscl::Error& e)
+  {
+    MICROSTRAIN_ERROR(node_, "Unable to set RTK data to stream.");
+    MICROSTRAIN_ERROR(node_, "  Error: %s", e.what());
+    return false;
+  }
+  return true;
+
 }
 
 bool MicrostrainConfig::configureFilter(RosNodeType* node)

@@ -60,8 +60,8 @@ public:
   GNSSFixInfoPubType gnss_fix_info_pub_[NUM_GNSS] = { nullptr };
 
   // RTK Data publisher
-  RTKStatusPubType rtk_pub_;
-  RTKStatusPubTypeV1 rtk_pub_v1_;
+  RTKStatusPubType rtk_pub_ = nullptr;
+  RTKStatusPubTypeV1 rtk_pub_v1_ = nullptr;
 
   // Filter Publishers
   FilterStatusPubType filter_status_pub_;
