@@ -278,14 +278,14 @@ bool MicrostrainConfig::setupDevice(RosNodeType* node)
   }
 
   // GNSS1 setup
-  if (publish_gnss_[GNSS1_ID] && supports_gnss1_)
+  if (supports_gnss1_)
   {
     if (!configureGNSS(node, GNSS1_ID))
       return false;
   }
 
   // GNSS2 setup
-  if (publish_gnss_[GNSS2_ID] && supports_gnss2_)
+  if (supports_gnss2_)
   {
     if (!configureGNSS(node, GNSS2_ID))
       return false;
@@ -513,53 +513,6 @@ bool MicrostrainConfig::configureIMU(RosNodeType* node)
 
 bool MicrostrainConfig::configureGNSS(RosNodeType* node, uint8_t gnss_id)
 {
-  mscl::SampleRate gnss1_rate = mscl::SampleRate::Hertz(gnss_data_rate_[gnss_id]);
-
-  MICROSTRAIN_INFO(node_, "Setting GNSS%d data to stream at %d hz", gnss_id, gnss_data_rate_[gnss_id]);
-
-  mscl::MipTypes::MipChannelFields gnssChannels
-  {
-    mscl::MipTypes::ChannelField::CH_FIELD_GNSS_LLH_POSITION,
-    mscl::MipTypes::ChannelField::CH_FIELD_GNSS_NED_VELOCITY,
-    mscl::MipTypes::ChannelField::CH_FIELD_GNSS_GPS_TIME
-  };
-
-  mscl::MipTypes::DataClass gnss_data_class = mscl::MipTypes::DataClass::CLASS_GNSS;
-
-  if (inertial_device_->features().supportsCategory(mscl::MipTypes::DataClass::CLASS_GNSS1) && gnss_id == GNSS1_ID)
-  {
-    gnss_data_class = mscl::MipTypes::DataClass::CLASS_GNSS1;
-
-    gnssChannels.clear();
-    gnssChannels.push_back(mscl::MipTypes::ChannelField::CH_FIELD_GNSS_1_LLH_POSITION);
-    gnssChannels.push_back(mscl::MipTypes::ChannelField::CH_FIELD_GNSS_1_NED_VELOCITY);
-    gnssChannels.push_back(mscl::MipTypes::ChannelField::CH_FIELD_GNSS_1_GPS_TIME);
-    gnssChannels.push_back(mscl::MipTypes::ChannelField::CH_FIELD_GNSS_1_FIX_INFO);
-  }
-  else if (inertial_device_->features().supportsCategory(mscl::MipTypes::DataClass::CLASS_GNSS2) &&
-           gnss_id == GNSS2_ID)
-  {
-    gnss_data_class = mscl::MipTypes::DataClass::CLASS_GNSS2;
-
-    gnssChannels.clear();
-    gnssChannels.push_back(mscl::MipTypes::ChannelField::CH_FIELD_GNSS_2_LLH_POSITION);
-    gnssChannels.push_back(mscl::MipTypes::ChannelField::CH_FIELD_GNSS_2_NED_VELOCITY);
-    gnssChannels.push_back(mscl::MipTypes::ChannelField::CH_FIELD_GNSS_2_GPS_TIME);
-    gnssChannels.push_back(mscl::MipTypes::ChannelField::CH_FIELD_GNSS_2_FIX_INFO);
-  }
-
-  mscl::MipChannels supportedChannels;
-  for (mscl::MipTypes::ChannelField channel : inertial_device_->features().supportedChannelFields(gnss_data_class))
-  {
-    if (std::find(gnssChannels.begin(), gnssChannels.end(), channel) != gnssChannels.end())
-    {
-      supportedChannels.push_back(mscl::MipChannel(channel, gnss1_rate));
-    }
-  }
-
-  // set the GNSS channel fields
-  inertial_device_->setActiveChannelFields(gnss_data_class, supportedChannels);
-
   // Set the antenna offset, if supported (needs to process 2 different ways for old devices vs. new for GNSS1)
   mscl::PositionOffset antenna_offset(gnss_antenna_offset_[gnss_id][0], gnss_antenna_offset_[gnss_id][1],
                                       gnss_antenna_offset_[gnss_id][2]);
@@ -582,14 +535,66 @@ bool MicrostrainConfig::configureGNSS(RosNodeType* node, uint8_t gnss_id)
     return false;
   }
 
-  // Enable publishing aiding status messages
-  publish_gnss_aiding_status_[gnss_id] = inertial_device_->features().supportsCommand(mscl::MipTypes::Command::CMD_EF_AIDING_MEASUREMENT_ENABLE);
-  if (!publish_gnss_aiding_status_[gnss_id])
+  // If we were requested to publish GNSS data, set up streaming at the requested rate
+  if (publish_gnss_[gnss_id])
   {
-    MICROSTRAIN_INFO(node_, "Note: Device not support publishing GNSS Aiding measurements.");
+    mscl::SampleRate gnss1_rate = mscl::SampleRate::Hertz(gnss_data_rate_[gnss_id]);
+
+    MICROSTRAIN_INFO(node_, "Setting GNSS%d data to stream at %d hz", gnss_id, gnss_data_rate_[gnss_id]);
+
+    mscl::MipTypes::MipChannelFields gnssChannels
+    {
+      mscl::MipTypes::ChannelField::CH_FIELD_GNSS_LLH_POSITION,
+      mscl::MipTypes::ChannelField::CH_FIELD_GNSS_NED_VELOCITY,
+      mscl::MipTypes::ChannelField::CH_FIELD_GNSS_GPS_TIME
+    };
+
+    mscl::MipTypes::DataClass gnss_data_class = mscl::MipTypes::DataClass::CLASS_GNSS;
+
+    if (inertial_device_->features().supportsCategory(mscl::MipTypes::DataClass::CLASS_GNSS1) && gnss_id == GNSS1_ID)
+    {
+      gnss_data_class = mscl::MipTypes::DataClass::CLASS_GNSS1;
+
+      gnssChannels.clear();
+      gnssChannels.push_back(mscl::MipTypes::ChannelField::CH_FIELD_GNSS_1_LLH_POSITION);
+      gnssChannels.push_back(mscl::MipTypes::ChannelField::CH_FIELD_GNSS_1_NED_VELOCITY);
+      gnssChannels.push_back(mscl::MipTypes::ChannelField::CH_FIELD_GNSS_1_GPS_TIME);
+      gnssChannels.push_back(mscl::MipTypes::ChannelField::CH_FIELD_GNSS_1_FIX_INFO);
+    }
+    else if (inertial_device_->features().supportsCategory(mscl::MipTypes::DataClass::CLASS_GNSS2) &&
+            gnss_id == GNSS2_ID)
+    {
+      gnss_data_class = mscl::MipTypes::DataClass::CLASS_GNSS2;
+
+      gnssChannels.clear();
+      gnssChannels.push_back(mscl::MipTypes::ChannelField::CH_FIELD_GNSS_2_LLH_POSITION);
+      gnssChannels.push_back(mscl::MipTypes::ChannelField::CH_FIELD_GNSS_2_NED_VELOCITY);
+      gnssChannels.push_back(mscl::MipTypes::ChannelField::CH_FIELD_GNSS_2_GPS_TIME);
+      gnssChannels.push_back(mscl::MipTypes::ChannelField::CH_FIELD_GNSS_2_FIX_INFO);
+    }
+
+    mscl::MipChannels supportedChannels;
+    for (mscl::MipTypes::ChannelField channel : inertial_device_->features().supportedChannelFields(gnss_data_class))
+    {
+      if (std::find(gnssChannels.begin(), gnssChannels.end(), channel) != gnssChannels.end())
+      {
+        supportedChannels.push_back(mscl::MipChannel(channel, gnss1_rate));
+      }
+    }
+
+    // set the GNSS channel fields
+    inertial_device_->setActiveChannelFields(gnss_data_class, supportedChannels);
+
+    // Enable publishing aiding status messages
+    publish_gnss_aiding_status_[gnss_id] = inertial_device_->features().supportsCommand(mscl::MipTypes::Command::CMD_EF_AIDING_MEASUREMENT_ENABLE);
+    if (!publish_gnss_aiding_status_[gnss_id])
+    {
+      MICROSTRAIN_INFO(node_, "Note: Device not support publishing GNSS Aiding measurements.");
+    }
+
+    inertial_device_->enableDataStream(gnss_data_class);
   }
 
-  inertial_device_->enableDataStream(gnss_data_class);
   return true;
 }
 
