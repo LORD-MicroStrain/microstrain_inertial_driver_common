@@ -153,6 +153,7 @@ void MicrostrainParser::parseIMUPacket(const mscl::MipDataPacket& packet)
   bool has_gyro = false;
   bool has_quat = false;
   bool has_mag = false;
+  bool has_gps_corr = false;
 
   // Get the list of data elements
   const mscl::MipDataPoints& points = packet.data();
@@ -287,6 +288,7 @@ void MicrostrainParser::parseIMUPacket(const mscl::MipDataPacket& packet)
         // for some reason point.qualifier() == mscl::MipTypes::CH_WEEK_NUMBER and
         // point.qualifier() == mscl::MipTypes::CH_FLAGS always returned false so I used
         // an iterator and manually incremented it to access all the elements
+        has_gps_corr = true;
         publishers_->gps_corr_msg_.gps_cor.gps_tow = point_iter->as_double();
         point_iter++;
         publishers_->gps_corr_msg_.gps_cor.gps_week_number = point_iter->as_uint16();
@@ -319,16 +321,17 @@ void MicrostrainParser::parseIMUPacket(const mscl::MipDataPacket& packet)
   }
 
   // Publish
-  if (config_->publish_gps_corr_)
-    publishers_->gps_corr_pub_->publish(publishers_->gps_corr_msg_);
+  if (has_accel || has_gyro || has_quat)
+    if (publishers_->imu_pub_ != nullptr)
+      publishers_->imu_pub_->publish(publishers_->imu_msg_);
 
-  if (config_->publish_imu_)
-  {
-    publishers_->imu_pub_->publish(publishers_->imu_msg_);
-
-    if (has_mag)
+  if (has_mag)
+    if (publishers_->mag_pub_ != nullptr)
       publishers_->mag_pub_->publish(publishers_->mag_msg_);
-  }
+
+  if (publishers_->gps_corr_pub_ != nullptr)
+    if (publishers_->gps_corr_pub_ != nullptr)
+      publishers_->gps_corr_pub_->publish(publishers_->gps_corr_msg_);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////

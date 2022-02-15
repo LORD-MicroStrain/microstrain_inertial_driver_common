@@ -94,6 +94,13 @@ raw_file_directory : "/home/your_name"
 publish_imu   : True
 imu_data_rate : 100
 
+# The speed at which the individual IMU publishers will publish at.
+#      If set to -1, will use imu_data_rate to determine the rate at which to stream and publish
+#      If set to 0, the stream will be turned off and the publisher will not be created
+imu_raw_data_rate : -1
+imu_mag_data_rate : -1
+imu_gps_corr_data_rate : -1  # Note that this is still dependent on publish_gps_corr being set to True
+
 # Static IMU message covariance values (the device does not generate these) 
 # Since internally these are std::vector we need to use the rosparam tags 
 imu_orientation_cov : [0.01, 0, 0, 0, 0.01, 0, 0, 0, 0.01]

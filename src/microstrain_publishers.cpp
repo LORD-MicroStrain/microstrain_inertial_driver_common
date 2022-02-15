@@ -32,26 +32,29 @@ bool MicrostrainPublishers::configure()
   // Create the transorm broadcaster
   transform_broadcaster_ = create_transform_broadcaster(node_);
 
-  // Publish IMU data, if enabled
   if (config_->publish_imu_)
   {
-    MICROSTRAIN_INFO(node_, "Publishing IMU data.");
-    imu_pub_ = create_publisher<ImuMsg>(node_, "imu/data", 100);
-  }
+    // Publish IMU data, if enabled
+    if (config_->imu_raw_data_rate_ != 0)
+    {
+      MICROSTRAIN_INFO(node_, "Publishing raw IMU data.");
+      imu_pub_ = create_publisher<ImuMsg>(node_, "imu/data", 100);
+    }
 
-  // Publish IMU GPS correlation data, if enabled
-  if (config_->publish_imu_ && config_->publish_gps_corr_)
-  {
-    MICROSTRAIN_INFO(node_, "Publishing IMU GPS correlation timestamp.");
-    gps_corr_pub_ = create_publisher<GPSCorrelationTimestampStampedMsg>(node_, "gps_corr", 100);
-  }
+    // If the device has a magnetometer, publish relevant topics
+    if (config_->inertial_device_->features().supportsCommand(mscl::MipTypes::Command::CMD_MAG_HARD_IRON_OFFSET) &&
+        config_->imu_mag_data_rate_ != 0)
+    {
+      MICROSTRAIN_INFO(node_, "Publishing Magnetometer data.");
+      mag_pub_ = create_publisher<MagneticFieldMsg>(node_, "mag", 100);
+    }
 
-  // If the device has a magnetometer, publish relevant topics
-  if (config_->publish_imu_ &&
-      config_->inertial_device_->features().supportsCommand(mscl::MipTypes::Command::CMD_MAG_HARD_IRON_OFFSET))
-  {
-    MICROSTRAIN_INFO(node_, "Publishing Magnetometer data.");
-    mag_pub_ = create_publisher<MagneticFieldMsg>(node_, "mag", 100);
+    // Publish IMU GPS correlation data, if enabled
+    if (config_->publish_gps_corr_ && config_->imu_gps_corr_data_rate_ != 0)
+    {
+      MICROSTRAIN_INFO(node_, "Publishing IMU GPS correlation timestamp.");
+      gps_corr_pub_ = create_publisher<GPSCorrelationTimestampStampedMsg>(node_, "gps_corr", 100);
+    }
   }
 
   // If the device has GNSS1, publish relevant topics

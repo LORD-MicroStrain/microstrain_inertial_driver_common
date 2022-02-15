@@ -48,9 +48,9 @@ public:
   void publishDeviceStatus();
 
   // IMU Publishers
-  ImuPubType imu_pub_;
-  MagneticFieldPubType mag_pub_;
-  GPSCorrelationTimestampStampedPubType gps_corr_pub_;
+  ImuPubType imu_pub_ = nullptr;
+  MagneticFieldPubType mag_pub_ = nullptr;
+  GPSCorrelationTimestampStampedPubType gps_corr_pub_ = nullptr;
 
   // GNSS Publishers
   NavSatFixPubType gnss_pub_[NUM_GNSS];

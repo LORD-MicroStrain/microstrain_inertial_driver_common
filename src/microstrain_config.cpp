@@ -20,6 +20,8 @@
 #include <memory>
 #include "microstrain_inertial_driver_common/microstrain_config.h"
 
+static constexpr int DEFAULT_DATA_RATE = -1;  // If a data rate is set to this, the data rate will be set to the default data rate
+
 namespace microstrain
 {
 MicrostrainConfig::MicrostrainConfig(RosNodeType* node) : node_(node)
@@ -63,6 +65,11 @@ bool MicrostrainConfig::configure(RosNodeType* node)
   get_param<std::vector<double>>(node, "imu_linear_cov", imu_linear_cov_, DEFAULT_MATRIX);
   get_param<std::vector<double>>(node, "imu_angular_cov", imu_angular_cov_, DEFAULT_MATRIX);
   get_param<std::string>(node, "imu_frame_id", imu_frame_id_, imu_frame_id_);
+
+  // IMU Data rate
+  getDataRateParam(node, "imu_raw_data_rate", imu_raw_data_rate_, imu_data_rate_);
+  getDataRateParam(node, "imu_mag_data_rate", imu_mag_data_rate_, imu_data_rate_);
+  getDataRateParam(node, "imu_gps_corr_data_rate", imu_gps_corr_data_rate_, imu_data_rate_);
 
   // GNSS 1/2
   get_param<bool>(node, "publish_gnss1", publish_gnss_[GNSS1_ID], false);
@@ -271,10 +278,14 @@ bool MicrostrainConfig::setupDevice(RosNodeType* node)
   }
 
   // IMU Setup
-  if (publish_imu_ && supports_imu_)
+  if (supports_imu_)
   {
     if (!configureIMU(node))
       return false;
+
+    if (publish_imu_)
+      if (!configureIMUDataRates())
+        return false;
   }
 
   // GNSS1 setup
@@ -471,31 +482,6 @@ bool MicrostrainConfig::configureIMU(RosNodeType* node)
   get_param<int32_t>(node, "filter_declination_source", declination_source, 2);
   get_param<double>(node, "filter_declination", declination, 0.23);
 
-  mscl::SampleRate imu_rate = mscl::SampleRate::Hertz(imu_data_rate_);
-
-  MICROSTRAIN_INFO(node_, "Setting IMU data to stream at %d hz", imu_data_rate_);
-
-  mscl::MipTypes::MipChannelFields ahrsChannels
-  {
-    mscl::MipTypes::ChannelField::CH_FIELD_SENSOR_SCALED_ACCEL_VEC,
-    mscl::MipTypes::ChannelField::CH_FIELD_SENSOR_SCALED_GYRO_VEC,
-    mscl::MipTypes::ChannelField::CH_FIELD_SENSOR_ORIENTATION_QUATERNION,
-    mscl::MipTypes::ChannelField::CH_FIELD_SENSOR_SCALED_MAG_VEC,
-    mscl::MipTypes::ChannelField::CH_FIELD_SENSOR_GPS_CORRELATION_TIMESTAMP
-  };
-
-  mscl::MipChannels supportedChannels;
-  for (mscl::MipTypes::ChannelField channel :
-       inertial_device_->features().supportedChannelFields(mscl::MipTypes::DataClass::CLASS_AHRS_IMU))
-  {
-    if (std::find(ahrsChannels.begin(), ahrsChannels.end(), channel) != ahrsChannels.end())
-    {
-      supportedChannels.push_back(mscl::MipChannel(channel, imu_rate));
-    }
-  }
-
-  inertial_device_->setActiveChannelFields(mscl::MipTypes::DataClass::CLASS_AHRS_IMU, supportedChannels);
-
   if (inertial_device_->features().supportsCommand(mscl::MipTypes::Command::CMD_EF_DECLINATION_SRC))
   {
     MICROSTRAIN_INFO(node_, "Setting Declination Source");
@@ -507,7 +493,48 @@ bool MicrostrainConfig::configureIMU(RosNodeType* node)
     MICROSTRAIN_INFO(node_, "Note: Device does not support the declination source command.");
   }
 
-  inertial_device_->enableDataStream(mscl::MipTypes::DataClass::CLASS_AHRS_IMU);
+  return true;
+}
+
+bool MicrostrainConfig::configureIMUDataRates()
+{
+  mscl::MipChannels channels_to_stream;
+
+  // Streaming for /imu/data message
+  mscl::MipTypes::MipChannelFields imu_raw_fields
+  {
+    mscl::MipTypes::ChannelField::CH_FIELD_SENSOR_SCALED_ACCEL_VEC,
+    mscl::MipTypes::ChannelField::CH_FIELD_SENSOR_SCALED_GYRO_VEC,
+    mscl::MipTypes::ChannelField::CH_FIELD_SENSOR_ORIENTATION_QUATERNION,
+  };
+  getSupportedMipChannels(mscl::MipTypes::DataClass::CLASS_AHRS_IMU, imu_raw_fields, imu_raw_data_rate_, &channels_to_stream);
+
+  // Streaming for /mag message
+  mscl::MipTypes::MipChannelFields imu_mag_fields
+  {
+    mscl::MipTypes::ChannelField::CH_FIELD_SENSOR_SCALED_MAG_VEC,
+  };
+  getSupportedMipChannels(mscl::MipTypes::DataClass::CLASS_AHRS_IMU, imu_mag_fields, imu_mag_data_rate_, &channels_to_stream);
+
+  // Streaming for /gps_corr message
+  mscl::MipTypes::MipChannelFields imu_gps_corr_fields
+  {
+    mscl::MipTypes::ChannelField::CH_FIELD_SENSOR_GPS_CORRELATION_TIMESTAMP,
+  };
+  getSupportedMipChannels(mscl::MipTypes::DataClass::CLASS_AHRS_IMU, imu_gps_corr_fields, imu_gps_corr_data_rate_, &channels_to_stream);
+
+  // Enable the data stream
+  try
+  {
+    inertial_device_->setActiveChannelFields(mscl::MipTypes::DataClass::CLASS_AHRS_IMU, channels_to_stream);
+    inertial_device_->enableDataStream(mscl::MipTypes::DataClass::CLASS_AHRS_IMU);
+  }
+  catch (const mscl::Error& e)
+  {
+    MICROSTRAIN_ERROR(node_, "Unable to set IMU data to stream.");
+    MICROSTRAIN_ERROR(node_, "  Error: %s", e.what());
+    return false;
+  }
   return true;
 }
 
@@ -1105,6 +1132,52 @@ bool MicrostrainConfig::configureSensor2vehicle(RosNodeType* node)
     }
   }
   return true;
+}
+
+void MicrostrainConfig::getDataRateParam(RosNodeType* node, const std::string& key, int& data_rate, int default_data_rate)
+{
+  // Get the data rate, and if it is set to the default value, set the rate to the default rate
+  get_param<int>(node, key, data_rate, DEFAULT_DATA_RATE);
+  if (data_rate == DEFAULT_DATA_RATE)
+    data_rate = default_data_rate;
+}
+
+void MicrostrainConfig::getSupportedMipChannels(mscl::MipTypes::DataClass data_class, const mscl::MipTypes::MipChannelFields& channel_fields, int data_rate, mscl::MipChannels* channels_to_stream)
+{
+  // If the list is null, return early to avoid a segfault
+  if (channels_to_stream == nullptr)
+  {
+    MICROSTRAIN_ERROR(node_, "Unable to configure channels for data class 0x%x because channels_to_stream was null. This is a bug and should be reported on Github", data_class);
+    return;
+  }
+
+  // If the data rate is 0, just return early
+  if (data_rate == 0)
+  {
+    std::stringstream descriptors_ss;
+    for (const auto& channel : channel_fields)
+    {
+      descriptors_ss << " 0x" << std::hex << static_cast<uint16_t>(channel);
+    }
+    MICROSTRAIN_DEBUG(node_, "Disabling MIP fields with descriptors%s because the rate was set to 0", descriptors_ss.str().c_str());
+    return;
+  }
+
+  // Only add channels that the device supports and log a warning if the device does not support the channel
+  const auto& data_rate_hz = mscl::SampleRate::Hertz(data_rate);
+  const auto& supported_channels = inertial_device_->features().supportedChannelFields(data_class);
+  for (const auto channel : channel_fields)
+  {
+    if (std::find(supported_channels.begin(), supported_channels.end(), channel) != supported_channels.end())
+    {
+      MICROSTRAIN_DEBUG(node_, "Streaming MIP field with descriptor 0x%x at a rate of %d hz", static_cast<uint16_t>(channel), data_rate);
+      channels_to_stream->push_back(mscl::MipChannel(channel, data_rate_hz));
+    }
+    else
+    {
+      MICROSTRAIN_WARN(node_, "Attempted to stream MIP field with descriptor 0x%x at a rate of %d hz, but the device reported that it does not support it", static_cast<uint16_t>(channel), data_rate);
+    }
+  }
 }
 
 }  // namespace microstrain
