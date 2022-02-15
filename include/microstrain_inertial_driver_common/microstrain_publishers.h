@@ -53,11 +53,11 @@ public:
   GPSCorrelationTimestampStampedPubType gps_corr_pub_ = nullptr;
 
   // GNSS Publishers
-  NavSatFixPubType gnss_pub_[NUM_GNSS];
-  OdometryPubType gnss_odom_pub_[NUM_GNSS];
-  TimeReferencePubType gnss_time_pub_[NUM_GNSS];
-  GNSSAidingStatusPubType gnss_aiding_status_pub_[NUM_GNSS];
-  GNSSFixInfoPubType gnss_fix_info_pub_[NUM_GNSS];
+  NavSatFixPubType gnss_pub_[NUM_GNSS] = { nullptr };
+  OdometryPubType gnss_odom_pub_[NUM_GNSS] = { nullptr };
+  TimeReferencePubType gnss_time_pub_[NUM_GNSS] = { nullptr };
+  GNSSAidingStatusPubType gnss_aiding_status_pub_[NUM_GNSS] = { nullptr };
+  GNSSFixInfoPubType gnss_fix_info_pub_[NUM_GNSS] = { nullptr };
 
   // RTK Data publisher
   RTKStatusPubType rtk_pub_;

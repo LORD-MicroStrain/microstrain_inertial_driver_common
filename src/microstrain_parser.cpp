@@ -1011,6 +1011,11 @@ void MicrostrainParser::parseGNSSPacket(const mscl::MipDataPacket& packet, int g
   publishers_->gnss_time_msg_[gnss_id].header.frame_id = config_->gnss_frame_id_[gnss_id];
   publishers_->gnss_time_msg_[gnss_id].time_ref = packet_time;
 
+  // Data present flags
+  bool has_nav_sat_fix = false;
+  bool has_odom = false;
+  bool has_fix_info = false;
+
   // Get the list of data elements
   const mscl::MipDataPoints& points = packet.data();
 
@@ -1024,6 +1029,9 @@ void MicrostrainParser::parseGNSSPacket(const mscl::MipDataPacket& packet, int g
       case mscl::MipTypes::CH_FIELD_GNSS_1_LLH_POSITION:
       case mscl::MipTypes::CH_FIELD_GNSS_2_LLH_POSITION:
       {
+        has_nav_sat_fix = true;
+        has_odom = true;
+
         if (point.qualifier() == mscl::MipTypes::CH_LATITUDE)
         {
           publishers_->gnss_msg_[gnss_id].latitude = point.as_double();
@@ -1074,6 +1082,8 @@ void MicrostrainParser::parseGNSSPacket(const mscl::MipDataPacket& packet, int g
       case mscl::MipTypes::ChannelField::CH_FIELD_GNSS_1_NED_VELOCITY:
       case mscl::MipTypes::ChannelField::CH_FIELD_GNSS_2_NED_VELOCITY:
       {
+        has_odom = true;
+
         if (point.qualifier() == mscl::MipTypes::CH_NORTH)
         {
           float north_velocity = point.as_float();
@@ -1107,6 +1117,8 @@ void MicrostrainParser::parseGNSSPacket(const mscl::MipDataPacket& packet, int g
       case mscl::MipTypes::ChannelField::CH_FIELD_GNSS_1_FIX_INFO:
       case mscl::MipTypes::ChannelField::CH_FIELD_GNSS_2_FIX_INFO:
       {
+        has_fix_info = true;
+
         if (point.qualifier() == mscl::MipTypes::CH_FIX_TYPE)
         {
           publishers_->gnss_fix_info_msg_[gnss_id].fix_type = point.as_uint8();
@@ -1126,15 +1138,22 @@ void MicrostrainParser::parseGNSSPacket(const mscl::MipDataPacket& packet, int g
   }
 
   // Publish
-  if (config_->publish_gnss_[gnss_id])
-  {
-    publishers_->gnss_pub_[gnss_id]->publish(publishers_->gnss_msg_[gnss_id]);
-    publishers_->gnss_odom_pub_[gnss_id]->publish(publishers_->gnss_odom_msg_[gnss_id]);
-    publishers_->gnss_fix_info_pub_[gnss_id]->publish(publishers_->gnss_fix_info_msg_[gnss_id]);
+  if (has_nav_sat_fix)
+    if (publishers_->gnss_pub_[gnss_id] != nullptr)
+      publishers_->gnss_pub_[gnss_id]->publish(publishers_->gnss_msg_[gnss_id]);
+  
+  if (has_odom)
+    if (publishers_->gnss_odom_pub_[gnss_id] != nullptr)
+      publishers_->gnss_odom_pub_[gnss_id]->publish(publishers_->gnss_odom_msg_[gnss_id]);
 
-    if (time_valid)
+  if (time_valid)
+    if (publishers_->gnss_time_pub_[gnss_id] != nullptr)
       publishers_->gnss_time_pub_[gnss_id]->publish(publishers_->gnss_time_msg_[gnss_id]);
-  }
+    
+  if (has_fix_info)
+    if (publishers_->gnss_fix_info_pub_[gnss_id] != nullptr)
+      publishers_->gnss_fix_info_pub_[gnss_id]->publish(publishers_->gnss_fix_info_msg_[gnss_id]);
+
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////

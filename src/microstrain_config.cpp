@@ -81,6 +81,17 @@ bool MicrostrainConfig::configure(RosNodeType* node)
   get_param<std::string>(node, "gnss1_frame_id", gnss_frame_id_[GNSS1_ID], gnss_frame_id_[GNSS1_ID]);
   get_param<std::string>(node, "gnss2_frame_id", gnss_frame_id_[GNSS2_ID], gnss_frame_id_[GNSS2_ID]);
 
+  // GNSS 1/2 Data rates
+  getDataRateParam(node, "gnss1_nav_sat_fix_data_rate", gnss_nav_sat_fix_data_rate_[GNSS1_ID], gnss_data_rate_[GNSS1_ID]);
+  getDataRateParam(node, "gnss1_odom_data_rate", gnss_odom_data_rate_[GNSS1_ID], gnss_data_rate_[GNSS1_ID]);
+  getDataRateParam(node, "gnss1_time_reference_data_rate", gnss_time_reference_data_rate_[GNSS1_ID], gnss_data_rate_[GNSS1_ID]);
+  getDataRateParam(node, "gnss1_fix_info_data_rate", gnss_fix_info_data_rate_[GNSS1_ID], gnss_data_rate_[GNSS1_ID]);
+
+  getDataRateParam(node, "gnss2_nav_sat_fix_data_rate", gnss_nav_sat_fix_data_rate_[GNSS2_ID], gnss_data_rate_[GNSS2_ID]);
+  getDataRateParam(node, "gnss2_odom_data_rate", gnss_odom_data_rate_[GNSS2_ID], gnss_data_rate_[GNSS2_ID]);
+  getDataRateParam(node, "gnss2_time_reference_data_rate", gnss_time_reference_data_rate_[GNSS2_ID], gnss_data_rate_[GNSS2_ID]);
+  getDataRateParam(node, "gnss2_fix_info_data_rate", gnss_fix_info_data_rate_[GNSS2_ID], gnss_data_rate_[GNSS2_ID]);
+
   // HARDWARE ODOM
   get_param<bool>(node, "enable_hardware_odometer", enable_hardware_odometer_, false);
 
@@ -293,6 +304,10 @@ bool MicrostrainConfig::setupDevice(RosNodeType* node)
   {
     if (!configureGNSS(node, GNSS1_ID))
       return false;
+    
+    if (publish_gnss_[GNSS1_ID])
+      if (!configureGNSSDataRates(GNSS1_ID))
+        return false;
   }
 
   // GNSS2 setup
@@ -300,6 +315,10 @@ bool MicrostrainConfig::setupDevice(RosNodeType* node)
   {
     if (!configureGNSS(node, GNSS2_ID))
       return false;
+
+    if (publish_gnss_[GNSS2_ID])
+      if (!configureGNSSDataRates(GNSS2_ID))
+        return false;
   }
 
   // RTK Dongle
@@ -561,67 +580,108 @@ bool MicrostrainConfig::configureGNSS(RosNodeType* node, uint8_t gnss_id)
     MICROSTRAIN_ERROR(node_, "Could not set GNSS%d antenna offset!", gnss_id + 1);
     return false;
   }
+  return true;
+}
 
-  // If we were requested to publish GNSS data, set up streaming at the requested rate
-  if (publish_gnss_[gnss_id])
+bool MicrostrainConfig::configureGNSSDataRates(uint8_t gnss_id)
+{
+  // If this is true, we will use GNSS1_* fields, otherwise we will use GNSS_* fields
+  const bool multi_gnss = inertial_device_->features().supportsCategory(mscl::MipTypes::DataClass::CLASS_GNSS1);
+
+  // Will be populated with different values depending on the GNSS ID
+  mscl::MipTypes::DataClass data_class;
+  mscl::MipTypes::MipChannelFields gnss_nav_sat_fix_fields;
+  mscl::MipTypes::MipChannelFields gnss_odom_fields;
+  mscl::MipTypes::MipChannelFields gnss_time_reference_fields;
+  mscl::MipTypes::MipChannelFields gnss_fix_info_fields;
+  switch (gnss_id)
   {
-    mscl::SampleRate gnss1_rate = mscl::SampleRate::Hertz(gnss_data_rate_[gnss_id]);
-
-    MICROSTRAIN_INFO(node_, "Setting GNSS%d data to stream at %d hz", gnss_id, gnss_data_rate_[gnss_id]);
-
-    mscl::MipTypes::MipChannelFields gnssChannels
+    case GNSS1_ID:
     {
-      mscl::MipTypes::ChannelField::CH_FIELD_GNSS_LLH_POSITION,
-      mscl::MipTypes::ChannelField::CH_FIELD_GNSS_NED_VELOCITY,
-      mscl::MipTypes::ChannelField::CH_FIELD_GNSS_GPS_TIME
-    };
+      data_class = multi_gnss ? mscl::MipTypes::DataClass::CLASS_GNSS1 : mscl::MipTypes::DataClass::CLASS_GNSS;
 
-    mscl::MipTypes::DataClass gnss_data_class = mscl::MipTypes::DataClass::CLASS_GNSS;
-
-    if (inertial_device_->features().supportsCategory(mscl::MipTypes::DataClass::CLASS_GNSS1) && gnss_id == GNSS1_ID)
-    {
-      gnss_data_class = mscl::MipTypes::DataClass::CLASS_GNSS1;
-
-      gnssChannels.clear();
-      gnssChannels.push_back(mscl::MipTypes::ChannelField::CH_FIELD_GNSS_1_LLH_POSITION);
-      gnssChannels.push_back(mscl::MipTypes::ChannelField::CH_FIELD_GNSS_1_NED_VELOCITY);
-      gnssChannels.push_back(mscl::MipTypes::ChannelField::CH_FIELD_GNSS_1_GPS_TIME);
-      gnssChannels.push_back(mscl::MipTypes::ChannelField::CH_FIELD_GNSS_1_FIX_INFO);
-    }
-    else if (inertial_device_->features().supportsCategory(mscl::MipTypes::DataClass::CLASS_GNSS2) &&
-            gnss_id == GNSS2_ID)
-    {
-      gnss_data_class = mscl::MipTypes::DataClass::CLASS_GNSS2;
-
-      gnssChannels.clear();
-      gnssChannels.push_back(mscl::MipTypes::ChannelField::CH_FIELD_GNSS_2_LLH_POSITION);
-      gnssChannels.push_back(mscl::MipTypes::ChannelField::CH_FIELD_GNSS_2_NED_VELOCITY);
-      gnssChannels.push_back(mscl::MipTypes::ChannelField::CH_FIELD_GNSS_2_GPS_TIME);
-      gnssChannels.push_back(mscl::MipTypes::ChannelField::CH_FIELD_GNSS_2_FIX_INFO);
-    }
-
-    mscl::MipChannels supportedChannels;
-    for (mscl::MipTypes::ChannelField channel : inertial_device_->features().supportedChannelFields(gnss_data_class))
-    {
-      if (std::find(gnssChannels.begin(), gnssChannels.end(), channel) != gnssChannels.end())
+      // Streaming for /gnss1/fix message
+      gnss_nav_sat_fix_fields =
       {
-        supportedChannels.push_back(mscl::MipChannel(channel, gnss1_rate));
-      }
+        multi_gnss ? mscl::MipTypes::ChannelField::CH_FIELD_GNSS_1_LLH_POSITION : mscl::MipTypes::ChannelField::CH_FIELD_GNSS_LLH_POSITION,
+      };
+
+      // Streaming for /gnss1/odom message
+      gnss_odom_fields =
+      {
+        multi_gnss ? mscl::MipTypes::ChannelField::CH_FIELD_GNSS_1_LLH_POSITION : mscl::MipTypes::ChannelField::CH_FIELD_GNSS_LLH_POSITION,
+        multi_gnss ? mscl::MipTypes::ChannelField::CH_FIELD_GNSS_1_NED_VELOCITY : mscl::MipTypes::ChannelField::CH_FIELD_GNSS_NED_VELOCITY,
+      };
+
+      // Streaming for /gnss1/time_ref message
+      gnss_time_reference_fields =
+      {
+        multi_gnss ? mscl::MipTypes::ChannelField::CH_FIELD_GNSS_1_GPS_TIME : mscl::MipTypes::ChannelField::CH_FIELD_GNSS_GPS_TIME,
+      };
+
+      // Streaming for /gnss1/fix_info message
+      gnss_fix_info_fields =
+      {
+        multi_gnss ? mscl::MipTypes::ChannelField::CH_FIELD_GNSS_1_FIX_INFO : mscl::MipTypes::ChannelField::CH_FIELD_GNSS_FIX_INFO,
+      };
+      break;
     }
-
-    // set the GNSS channel fields
-    inertial_device_->setActiveChannelFields(gnss_data_class, supportedChannels);
-
-    // Enable publishing aiding status messages
-    publish_gnss_aiding_status_[gnss_id] = inertial_device_->features().supportsCommand(mscl::MipTypes::Command::CMD_EF_AIDING_MEASUREMENT_ENABLE);
-    if (!publish_gnss_aiding_status_[gnss_id])
+    case GNSS2_ID:
     {
-      MICROSTRAIN_INFO(node_, "Note: Device not support publishing GNSS Aiding measurements.");
-    }
+      data_class = mscl::MipTypes::DataClass::CLASS_GNSS2;
 
-    inertial_device_->enableDataStream(gnss_data_class);
+      // Streaming for /gnss2/fix message
+      gnss_nav_sat_fix_fields =
+      {
+        mscl::MipTypes::ChannelField::CH_FIELD_GNSS_2_LLH_POSITION,
+      };
+
+      // Streaming for /gnss2/odom message
+      gnss_odom_fields =
+      {
+        mscl::MipTypes::ChannelField::CH_FIELD_GNSS_2_LLH_POSITION,
+        mscl::MipTypes::ChannelField::CH_FIELD_GNSS_2_NED_VELOCITY,
+      };
+
+      // Streaming for /gnss2/time_ref message
+      gnss_time_reference_fields =
+      {
+        mscl::MipTypes::ChannelField::CH_FIELD_GNSS_2_GPS_TIME,
+      };
+
+      // Streaming for /gnss2/fix_info message
+      gnss_fix_info_fields =
+      {
+        mscl::MipTypes::ChannelField::CH_FIELD_GNSS_2_FIX_INFO,
+      };
+      break;
+    }
+    default:
+    {
+      MICROSTRAIN_ERROR(node_, "Invalid GNSS id requested: %u", gnss_id);
+      return false;
+    }
   }
 
+  // Get the supported MIP channels from the requested channels
+  mscl::MipChannels channels_to_stream;
+  getSupportedMipChannels(data_class, gnss_nav_sat_fix_fields, gnss_nav_sat_fix_data_rate_[gnss_id], &channels_to_stream);
+  getSupportedMipChannels(data_class, gnss_odom_fields, gnss_odom_data_rate_[gnss_id], &channels_to_stream);
+  getSupportedMipChannels(data_class, gnss_time_reference_fields, gnss_time_reference_data_rate_[gnss_id], &channels_to_stream);
+  getSupportedMipChannels(data_class, gnss_fix_info_fields, gnss_fix_info_data_rate_[gnss_id], &channels_to_stream);
+
+  // Enable the data stream
+  try
+  {
+    inertial_device_->setActiveChannelFields(data_class, channels_to_stream);
+    inertial_device_->enableDataStream(data_class);
+  }
+  catch (const mscl::Error& e)
+  {
+    MICROSTRAIN_ERROR(node_, "Unable to set GNSS%u data to stream.", gnss_id + 1);
+    MICROSTRAIN_ERROR(node_, "  Error: %s", e.what());
+    return false;
+  }
   return true;
 }
 

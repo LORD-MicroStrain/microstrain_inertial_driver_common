@@ -99,9 +99,17 @@ public:
   /**
    * \brief Configures GNSS settings on the inertial device
    * \param node  The ROS node that contains configuration information. For ROS1 this is the private node handle ("~")
+   * \param gnss_id  The ID of the GNSS receiver that we want to configure
    * \return true if configuration was successful and false if configuration failed
    */
   bool configureGNSS(RosNodeType* node, uint8_t gnss_id);
+
+  /**
+   * \brief Configures GNSS1 data rates on the inertial device. This is where the data being published will actually be setup to stream or disabled
+   * \param gnss_id  The ID of the GNSS receiver that we want to configure
+   * \return true if the data rates were configured and false if an error occured
+   */
+  bool configureGNSSDataRates(uint8_t gnss_id);
 
   /**
    * \brief Configures RTK settings on the inertial device
@@ -214,7 +222,7 @@ public:
   int gnss_nav_sat_fix_data_rate_[NUM_GNSS];
   int gnss_odom_data_rate_[NUM_GNSS];
   int gnss_time_reference_data_rate_[NUM_GNSS];
-  int gnss_aiding_status_data_rate_[NUM_GNSS];
+  int gnss_aiding_status_data_rate_[NUM_GNSS];  // TODO: This is really filter data, so do this when we setup multiple filter rates
   int gnss_fix_info_data_rate_[NUM_GNSS];
 
   // RTK update rates

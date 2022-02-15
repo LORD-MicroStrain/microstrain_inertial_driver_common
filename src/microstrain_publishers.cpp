@@ -60,31 +60,67 @@ bool MicrostrainPublishers::configure()
   // If the device has GNSS1, publish relevant topics
   if (config_->publish_gnss_[GNSS1_ID] && config_->supports_gnss1_)
   {
-    MICROSTRAIN_INFO(node_, "Publishing GNSS1 data.");
-    gnss_pub_[GNSS1_ID] = create_publisher<NavSatFixMsg>(node_, "gnss1/fix", 100);
-    gnss_odom_pub_[GNSS1_ID] = create_publisher<OdometryMsg>(node_, "gnss1/odom", 100);
-    gnss_time_pub_[GNSS1_ID] = create_publisher<TimeReferenceMsg>(node_, "gnss1/time_ref", 100);
-    gnss_fix_info_pub_[GNSS1_ID] = create_publisher<GNSSFixInfoMsg>(node_, "gnss1/fix_info", 100);
-
+    if (config_->gnss_nav_sat_fix_data_rate_[GNSS1_ID] != 0)
+    {
+      MICROSTRAIN_INFO(node_, "Publishing GNSS1 NavSatFix data.");
+      gnss_pub_[GNSS1_ID] = create_publisher<NavSatFixMsg>(node_, "gnss1/fix", 100);
+    }
+    if (config_->gnss_odom_data_rate_[GNSS1_ID] != 0)
+    {
+      MICROSTRAIN_INFO(node_, "Publishing GNSS1 odom data.");
+      gnss_odom_pub_[GNSS1_ID] = create_publisher<OdometryMsg>(node_, "gnss1/odom", 100);
+    }
+    if (config_->gnss_time_reference_data_rate_[GNSS1_ID] != 0)
+    {
+      MICROSTRAIN_INFO(node_, "Publishing GNSS1 time reference data.");
+      gnss_time_pub_[GNSS1_ID] = create_publisher<TimeReferenceMsg>(node_, "gnss1/time_ref", 100);
+    }
+    if (config_->gnss_fix_info_data_rate_[GNSS1_ID] != 0)
+    {
+      MICROSTRAIN_INFO(node_, "Publishing GNSS1 fix info data.");
+      gnss_fix_info_pub_[GNSS1_ID] = create_publisher<GNSSFixInfoMsg>(node_, "gnss1/fix_info", 100);
+    }
     if (config_->publish_gnss_aiding_status_[GNSS1_ID])
     {
       gnss_aiding_status_pub_[GNSS1_ID] = create_publisher<GNSSAidingStatusMsg>(node_, "gnss1/aiding_status", 100);
     }
   }
+  else
+  {
+    MICROSTRAIN_DEBUG(node_, "Not publishing GNSS1 data because publish_gnss1 = %d and supports_gnss1 = %d", config_->publish_gnss_[GNSS1_ID], config_->supports_gnss1_);
+  }
 
   // If the device has GNSS2, publish relevant topics
   if (config_->publish_gnss_[GNSS2_ID] && config_->supports_gnss2_)
   {
-    MICROSTRAIN_INFO(node_, "Publishing GNSS2 data.");
-    gnss_pub_[GNSS2_ID] = create_publisher<NavSatFixMsg>(node_, "gnss2/fix", 100);
-    gnss_odom_pub_[GNSS2_ID] = create_publisher<OdometryMsg>(node_, "gnss2/odom", 100);
-    gnss_time_pub_[GNSS2_ID] = create_publisher<TimeReferenceMsg>(node_, "gnss2/time_ref", 100);
-    gnss_fix_info_pub_[GNSS2_ID] = create_publisher<GNSSFixInfoMsg>(node_, "gnss2/fix_info", 100);
-
+    if (config_->gnss_nav_sat_fix_data_rate_[GNSS2_ID] != 0)
+    {
+      MICROSTRAIN_INFO(node_, "Publishing GNSS2 NavSatFix data.");
+      gnss_pub_[GNSS2_ID] = create_publisher<NavSatFixMsg>(node_, "gnss2/fix", 100);
+    }
+    if (config_->gnss_odom_data_rate_[GNSS2_ID] != 0)
+    {
+      MICROSTRAIN_INFO(node_, "Publishing GNSS2 odom data.");
+      gnss_odom_pub_[GNSS2_ID] = create_publisher<OdometryMsg>(node_, "gnss2/odom", 100);
+    }
+    if (config_->gnss_time_reference_data_rate_[GNSS2_ID] != 0)
+    {
+      MICROSTRAIN_INFO(node_, "Publishing GNSS2 time reference data.");
+      gnss_time_pub_[GNSS2_ID] = create_publisher<TimeReferenceMsg>(node_, "gnss2/time_ref", 100);
+    }
+    if (config_->gnss_fix_info_data_rate_[GNSS2_ID] != 0)
+    {
+      MICROSTRAIN_INFO(node_, "Publishing GNSS2 fix info data.");
+      gnss_fix_info_pub_[GNSS2_ID] = create_publisher<GNSSFixInfoMsg>(node_, "gnss2/fix_info", 100);
+    }
     if (config_->publish_gnss_aiding_status_[GNSS2_ID])
     {
       gnss_aiding_status_pub_[GNSS2_ID] = create_publisher<GNSSAidingStatusMsg>(node_, "gnss2/aiding_status", 100);
     }
+  }
+  else
+  {
+    MICROSTRAIN_DEBUG(node_, "Not publishing GNSS2 data because publish_gnss2 = %d and supports_gnss2 = %d", config_->publish_gnss_[GNSS2_ID], config_->supports_gnss2_);
   }
 
   // If the device has RTK, publish relevant topics

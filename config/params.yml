@@ -118,6 +118,16 @@ publish_gps_corr : False
 publish_gnss1   : True
 gnss1_data_rate : 2
 
+# The speed at which the individual GNSS1 publishers will publish at.
+#      If set to -1, will use gnss1_data_rate to determine the rate at which to stream and publish
+#      If set to 0, the stream will be turned off and the publisher will not be created
+gnss1_nav_sat_fix_data_rate    : -1  # Note that this message uses some of the same MIP fields as gnss1_odom_data_rate,
+                                     # so if one is set higher than the other, the higher rate will be the rate at which the data is published
+gnss1_odom_data_rate           : -1  # Note that this message uses some of the same MIP fields as gnss1_nav_sat_fix_data_rate,
+                                     # so if one is set higher than the other, the higher rate will be the rate at which the data is published
+gnss1_time_reference_data_rate : -1
+gnss1_fix_info_data_rate       : -1
+
 # Antenna #1 lever arm offset vector
 #     For GQ7 - in the vehicle frame wrt IMU origin (meters)
 #     For all other models - in the IMU frame wrt IMU origin (meters)
@@ -127,6 +137,16 @@ gnss1_antenna_offset : [0.0, -0.7, -1.0]
 # GNSS2 settings are only applicable for multi-GNSS systems (e.g. GQ7) 
 publish_gnss2   : True
 gnss2_data_rate : 2
+
+# The speed at which the individual GNSS2 publishers will publish at.
+#      If set to -1, will use gnss2_data_rate to determine the rate at which to stream and publish
+#      If set to 0, the stream will be turned off and the publisher will not be created
+gnss2_nav_sat_fix_data_rate    : -1  # Note that this message uses some of the same MIP fields as gnss2_odom_data_rate,
+                                     # so if one is set higher than the other, the higher rate will be the rate at which the data is published
+gnss2_odom_data_rate           : -1  # Note that this message uses some of the same MIP fields as gnss2_nav_sat_fix_data_rate,
+                                     # so if one is set higher than the other, the higher rate will be the rate at which the data is published
+gnss2_time_reference_data_rate : -1
+gnss2_fix_info_data_rate       : -1
 
 # Antenna #2 lever arm offset vector (In the vehicle frame wrt IMU origin (meters) )
 #Note: Make this as accurate as possible for good performance 
