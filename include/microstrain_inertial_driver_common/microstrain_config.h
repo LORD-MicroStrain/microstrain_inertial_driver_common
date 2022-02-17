@@ -132,6 +132,12 @@ public:
   bool configureFilter(RosNodeType* node);
 
   /**
+   * \brief Configures Filter data rates on the inertial device. This is where the data being published will actually be setup to stream or disabled
+   * \return true if the data rates were configured and false if an error occured
+   */
+  bool configureFilterDataRates();
+
+  /**
    * \brief Configures Sensor 2 Vehicle settings on the inertial device
    * \param node  The ROS node that contains configuration information. For ROS1 this is the private node handle ("~")
    * \return true if configuration was successful and false if configuration failed
@@ -175,6 +181,7 @@ public:
   bool filter_enable_wheeled_vehicle_constraint_;
   bool filter_enable_vertical_gyro_constraint_;
   bool filter_enable_gnss_antenna_cal_;
+  bool filter_use_compensated_accel_;
 
   // Frame ids
   std::string imu_frame_id_;
@@ -193,10 +200,10 @@ public:
   bool publish_imu_;
   bool publish_gps_corr_;
   bool publish_gnss_[NUM_GNSS];
-  bool publish_gnss_aiding_status_[NUM_GNSS];
   bool publish_gnss_dual_antenna_status_;
   bool publish_filter_;
   bool publish_filter_relative_pos_;
+  bool publish_filter_aiding_status_;
   bool publish_filter_aiding_measurement_summary_;
   bool publish_rtk_;
   bool publish_nmea_;
@@ -228,7 +235,6 @@ public:
   int gnss_nav_sat_fix_data_rate_[NUM_GNSS];
   int gnss_odom_data_rate_[NUM_GNSS];
   int gnss_time_reference_data_rate_[NUM_GNSS];
-  int gnss_aiding_status_data_rate_[NUM_GNSS];  // TODO: This is really filter data, so do this when we setup multiple filter rates
   int gnss_fix_info_data_rate_[NUM_GNSS];
 
   // RTK update rates
@@ -238,11 +244,12 @@ public:
   int filter_status_data_rate_;
   int filter_heading_data_rate_;
   int filter_heading_state_data_rate_;
-  int filter_aiding_measurement_summary_data_rate_;
   int filter_odom_data_rate_;
   int filter_imu_data_rate_;
   int filter_relative_odom_data_rate_;  // Note that this will be used for both the relative odometry message and the transform published on the /tf topic
+  int filter_aiding_status_data_rate_;
   int filter_gnss_dual_antenna_status_data_rate_;
+  int filter_aiding_measurement_summary_data_rate_;
 
   // Gnss antenna offsets
   std::vector<double> gnss_antenna_offset_[NUM_GNSS];

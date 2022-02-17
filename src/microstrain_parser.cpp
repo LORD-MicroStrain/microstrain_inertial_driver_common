@@ -340,10 +340,17 @@ void MicrostrainParser::parseIMUPacket(const mscl::MipDataPacket& packet)
 
 void MicrostrainParser::parseFilterPacket(const mscl::MipDataPacket& packet)
 {
+  // Data present flags
+  bool filter_status_received = false;
+  bool filter_heading_received = false;
+  bool filter_heading_state_received = false;
+  bool filter_odom_received = false;
+  bool filter_imu_received = false;
+  bool filter_relative_odom_received = false;
+  bool relative_transform_received = false;
   bool gnss_aiding_status_received[NUM_GNSS] = { false };
   bool gnss_dual_antenna_status_received = false;
   bool filter_aiding_measurement_summary_received = false;
-  int i;
 
   // Update diagnostics
   filter_valid_packet_count_++;
@@ -379,6 +386,7 @@ void MicrostrainParser::parseFilterPacket(const mscl::MipDataPacket& packet)
     {
       case mscl::MipTypes::CH_FIELD_ESTFILTER_FILTER_STATUS:
       {
+        filter_status_received = true;
         if (point.qualifier() == mscl::MipTypes::CH_FILTER_STATE)
         {
           publishers_->filter_status_msg_.filter_state = point.as_uint16();
@@ -397,6 +405,7 @@ void MicrostrainParser::parseFilterPacket(const mscl::MipDataPacket& packet)
       // Estimated LLH Position
       case mscl::MipTypes::CH_FIELD_ESTFILTER_ESTIMATED_LLH_POS:
       {
+        filter_odom_received = true;
         publishers_->filter_msg_.child_frame_id = config_->filter_child_frame_id_;
 
         if (point.qualifier() == mscl::MipTypes::CH_LATITUDE)
@@ -436,6 +445,8 @@ void MicrostrainParser::parseFilterPacket(const mscl::MipDataPacket& packet)
       // Estimated NED Velocity
       case mscl::MipTypes::CH_FIELD_ESTFILTER_ESTIMATED_NED_VELOCITY:
       {
+        filter_odom_received = true;
+        filter_relative_odom_received = true;
         if (point.qualifier() == mscl::MipTypes::CH_NORTH)
         {
           curr_filter_vel_north_ = point.as_float();
@@ -486,6 +497,7 @@ void MicrostrainParser::parseFilterPacket(const mscl::MipDataPacket& packet)
 
       case mscl::MipTypes::CH_FIELD_ESTFILTER_ESTIMATED_ORIENT_EULER:
       {
+        filter_heading_received = true;
         if (point.qualifier() == mscl::MipTypes::CH_ROLL)
         {
           curr_filter_roll_ = point.as_float();
@@ -516,6 +528,10 @@ void MicrostrainParser::parseFilterPacket(const mscl::MipDataPacket& packet)
 
       case mscl::MipTypes::CH_FIELD_ESTFILTER_ESTIMATED_ORIENT_QUATERNION:
       {
+        filter_odom_received = true;
+        filter_relative_odom_received = true;
+        filter_imu_received = true;
+        relative_transform_received = true;
         mscl::Vector quaternion = point.as_Vector();
         curr_filter_quaternion_ = quaternion;
 
@@ -550,6 +566,9 @@ void MicrostrainParser::parseFilterPacket(const mscl::MipDataPacket& packet)
 
       case mscl::MipTypes::CH_FIELD_ESTFILTER_ESTIMATED_ANGULAR_RATE:
       {
+        filter_odom_received = true;
+        filter_imu_received = true;
+        filter_relative_odom_received = true;
         if (point.qualifier() == mscl::MipTypes::CH_X)
         {
           curr_filter_angular_rate_x_ = point.as_float();
@@ -586,6 +605,7 @@ void MicrostrainParser::parseFilterPacket(const mscl::MipDataPacket& packet)
       case mscl::MipTypes::CH_FIELD_ESTFILTER_COMPENSATED_ACCEL:
       case mscl::MipTypes::CH_FIELD_ESTFILTER_ESTIMATED_LINEAR_ACCEL:
       {
+        filter_imu_received = true;
         if (point.qualifier() == mscl::MipTypes::CH_X)
         {
           float accel_x = point.as_float();
@@ -615,6 +635,8 @@ void MicrostrainParser::parseFilterPacket(const mscl::MipDataPacket& packet)
 
       case mscl::MipTypes::CH_FIELD_ESTFILTER_ESTIMATED_LLH_UNCERT:
       {
+        filter_odom_received = true;
+        filter_relative_odom_received = true;
         if (point.qualifier() == mscl::MipTypes::CH_NORTH)
         {
           curr_filter_pos_uncert_north_ = point.as_float();
@@ -656,6 +678,8 @@ void MicrostrainParser::parseFilterPacket(const mscl::MipDataPacket& packet)
 
       case mscl::MipTypes::CH_FIELD_ESTFILTER_ESTIMATED_NED_UNCERT:
       {
+        filter_odom_received = true;
+        filter_relative_odom_received = true;
         if (point.qualifier() == mscl::MipTypes::CH_NORTH)
         {
           curr_filter_vel_uncert_north_ = point.as_float();
@@ -702,6 +726,9 @@ void MicrostrainParser::parseFilterPacket(const mscl::MipDataPacket& packet)
 
       case mscl::MipTypes::CH_FIELD_ESTFILTER_ESTIMATED_ATT_UNCERT_EULER:
       {
+        filter_odom_received = true;
+        filter_imu_received = true;
+        filter_relative_odom_received = true;
         if (point.qualifier() == mscl::MipTypes::CH_ROLL)
         {
           curr_filter_att_uncert_roll_ = point.as_float();
@@ -728,6 +755,7 @@ void MicrostrainParser::parseFilterPacket(const mscl::MipDataPacket& packet)
 
       case mscl::MipTypes::CH_FIELD_ESTFILTER_HEADING_UPDATE_SOURCE:
       {
+        filter_heading_state_received = true;
         if (point.qualifier() == mscl::MipTypes::CH_HEADING)
         {
           publishers_->filter_heading_state_msg_.heading_rad = point.as_float();
@@ -749,6 +777,8 @@ void MicrostrainParser::parseFilterPacket(const mscl::MipDataPacket& packet)
 
       case mscl::MipTypes::CH_FIELD_ESTFILTER_NED_RELATIVE_POS:
       {
+        filter_relative_odom_received = true;
+        relative_transform_received = true;
         if (point.qualifier() == mscl::MipTypes::CH_X)
         {
           double rel_pos_north = point.as_double();
@@ -842,9 +872,9 @@ void MicrostrainParser::parseFilterPacket(const mscl::MipDataPacket& packet)
 
       case mscl::MipTypes::CH_FIELD_ESTFILTER_GNSS_DUAL_ANTENNA_STATUS:
       {
+        gnss_dual_antenna_status_received = true;
         if (point.qualifier() == mscl::MipTypes::CH_TIME_OF_WEEK)
         {
-          gnss_dual_antenna_status_received = true;
           publishers_->gnss_dual_antenna_status_msg_.gps_tow = point.as_float();
         }
         else if (point.qualifier() == mscl::MipTypes::CH_HEADING)
@@ -875,9 +905,9 @@ void MicrostrainParser::parseFilterPacket(const mscl::MipDataPacket& packet)
 
       case mscl::MipTypes::CH_FIELD_ESTFILTER_AIDING_MEASURE_SUMMARY:
       {
+        filter_aiding_measurement_summary_received = true;
         if (point.qualifier() == mscl::MipTypes::CH_TIME_OF_WEEK)
         {
-          filter_aiding_measurement_summary_received = true;
           publishers_->filter_aiding_measurement_summary_msg_.gps_tow = point.as_float();
         }
         if (point.hasAddlIdentifiers())
@@ -949,32 +979,48 @@ void MicrostrainParser::parseFilterPacket(const mscl::MipDataPacket& packet)
             publishers_->filtered_imu_msg_.angular_velocity_covariance.begin());
 
   // Publish
-  if (config_->publish_filter_)
-  {
-    publishers_->filtered_imu_pub_->publish(publishers_->filtered_imu_msg_);
-    publishers_->filter_pub_->publish(publishers_->filter_msg_);
-    publishers_->filter_status_pub_->publish(publishers_->filter_status_msg_);
-    publishers_->filter_heading_pub_->publish(publishers_->filter_heading_msg_);
-    publishers_->filter_heading_state_pub_->publish(publishers_->filter_heading_state_msg_);
+  if (filter_status_received)
+    if (publishers_->filter_status_pub_ != nullptr)
+      publishers_->filter_status_pub_->publish(publishers_->filter_status_msg_);
+  
+  if (filter_heading_received)
+    if (publishers_->filter_heading_pub_ != nullptr)
+      publishers_->filter_heading_pub_->publish(publishers_->filter_heading_msg_);
 
-    if (config_->publish_gnss_dual_antenna_status_ && gnss_dual_antenna_status_received)
+  if (filter_heading_state_received)
+    if (publishers_->filter_heading_state_pub_ != nullptr)
+      publishers_->filter_heading_state_pub_->publish(publishers_->filter_heading_state_msg_);
+  
+  if (filter_odom_received)
+    if (publishers_->filter_pub_ != nullptr)
+      publishers_->filter_pub_->publish(publishers_->filter_msg_);
+
+  if (filter_imu_received)
+    if (publishers_->filtered_imu_pub_ != nullptr)
+      publishers_->filtered_imu_pub_->publish(publishers_->filtered_imu_msg_);
+  
+  if (filter_relative_odom_received)
+    if (publishers_->filter_relative_pos_pub_ != nullptr)
+      publishers_->filter_relative_pos_pub_->publish(publishers_->filter_relative_pos_msg_);
+  
+  if (relative_transform_received)
+    if (publishers_->transform_broadcaster_ != nullptr)
+      publishers_->transform_broadcaster_->sendTransform(publishers_->filter_transform_msg_);
+
+  for (int i = 0; i < NUM_GNSS; i++)
+  {
+    if (gnss_aiding_status_received[i])
+      if (publishers_->gnss_aiding_status_pub_[i] != nullptr)
+        publishers_->gnss_aiding_status_pub_[i]->publish(publishers_->gnss_aiding_status_msg_[i]);
+  }
+
+  if (gnss_dual_antenna_status_received)
+    if (publishers_->gnss_dual_antenna_status_pub_ != nullptr)
       publishers_->gnss_dual_antenna_status_pub_->publish(publishers_->gnss_dual_antenna_status_msg_);
-  }
 
-  if (config_->publish_filter_relative_pos_)
-  {
-    publishers_->filter_relative_pos_pub_->publish(publishers_->filter_relative_pos_msg_);
-    publishers_->transform_broadcaster_->sendTransform(publishers_->filter_transform_msg_);
-  }
-
-  for (i = 0; i < NUM_GNSS; i++)
-  {
-    if (config_->publish_gnss_[i] && config_->publish_gnss_aiding_status_[i] && gnss_aiding_status_received[i])
-      publishers_->gnss_aiding_status_pub_[i]->publish(publishers_->gnss_aiding_status_msg_[i]);
-  }
-
-  if (config_->publish_filter_aiding_measurement_summary_ && filter_aiding_measurement_summary_received)
-    publishers_->filter_aiding_measurement_summary_pub_->publish(publishers_->filter_aiding_measurement_summary_msg_);
+  if (filter_aiding_measurement_summary_received)
+    if (publishers_->filter_aiding_measurement_summary_pub_ != nullptr)
+      publishers_->filter_aiding_measurement_summary_pub_->publish(publishers_->filter_aiding_measurement_summary_msg_);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////

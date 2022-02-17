@@ -97,9 +97,9 @@ imu_data_rate : 100
 # The speed at which the individual IMU publishers will publish at.
 #      If set to -1, will use imu_data_rate to determine the rate at which to stream and publish
 #      If set to 0, the stream will be turned off and the publisher will not be created
-imu_raw_data_rate : -1
-imu_mag_data_rate : -1
-imu_gps_corr_data_rate : -1  # Note that this is still dependent on publish_gps_corr being set to True
+imu_raw_data_rate      : -1
+imu_mag_data_rate      : -1
+imu_gps_corr_data_rate : -1  # Note that this is still dependent on publish_gps_corr being set to True in order to publish
 
 # Static IMU message covariance values (the device does not generate these) 
 # Since internally these are std::vector we need to use the rosparam tags 
@@ -121,10 +121,11 @@ gnss1_data_rate : 2
 # The speed at which the individual GNSS1 publishers will publish at.
 #      If set to -1, will use gnss1_data_rate to determine the rate at which to stream and publish
 #      If set to 0, the stream will be turned off and the publisher will not be created
-gnss1_nav_sat_fix_data_rate    : -1  # Note that this message uses some of the same MIP fields as gnss1_odom_data_rate,
-                                     # so if one is set higher than the other, the higher rate will be the rate at which the data is published
-gnss1_odom_data_rate           : -1  # Note that this message uses some of the same MIP fields as gnss1_nav_sat_fix_data_rate,
-                                     # so if one is set higher than the other, the higher rate will be the rate at which the data is published
+#
+#      Note: The parameters' "gnss1_nav_sat_fix_data_rate", "gnss1_odom_data_rate" associated ROS messages share several MIP fields,
+#            so if more than one is set to stream, and they are set to stream at different rates, messages will be published on both topics, at the higher rate
+gnss1_nav_sat_fix_data_rate    : -1
+gnss1_odom_data_rate           : -1
 gnss1_time_reference_data_rate : -1
 gnss1_fix_info_data_rate       : -1
 
@@ -141,10 +142,11 @@ gnss2_data_rate : 2
 # The speed at which the individual GNSS2 publishers will publish at.
 #      If set to -1, will use gnss2_data_rate to determine the rate at which to stream and publish
 #      If set to 0, the stream will be turned off and the publisher will not be created
-gnss2_nav_sat_fix_data_rate    : -1  # Note that this message uses some of the same MIP fields as gnss2_odom_data_rate,
-                                     # so if one is set higher than the other, the higher rate will be the rate at which the data is published
-gnss2_odom_data_rate           : -1  # Note that this message uses some of the same MIP fields as gnss2_nav_sat_fix_data_rate,
-                                     # so if one is set higher than the other, the higher rate will be the rate at which the data is published
+#
+#      Note: The parameters' "gnss2_nav_sat_fix_data_rate", "gnss2_odom_data_rate" associated ROS messages share several MIP fields,
+#            so if more than one is set to stream, and they are set to stream at different rates, messages will be published on both topics, at the higher rate
+gnss2_nav_sat_fix_data_rate    : -1
+gnss2_odom_data_rate           : -1
 gnss2_time_reference_data_rate : -1
 gnss2_fix_info_data_rate       : -1
 
@@ -175,6 +177,24 @@ publish_nmea   : False
 
 publish_filter   : True
 filter_data_rate : 10
+
+# The speed at which the individual Filter publishers will publish at.
+#      If set to -1, will use filter_data_rate to determine the rate at which to stream and publish
+#      If set to 0, the stream will be turned off and the publisher will not be created
+#
+#      Note: The parameters' "filter_odom_data_rate", "filter_imu_data_rate", "filter_relative_odom_data_rate" associated ROS messages share several MIP fields,
+#            so if more than one is set to stream, and they are set to stream at different rates, messages will be published on both topics, at the higher rate
+filter_status_data_rate                     : -1
+filter_heading_data_rate                    : -1
+filter_heading_state_data_rate              : -1
+filter_odom_data_rate                       : -1
+filter_imu_data_rate                        : -1
+filter_relative_odom_data_rate              : -1  # Note that this is still dependent on publish_relative_position being set to True in order to publish
+                                                  # Note that this data rate will also control the rate at which the transform between "filter_frame_id" and "filter_child_frame_id" will be published at
+
+filter_aiding_status_data_rate              : -1  # Note that this is still dependent on filter_enable_gnss_pos_vel_aiding being set to True in order to publish
+filter_gnss_dual_antenna_data_rate          : -1  # Note that this is still dependent on filter_enable_gnss_heading_aiding being set to True in order to publish
+filter_aiding_measurement_summary_data_rate : -1  # Note that this is still dependent on publish_filter_aiding_measurement_summary being set to True in order to publish
 
 # Sensor2vehicle frame transformation selector
 #     0 = None, 1 = Euler Angles, 2 - matrix, 3 - quaternion
