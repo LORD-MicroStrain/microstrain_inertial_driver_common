@@ -172,6 +172,10 @@ filter_heading_source : 1
 # (GX5 and previous,-45 models only) Dynamics Mode 1 = Portable (default), 2 = Automotive, 3 = Airborne (<2Gs), 4 = Airborne High G (<4Gs) 
 filter_dynamics_mode : 1
 
+# Controls what kind of linear acceleration data is used in the Filter IMU message.
+#      If this is set to true, the acceleration will not factor out gravity, if set to false gravity will be filtered out of the linear acceleration.
+filter_use_compensated_accel : True
+
 # ZUPT control 
 filter_velocity_zupt_topic : "/moving_vel"
 filter_angular_zupt_topic  : "/moving_ang"

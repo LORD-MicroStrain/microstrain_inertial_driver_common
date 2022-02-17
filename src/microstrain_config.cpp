@@ -645,11 +645,13 @@ bool MicrostrainConfig::configureFilter(RosNodeType* node)
   float initial_heading;
   bool filter_auto_init = true;
   int dynamics_mode;
+  bool filter_use_compensated_accel;
   float hardware_odometer_scaling;
   float hardware_odometer_uncertainty;
   get_param<int32_t>(node, "filter_heading_source", heading_source, 0x1);
   get_param<float>(node, "filter_initial_heading", initial_heading, 0.0);
   get_param<bool>(node, "filter_auto_init", filter_auto_init, true);
+  get_param<bool>(node, "filter_use_compensated_accel", filter_use_compensated_accel, true);
   get_param<int32_t>(node, "filter_dynamics_mode", dynamics_mode, 1);
   get_param<float>(node, "odometer_scaling", hardware_odometer_scaling, 0.0);
   get_param<float>(node, "odometer_uncertainty", hardware_odometer_uncertainty, 0.0);
@@ -698,11 +700,16 @@ bool MicrostrainConfig::configureFilter(RosNodeType* node)
     mscl::MipTypes::ChannelField::CH_FIELD_ESTFILTER_ESTIMATED_ATT_UNCERT_QUAT,
     mscl::MipTypes::ChannelField::CH_FIELD_ESTFILTER_ESTIMATED_ANGULAR_RATE,
     mscl::MipTypes::ChannelField::CH_FIELD_ESTFILTER_ESTIMATED_ATT_UNCERT_EULER,
-    mscl::MipTypes::ChannelField::CH_FIELD_ESTFILTER_COMPENSATED_ACCEL,
     mscl::MipTypes::ChannelField::CH_FIELD_ESTFILTER_ESTIMATED_ORIENT_EULER,
     mscl::MipTypes::ChannelField::CH_FIELD_ESTFILTER_HEADING_UPDATE_SOURCE,
     mscl::MipTypes::ChannelField::CH_FIELD_ESTFILTER_NED_RELATIVE_POS
   };
+
+  // Add one or the other types of acceleration depending on the configuration
+  if (filter_use_compensated_accel)
+    navChannels.push_back(mscl::MipTypes::ChannelField::CH_FIELD_ESTFILTER_COMPENSATED_ACCEL);
+  else
+    navChannels.push_back(mscl::MipTypes::ChannelField::CH_FIELD_ESTFILTER_ESTIMATED_LINEAR_ACCEL);
 
   if (filter_enable_gnss_pos_vel_aiding_)
     navChannels.push_back(mscl::MipTypes::ChannelField::CH_FIELD_ESTFILTER_POSITION_AIDING_STATUS);
