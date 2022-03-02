@@ -945,6 +945,30 @@ void MicrostrainParser::parseFilterPacket(const mscl::MipDataPacket& packet)
   std::copy(config_->imu_angular_cov_.begin(), config_->imu_angular_cov_.end(),
             publishers_->filtered_imu_msg_.angular_velocity_covariance.begin());
 
+  // Optionally transform the velocity into the vehicle frame
+  if (true)  // TODO: Actually use some config value here
+  {
+    const tf2::Quaternion tf_curr_vel_quaternion(
+      publishers_->filter_msg_.twist.twist.linear.x,
+      publishers_->filter_msg_.twist.twist.linear.y,
+      publishers_->filter_msg_.twist.twist.linear.z,
+      0
+    );
+    const tf2::Quaternion tf_curr_filter_quaternion(
+      curr_filter_quaternion_.as_floatAt(1),
+      curr_filter_quaternion_.as_floatAt(2),
+      curr_filter_quaternion_.as_floatAt(3),
+      curr_filter_quaternion_.as_floatAt(0)
+    );
+    const tf2::Quaternion tf_transformed_vel_quaternion = tf_curr_filter_quaternion * tf_curr_vel_quaternion * tf_curr_filter_quaternion.inverse();
+
+    /*
+    publishers_->filter_msg_.twist.twist.linear.x = tf_transformed_vel_quaternion.x();
+    publishers_->filter_msg_.twist.twist.linear.y = tf_transformed_vel_quaternion.y();
+    publishers_->filter_msg_.twist.twist.linear.z = tf_transformed_vel_quaternion.z();
+    */
+  }
+
   // Publish
   if (config_->publish_filter_)
   {
