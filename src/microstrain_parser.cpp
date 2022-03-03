@@ -948,25 +948,22 @@ void MicrostrainParser::parseFilterPacket(const mscl::MipDataPacket& packet)
   // Optionally transform the velocity into the vehicle frame
   if (true)  // TODO: Actually use some config value here
   {
-    const tf2::Quaternion tf_curr_vel_quaternion(
+    const tf2::Vector3 tf_curr_vel(
       publishers_->filter_msg_.twist.twist.linear.x,
       publishers_->filter_msg_.twist.twist.linear.y,
-      publishers_->filter_msg_.twist.twist.linear.z,
-      0
+      publishers_->filter_msg_.twist.twist.linear.z
     );
-    const tf2::Quaternion tf_curr_filter_quaternion(
+    const tf2::Matrix3x3 tf_heading_transformation(tf2::Quaternion(
       curr_filter_quaternion_.as_floatAt(1),
       curr_filter_quaternion_.as_floatAt(2),
       curr_filter_quaternion_.as_floatAt(3),
       curr_filter_quaternion_.as_floatAt(0)
-    );
-    const tf2::Quaternion tf_transformed_vel_quaternion = tf_curr_filter_quaternion * tf_curr_vel_quaternion * tf_curr_filter_quaternion.inverse();
+    ));
+    const tf2::Vector3 tf_curr_rotated_vel = tf_curr_vel * tf_heading_transformation;
 
-    /*
-    publishers_->filter_msg_.twist.twist.linear.x = tf_transformed_vel_quaternion.x();
-    publishers_->filter_msg_.twist.twist.linear.y = tf_transformed_vel_quaternion.y();
-    publishers_->filter_msg_.twist.twist.linear.z = tf_transformed_vel_quaternion.z();
-    */
+    publishers_->filter_msg_.twist.twist.linear.x = tf_curr_rotated_vel.x();
+    publishers_->filter_msg_.twist.twist.linear.y = tf_curr_rotated_vel.y();
+    publishers_->filter_msg_.twist.twist.linear.z = tf_curr_rotated_vel.z();
   }
 
   // Publish
