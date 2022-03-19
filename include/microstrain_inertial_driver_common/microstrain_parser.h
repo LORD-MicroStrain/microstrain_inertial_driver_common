@@ -11,6 +11,7 @@
 #ifndef MICROSTRAIN_INERTIAL_DRIVER_COMMON_MICROSTRAIN_PARSER_H
 #define MICROSTRAIN_INERTIAL_DRIVER_COMMON_MICROSTRAIN_PARSER_H
 
+#include <string>
 #include "microstrain_inertial_driver_common/microstrain_defs.h"
 #include "microstrain_inertial_driver_common/microstrain_ros_funcs.h"
 #include "microstrain_inertial_driver_common/microstrain_config.h"
