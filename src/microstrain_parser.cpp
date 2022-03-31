@@ -1098,6 +1098,13 @@ void MicrostrainParser::parseGNSSPacket(const mscl::MipDataPacket& packet, int g
           else
             publishers_->gnss_odom_msg_[gnss_id].twist.twist.linear.z = down_velocity;
         }
+        else if (point.qualifier() == mscl::MipTypes::CH_SPEED_ACCURACY)
+        {
+          float speed_cov = pow(point.as_float(), 2);
+          publishers_->gnss_odom_msg_[gnss_id].twist.covariance[0] = speed_cov;
+          publishers_->gnss_odom_msg_[gnss_id].twist.covariance[7] = speed_cov;
+          publishers_->gnss_odom_msg_[gnss_id].twist.covariance[14] = speed_cov;
+        }
       }
       break;
 
