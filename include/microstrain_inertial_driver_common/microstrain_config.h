@@ -227,6 +227,13 @@ public:
   std::ofstream raw_file_;
 
 private:
+  /**
+   * \brief Enables or disables a filter aiding measurement
+   * \param aiding_measurement  The aiding measurement to enable or disable
+   * \param enable Whether or not to enable the aiding measurement
+   */
+  void configureFilterAidingMeasurement(const mscl::InertialTypes::AidingMeasurementSource aiding_measurement, const bool enable);
+
   RosNodeType* node_;
 };  // MicrostrainConfig class
 
