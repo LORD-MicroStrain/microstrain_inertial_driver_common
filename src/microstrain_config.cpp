@@ -818,28 +818,15 @@ bool MicrostrainConfig::configureFilter(RosNodeType* node)
     MICROSTRAIN_INFO(node_, "Note: The device does not support the filte adaptive settings command.");
   }
 
-  // (GQ7 only) Set the filter aiding settings
+  // (GQ7/CV7 only) Set the filter aiding settings
   if (inertial_device_->features().supportsCommand(mscl::MipTypes::Command::CMD_EF_AIDING_MEASUREMENT_ENABLE))
   {
-    MICROSTRAIN_INFO(node_,
-                     "Filter aiding set to: pos/vel = %d, gnss heading = %d, altimeter = %d, odometer = %d, "
-                     "magnetometer = %d, external heading = %d",
-                     filter_enable_gnss_heading_aiding_, filter_enable_gnss_heading_aiding_,
-                     filter_enable_altimeter_aiding_, filter_enable_odometer_aiding_,
-                     filter_enable_magnetometer_aiding_, filter_enable_external_heading_aiding_);
-
-    inertial_device_->enableDisableAidingMeasurement(mscl::InertialTypes::AidingMeasurementSource::GNSS_POS_VEL_AIDING,
-                                                      filter_enable_gnss_pos_vel_aiding_);
-    inertial_device_->enableDisableAidingMeasurement(mscl::InertialTypes::AidingMeasurementSource::GNSS_HEADING_AIDING,
-                                                      filter_enable_gnss_heading_aiding_);
-    inertial_device_->enableDisableAidingMeasurement(mscl::InertialTypes::AidingMeasurementSource::ALTIMETER_AIDING,
-                                                      filter_enable_altimeter_aiding_);
-    inertial_device_->enableDisableAidingMeasurement(mscl::InertialTypes::AidingMeasurementSource::ODOMETER_AIDING,
-                                                      filter_enable_odometer_aiding_);
-    inertial_device_->enableDisableAidingMeasurement(mscl::InertialTypes::AidingMeasurementSource::MAGNETOMETER_AIDING,
-                                                      filter_enable_magnetometer_aiding_);
-    inertial_device_->enableDisableAidingMeasurement(
-        mscl::InertialTypes::AidingMeasurementSource::EXTERNAL_HEADING_AIDING, filter_enable_external_heading_aiding_);
+    configureFilterAidingMeasurement(mscl::InertialTypes::AidingMeasurementSource::GNSS_POS_VEL_AIDING, filter_enable_gnss_pos_vel_aiding_);
+    configureFilterAidingMeasurement(mscl::InertialTypes::AidingMeasurementSource::GNSS_HEADING_AIDING, filter_enable_gnss_heading_aiding_);
+    configureFilterAidingMeasurement(mscl::InertialTypes::AidingMeasurementSource::ALTIMETER_AIDING, filter_enable_altimeter_aiding_);
+    configureFilterAidingMeasurement(mscl::InertialTypes::AidingMeasurementSource::ODOMETER_AIDING, filter_enable_odometer_aiding_);
+    configureFilterAidingMeasurement(mscl::InertialTypes::AidingMeasurementSource::MAGNETOMETER_AIDING, filter_enable_magnetometer_aiding_);
+    configureFilterAidingMeasurement(mscl::InertialTypes::AidingMeasurementSource::EXTERNAL_HEADING_AIDING, filter_enable_external_heading_aiding_);
   }
   else
   {
@@ -1105,6 +1092,54 @@ bool MicrostrainConfig::configureSensor2vehicle(RosNodeType* node)
     }
   }
   return true;
+}
+
+void MicrostrainConfig::configureFilterAidingMeasurement(const mscl::InertialTypes::AidingMeasurementSource aiding_measurement, const bool enable)
+{
+  // Find the name of the aiding measurement so we can log some info about it
+  std::string aiding_measurement_name;
+  switch (aiding_measurement)
+  {
+    case mscl::InertialTypes::AidingMeasurementSource::GNSS_POS_VEL_AIDING:
+      aiding_measurement_name = "gnss pos/vel";
+      break;
+    case mscl::InertialTypes::AidingMeasurementSource::GNSS_HEADING_AIDING:
+      aiding_measurement_name = "gnss heading";
+      break;
+    case mscl::InertialTypes::AidingMeasurementSource::ALTIMETER_AIDING:
+      aiding_measurement_name = "altimeter";
+      break;
+    case mscl::InertialTypes::AidingMeasurementSource::ODOMETER_AIDING:
+      aiding_measurement_name = "odometer";
+      break;
+    case mscl::InertialTypes::AidingMeasurementSource::MAGNETOMETER_AIDING:
+      aiding_measurement_name = "magnetometer";
+      break;
+    case mscl::InertialTypes::AidingMeasurementSource::EXTERNAL_HEADING_AIDING:
+      aiding_measurement_name = "external heading";
+      break;
+    default:
+      aiding_measurement_name = std::to_string(aiding_measurement);
+      break;
+  }
+
+  // Check if the requested aiding measurement is supported
+  const mscl::AidingMeasurementSourceOptions& supported_options = inertial_device_->features().supportedAidingMeasurementOptions();
+  if (std::find(supported_options.begin(), supported_options.end(), aiding_measurement) != supported_options.end())
+  {
+    MICROSTRAIN_INFO(node_, "Filter aiding %s = %d", aiding_measurement_name.c_str(), enable);
+    inertial_device_->enableDisableAidingMeasurement(aiding_measurement, enable);
+  }
+  else if (enable)
+  {
+    // If the aiding measurement was requested to be enabled, log a warning
+    MICROSTRAIN_WARN(node_, "Note: Filter aiding %s not supported, but it was requested. Disable in params file to remove this warning", aiding_measurement_name.c_str());
+  }
+  else
+  {
+    // If the aiding measurement was not requested, just log some info
+    MICROSTRAIN_INFO(node_, "Note: Filter aiding %s not supported", aiding_measurement_name.c_str());
+  }
 }
 
 }  // namespace microstrain
