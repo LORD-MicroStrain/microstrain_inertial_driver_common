@@ -289,7 +289,7 @@ private:
   static void getDataRateParam(RosNodeType* node, const std::string& key, int& data_rate, int default_data_rate);
 
   /**
-   * \brief Configures Sensor 2 Vehicle settings on the inertial device
+   * \brief Convenience function to populate a list of channels and their requested data rates based on whether the device supports them
    * \param data_class  The data class that the channels in channel_fields belong to
    * \param channel_fields  The channel fields to set to stream at the requested data_rate
    * \param data_rate  The rate in hertz to stream the MIP data at
@@ -297,6 +297,13 @@ private:
    */
   void getSupportedMipChannels(mscl::MipTypes::DataClass data_class, const mscl::MipTypes::MipChannelFields& channel_fields, int data_rate, mscl::MipChannels* channels_to_stream);
   
+  /**
+   * \brief Enables or disables a filter aiding measurement
+   * \param aiding_measurement  The aiding measurement to enable or disable
+   * \param enable Whether or not to enable the aiding measurement
+   */
+  void configureFilterAidingMeasurement(const mscl::InertialTypes::AidingMeasurementSource aiding_measurement, const bool enable);
+
   // Handle to the ROS node
   RosNodeType* node_;
 };  // MicrostrainConfig class
