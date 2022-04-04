@@ -29,95 +29,167 @@ bool MicrostrainPublishers::configure()
     device_status_pub_ = create_publisher<StatusMsg>(node_, "device/status", 100);
   }
 
-  // Create the transorm broadcaster
-  transform_broadcaster_ = create_transform_broadcaster(node_);
-
-  // Publish IMU data, if enabled
   if (config_->publish_imu_)
   {
-    MICROSTRAIN_INFO(node_, "Publishing IMU data.");
-    imu_pub_ = create_publisher<ImuMsg>(node_, "imu/data", 100);
-  }
+    // Publish IMU data, if enabled
+    if (config_->imu_raw_data_rate_ != 0)
+    {
+      MICROSTRAIN_INFO(node_, "Publishing raw IMU data.");
+      imu_pub_ = create_publisher<ImuMsg>(node_, "imu/data", 100);
+    }
 
-  // Publish IMU GPS correlation data, if enabled
-  if (config_->publish_imu_ && config_->publish_gps_corr_)
-  {
-    MICROSTRAIN_INFO(node_, "Publishing IMU GPS correlation timestamp.");
-    gps_corr_pub_ = create_publisher<GPSCorrelationTimestampStampedMsg>(node_, "gps_corr", 100);
-  }
+    // If the device has a magnetometer, publish relevant topics
+    if (config_->inertial_device_->features().supportsCommand(mscl::MipTypes::Command::CMD_MAG_HARD_IRON_OFFSET) &&
+        config_->imu_mag_data_rate_ != 0)
+    {
+      MICROSTRAIN_INFO(node_, "Publishing Magnetometer data.");
+      mag_pub_ = create_publisher<MagneticFieldMsg>(node_, "mag", 100);
+    }
 
-  // If the device has a magnetometer, publish relevant topics
-  if (config_->publish_imu_ &&
-      config_->inertial_device_->features().supportsCommand(mscl::MipTypes::Command::CMD_MAG_HARD_IRON_OFFSET))
-  {
-    MICROSTRAIN_INFO(node_, "Publishing Magnetometer data.");
-    mag_pub_ = create_publisher<MagneticFieldMsg>(node_, "mag", 100);
+    // Publish IMU GPS correlation data, if enabled
+    if (config_->publish_gps_corr_ && config_->imu_gps_corr_data_rate_ != 0)
+    {
+      MICROSTRAIN_INFO(node_, "Publishing IMU GPS correlation timestamp.");
+      gps_corr_pub_ = create_publisher<GPSCorrelationTimestampStampedMsg>(node_, "gps_corr", 100);
+    }
   }
 
   // If the device has GNSS1, publish relevant topics
   if (config_->publish_gnss_[GNSS1_ID] && config_->supports_gnss1_)
   {
-    MICROSTRAIN_INFO(node_, "Publishing GNSS1 data.");
-    gnss_pub_[GNSS1_ID] = create_publisher<NavSatFixMsg>(node_, "gnss1/fix", 100);
-    gnss_odom_pub_[GNSS1_ID] = create_publisher<OdometryMsg>(node_, "gnss1/odom", 100);
-    gnss_time_pub_[GNSS1_ID] = create_publisher<TimeReferenceMsg>(node_, "gnss1/time_ref", 100);
-    gnss_fix_info_pub_[GNSS1_ID] = create_publisher<GNSSFixInfoMsg>(node_, "gnss1/fix_info", 100);
-
-    if (config_->publish_gnss_aiding_status_[GNSS1_ID])
+    if (config_->gnss_nav_sat_fix_data_rate_[GNSS1_ID] != 0)
     {
+      MICROSTRAIN_INFO(node_, "Publishing GNSS1 NavSatFix data.");
+      gnss_pub_[GNSS1_ID] = create_publisher<NavSatFixMsg>(node_, "gnss1/fix", 100);
+    }
+    if (config_->gnss_odom_data_rate_[GNSS1_ID] != 0)
+    {
+      MICROSTRAIN_INFO(node_, "Publishing GNSS1 odom data.");
+      gnss_odom_pub_[GNSS1_ID] = create_publisher<OdometryMsg>(node_, "gnss1/odom", 100);
+    }
+    if (config_->gnss_time_reference_data_rate_[GNSS1_ID] != 0)
+    {
+      MICROSTRAIN_INFO(node_, "Publishing GNSS1 time reference data.");
+      gnss_time_pub_[GNSS1_ID] = create_publisher<TimeReferenceMsg>(node_, "gnss1/time_ref", 100);
+    }
+    if (config_->gnss_fix_info_data_rate_[GNSS1_ID] != 0)
+    {
+      MICROSTRAIN_INFO(node_, "Publishing GNSS1 fix info data.");
+      gnss_fix_info_pub_[GNSS1_ID] = create_publisher<GNSSFixInfoMsg>(node_, "gnss1/fix_info", 100);
+    }
+    if (config_->publish_filter_aiding_status_ && config_->filter_aiding_status_data_rate_ != 0)
+    {
+      MICROSTRAIN_INFO(node_, "Publishing GNSS1 aiding status");
       gnss_aiding_status_pub_[GNSS1_ID] = create_publisher<GNSSAidingStatusMsg>(node_, "gnss1/aiding_status", 100);
     }
+  }
+  else
+  {
+    MICROSTRAIN_DEBUG(node_, "Not publishing GNSS1 data because publish_gnss1 = %d and supports_gnss1 = %d", config_->publish_gnss_[GNSS1_ID], config_->supports_gnss1_);
   }
 
   // If the device has GNSS2, publish relevant topics
   if (config_->publish_gnss_[GNSS2_ID] && config_->supports_gnss2_)
   {
-    MICROSTRAIN_INFO(node_, "Publishing GNSS2 data.");
-    gnss_pub_[GNSS2_ID] = create_publisher<NavSatFixMsg>(node_, "gnss2/fix", 100);
-    gnss_odom_pub_[GNSS2_ID] = create_publisher<OdometryMsg>(node_, "gnss2/odom", 100);
-    gnss_time_pub_[GNSS2_ID] = create_publisher<TimeReferenceMsg>(node_, "gnss2/time_ref", 100);
-    gnss_fix_info_pub_[GNSS2_ID] = create_publisher<GNSSFixInfoMsg>(node_, "gnss2/fix_info", 100);
-
-    if (config_->publish_gnss_aiding_status_[GNSS2_ID])
+    if (config_->gnss_nav_sat_fix_data_rate_[GNSS2_ID] != 0)
     {
+      MICROSTRAIN_INFO(node_, "Publishing GNSS2 NavSatFix data.");
+      gnss_pub_[GNSS2_ID] = create_publisher<NavSatFixMsg>(node_, "gnss2/fix", 100);
+    }
+    if (config_->gnss_odom_data_rate_[GNSS2_ID] != 0)
+    {
+      MICROSTRAIN_INFO(node_, "Publishing GNSS2 odom data.");
+      gnss_odom_pub_[GNSS2_ID] = create_publisher<OdometryMsg>(node_, "gnss2/odom", 100);
+    }
+    if (config_->gnss_time_reference_data_rate_[GNSS2_ID] != 0)
+    {
+      MICROSTRAIN_INFO(node_, "Publishing GNSS2 time reference data.");
+      gnss_time_pub_[GNSS2_ID] = create_publisher<TimeReferenceMsg>(node_, "gnss2/time_ref", 100);
+    }
+    if (config_->gnss_fix_info_data_rate_[GNSS2_ID] != 0)
+    {
+      MICROSTRAIN_INFO(node_, "Publishing GNSS2 fix info data.");
+      gnss_fix_info_pub_[GNSS2_ID] = create_publisher<GNSSFixInfoMsg>(node_, "gnss2/fix_info", 100);
+    }
+    if (config_->publish_filter_aiding_status_ && config_->filter_aiding_status_data_rate_ != 0)
+    {
+      MICROSTRAIN_INFO(node_, "Publishing GNSS2 aiding status");
       gnss_aiding_status_pub_[GNSS2_ID] = create_publisher<GNSSAidingStatusMsg>(node_, "gnss2/aiding_status", 100);
     }
+  }
+  else
+  {
+    MICROSTRAIN_DEBUG(node_, "Not publishing GNSS2 data because publish_gnss2 = %d and supports_gnss2 = %d", config_->publish_gnss_[GNSS2_ID], config_->supports_gnss2_);
   }
 
   // If the device has RTK, publish relevant topics
   if (config_->publish_rtk_ && config_->supports_rtk_)
   {
-    MICROSTRAIN_INFO(node_, "Publishing RTK data.");
-    rtk_pub_ = create_publisher<RTKStatusMsg>(node_, "rtk/status", 100);
-    rtk_pub_v1_ = create_publisher<RTKStatusMsgV1>(node_, "rtk/status_v1", 100);
+    if (config_->rtk_status_data_rate_ != 0)
+    {
+      MICROSTRAIN_INFO(node_, "Publishing RTK status data.");
+      rtk_pub_ = create_publisher<RTKStatusMsg>(node_, "rtk/status", 100);
+      rtk_pub_v1_ = create_publisher<RTKStatusMsgV1>(node_, "rtk/status_v1", 100);
+    }
+  }
+  else
+  {
+    MICROSTRAIN_DEBUG(node_, "Not publushing RTK data because publish_rtk = %d and supports_rtk = %d", config_->publish_filter_, config_->supports_rtk_);
   }
 
   // If the device has a kalman filter, publish relevant topics
   if (config_->publish_filter_ && config_->supports_filter_)
   {
-    MICROSTRAIN_INFO(node_, "Publishing Filter data.");
-    filter_pub_ = create_publisher<OdometryMsg>(node_, "nav/odom", 100);
-    filter_status_pub_ = create_publisher<FilterStatusMsg>(node_, "nav/status", 100);
-    filter_heading_pub_ = create_publisher<FilterHeadingMsg>(node_, "nav/heading", 100);
-    filter_heading_state_pub_ = create_publisher<FilterHeadingStateMsg>(node_, "nav/heading_state", 100);
-    filtered_imu_pub_ = create_publisher<ImuMsg>(node_, "nav/filtered_imu/data", 100);
-
-    if (config_->filter_enable_gnss_heading_aiding_)
+    if (config_->filter_status_data_rate_ != 0)
     {
+      MICROSTRAIN_INFO(node_, "Publishing Filter status data");
+      filter_status_pub_ = create_publisher<FilterStatusMsg>(node_, "nav/status", 100);
+    }
+    if (config_->filter_heading_data_rate_ != 0)
+    {
+      MICROSTRAIN_INFO(node_, "Publishing Filter heading message");
+      filter_heading_pub_ = create_publisher<FilterHeadingMsg>(node_, "nav/heading", 100);
+    }
+    if (config_->filter_heading_state_data_rate_ != 0)
+    {
+      MICROSTRAIN_INFO(node_, "Publishing Filter heading state message");
+      filter_heading_state_pub_ = create_publisher<FilterHeadingStateMsg>(node_, "nav/heading_state", 100);
+    }
+    if (config_->filter_odom_data_rate_ != 0)
+    {
+      MICROSTRAIN_INFO(node_, "Publishing Filter odometry message");
+      filter_pub_ = create_publisher<OdometryMsg>(node_, "nav/odom", 100);
+    }
+    if (config_->filter_imu_data_rate_ != 0)
+    {
+      MICROSTRAIN_INFO(node_, "Publishing Filtered IMU data");
+      filtered_imu_pub_ = create_publisher<ImuMsg>(node_, "nav/filtered_imu/data", 100);
+    }
+    if (config_->publish_filter_relative_pos_ && config_->filter_relative_odom_data_rate_ != 0)
+    {
+      MICROSTRAIN_INFO(node_, "Publishing relative odometry message");
+      filter_relative_pos_pub_ = create_publisher<OdometryMsg>(node_, "nav/relative_pos/odom", 100);
+
+      // Create the transorm broadcaster
+      MICROSTRAIN_INFO(node_, "Publising transform from %s to %s", config_->filter_frame_id_.c_str(), config_->filter_child_frame_id_.c_str());
+      transform_broadcaster_ = create_transform_broadcaster(node_);
+    }
+    if (config_->filter_enable_gnss_heading_aiding_ && config_->filter_gnss_dual_antenna_status_data_rate_ != 0)
+    {
+      MICROSTRAIN_INFO(node_, "Publishing Dual Antenna Status message");
       gnss_dual_antenna_status_pub_ =
           create_publisher<GNSSDualAntennaStatusMsg>(node_, "nav/dual_antenna_status", 100);
     }
-
-    if (config_->publish_filter_relative_pos_)
+    if (config_->publish_filter_aiding_measurement_summary_ && config_->filter_aiding_measurement_summary_data_rate_ != 0)
     {
-      filter_relative_pos_pub_ = create_publisher<OdometryMsg>(node_, "nav/relative_pos/odom", 100);
-    }
-
-    if (config_->publish_filter_aiding_measurement_summary_)
-    {
+      MICROSTRAIN_INFO(node_, "Publishing Aiding Summary message");
       filter_aiding_measurement_summary_pub_ =
           create_publisher<FilterAidingMeasurementSummaryMsg>(node_, "nav/aiding_summary", 100);
     }
+  }
+  else
+  {
+    MICROSTRAIN_DEBUG(node_, "Not publishing filter data because publish_filter = %d and supports_filter = %d", config_->publish_filter_, config_->supports_filter_);
   }
 
   // If the device supports RTK (has an aux port), and we were asked to, stream NMEA sentences

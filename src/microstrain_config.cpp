@@ -64,6 +64,11 @@ bool MicrostrainConfig::configure(RosNodeType* node)
   get_param<std::vector<double>>(node, "imu_angular_cov", imu_angular_cov_, DEFAULT_MATRIX);
   get_param<std::string>(node, "imu_frame_id", imu_frame_id_, imu_frame_id_);
 
+  // IMU Data rate
+  getDataRateParam(node, "imu_raw_data_rate", imu_raw_data_rate_, imu_data_rate_);
+  getDataRateParam(node, "imu_mag_data_rate", imu_mag_data_rate_, imu_data_rate_);
+  getDataRateParam(node, "imu_gps_corr_data_rate", imu_gps_corr_data_rate_, imu_data_rate_);
+
   // GNSS 1/2
   get_param<bool>(node, "publish_gnss1", publish_gnss_[GNSS1_ID], false);
   get_param<bool>(node, "publish_gnss2", publish_gnss_[GNSS2_ID], false);
@@ -74,6 +79,17 @@ bool MicrostrainConfig::configure(RosNodeType* node)
   get_param<std::string>(node, "gnss1_frame_id", gnss_frame_id_[GNSS1_ID], gnss_frame_id_[GNSS1_ID]);
   get_param<std::string>(node, "gnss2_frame_id", gnss_frame_id_[GNSS2_ID], gnss_frame_id_[GNSS2_ID]);
 
+  // GNSS 1/2 Data rates
+  getDataRateParam(node, "gnss1_nav_sat_fix_data_rate", gnss_nav_sat_fix_data_rate_[GNSS1_ID], gnss_data_rate_[GNSS1_ID]);
+  getDataRateParam(node, "gnss1_odom_data_rate", gnss_odom_data_rate_[GNSS1_ID], gnss_data_rate_[GNSS1_ID]);
+  getDataRateParam(node, "gnss1_time_reference_data_rate", gnss_time_reference_data_rate_[GNSS1_ID], gnss_data_rate_[GNSS1_ID]);
+  getDataRateParam(node, "gnss1_fix_info_data_rate", gnss_fix_info_data_rate_[GNSS1_ID], gnss_data_rate_[GNSS1_ID]);
+
+  getDataRateParam(node, "gnss2_nav_sat_fix_data_rate", gnss_nav_sat_fix_data_rate_[GNSS2_ID], gnss_data_rate_[GNSS2_ID]);
+  getDataRateParam(node, "gnss2_odom_data_rate", gnss_odom_data_rate_[GNSS2_ID], gnss_data_rate_[GNSS2_ID]);
+  getDataRateParam(node, "gnss2_time_reference_data_rate", gnss_time_reference_data_rate_[GNSS2_ID], gnss_data_rate_[GNSS2_ID]);
+  getDataRateParam(node, "gnss2_fix_info_data_rate", gnss_fix_info_data_rate_[GNSS2_ID], gnss_data_rate_[GNSS2_ID]);
+
   // HARDWARE ODOM
   get_param<bool>(node, "enable_hardware_odometer", enable_hardware_odometer_, false);
 
@@ -83,6 +99,9 @@ bool MicrostrainConfig::configure(RosNodeType* node)
   get_param<std::string>(node, "rtcm_topic", rtcm_topic_, std::string("/rtcm"));
   get_param<bool>(node, "publish_nmea", publish_nmea_, false);
   get_param<std::string>(node, "nmea_frame_id", nmea_frame_id_, nmea_frame_id_);
+
+  // RTK Data rate
+  getDataRateParam(node, "rtk_status_data_rate", rtk_status_data_rate_, 1);
 
   // FILTER
   get_param<bool>(node, "publish_filter", publish_filter_, false);
@@ -109,6 +128,18 @@ bool MicrostrainConfig::configure(RosNodeType* node)
   get_param<std::string>(node, "filter_external_gps_time_topic", external_gps_time_topic_,
                          std::string("/external_gps_time"));
   get_param<std::string>(node, "filter_external_speed_topic", external_speed_topic_, "/external_speed");
+  get_param<bool>(node, "filter_use_compensated_accel", filter_use_compensated_accel_, true);
+
+  // Filter Data Rates
+  getDataRateParam(node, "filter_status_data_rate", filter_status_data_rate_, filter_data_rate_);
+  getDataRateParam(node, "filter_heading_data_rate", filter_heading_data_rate_, filter_data_rate_);
+  getDataRateParam(node, "filter_heading_state_data_rate", filter_heading_state_data_rate_, filter_data_rate_);
+  getDataRateParam(node, "filter_aiding_measurement_summary_data_rate", filter_aiding_measurement_summary_data_rate_, filter_data_rate_);
+  getDataRateParam(node, "filter_odom_data_rate", filter_odom_data_rate_, filter_data_rate_);
+  getDataRateParam(node, "filter_imu_data_rate", filter_imu_data_rate_, filter_data_rate_);
+  getDataRateParam(node, "filter_relative_odom_data_rate", filter_relative_odom_data_rate_, filter_data_rate_);
+  getDataRateParam(node, "filter_gnss_dual_antenna_status_data_rate", filter_gnss_dual_antenna_status_data_rate_, filter_data_rate_);
+  getDataRateParam(node, "filter_aiding_status_data_rate", filter_aiding_status_data_rate_, filter_data_rate_);
 
   // Enable dual antenna messages
   publish_gnss_dual_antenna_status_ = filter_enable_gnss_heading_aiding_;
@@ -271,10 +302,14 @@ bool MicrostrainConfig::setupDevice(RosNodeType* node)
   }
 
   // IMU Setup
-  if (publish_imu_ && supports_imu_)
+  if (supports_imu_)
   {
     if (!configureIMU(node))
       return false;
+
+    if (publish_imu_)
+      if (!configureIMUDataRates())
+        return false;
   }
 
   // GNSS1 setup
@@ -282,6 +317,10 @@ bool MicrostrainConfig::setupDevice(RosNodeType* node)
   {
     if (!configureGNSS(node, GNSS1_ID))
       return false;
+    
+    if (publish_gnss_[GNSS1_ID])
+      if (!configureGNSSDataRates(GNSS1_ID))
+        return false;
   }
 
   // GNSS2 setup
@@ -289,6 +328,10 @@ bool MicrostrainConfig::setupDevice(RosNodeType* node)
   {
     if (!configureGNSS(node, GNSS2_ID))
       return false;
+
+    if (publish_gnss_[GNSS2_ID])
+      if (!configureGNSSDataRates(GNSS2_ID))
+        return false;
   }
 
   // RTK Dongle
@@ -296,13 +339,21 @@ bool MicrostrainConfig::setupDevice(RosNodeType* node)
   {
     if (!configureRTK(node))
       return false;
+    
+    if (publish_rtk_)
+      if (!configureRTKDataRates())
+        return false;
   }
 
   // Filter setup
-  if (publish_filter_ && supports_filter_)
+  if (supports_filter_)
   {
     if (!configureFilter(node))
       return false;
+
+    if (publish_filter_)
+      if (!configureFilterDataRates())
+        return false;
   }
 
   // Sensor2Vehicle setup
@@ -471,31 +522,6 @@ bool MicrostrainConfig::configureIMU(RosNodeType* node)
   get_param<int32_t>(node, "filter_declination_source", declination_source, 2);
   get_param<double>(node, "filter_declination", declination, 0.23);
 
-  mscl::SampleRate imu_rate = mscl::SampleRate::Hertz(imu_data_rate_);
-
-  MICROSTRAIN_INFO(node_, "Setting IMU data to stream at %d hz", imu_data_rate_);
-
-  mscl::MipTypes::MipChannelFields ahrsChannels
-  {
-    mscl::MipTypes::ChannelField::CH_FIELD_SENSOR_SCALED_ACCEL_VEC,
-    mscl::MipTypes::ChannelField::CH_FIELD_SENSOR_SCALED_GYRO_VEC,
-    mscl::MipTypes::ChannelField::CH_FIELD_SENSOR_ORIENTATION_QUATERNION,
-    mscl::MipTypes::ChannelField::CH_FIELD_SENSOR_SCALED_MAG_VEC,
-    mscl::MipTypes::ChannelField::CH_FIELD_SENSOR_GPS_CORRELATION_TIMESTAMP
-  };
-
-  mscl::MipChannels supportedChannels;
-  for (mscl::MipTypes::ChannelField channel :
-       inertial_device_->features().supportedChannelFields(mscl::MipTypes::DataClass::CLASS_AHRS_IMU))
-  {
-    if (std::find(ahrsChannels.begin(), ahrsChannels.end(), channel) != ahrsChannels.end())
-    {
-      supportedChannels.push_back(mscl::MipChannel(channel, imu_rate));
-    }
-  }
-
-  inertial_device_->setActiveChannelFields(mscl::MipTypes::DataClass::CLASS_AHRS_IMU, supportedChannels);
-
   if (inertial_device_->features().supportsCommand(mscl::MipTypes::Command::CMD_EF_DECLINATION_SRC))
   {
     MICROSTRAIN_INFO(node_, "Setting Declination Source");
@@ -507,7 +533,48 @@ bool MicrostrainConfig::configureIMU(RosNodeType* node)
     MICROSTRAIN_INFO(node_, "Note: Device does not support the declination source command.");
   }
 
-  inertial_device_->enableDataStream(mscl::MipTypes::DataClass::CLASS_AHRS_IMU);
+  return true;
+}
+
+bool MicrostrainConfig::configureIMUDataRates()
+{
+  mscl::MipChannels channels_to_stream;
+
+  // Streaming for /imu/data message
+  mscl::MipTypes::MipChannelFields imu_raw_fields
+  {
+    mscl::MipTypes::ChannelField::CH_FIELD_SENSOR_SCALED_ACCEL_VEC,
+    mscl::MipTypes::ChannelField::CH_FIELD_SENSOR_SCALED_GYRO_VEC,
+    mscl::MipTypes::ChannelField::CH_FIELD_SENSOR_ORIENTATION_QUATERNION,
+  };
+  getSupportedMipChannels(mscl::MipTypes::DataClass::CLASS_AHRS_IMU, imu_raw_fields, imu_raw_data_rate_, &channels_to_stream);
+
+  // Streaming for /mag message
+  mscl::MipTypes::MipChannelFields imu_mag_fields
+  {
+    mscl::MipTypes::ChannelField::CH_FIELD_SENSOR_SCALED_MAG_VEC,
+  };
+  getSupportedMipChannels(mscl::MipTypes::DataClass::CLASS_AHRS_IMU, imu_mag_fields, imu_mag_data_rate_, &channels_to_stream);
+
+  // Streaming for /gps_corr message
+  mscl::MipTypes::MipChannelFields imu_gps_corr_fields
+  {
+    mscl::MipTypes::ChannelField::CH_FIELD_SENSOR_GPS_CORRELATION_TIMESTAMP,
+  };
+  getSupportedMipChannels(mscl::MipTypes::DataClass::CLASS_AHRS_IMU, imu_gps_corr_fields, imu_gps_corr_data_rate_, &channels_to_stream);
+
+  // Enable the data stream
+  try
+  {
+    inertial_device_->setActiveChannelFields(mscl::MipTypes::DataClass::CLASS_AHRS_IMU, channels_to_stream);
+    inertial_device_->enableDataStream(mscl::MipTypes::DataClass::CLASS_AHRS_IMU);
+  }
+  catch (const mscl::Error& e)
+  {
+    MICROSTRAIN_ERROR(node_, "Unable to set IMU data to stream.");
+    MICROSTRAIN_ERROR(node_, "  Error: %s", e.what());
+    return false;
+  }
   return true;
 }
 
@@ -534,96 +601,113 @@ bool MicrostrainConfig::configureGNSS(RosNodeType* node, uint8_t gnss_id)
     MICROSTRAIN_ERROR(node_, "Could not set GNSS%d antenna offset!", gnss_id + 1);
     return false;
   }
+  return true;
+}
 
-  // If we were requested to publish GNSS data, set up streaming at the requested rate
-  if (publish_gnss_[gnss_id])
+bool MicrostrainConfig::configureGNSSDataRates(uint8_t gnss_id)
+{
+  // If this is true, we will use GNSS_1_* fields, otherwise we will use GNSS_* fields
+  const bool multi_gnss = inertial_device_->features().supportsCategory(mscl::MipTypes::DataClass::CLASS_GNSS1);
+
+  // Will be populated with different values depending on the GNSS ID
+  mscl::MipTypes::DataClass data_class;
+  mscl::MipTypes::MipChannelFields gnss_nav_sat_fix_fields;
+  mscl::MipTypes::MipChannelFields gnss_odom_fields;
+  mscl::MipTypes::MipChannelFields gnss_time_reference_fields;
+  mscl::MipTypes::MipChannelFields gnss_fix_info_fields;
+  switch (gnss_id)
   {
-    mscl::SampleRate gnss1_rate = mscl::SampleRate::Hertz(gnss_data_rate_[gnss_id]);
-
-    MICROSTRAIN_INFO(node_, "Setting GNSS%d data to stream at %d hz", gnss_id, gnss_data_rate_[gnss_id]);
-
-    mscl::MipTypes::MipChannelFields gnssChannels
+    case GNSS1_ID:
     {
-      mscl::MipTypes::ChannelField::CH_FIELD_GNSS_LLH_POSITION,
-      mscl::MipTypes::ChannelField::CH_FIELD_GNSS_NED_VELOCITY,
-      mscl::MipTypes::ChannelField::CH_FIELD_GNSS_GPS_TIME
-    };
+      data_class = multi_gnss ? mscl::MipTypes::DataClass::CLASS_GNSS1 : mscl::MipTypes::DataClass::CLASS_GNSS;
 
-    mscl::MipTypes::DataClass gnss_data_class = mscl::MipTypes::DataClass::CLASS_GNSS;
-
-    if (inertial_device_->features().supportsCategory(mscl::MipTypes::DataClass::CLASS_GNSS1) && gnss_id == GNSS1_ID)
-    {
-      gnss_data_class = mscl::MipTypes::DataClass::CLASS_GNSS1;
-
-      gnssChannels.clear();
-      gnssChannels.push_back(mscl::MipTypes::ChannelField::CH_FIELD_GNSS_1_LLH_POSITION);
-      gnssChannels.push_back(mscl::MipTypes::ChannelField::CH_FIELD_GNSS_1_NED_VELOCITY);
-      gnssChannels.push_back(mscl::MipTypes::ChannelField::CH_FIELD_GNSS_1_GPS_TIME);
-      gnssChannels.push_back(mscl::MipTypes::ChannelField::CH_FIELD_GNSS_1_FIX_INFO);
-    }
-    else if (inertial_device_->features().supportsCategory(mscl::MipTypes::DataClass::CLASS_GNSS2) &&
-            gnss_id == GNSS2_ID)
-    {
-      gnss_data_class = mscl::MipTypes::DataClass::CLASS_GNSS2;
-
-      gnssChannels.clear();
-      gnssChannels.push_back(mscl::MipTypes::ChannelField::CH_FIELD_GNSS_2_LLH_POSITION);
-      gnssChannels.push_back(mscl::MipTypes::ChannelField::CH_FIELD_GNSS_2_NED_VELOCITY);
-      gnssChannels.push_back(mscl::MipTypes::ChannelField::CH_FIELD_GNSS_2_GPS_TIME);
-      gnssChannels.push_back(mscl::MipTypes::ChannelField::CH_FIELD_GNSS_2_FIX_INFO);
-    }
-
-    mscl::MipChannels supportedChannels;
-    for (mscl::MipTypes::ChannelField channel : inertial_device_->features().supportedChannelFields(gnss_data_class))
-    {
-      if (std::find(gnssChannels.begin(), gnssChannels.end(), channel) != gnssChannels.end())
+      // Streaming for /gnss1/fix message
+      gnss_nav_sat_fix_fields =
       {
-        supportedChannels.push_back(mscl::MipChannel(channel, gnss1_rate));
-      }
+        multi_gnss ? mscl::MipTypes::ChannelField::CH_FIELD_GNSS_1_LLH_POSITION : mscl::MipTypes::ChannelField::CH_FIELD_GNSS_LLH_POSITION,
+      };
+
+      // Streaming for /gnss1/odom message
+      gnss_odom_fields =
+      {
+        multi_gnss ? mscl::MipTypes::ChannelField::CH_FIELD_GNSS_1_LLH_POSITION : mscl::MipTypes::ChannelField::CH_FIELD_GNSS_LLH_POSITION,
+        multi_gnss ? mscl::MipTypes::ChannelField::CH_FIELD_GNSS_1_NED_VELOCITY : mscl::MipTypes::ChannelField::CH_FIELD_GNSS_NED_VELOCITY,
+      };
+
+      // Streaming for /gnss1/time_ref message
+      gnss_time_reference_fields =
+      {
+        multi_gnss ? mscl::MipTypes::ChannelField::CH_FIELD_GNSS_1_GPS_TIME : mscl::MipTypes::ChannelField::CH_FIELD_GNSS_GPS_TIME,
+      };
+
+      // Streaming for /gnss1/fix_info message
+      gnss_fix_info_fields =
+      {
+        multi_gnss ? mscl::MipTypes::ChannelField::CH_FIELD_GNSS_1_FIX_INFO : mscl::MipTypes::ChannelField::CH_FIELD_GNSS_FIX_INFO,
+      };
+      break;
     }
-
-    // set the GNSS channel fields
-    inertial_device_->setActiveChannelFields(gnss_data_class, supportedChannels);
-
-    // Enable publishing aiding status messages
-    publish_gnss_aiding_status_[gnss_id] = inertial_device_->features().supportsCommand(mscl::MipTypes::Command::CMD_EF_AIDING_MEASUREMENT_ENABLE);
-    if (!publish_gnss_aiding_status_[gnss_id])
+    case GNSS2_ID:
     {
-      MICROSTRAIN_INFO(node_, "Note: Device not support publishing GNSS Aiding measurements.");
-    }
+      data_class = mscl::MipTypes::DataClass::CLASS_GNSS2;
 
-    inertial_device_->enableDataStream(gnss_data_class);
+      // Streaming for /gnss2/fix message
+      gnss_nav_sat_fix_fields =
+      {
+        mscl::MipTypes::ChannelField::CH_FIELD_GNSS_2_LLH_POSITION,
+      };
+
+      // Streaming for /gnss2/odom message
+      gnss_odom_fields =
+      {
+        mscl::MipTypes::ChannelField::CH_FIELD_GNSS_2_LLH_POSITION,
+        mscl::MipTypes::ChannelField::CH_FIELD_GNSS_2_NED_VELOCITY,
+      };
+
+      // Streaming for /gnss2/time_ref message
+      gnss_time_reference_fields =
+      {
+        mscl::MipTypes::ChannelField::CH_FIELD_GNSS_2_GPS_TIME,
+      };
+
+      // Streaming for /gnss2/fix_info message
+      gnss_fix_info_fields =
+      {
+        mscl::MipTypes::ChannelField::CH_FIELD_GNSS_2_FIX_INFO,
+      };
+      break;
+    }
+    default:
+    {
+      MICROSTRAIN_ERROR(node_, "Invalid GNSS id requested: %u", gnss_id);
+      return false;
+    }
   }
 
+  // Get the supported MIP channels from the requested channels
+  mscl::MipChannels channels_to_stream;
+  getSupportedMipChannels(data_class, gnss_nav_sat_fix_fields, gnss_nav_sat_fix_data_rate_[gnss_id], &channels_to_stream);
+  getSupportedMipChannels(data_class, gnss_odom_fields, gnss_odom_data_rate_[gnss_id], &channels_to_stream);
+  getSupportedMipChannels(data_class, gnss_time_reference_fields, gnss_time_reference_data_rate_[gnss_id], &channels_to_stream);
+  getSupportedMipChannels(data_class, gnss_fix_info_fields, gnss_fix_info_data_rate_[gnss_id], &channels_to_stream);
+
+  // Enable the data stream
+  try
+  {
+    inertial_device_->setActiveChannelFields(data_class, channels_to_stream);
+    inertial_device_->enableDataStream(data_class);
+  }
+  catch (const mscl::Error& e)
+  {
+    MICROSTRAIN_ERROR(node_, "Unable to set GNSS%u data to stream.", gnss_id + 1);
+    MICROSTRAIN_ERROR(node_, "  Error: %s", e.what());
+    return false;
+  }
   return true;
 }
 
 bool MicrostrainConfig::configureRTK(RosNodeType* node)
 {
-  if (publish_rtk_)
-  {
-    mscl::SampleRate gnss3_rate = mscl::SampleRate::Hertz(1);
-
-    MICROSTRAIN_INFO(node_, "Setting RTK data to stream at 1 hz");
-
-    mscl::MipTypes::MipChannelFields gnssChannels{ mscl::MipTypes::ChannelField::CH_FIELD_GNSS_3_RTK_CORRECTIONS_STATUS };
-
-    mscl::MipChannels supportedChannels;
-    for (mscl::MipTypes::ChannelField channel :
-        inertial_device_->features().supportedChannelFields(mscl::MipTypes::DataClass::CLASS_GNSS3))
-    {
-      if (std::find(gnssChannels.begin(), gnssChannels.end(), channel) != gnssChannels.end())
-      {
-        supportedChannels.push_back(mscl::MipChannel(channel, gnss3_rate));
-      }
-    }
-
-    // set the GNSS channel fields
-    inertial_device_->setActiveChannelFields(mscl::MipTypes::DataClass::CLASS_GNSS3, supportedChannels);
-
-    inertial_device_->enableDataStream(mscl::MipTypes::DataClass::CLASS_GNSS3);
-  }
-
   // Check if the device even supports the RTK command, and enable/disable accordingly
   if (inertial_device_->features().supportsCommand(mscl::MipTypes::Command::CMD_GNSS_RTK_CONFIG))
   {
@@ -638,6 +722,31 @@ bool MicrostrainConfig::configureRTK(RosNodeType* node)
   return true;
 }
 
+bool MicrostrainConfig::configureRTKDataRates()
+{
+  // Streaming for /rtk/status or /rtk/status_v1 message
+  mscl::MipChannels channels_to_stream;
+  mscl::MipTypes::MipChannelFields rtk_status_fields
+  {
+    mscl::MipTypes::ChannelField::CH_FIELD_GNSS_3_RTK_CORRECTIONS_STATUS,
+  };
+  getSupportedMipChannels(mscl::MipTypes::DataClass::CLASS_GNSS3, rtk_status_fields, rtk_status_data_rate_, &channels_to_stream);
+
+  // Enable the data stream
+  try
+  {
+    inertial_device_->setActiveChannelFields(mscl::MipTypes::DataClass::CLASS_GNSS3, channels_to_stream);
+    inertial_device_->enableDataStream(mscl::MipTypes::DataClass::CLASS_GNSS3);
+  }
+  catch (const mscl::Error& e)
+  {
+    MICROSTRAIN_ERROR(node_, "Unable to set RTK data to stream.");
+    MICROSTRAIN_ERROR(node_, "  Error: %s", e.what());
+    return false;
+  }
+  return true;
+}
+
 bool MicrostrainConfig::configureFilter(RosNodeType* node)
 {
   // Read some generic filter info
@@ -645,13 +754,11 @@ bool MicrostrainConfig::configureFilter(RosNodeType* node)
   float initial_heading;
   bool filter_auto_init = true;
   int dynamics_mode;
-  bool filter_use_compensated_accel;
   float hardware_odometer_scaling;
   float hardware_odometer_uncertainty;
   get_param<int32_t>(node, "filter_heading_source", heading_source, 0x1);
   get_param<float>(node, "filter_initial_heading", initial_heading, 0.0);
   get_param<bool>(node, "filter_auto_init", filter_auto_init, true);
-  get_param<bool>(node, "filter_use_compensated_accel", filter_use_compensated_accel, true);
   get_param<int32_t>(node, "filter_dynamics_mode", dynamics_mode, 1);
   get_param<float>(node, "odometer_scaling", hardware_odometer_scaling, 0.0);
   get_param<float>(node, "odometer_uncertainty", hardware_odometer_uncertainty, 0.0);
@@ -683,52 +790,6 @@ bool MicrostrainConfig::configureFilter(RosNodeType* node)
   get_param<std::vector<double>>(node, "filter_speed_lever_arm", filter_speed_lever_arm, DEFAULT_VECTOR);
   get_param<double>(node, "filter_gnss_antenna_cal_max_offset", filter_gnss_antenna_cal_max_offset, 0.1);
   get_param<int32_t>(node, "filter_pps_source", filter_pps_source, 1);
-
-  mscl::SampleRate filter_rate = mscl::SampleRate::Hertz(filter_data_rate_);
-
-  MICROSTRAIN_INFO(node_, "Setting Filter data to stream at %d hz", filter_data_rate_);
-
-  mscl::MipTypes::MipChannelFields navChannels
-  {
-    mscl::MipTypes::ChannelField::CH_FIELD_ESTFILTER_GPS_TIMESTAMP,
-    mscl::MipTypes::ChannelField::CH_FIELD_ESTFILTER_FILTER_STATUS,
-    mscl::MipTypes::ChannelField::CH_FIELD_ESTFILTER_ESTIMATED_LLH_POS,
-    mscl::MipTypes::ChannelField::CH_FIELD_ESTFILTER_ESTIMATED_NED_VELOCITY,
-    mscl::MipTypes::ChannelField::CH_FIELD_ESTFILTER_ESTIMATED_ORIENT_QUATERNION,
-    mscl::MipTypes::ChannelField::CH_FIELD_ESTFILTER_ESTIMATED_LLH_UNCERT,
-    mscl::MipTypes::ChannelField::CH_FIELD_ESTFILTER_ESTIMATED_NED_UNCERT,
-    mscl::MipTypes::ChannelField::CH_FIELD_ESTFILTER_ESTIMATED_ATT_UNCERT_QUAT,
-    mscl::MipTypes::ChannelField::CH_FIELD_ESTFILTER_ESTIMATED_ANGULAR_RATE,
-    mscl::MipTypes::ChannelField::CH_FIELD_ESTFILTER_ESTIMATED_ATT_UNCERT_EULER,
-    mscl::MipTypes::ChannelField::CH_FIELD_ESTFILTER_ESTIMATED_ORIENT_EULER,
-    mscl::MipTypes::ChannelField::CH_FIELD_ESTFILTER_HEADING_UPDATE_SOURCE,
-    mscl::MipTypes::ChannelField::CH_FIELD_ESTFILTER_NED_RELATIVE_POS
-  };
-
-  // Add one or the other types of acceleration depending on the configuration
-  if (filter_use_compensated_accel)
-    navChannels.push_back(mscl::MipTypes::ChannelField::CH_FIELD_ESTFILTER_COMPENSATED_ACCEL);
-  else
-    navChannels.push_back(mscl::MipTypes::ChannelField::CH_FIELD_ESTFILTER_ESTIMATED_LINEAR_ACCEL);
-
-  if (filter_enable_gnss_pos_vel_aiding_)
-    navChannels.push_back(mscl::MipTypes::ChannelField::CH_FIELD_ESTFILTER_POSITION_AIDING_STATUS);
-  if (filter_enable_gnss_heading_aiding_)
-    navChannels.push_back(mscl::MipTypes::ChannelField::CH_FIELD_ESTFILTER_GNSS_DUAL_ANTENNA_STATUS);
-  if (publish_filter_aiding_measurement_summary_)
-    navChannels.push_back(mscl::MipTypes::ChannelField::CH_FIELD_ESTFILTER_AIDING_MEASURE_SUMMARY);
-
-  mscl::MipChannels supportedChannels;
-  for (mscl::MipTypes::ChannelField channel :
-       inertial_device_->features().supportedChannelFields(mscl::MipTypes::DataClass::CLASS_ESTFILTER))
-  {
-    if (std::find(navChannels.begin(), navChannels.end(), channel) != navChannels.end())
-    {
-      supportedChannels.push_back(mscl::MipChannel(channel, filter_rate));
-    }
-  }
-
-  inertial_device_->setActiveChannelFields(mscl::MipTypes::DataClass::CLASS_ESTFILTER, supportedChannels);
 
   // set dynamics mode
   if (inertial_device_->features().supportsCommand(mscl::MipTypes::Command::CMD_EF_VEHIC_DYNAMICS_MODE))
@@ -959,8 +1020,118 @@ bool MicrostrainConfig::configureFilter(RosNodeType* node)
     MICROSTRAIN_INFO(node_, "Note: The device does not support the odometer settings command");
   }
 
-  // Enable the filter datastream
-  inertial_device_->enableDataStream(mscl::MipTypes::DataClass::CLASS_ESTFILTER);
+  // Whether or not we can enable heading status
+  publish_filter_aiding_status_ = inertial_device_->features().supportsCommand(mscl::MipTypes::Command::CMD_EF_AIDING_MEASUREMENT_ENABLE);
+  if (!publish_filter_aiding_status_)
+  {
+    MICROSTRAIN_INFO(node_, "Note: The device does not support publishing GNSS Aiding measurements.");
+  }
+  return true;
+}
+
+bool MicrostrainConfig::configureFilterDataRates()
+{
+  mscl::MipChannels channels_to_stream;
+
+  // Streaming for /nav/status
+  mscl::MipTypes::MipChannelFields filter_status_fields
+  {
+    mscl::MipTypes::ChannelField::CH_FIELD_ESTFILTER_FILTER_STATUS,
+  };
+  getSupportedMipChannels(mscl::MipTypes::DataClass::CLASS_ESTFILTER, filter_status_fields, filter_status_data_rate_, &channels_to_stream);
+
+  // Streaming for /nav/heading
+  mscl::MipTypes::MipChannelFields filter_heading_fields
+  {
+    mscl::MipTypes::ChannelField::CH_FIELD_ESTFILTER_ESTIMATED_ORIENT_EULER,
+  };
+  getSupportedMipChannels(mscl::MipTypes::DataClass::CLASS_ESTFILTER, filter_heading_fields, filter_heading_data_rate_, &channels_to_stream);
+
+  // Streaming for /nav/heading_state
+  mscl::MipTypes::MipChannelFields filter_heading_state_fields
+  {
+    mscl::MipTypes::ChannelField::CH_FIELD_ESTFILTER_HEADING_UPDATE_SOURCE,
+  };
+  getSupportedMipChannels(mscl::MipTypes::DataClass::CLASS_ESTFILTER, filter_heading_state_fields, filter_heading_state_data_rate_, &channels_to_stream);
+
+  // Streaming for /nav/odom
+  mscl::MipTypes::MipChannelFields filter_odom_fields
+  {
+    mscl::MipTypes::ChannelField::CH_FIELD_ESTFILTER_ESTIMATED_LLH_POS,
+    mscl::MipTypes::ChannelField::CH_FIELD_ESTFILTER_ESTIMATED_LLH_UNCERT,
+    mscl::MipTypes::ChannelField::CH_FIELD_ESTFILTER_ESTIMATED_ORIENT_QUATERNION,
+    mscl::MipTypes::ChannelField::CH_FIELD_ESTFILTER_ESTIMATED_ATT_UNCERT_EULER,
+    mscl::MipTypes::ChannelField::CH_FIELD_ESTFILTER_ESTIMATED_NED_VELOCITY,
+    mscl::MipTypes::ChannelField::CH_FIELD_ESTFILTER_ESTIMATED_NED_UNCERT,
+    mscl::MipTypes::ChannelField::CH_FIELD_ESTFILTER_ESTIMATED_ANGULAR_RATE,
+  };
+  getSupportedMipChannels(mscl::MipTypes::DataClass::CLASS_ESTFILTER, filter_odom_fields, filter_odom_data_rate_, &channels_to_stream);
+
+  // Streaming for /nav/filtered_imu
+  mscl::MipTypes::MipChannelFields filter_imu_fields
+  {
+    mscl::MipTypes::ChannelField::CH_FIELD_ESTFILTER_ESTIMATED_ORIENT_QUATERNION,
+    mscl::MipTypes::ChannelField::CH_FIELD_ESTFILTER_ESTIMATED_ANGULAR_RATE,
+    filter_use_compensated_accel_ ? mscl::MipTypes::ChannelField::CH_FIELD_ESTFILTER_COMPENSATED_ACCEL : mscl::MipTypes::ChannelField::CH_FIELD_ESTFILTER_ESTIMATED_LINEAR_ACCEL,
+    mscl::MipTypes::ChannelField::CH_FIELD_ESTFILTER_ESTIMATED_ATT_UNCERT_EULER,
+  };
+  getSupportedMipChannels(mscl::MipTypes::DataClass::CLASS_ESTFILTER, filter_imu_fields, filter_imu_data_rate_, &channels_to_stream);
+
+  // Streaming for /nav/relative_pos/odom
+  mscl::MipTypes::MipChannelFields filter_relative_odom_fields
+  {
+    mscl::MipTypes::ChannelField::CH_FIELD_ESTFILTER_NED_RELATIVE_POS,
+    mscl::MipTypes::ChannelField::CH_FIELD_ESTFILTER_ESTIMATED_LLH_UNCERT,
+    mscl::MipTypes::ChannelField::CH_FIELD_ESTFILTER_ESTIMATED_ORIENT_QUATERNION,
+    mscl::MipTypes::ChannelField::CH_FIELD_ESTFILTER_ESTIMATED_ATT_UNCERT_EULER,
+    mscl::MipTypes::ChannelField::CH_FIELD_ESTFILTER_ESTIMATED_NED_VELOCITY,
+    mscl::MipTypes::ChannelField::CH_FIELD_ESTFILTER_ESTIMATED_NED_UNCERT,
+    mscl::MipTypes::ChannelField::CH_FIELD_ESTFILTER_ESTIMATED_ANGULAR_RATE,
+  };
+  getSupportedMipChannels(mscl::MipTypes::DataClass::CLASS_ESTFILTER, filter_relative_odom_fields, filter_relative_odom_data_rate_, &channels_to_stream);
+
+  // Streaming for /gnss*/aiding_status
+  if (filter_enable_gnss_pos_vel_aiding_)
+  {
+    mscl::MipTypes::MipChannelFields filter_aiding_status_fields
+    {
+      mscl::MipTypes::ChannelField::CH_FIELD_ESTFILTER_POSITION_AIDING_STATUS,
+    };
+    getSupportedMipChannels(mscl::MipTypes::DataClass::CLASS_ESTFILTER, filter_aiding_status_fields, filter_aiding_status_data_rate_, &channels_to_stream);
+  }
+  
+  // Streaming for /nav/dual_antenna_status
+  if (filter_enable_gnss_heading_aiding_)
+  {
+    mscl::MipTypes::MipChannelFields filter_gnss_dual_antenna_status_fields
+    {
+      mscl::MipTypes::ChannelField::CH_FIELD_ESTFILTER_GNSS_DUAL_ANTENNA_STATUS,
+    };
+    getSupportedMipChannels(mscl::MipTypes::DataClass::CLASS_ESTFILTER, filter_gnss_dual_antenna_status_fields, filter_gnss_dual_antenna_status_data_rate_, &channels_to_stream);
+  }
+
+  // Streaming for /nav/aiding_summary
+  if (publish_filter_aiding_measurement_summary_)
+  {
+    mscl::MipTypes::MipChannelFields filter_aiding_measurement_summary_fields
+    {
+      mscl::MipTypes::ChannelField::CH_FIELD_ESTFILTER_AIDING_MEASURE_SUMMARY
+    };
+    getSupportedMipChannels(mscl::MipTypes::DataClass::CLASS_ESTFILTER, filter_aiding_measurement_summary_fields, filter_aiding_measurement_summary_data_rate_, &channels_to_stream);
+  }
+
+  // Enable the data stream
+  try
+  {
+    inertial_device_->setActiveChannelFields(mscl::MipTypes::DataClass::CLASS_ESTFILTER, channels_to_stream);
+    inertial_device_->enableDataStream(mscl::MipTypes::DataClass::CLASS_ESTFILTER);
+  }
+  catch (const mscl::Error& e)
+  {
+    MICROSTRAIN_ERROR(node_, "Unable to set filter data to stream.");
+    MICROSTRAIN_ERROR(node_, "  Error: %s", e.what());
+    return false;
+  }
   return true;
 }
 
@@ -1092,6 +1263,72 @@ bool MicrostrainConfig::configureSensor2vehicle(RosNodeType* node)
     }
   }
   return true;
+}
+
+void MicrostrainConfig::getDataRateParam(RosNodeType* node, const std::string& key, int& data_rate, int default_data_rate)
+{
+  // Get the data rate, and if it is set to the default value, set the rate to the default rate
+  get_param<int>(node, key, data_rate, DEFAULT_DATA_RATE);
+  if (data_rate == DEFAULT_DATA_RATE)
+    data_rate = default_data_rate;
+}
+
+void MicrostrainConfig::getSupportedMipChannels(mscl::MipTypes::DataClass data_class, const mscl::MipTypes::MipChannelFields& channel_fields, int data_rate, mscl::MipChannels* channels_to_stream)
+{
+  // If the list is null, return early to avoid a segfault
+  if (channels_to_stream == nullptr)
+  {
+    MICROSTRAIN_ERROR(node_, "Unable to configure channels for data class 0x%x because channels_to_stream was null. This is a bug and should be reported on Github", data_class);
+    return;
+  }
+
+  // If the data rate is 0, just return early
+  if (data_rate == 0)
+  {
+    std::stringstream descriptors_ss;
+    for (const auto& channel : channel_fields)
+    {
+      descriptors_ss << " 0x" << std::hex << static_cast<uint16_t>(channel);
+    }
+    MICROSTRAIN_DEBUG(node_, "Disabling MIP fields with descriptors%s because the rate was set to 0", descriptors_ss.str().c_str());
+    return;
+  }
+
+  // Only add channels that the device supports and log a warning if the device does not support the channel
+  const auto& data_rate_hz = mscl::SampleRate::Hertz(data_rate);
+  const auto& supported_channels = inertial_device_->features().supportedChannelFields(data_class);
+  for (const auto channel : channel_fields)
+  {
+    if (std::find(supported_channels.begin(), supported_channels.end(), channel) != supported_channels.end())
+    {
+      // If the channel has already been added, only add this if the requested rate is higher, otherwise just update the rate
+      auto existing_channel = std::find_if(channels_to_stream->begin(), channels_to_stream->end(), [channel](const mscl::MipChannel& m)
+      {
+        return m.channelField() == channel;
+      });
+      if (existing_channel != channels_to_stream->end())
+      {
+        if (existing_channel->sampleRate() < data_rate_hz)
+        {
+          MICROSTRAIN_DEBUG(node_, "Updating MIP field with descriptor 0x%x to stream at %d hz", static_cast<uint16_t>(channel), data_rate);
+          *existing_channel = mscl::MipChannel(channel, data_rate_hz);
+        }
+        else
+        {
+          MICROSTRAIN_DEBUG(node_, "MIP field with descriptor 0x%x is already streaming faster than %d hz, so we are not updating it", static_cast<uint16_t>(channel), data_rate);
+        }
+      }
+      else
+      {
+        MICROSTRAIN_DEBUG(node_, "Streaming MIP field with descriptor 0x%x at a rate of %d hz", static_cast<uint16_t>(channel), data_rate);
+        channels_to_stream->push_back(mscl::MipChannel(channel, data_rate_hz));
+      }
+    }
+    else
+    {
+      MICROSTRAIN_WARN(node_, "Attempted to stream MIP field with descriptor 0x%x at a rate of %d hz, but the device reported that it does not support it", static_cast<uint16_t>(channel), data_rate);
+    }
+  }
 }
 
 void MicrostrainConfig::configureFilterAidingMeasurement(const mscl::InertialTypes::AidingMeasurementSource aiding_measurement, const bool enable)

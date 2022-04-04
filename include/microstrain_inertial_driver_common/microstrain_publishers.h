@@ -48,30 +48,30 @@ public:
   void publishDeviceStatus();
 
   // IMU Publishers
-  ImuPubType imu_pub_;
-  MagneticFieldPubType mag_pub_;
-  GPSCorrelationTimestampStampedPubType gps_corr_pub_;
+  ImuPubType imu_pub_ = nullptr;
+  MagneticFieldPubType mag_pub_ = nullptr;
+  GPSCorrelationTimestampStampedPubType gps_corr_pub_ = nullptr;
 
   // GNSS Publishers
-  NavSatFixPubType gnss_pub_[NUM_GNSS];
-  OdometryPubType gnss_odom_pub_[NUM_GNSS];
-  TimeReferencePubType gnss_time_pub_[NUM_GNSS];
-  GNSSAidingStatusPubType gnss_aiding_status_pub_[NUM_GNSS];
-  GNSSFixInfoPubType gnss_fix_info_pub_[NUM_GNSS];
+  NavSatFixPubType gnss_pub_[NUM_GNSS] = { nullptr };
+  OdometryPubType gnss_odom_pub_[NUM_GNSS] = { nullptr };
+  TimeReferencePubType gnss_time_pub_[NUM_GNSS] = { nullptr };
+  GNSSAidingStatusPubType gnss_aiding_status_pub_[NUM_GNSS] = { nullptr };
+  GNSSFixInfoPubType gnss_fix_info_pub_[NUM_GNSS] = { nullptr };
 
   // RTK Data publisher
-  RTKStatusPubType rtk_pub_;
-  RTKStatusPubTypeV1 rtk_pub_v1_;
+  RTKStatusPubType rtk_pub_ = nullptr;
+  RTKStatusPubTypeV1 rtk_pub_v1_ = nullptr;
 
   // Filter Publishers
-  FilterStatusPubType filter_status_pub_;
-  FilterHeadingPubType filter_heading_pub_;
-  FilterHeadingStatePubType filter_heading_state_pub_;
-  FilterAidingMeasurementSummaryPubType filter_aiding_measurement_summary_pub_;
-  OdometryPubType filter_pub_;
-  ImuPubType filtered_imu_pub_;
-  OdometryPubType filter_relative_pos_pub_;
-  GNSSDualAntennaStatusPubType gnss_dual_antenna_status_pub_;
+  FilterStatusPubType filter_status_pub_ = nullptr;
+  FilterHeadingPubType filter_heading_pub_ = nullptr;
+  FilterHeadingStatePubType filter_heading_state_pub_ = nullptr;
+  FilterAidingMeasurementSummaryPubType filter_aiding_measurement_summary_pub_ = nullptr;
+  OdometryPubType filter_pub_ = nullptr;
+  ImuPubType filtered_imu_pub_ = nullptr;
+  OdometryPubType filter_relative_pos_pub_ = nullptr;
+  GNSSDualAntennaStatusPubType gnss_dual_antenna_status_pub_ = nullptr;
 
   // Device Status Publisher
   StatusPubType device_status_pub_;
@@ -80,7 +80,7 @@ public:
   NMEASentencePubType nmea_sentence_pub_;
 
   // Transform Broadcaster
-  TransformBroadcasterType transform_broadcaster_;
+  TransformBroadcasterType transform_broadcaster_ = nullptr;
 
   // IMU Messages
   ImuMsg imu_msg_;

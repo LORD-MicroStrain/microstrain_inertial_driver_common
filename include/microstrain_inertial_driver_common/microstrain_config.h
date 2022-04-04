@@ -30,6 +30,8 @@ const std::vector<double> DEFAULT_MATRIX = { 9.0, 0.0 };
 const std::vector<double> DEFAULT_VECTOR = { 3.0, 0.0 };
 const std::vector<double> DEFAULT_QUATERNION = { 4.0, 0.0 };
 
+static constexpr int DEFAULT_DATA_RATE = -1;  // If a data rate is set to this, the data rate will be set to the default data rate
+
 /**
  * Contains configuration information for the node, configures the device on startup
  *  This class holds the pointer to the MSCL device, so any communication to the device should be done through this class
@@ -91,11 +93,25 @@ public:
   bool configureIMU(RosNodeType* node);
 
   /**
+   * \brief Configures IMU data rates on the inertial device. This is where the data being published will actually be disabled or setup to stream
+   * \return true if the data rates were configured and false if an error occured
+   */
+  bool configureIMUDataRates();
+
+  /**
    * \brief Configures GNSS settings on the inertial device
    * \param node  The ROS node that contains configuration information. For ROS1 this is the private node handle ("~")
+   * \param gnss_id  The ID of the GNSS receiver that we want to configure
    * \return true if configuration was successful and false if configuration failed
    */
   bool configureGNSS(RosNodeType* node, uint8_t gnss_id);
+
+  /**
+   * \brief Configures GNSS1 data rates on the inertial device. This is where the data being published will actually be disabled or setup to stream
+   * \param gnss_id  The ID of the GNSS receiver that we want to configure
+   * \return true if the data rates were configured and false if an error occured
+   */
+  bool configureGNSSDataRates(uint8_t gnss_id);
 
   /**
    * \brief Configures RTK settings on the inertial device
@@ -105,11 +121,23 @@ public:
   bool configureRTK(RosNodeType* node);
 
   /**
+   * \brief Configures RTK data rates on the inertial device. This is where the data being published will actually be disabled or setup to stream
+   * \return true if the data rates were configured and false if an error occured
+   */
+  bool configureRTKDataRates();
+
+  /**
    * \brief Configures Filter settings on the inertial device
    * \param node  The ROS node that contains configuration information. For ROS1 this is the private node handle ("~")
    * \return true if configuration was successful and false if configuration failed
    */
   bool configureFilter(RosNodeType* node);
+
+  /**
+   * \brief Configures Filter data rates on the inertial device. This is where the data being published will actually be disabled or setup to stream
+   * \return true if the data rates were configured and false if an error occured
+   */
+  bool configureFilterDataRates();
 
   /**
    * \brief Configures Sensor 2 Vehicle settings on the inertial device
@@ -155,6 +183,7 @@ public:
   bool filter_enable_wheeled_vehicle_constraint_;
   bool filter_enable_vertical_gyro_constraint_;
   bool filter_enable_gnss_antenna_cal_;
+  bool filter_use_compensated_accel_;
 
   // Frame ids
   std::string imu_frame_id_;
@@ -173,10 +202,10 @@ public:
   bool publish_imu_;
   bool publish_gps_corr_;
   bool publish_gnss_[NUM_GNSS];
-  bool publish_gnss_aiding_status_[NUM_GNSS];
   bool publish_gnss_dual_antenna_status_;
   bool publish_filter_;
   bool publish_filter_relative_pos_;
+  bool publish_filter_aiding_status_;
   bool publish_filter_aiding_measurement_summary_;
   bool publish_rtk_;
   bool publish_nmea_;
@@ -198,6 +227,31 @@ public:
   int imu_data_rate_;
   int gnss_data_rate_[NUM_GNSS];
   int filter_data_rate_;
+
+  // IMU update rates
+  int imu_raw_data_rate_;
+  int imu_mag_data_rate_;
+  int imu_gps_corr_data_rate_;
+
+  // GNSS update rates
+  int gnss_nav_sat_fix_data_rate_[NUM_GNSS] = { DEFAULT_DATA_RATE };
+  int gnss_odom_data_rate_[NUM_GNSS] = { DEFAULT_DATA_RATE };
+  int gnss_time_reference_data_rate_[NUM_GNSS] = { DEFAULT_DATA_RATE };
+  int gnss_fix_info_data_rate_[NUM_GNSS] = { DEFAULT_DATA_RATE };
+
+  // RTK update rates
+  int rtk_status_data_rate_ = DEFAULT_DATA_RATE;  // Note that this will be used for both the RTKv1 and RTKv2 status messages
+
+  // Filter update rates
+  int filter_status_data_rate_ = DEFAULT_DATA_RATE;
+  int filter_heading_data_rate_ = DEFAULT_DATA_RATE;
+  int filter_heading_state_data_rate_ = DEFAULT_DATA_RATE;
+  int filter_odom_data_rate_ = DEFAULT_DATA_RATE;
+  int filter_imu_data_rate_ = DEFAULT_DATA_RATE;
+  int filter_relative_odom_data_rate_ = DEFAULT_DATA_RATE;  // Note that this will be used for both the relative odometry message and the transform published on the /tf topic
+  int filter_aiding_status_data_rate_ = DEFAULT_DATA_RATE;
+  int filter_gnss_dual_antenna_status_data_rate_ = DEFAULT_DATA_RATE;
+  int filter_aiding_measurement_summary_data_rate_ = DEFAULT_DATA_RATE;
 
   // Gnss antenna offsets
   std::vector<double> gnss_antenna_offset_[NUM_GNSS];
@@ -228,12 +282,31 @@ public:
 
 private:
   /**
+   * \brief Gets the raw value of a data rate parameter, or populates the parameter with the default data rate if it is set to the default value
+   * \param node  The ROS node that contains configuration information. For ROS1 this is the private node handle ("~")
+   * \param key  The key to look for in the config for the data rate param
+   * \param data_rate  The data rate value to populate with the config parameter
+   * \param default_data_rate  The value to set data_rate to if it is set to -1
+   */
+  static void getDataRateParam(RosNodeType* node, const std::string& key, int& data_rate, int default_data_rate);
+
+  /**
+   * \brief Convenience function to populate a list of channels and their requested data rates based on whether the device supports them
+   * \param data_class  The data class that the channels in channel_fields belong to
+   * \param channel_fields  The channel fields to set to stream at the requested data_rate
+   * \param data_rate  The rate in hertz to stream the MIP data at
+   * \param channels_to_stream  List of channels and their associated rate that will be populated with the proper channels and data rates
+   */
+  void getSupportedMipChannels(mscl::MipTypes::DataClass data_class, const mscl::MipTypes::MipChannelFields& channel_fields, int data_rate, mscl::MipChannels* channels_to_stream);
+  
+  /**
    * \brief Enables or disables a filter aiding measurement
    * \param aiding_measurement  The aiding measurement to enable or disable
    * \param enable Whether or not to enable the aiding measurement
    */
   void configureFilterAidingMeasurement(const mscl::InertialTypes::AidingMeasurementSource aiding_measurement, const bool enable);
 
+  // Handle to the ROS node
   RosNodeType* node_;
 };  // MicrostrainConfig class
 
