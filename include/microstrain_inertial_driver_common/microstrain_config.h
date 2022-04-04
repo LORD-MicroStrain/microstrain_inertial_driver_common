@@ -30,6 +30,8 @@ const std::vector<double> DEFAULT_MATRIX = { 9.0, 0.0 };
 const std::vector<double> DEFAULT_VECTOR = { 3.0, 0.0 };
 const std::vector<double> DEFAULT_QUATERNION = { 4.0, 0.0 };
 
+static constexpr int DEFAULT_DATA_RATE = -1;  // If a data rate is set to this, the data rate will be set to the default data rate
+
 /**
  * Contains configuration information for the node, configures the device on startup
  *  This class holds the pointer to the MSCL device, so any communication to the device should be done through this class
@@ -232,24 +234,24 @@ public:
   int imu_gps_corr_data_rate_;
 
   // GNSS update rates
-  int gnss_nav_sat_fix_data_rate_[NUM_GNSS];
-  int gnss_odom_data_rate_[NUM_GNSS];
-  int gnss_time_reference_data_rate_[NUM_GNSS];
-  int gnss_fix_info_data_rate_[NUM_GNSS];
+  int gnss_nav_sat_fix_data_rate_[NUM_GNSS] = { DEFAULT_DATA_RATE };
+  int gnss_odom_data_rate_[NUM_GNSS] = { DEFAULT_DATA_RATE };
+  int gnss_time_reference_data_rate_[NUM_GNSS] = { DEFAULT_DATA_RATE };
+  int gnss_fix_info_data_rate_[NUM_GNSS] = { DEFAULT_DATA_RATE };
 
   // RTK update rates
-  int rtk_status_data_rate_;  // Note that this will be used for both the RTKv1 and RTKv2 status messages
+  int rtk_status_data_rate_ = DEFAULT_DATA_RATE;  // Note that this will be used for both the RTKv1 and RTKv2 status messages
 
   // Filter update rates
-  int filter_status_data_rate_;
-  int filter_heading_data_rate_;
-  int filter_heading_state_data_rate_;
-  int filter_odom_data_rate_;
-  int filter_imu_data_rate_;
-  int filter_relative_odom_data_rate_;  // Note that this will be used for both the relative odometry message and the transform published on the /tf topic
-  int filter_aiding_status_data_rate_;
-  int filter_gnss_dual_antenna_status_data_rate_;
-  int filter_aiding_measurement_summary_data_rate_;
+  int filter_status_data_rate_ = DEFAULT_DATA_RATE;
+  int filter_heading_data_rate_ = DEFAULT_DATA_RATE;
+  int filter_heading_state_data_rate_ = DEFAULT_DATA_RATE;
+  int filter_odom_data_rate_ = DEFAULT_DATA_RATE;
+  int filter_imu_data_rate_ = DEFAULT_DATA_RATE;
+  int filter_relative_odom_data_rate_ = DEFAULT_DATA_RATE;  // Note that this will be used for both the relative odometry message and the transform published on the /tf topic
+  int filter_aiding_status_data_rate_ = DEFAULT_DATA_RATE;
+  int filter_gnss_dual_antenna_status_data_rate_ = DEFAULT_DATA_RATE;
+  int filter_aiding_measurement_summary_data_rate_ = DEFAULT_DATA_RATE;
 
   // Gnss antenna offsets
   std::vector<double> gnss_antenna_offset_[NUM_GNSS];
