@@ -20,8 +20,6 @@
 #include <memory>
 #include "microstrain_inertial_driver_common/microstrain_config.h"
 
-static constexpr int DEFAULT_DATA_RATE = -1;  // If a data rate is set to this, the data rate will be set to the default data rate
-
 namespace microstrain
 {
 MicrostrainConfig::MicrostrainConfig(RosNodeType* node) : node_(node)
