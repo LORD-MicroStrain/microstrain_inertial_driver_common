@@ -91,7 +91,7 @@ public:
   bool configureIMU(RosNodeType* node);
 
   /**
-   * \brief Configures IMU data rates on the inertial device. This is where the data being published will actually be setup to stream or disabled
+   * \brief Configures IMU data rates on the inertial device. This is where the data being published will actually be disabled or setup to stream
    * \return true if the data rates were configured and false if an error occured
    */
   bool configureIMUDataRates();
@@ -105,7 +105,7 @@ public:
   bool configureGNSS(RosNodeType* node, uint8_t gnss_id);
 
   /**
-   * \brief Configures GNSS1 data rates on the inertial device. This is where the data being published will actually be setup to stream or disabled
+   * \brief Configures GNSS1 data rates on the inertial device. This is where the data being published will actually be disabled or setup to stream
    * \param gnss_id  The ID of the GNSS receiver that we want to configure
    * \return true if the data rates were configured and false if an error occured
    */
@@ -119,7 +119,7 @@ public:
   bool configureRTK(RosNodeType* node);
 
   /**
-   * \brief Configures RTK data rates on the inertial device. This is where the data being published will actually be setup to stream or disabled
+   * \brief Configures RTK data rates on the inertial device. This is where the data being published will actually be disabled or setup to stream
    * \return true if the data rates were configured and false if an error occured
    */
   bool configureRTKDataRates();
@@ -132,7 +132,7 @@ public:
   bool configureFilter(RosNodeType* node);
 
   /**
-   * \brief Configures Filter data rates on the inertial device. This is where the data being published will actually be setup to stream or disabled
+   * \brief Configures Filter data rates on the inertial device. This is where the data being published will actually be disabled or setup to stream
    * \return true if the data rates were configured and false if an error occured
    */
   bool configureFilterDataRates();

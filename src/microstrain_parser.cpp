@@ -321,17 +321,14 @@ void MicrostrainParser::parseIMUPacket(const mscl::MipDataPacket& packet)
   }
 
   // Publish
-  if (has_accel || has_gyro || has_quat)
-    if (publishers_->imu_pub_ != nullptr)
-      publishers_->imu_pub_->publish(publishers_->imu_msg_);
+  if (publishers_->imu_pub_ != nullptr && (has_accel || has_gyro || has_quat))
+    publishers_->imu_pub_->publish(publishers_->imu_msg_);
 
-  if (has_mag)
-    if (publishers_->mag_pub_ != nullptr)
-      publishers_->mag_pub_->publish(publishers_->mag_msg_);
+  if (publishers_->mag_pub_ != nullptr && has_mag)
+    publishers_->mag_pub_->publish(publishers_->mag_msg_);
 
-  if (publishers_->gps_corr_pub_ != nullptr)
-    if (publishers_->gps_corr_pub_ != nullptr)
-      publishers_->gps_corr_pub_->publish(publishers_->gps_corr_msg_);
+  if (publishers_->gps_corr_pub_ != nullptr && has_gps_corr)
+    publishers_->gps_corr_pub_->publish(publishers_->gps_corr_msg_);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -979,48 +976,38 @@ void MicrostrainParser::parseFilterPacket(const mscl::MipDataPacket& packet)
             publishers_->filtered_imu_msg_.angular_velocity_covariance.begin());
 
   // Publish
-  if (filter_status_received)
-    if (publishers_->filter_status_pub_ != nullptr)
-      publishers_->filter_status_pub_->publish(publishers_->filter_status_msg_);
+  if (publishers_->filter_status_pub_ != nullptr && filter_status_received)
+    publishers_->filter_status_pub_->publish(publishers_->filter_status_msg_);
   
-  if (filter_heading_received)
-    if (publishers_->filter_heading_pub_ != nullptr)
-      publishers_->filter_heading_pub_->publish(publishers_->filter_heading_msg_);
+  if (publishers_->filter_heading_pub_ != nullptr && filter_heading_received)
+    publishers_->filter_heading_pub_->publish(publishers_->filter_heading_msg_);
 
-  if (filter_heading_state_received)
-    if (publishers_->filter_heading_state_pub_ != nullptr)
-      publishers_->filter_heading_state_pub_->publish(publishers_->filter_heading_state_msg_);
+  if (publishers_->filter_heading_state_pub_ != nullptr && filter_heading_state_received)
+    publishers_->filter_heading_state_pub_->publish(publishers_->filter_heading_state_msg_);
   
-  if (filter_odom_received)
-    if (publishers_->filter_pub_ != nullptr)
-      publishers_->filter_pub_->publish(publishers_->filter_msg_);
+  if (publishers_->filter_pub_ != nullptr && filter_odom_received)
+    publishers_->filter_pub_->publish(publishers_->filter_msg_);
 
-  if (filter_imu_received)
-    if (publishers_->filtered_imu_pub_ != nullptr)
-      publishers_->filtered_imu_pub_->publish(publishers_->filtered_imu_msg_);
+  if (publishers_->filtered_imu_pub_ != nullptr && filter_imu_received)
+    publishers_->filtered_imu_pub_->publish(publishers_->filtered_imu_msg_);
   
-  if (filter_relative_odom_received)
-    if (publishers_->filter_relative_pos_pub_ != nullptr)
-      publishers_->filter_relative_pos_pub_->publish(publishers_->filter_relative_pos_msg_);
+  if (publishers_->filter_relative_pos_pub_ != nullptr && filter_relative_odom_received)
+    publishers_->filter_relative_pos_pub_->publish(publishers_->filter_relative_pos_msg_);
   
-  if (relative_transform_received)
-    if (publishers_->transform_broadcaster_ != nullptr)
-      publishers_->transform_broadcaster_->sendTransform(publishers_->filter_transform_msg_);
+  if (publishers_->transform_broadcaster_ != nullptr && relative_transform_received)
+    publishers_->transform_broadcaster_->sendTransform(publishers_->filter_transform_msg_);
 
   for (int i = 0; i < NUM_GNSS; i++)
   {
-    if (gnss_aiding_status_received[i])
-      if (publishers_->gnss_aiding_status_pub_[i] != nullptr)
-        publishers_->gnss_aiding_status_pub_[i]->publish(publishers_->gnss_aiding_status_msg_[i]);
+    if (publishers_->gnss_aiding_status_pub_[i] != nullptr && gnss_aiding_status_received[i])
+      publishers_->gnss_aiding_status_pub_[i]->publish(publishers_->gnss_aiding_status_msg_[i]);
   }
 
-  if (gnss_dual_antenna_status_received)
-    if (publishers_->gnss_dual_antenna_status_pub_ != nullptr)
-      publishers_->gnss_dual_antenna_status_pub_->publish(publishers_->gnss_dual_antenna_status_msg_);
+  if (publishers_->gnss_dual_antenna_status_pub_ != nullptr && gnss_dual_antenna_status_received)
+    publishers_->gnss_dual_antenna_status_pub_->publish(publishers_->gnss_dual_antenna_status_msg_);
 
-  if (filter_aiding_measurement_summary_received)
-    if (publishers_->filter_aiding_measurement_summary_pub_ != nullptr)
-      publishers_->filter_aiding_measurement_summary_pub_->publish(publishers_->filter_aiding_measurement_summary_msg_);
+  if (publishers_->filter_aiding_measurement_summary_pub_ != nullptr && filter_aiding_measurement_summary_received)
+    publishers_->filter_aiding_measurement_summary_pub_->publish(publishers_->filter_aiding_measurement_summary_msg_);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1184,22 +1171,17 @@ void MicrostrainParser::parseGNSSPacket(const mscl::MipDataPacket& packet, int g
   }
 
   // Publish
-  if (has_nav_sat_fix)
-    if (publishers_->gnss_pub_[gnss_id] != nullptr)
-      publishers_->gnss_pub_[gnss_id]->publish(publishers_->gnss_msg_[gnss_id]);
+  if (publishers_->gnss_pub_[gnss_id] != nullptr && has_nav_sat_fix)
+    publishers_->gnss_pub_[gnss_id]->publish(publishers_->gnss_msg_[gnss_id]);
   
-  if (has_odom)
-    if (publishers_->gnss_odom_pub_[gnss_id] != nullptr)
-      publishers_->gnss_odom_pub_[gnss_id]->publish(publishers_->gnss_odom_msg_[gnss_id]);
+  if (publishers_->gnss_odom_pub_[gnss_id] != nullptr && has_odom)
+    publishers_->gnss_odom_pub_[gnss_id]->publish(publishers_->gnss_odom_msg_[gnss_id]);
 
-  if (time_valid)
-    if (publishers_->gnss_time_pub_[gnss_id] != nullptr)
-      publishers_->gnss_time_pub_[gnss_id]->publish(publishers_->gnss_time_msg_[gnss_id]);
+  if (publishers_->gnss_time_pub_[gnss_id] != nullptr && time_valid)
+    publishers_->gnss_time_pub_[gnss_id]->publish(publishers_->gnss_time_msg_[gnss_id]);
     
-  if (has_fix_info)
-    if (publishers_->gnss_fix_info_pub_[gnss_id] != nullptr)
-      publishers_->gnss_fix_info_pub_[gnss_id]->publish(publishers_->gnss_fix_info_msg_[gnss_id]);
-
+  if (publishers_->gnss_fix_info_pub_[gnss_id] != nullptr && has_fix_info)
+    publishers_->gnss_fix_info_pub_[gnss_id]->publish(publishers_->gnss_fix_info_msg_[gnss_id]);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////

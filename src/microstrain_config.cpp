@@ -1039,7 +1039,7 @@ bool MicrostrainConfig::configureFilter(RosNodeType* node)
   publish_filter_aiding_status_ = inertial_device_->features().supportsCommand(mscl::MipTypes::Command::CMD_EF_AIDING_MEASUREMENT_ENABLE);
   if (!publish_filter_aiding_status_)
   {
-    MICROSTRAIN_INFO(node_, "Note: Device not support publishing GNSS Aiding measurements.");
+    MICROSTRAIN_INFO(node_, "Note: The device does not support publishing GNSS Aiding measurements.");
   }
   return true;
 }
