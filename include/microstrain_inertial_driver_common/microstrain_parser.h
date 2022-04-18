@@ -19,6 +19,9 @@
 namespace microstrain
 {
 
+static constexpr auto NMEA_START_SEQUENCE = "$";
+static constexpr auto NMEA_STOP_SEQUENCE = "\r\n";
+
 /**
  * Contains parsing code that will parse messages read from the device and publish them
  */
