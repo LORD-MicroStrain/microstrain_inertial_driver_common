@@ -515,8 +515,6 @@ void MicrostrainParser::parseFilterPacket(const mscl::MipDataPacket& packet)
       {
         mscl::Vector quaternion = point.as_Vector();
         curr_filter_quaternion_ = quaternion;
-        MICROSTRAIN_INFO(node_, "X:%f Y:%f Z:%f W:%f", curr_filter_quaternion_.as_floatAt(1), curr_filter_quaternion_.as_floatAt(2),
-          curr_filter_quaternion_.as_floatAt(3), curr_filter_quaternion_.as_floatAt(0) );
 
         if (config_->use_enu_frame_)
         {
@@ -948,37 +946,25 @@ void MicrostrainParser::parseFilterPacket(const mscl::MipDataPacket& packet)
             publishers_->filtered_imu_msg_.angular_velocity_covariance.begin());
 
   // Optionally transform the velocity into the vehicle frame
-  if (true)  // TODO: Actually use some config value here
+  if (config_->filter_vel_in_vehicle_frame_)
   {
-    const tf2::Vector3 tf_curr_vel(
-      publishers_->filter_msg_.twist.twist.linear.x,
-      publishers_->filter_msg_.twist.twist.linear.y,
-      publishers_->filter_msg_.twist.twist.linear.z
-    );
+    tf2::Vector3 tf_curr_vel;
+    if (config_->use_enu_frame_)
+      tf_curr_vel = tf2::Vector3(curr_filter_vel_east_, curr_filter_vel_north_, -curr_filter_vel_down_);
+    else
+      tf_curr_vel = tf2::Vector3(curr_filter_vel_north_, curr_filter_vel_east_, curr_filter_vel_down_);
     const tf2::Quaternion quaternion(
       curr_filter_quaternion_.as_floatAt(1),
       curr_filter_quaternion_.as_floatAt(2),
       curr_filter_quaternion_.as_floatAt(3),
       curr_filter_quaternion_.as_floatAt(0)
     );
-    const tf2::Matrix3x3 tf_heading_transformation(quaternion);
-    const tf2::Vector3 tf_curr_rotated_vel = tf_curr_vel * tf_heading_transformation;
-    const tf2::Vector3 switchedVector = tf_heading_transformation * tf_curr_vel;
+    const tf2::Vector3 tf_rotated_vel = tf2::quatRotate(quaternion, tf_curr_vel);
 
-    MICROSTRAIN_INFO(node_, "Vec x Mat = X:%f Y:%f Z:%f", tf_curr_rotated_vel.getX(), tf_curr_rotated_vel.getY(),
-          tf_curr_rotated_vel.getZ() );
-    MICROSTRAIN_INFO(node_, "Mat x Vec = X:%f Y:%f Z:%f", switchedVector.getX(), switchedVector.getY(),
-          switchedVector.getZ() );
-    MICROSTRAIN_INFO(node_, "X:%f Y:%f Z:%f W:%f\tIn function", curr_filter_quaternion_.as_floatAt(1), curr_filter_quaternion_.as_floatAt(2),
-      curr_filter_quaternion_.as_floatAt(3), curr_filter_quaternion_.as_floatAt(0) );
-    MICROSTRAIN_INFO(node_, "X:%f Y:%f Z:%f W:%f\tQUATERNION", quaternion.getX(), quaternion.getY(),
-      quaternion.getZ(), quaternion.getW() );
-    MICROSTRAIN_INFO(node_, "X:%f Y:%f Z:%f\tVelocity", tf_curr_vel.getX(), tf_curr_vel.getY(),
-      tf_curr_vel.getZ() );
-
-    publishers_->filter_msg_.twist.twist.linear.x = tf_curr_rotated_vel.x();
-    publishers_->filter_msg_.twist.twist.linear.y = tf_curr_rotated_vel.y();
-    publishers_->filter_msg_.twist.twist.linear.z = tf_curr_rotated_vel.z();
+    // Set the rotated velocity to the filter message
+    publishers_->filter_msg_.twist.twist.linear.x = tf_rotated_vel.getX();
+    publishers_->filter_msg_.twist.twist.linear.y = tf_rotated_vel.getY();
+    publishers_->filter_msg_.twist.twist.linear.z = tf_rotated_vel.getZ();
   }
 
   // Publish

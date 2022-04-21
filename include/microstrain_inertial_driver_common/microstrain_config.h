@@ -143,6 +143,9 @@ public:
   // Whether to enable the hardware odometer through the GPIO pins
   bool enable_hardware_odometer_;
 
+  // Whether to publish the velocity in the vehicle frame
+  bool filter_vel_in_vehicle_frame_;
+
   // FILTER
   double gps_leap_seconds_;
   bool filter_enable_gnss_heading_aiding_;
