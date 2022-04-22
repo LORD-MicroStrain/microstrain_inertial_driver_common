@@ -14,6 +14,7 @@
 //
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 #include <algorithm>
+#include <string>
 #include "microstrain_inertial_driver_common/microstrain_parser.h"
 
 namespace microstrain
@@ -534,7 +535,7 @@ void MicrostrainParser::parseFilterPacket(const mscl::MipDataPacket& packet)
 
         if (config_->use_enu_frame_)
         {
-          tf2::Quaternion q_body2enu, q_ned2enu, q_vehiclebody2sensorbody, 
+          tf2::Quaternion q_body2enu, q_ned2enu, q_vehiclebody2sensorbody,
                           qbody2ned(quaternion.as_floatAt(1), quaternion.as_floatAt(2),
                                     quaternion.as_floatAt(3), quaternion.as_floatAt(0));
 
@@ -578,7 +579,7 @@ void MicrostrainParser::parseFilterPacket(const mscl::MipDataPacket& packet)
         {
           curr_filter_angular_rate_y_ = point.as_float();
 
-          if(config_->use_enu_frame_)
+          if (config_->use_enu_frame_)
             curr_filter_angular_rate_y_ *= -1.0;
 
           publishers_->filter_msg_.twist.twist.angular.y = curr_filter_angular_rate_y_;
@@ -589,7 +590,7 @@ void MicrostrainParser::parseFilterPacket(const mscl::MipDataPacket& packet)
         {
           curr_filter_angular_rate_z_ = point.as_float();
 
-          if(config_->use_enu_frame_)
+          if (config_->use_enu_frame_)
             curr_filter_angular_rate_z_ *= -1.0;
 
           publishers_->filter_msg_.twist.twist.angular.z = curr_filter_angular_rate_z_;
@@ -613,7 +614,7 @@ void MicrostrainParser::parseFilterPacket(const mscl::MipDataPacket& packet)
         {
           float accel_y = point.as_float();
 
-          if(config_->use_enu_frame_)
+          if (config_->use_enu_frame_)
             accel_y *= -1.0;
 
           publishers_->filtered_imu_msg_.linear_acceleration.y = accel_y;
@@ -622,7 +623,7 @@ void MicrostrainParser::parseFilterPacket(const mscl::MipDataPacket& packet)
         {
           float accel_z = point.as_float();
 
-          if(config_->use_enu_frame_)
+          if (config_->use_enu_frame_)
             accel_z *= -1.0;
 
           publishers_->filtered_imu_msg_.linear_acceleration.z = accel_z;

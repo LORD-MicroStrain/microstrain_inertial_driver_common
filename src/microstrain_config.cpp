@@ -272,7 +272,6 @@ bool MicrostrainConfig::connectDevice(RosNodeType* node)
       aux_connection_ = std::unique_ptr<mscl::Connection>(new mscl::Connection(mscl::Connection::Serial(realpath(aux_port.c_str(), 0), (uint32_t)baudrate)));
       aux_connection_->rawByteMode(true);
     }
-
   }
   catch (mscl::Error_Connection& e)
   {
@@ -1009,7 +1008,7 @@ bool MicrostrainConfig::configureFilter(RosNodeType* node)
     MICROSTRAIN_INFO(node_, "Note: The device does not support the next-gen filter initialization command.");
   }
 
-  // Configure the hardware odometer settings  
+  // Configure the hardware odometer settings
   if (inertial_device_->features().supportsCommand(mscl::MipTypes::Command::CMD_ODOMETER_SETTINGS))
   {
     mscl::OdometerConfiguration odom_config;
