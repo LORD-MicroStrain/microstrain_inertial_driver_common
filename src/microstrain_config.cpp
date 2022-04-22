@@ -93,6 +93,9 @@ bool MicrostrainConfig::configure(RosNodeType* node)
   // HARDWARE ODOM
   get_param<bool>(node, "enable_hardware_odometer", enable_hardware_odometer_, false);
 
+  // ROS TF control
+  get_param<bool>(node, "filter_vel_in_vehicle_frame", filter_vel_in_vehicle_frame_, false);
+
   // RTK/GQ7 specific
   get_param<bool>(node, "rtk_dongle_enable", publish_rtk_, false);
   get_param<bool>(node, "subscribe_rtcm", subscribe_rtcm_, false);

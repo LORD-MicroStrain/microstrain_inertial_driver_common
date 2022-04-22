@@ -975,6 +975,28 @@ void MicrostrainParser::parseFilterPacket(const mscl::MipDataPacket& packet)
   std::copy(config_->imu_angular_cov_.begin(), config_->imu_angular_cov_.end(),
             publishers_->filtered_imu_msg_.angular_velocity_covariance.begin());
 
+  // Optionally transform the velocity into the vehicle frame
+  if (config_->filter_vel_in_vehicle_frame_)
+  {
+    const tf2::Vector3 tf_curr_vel = tf2::Vector3(curr_filter_vel_north_, curr_filter_vel_east_, curr_filter_vel_down_);
+    const tf2::Quaternion quaternion(
+      curr_filter_quaternion_.as_floatAt(1),
+      curr_filter_quaternion_.as_floatAt(2),
+      curr_filter_quaternion_.as_floatAt(3),
+      curr_filter_quaternion_.as_floatAt(0)
+    );
+    const tf2::Vector3 tf_rotated_vel = tf2::quatRotate(quaternion.inverse(), tf_curr_vel);
+
+    // Set the rotated velocity to the filter messages
+    publishers_->filter_msg_.twist.twist.linear.x = tf_rotated_vel.getX();
+    publishers_->filter_msg_.twist.twist.linear.y = tf_rotated_vel.getY();
+    publishers_->filter_msg_.twist.twist.linear.z = tf_rotated_vel.getZ();
+
+    publishers_->filter_relative_pos_msg_.twist.twist.linear.x = tf_rotated_vel.getX();
+    publishers_->filter_relative_pos_msg_.twist.twist.linear.y = tf_rotated_vel.getY();
+    publishers_->filter_relative_pos_msg_.twist.twist.linear.z = tf_rotated_vel.getZ();
+  }
+
   // Publish
   if (publishers_->filter_status_pub_ != nullptr && filter_status_received)
     publishers_->filter_status_pub_->publish(publishers_->filter_status_msg_);
