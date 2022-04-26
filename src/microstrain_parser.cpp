@@ -23,7 +23,7 @@ namespace microstrain
 constexpr auto USTRAIN_G =
     9.80665;  // from section 5.1.1 in
               // https://www.microstrain.com/sites/default/files/3dm-gx5-25_dcp_manual_8500-0065_reference_document.pdf
-
+    
 MicrostrainParser::MicrostrainParser(RosNodeType* node, MicrostrainConfig* config, MicrostrainPublishers* publishers)
   : node_(node), config_(config), publishers_(publishers)
 {
@@ -503,6 +503,11 @@ void MicrostrainParser::parseFilterPacket(const mscl::MipDataPacket& packet)
         else if (point.qualifier() == mscl::MipTypes::CH_PITCH)
         {
           curr_filter_pitch_ = point.as_float();
+            
+          if (config_->use_enu_frame_)
+          {
+             curr_filter_pitch_ *= -1.0;
+          }
         }
         else if (point.qualifier() == mscl::MipTypes::CH_YAW)
         {
@@ -510,12 +515,16 @@ void MicrostrainParser::parseFilterPacket(const mscl::MipDataPacket& packet)
 
           if (config_->use_enu_frame_)
           {
+            curr_filter_yaw_ = 90.0 - curr_filter_yaw_;
+              
+            if(curr_filter_yaw_ > M_PI)
+                curr_filter_yaw_ -= 2.0*M_PI;
+            else if(curr_filter_yaw_ < -M_PI)
+                curr_filter_yaw_ += 2.0*M_PI;       
           }
-          else
-          {
-            publishers_->filter_heading_msg_.heading_deg = curr_filter_yaw_ * 180.0 / 3.14;
-            publishers_->filter_heading_msg_.heading_rad = curr_filter_yaw_;
-          }
+          
+          publishers_->filter_heading_msg_.heading_deg = curr_filter_yaw_ * 180.0 / M_PI;
+          publishers_->filter_heading_msg_.heading_rad = curr_filter_yaw_;
         }
         else if (point.qualifier() == mscl::MipTypes::CH_FLAGS)
         {
