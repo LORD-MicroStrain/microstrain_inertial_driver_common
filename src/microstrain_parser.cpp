@@ -515,7 +515,7 @@ void MicrostrainParser::parseFilterPacket(const mscl::MipDataPacket& packet)
 
           if (config_->use_enu_frame_)
           {
-            curr_filter_yaw_ = 90.0 - curr_filter_yaw_;
+            curr_filter_yaw_ = M_PI/2.0 - curr_filter_yaw_;
               
             if(curr_filter_yaw_ > M_PI)
                 curr_filter_yaw_ -= 2.0*M_PI;
