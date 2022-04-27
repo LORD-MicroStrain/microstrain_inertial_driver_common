@@ -15,7 +15,7 @@
 # aux_port is only available for the GQ7 and is only needed when streaming RTCM corrections to the device from ROS, or if you want to publish NMEA sentences from this node
 port        : "/dev/ttyACM0"
 aux_port    : "/dev/ttyACM1"
-baudrate    : 921600
+baudrate    : 115200
 debug       : False
 diagnostics : False
 
@@ -158,7 +158,7 @@ gnss2_antenna_offset : [0.0, 0.7, -1.0]
 # (GQ7 Only) Enable RTK dongle interface
 # Note: Enabling this will cause the node to publish on one of two topics depending
 #   on the version of the RTK dongle connected to the GQ7
-rtk_dongle_enable : True
+rtk_dongle_enable : False
 
 # The speed at which the individual RTK publishers will publish at.
 #      If set to -1, will publish at 1 hz which was the default before allowing users to configure this rate
