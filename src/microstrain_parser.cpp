@@ -23,7 +23,7 @@ namespace microstrain
 constexpr auto USTRAIN_G =
     9.80665;  // from section 5.1.1 in
               // https://www.microstrain.com/sites/default/files/3dm-gx5-25_dcp_manual_8500-0065_reference_document.pdf
-    
+
 MicrostrainParser::MicrostrainParser(RosNodeType* node, MicrostrainConfig* config, MicrostrainPublishers* publishers)
   : node_(node), config_(config), publishers_(publishers)
 {
@@ -503,7 +503,7 @@ void MicrostrainParser::parseFilterPacket(const mscl::MipDataPacket& packet)
         else if (point.qualifier() == mscl::MipTypes::CH_PITCH)
         {
           curr_filter_pitch_ = point.as_float();
-            
+
           if (config_->use_enu_frame_)
           {
              curr_filter_pitch_ *= -1.0;
@@ -516,13 +516,13 @@ void MicrostrainParser::parseFilterPacket(const mscl::MipDataPacket& packet)
           if (config_->use_enu_frame_)
           {
             curr_filter_yaw_ = M_PI/2.0 - curr_filter_yaw_;
-              
-            if(curr_filter_yaw_ > M_PI)
+
+            if (curr_filter_yaw_ > M_PI)
                 curr_filter_yaw_ -= 2.0*M_PI;
-            else if(curr_filter_yaw_ < -M_PI)
-                curr_filter_yaw_ += 2.0*M_PI;       
+            else if (curr_filter_yaw_ < -M_PI)
+                curr_filter_yaw_ += 2.0*M_PI;
           }
-          
+
           publishers_->filter_heading_msg_.heading_deg = curr_filter_yaw_ * 180.0 / M_PI;
           publishers_->filter_heading_msg_.heading_rad = curr_filter_yaw_;
         }
@@ -993,8 +993,7 @@ void MicrostrainParser::parseFilterPacket(const mscl::MipDataPacket& packet)
       curr_filter_quaternion_.as_floatAt(1),
       curr_filter_quaternion_.as_floatAt(2),
       curr_filter_quaternion_.as_floatAt(3),
-      curr_filter_quaternion_.as_floatAt(0)
-    );
+      curr_filter_quaternion_.as_floatAt(0));
     const tf2::Vector3 tf_rotated_vel = tf2::quatRotate(quaternion.inverse(), tf_curr_vel);
 
     // Set the rotated velocity to the filter messages
@@ -1010,22 +1009,22 @@ void MicrostrainParser::parseFilterPacket(const mscl::MipDataPacket& packet)
   // Publish
   if (publishers_->filter_status_pub_ != nullptr && filter_status_received)
     publishers_->filter_status_pub_->publish(publishers_->filter_status_msg_);
-  
+
   if (publishers_->filter_heading_pub_ != nullptr && filter_heading_received)
     publishers_->filter_heading_pub_->publish(publishers_->filter_heading_msg_);
 
   if (publishers_->filter_heading_state_pub_ != nullptr && filter_heading_state_received)
     publishers_->filter_heading_state_pub_->publish(publishers_->filter_heading_state_msg_);
-  
+
   if (publishers_->filter_pub_ != nullptr && filter_odom_received)
     publishers_->filter_pub_->publish(publishers_->filter_msg_);
 
   if (publishers_->filtered_imu_pub_ != nullptr && filter_imu_received)
     publishers_->filtered_imu_pub_->publish(publishers_->filtered_imu_msg_);
-  
+
   if (publishers_->filter_relative_pos_pub_ != nullptr && filter_relative_odom_received)
     publishers_->filter_relative_pos_pub_->publish(publishers_->filter_relative_pos_msg_);
-  
+
   if (publishers_->transform_broadcaster_ != nullptr && relative_transform_received)
     publishers_->transform_broadcaster_->sendTransform(publishers_->filter_transform_msg_);
 
@@ -1212,13 +1211,13 @@ void MicrostrainParser::parseGNSSPacket(const mscl::MipDataPacket& packet, int g
   // Publish
   if (publishers_->gnss_pub_[gnss_id] != nullptr && has_nav_sat_fix)
     publishers_->gnss_pub_[gnss_id]->publish(publishers_->gnss_msg_[gnss_id]);
-  
+
   if (publishers_->gnss_odom_pub_[gnss_id] != nullptr && has_odom)
     publishers_->gnss_odom_pub_[gnss_id]->publish(publishers_->gnss_odom_msg_[gnss_id]);
 
   if (publishers_->gnss_time_pub_[gnss_id] != nullptr && time_valid)
     publishers_->gnss_time_pub_[gnss_id]->publish(publishers_->gnss_time_msg_[gnss_id]);
-    
+
   if (publishers_->gnss_fix_info_pub_[gnss_id] != nullptr && has_fix_info)
     publishers_->gnss_fix_info_pub_[gnss_id]->publish(publishers_->gnss_fix_info_msg_[gnss_id]);
 }
