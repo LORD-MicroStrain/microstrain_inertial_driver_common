@@ -19,7 +19,7 @@
 namespace microstrain
 {
 
-static constexpr auto NMEA_START_SEQUENCE = "$";
+static constexpr auto NMEA_START_SEQUENCE = "$GPGGA,";
 static constexpr auto NMEA_STOP_SEQUENCE = "\r\n";
 
 /**
