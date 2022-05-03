@@ -65,12 +65,15 @@ void MicrostrainParser::parseMIPPacket(const mscl::MipDataPacket& packet)
 
 void MicrostrainParser::parseAuxString(const std::string& aux_string)
 {
+  // Append the string to our cached string
+  aux_string_ += aux_string;
+
   // Each string may have more than one NMEA message
   size_t search_index = 0;
-  while (search_index < aux_string.size())
+  while (search_index < aux_string_.size())
   {
     // If we can't find a $, there are no more NMEA sentences, so exit early
-    const size_t nmea_start_index = aux_string.find(NMEA_START_SEQUENCE, search_index);
+    const size_t nmea_start_index = aux_string_.find(NMEA_START_SEQUENCE, search_index);
     if (nmea_start_index == std::string::npos)
     {
       MICROSTRAIN_DEBUG(node_, "Unable to find Start of NMEA sentence (%s) in string, skipping", NMEA_START_SEQUENCE);
@@ -79,7 +82,7 @@ void MicrostrainParser::parseAuxString(const std::string& aux_string)
     MICROSTRAIN_DEBUG(node_, "Found beginning of NMEA packet at %lu", nmea_start_index);
 
     // Make sure that what follows the dollar sign is a string that is 5 characters long and a comma
-    const size_t first_comma_index = aux_string.find(',', nmea_start_index + 1);
+    const size_t first_comma_index = aux_string_.find(',', nmea_start_index + 1);
     if (first_comma_index == std::string::npos || first_comma_index - nmea_start_index > 6)
     {
       // This is either an invalid NMEA message, or a MIP packet, either way skip it
@@ -89,7 +92,7 @@ void MicrostrainParser::parseAuxString(const std::string& aux_string)
     }
 
     // Search for the end of the NMEA string
-    const size_t nmea_end_index = aux_string.find(NMEA_STOP_SEQUENCE, first_comma_index + 1);
+    const size_t nmea_end_index = aux_string_.find(NMEA_STOP_SEQUENCE, first_comma_index + 1);
     if (nmea_end_index == std::string::npos)
     {
       MICROSTRAIN_WARN(node_, "Malformed NMEA sentence received. Ignoring sentence");
@@ -98,7 +101,7 @@ void MicrostrainParser::parseAuxString(const std::string& aux_string)
     MICROSTRAIN_DEBUG(node_, "Found end of NMEA packet at %lu", nmea_end_index);
 
     // If there is another $ between the first $ and the end string, the first $ might have been part of a MIP message, so start over at the second $
-    const size_t possible_mid_index = aux_string.find(NMEA_START_SEQUENCE, nmea_start_index + 1);
+    const size_t possible_mid_index = aux_string_.find(NMEA_START_SEQUENCE, nmea_start_index + 1);
     if (possible_mid_index != std::string::npos && possible_mid_index < nmea_end_index)
     {
       MICROSTRAIN_DEBUG(node_, "Found another %s within what we thought was a NMEA packet, likely the first %s was part of a MIP packet, starting over from second %s", NMEA_START_SEQUENCE, NMEA_START_SEQUENCE, NMEA_START_SEQUENCE);
@@ -107,7 +110,7 @@ void MicrostrainParser::parseAuxString(const std::string& aux_string)
     }
 
     // Get the NMEA substring, and update the index for the next iteration
-    const std::string& nmea_sentence = aux_string.substr(nmea_start_index, (nmea_end_index - nmea_start_index) + strlen(NMEA_STOP_SEQUENCE));
+    const std::string& nmea_sentence = aux_string_.substr(nmea_start_index, (nmea_end_index - nmea_start_index) + strlen(NMEA_STOP_SEQUENCE));
     search_index = nmea_end_index + strlen(NMEA_STOP_SEQUENCE);
     MICROSTRAIN_DEBUG(node_, "Found NMEA sentence %s", nmea_sentence.c_str());
 
@@ -117,7 +120,14 @@ void MicrostrainParser::parseAuxString(const std::string& aux_string)
     publishers_->nmea_sentence_msg_.sentence = nmea_sentence;
     if (publishers_->nmea_sentence_pub_ != nullptr)
       publishers_->nmea_sentence_pub_->publish(publishers_->nmea_sentence_msg_);
+
+    // Remove the sentence from the string
+    aux_string_.erase(0, nmea_end_index + 1);
   }
+
+  // If the string is longer than the max NMEA sentence size, trim it down
+  if (aux_string_.size() > NMEA_MAX_LENGTH)
+    aux_string_.erase(0, (aux_string_.size() - NMEA_MAX_LENGTH) - 1);
 }
 
 RosTimeType MicrostrainParser::getPacketTimestamp(const mscl::MipDataPacket& packet) const
