@@ -77,6 +77,8 @@ void MicrostrainParser::parseAuxString(const std::string& aux_string)
     if (nmea_start_index == std::string::npos)
     {
       MICROSTRAIN_DEBUG(node_, "Unable to find Start of NMEA sentence (%s) in string, skipping", NMEA_START_SEQUENCE);
+      if(aux_string_.find("\x75\x65", search_index) != std::string::npos)
+        MICROSTRAIN_DEBUG(node_, "This is probably a MIP packet");
       break;
     }
     MICROSTRAIN_DEBUG(node_, "Found beginning of NMEA packet at %lu", nmea_start_index);
