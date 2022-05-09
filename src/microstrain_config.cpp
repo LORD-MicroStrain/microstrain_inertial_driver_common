@@ -319,7 +319,7 @@ bool MicrostrainConfig::setupDevice(RosNodeType* node)
   {
     if (!configureGNSS(node, GNSS1_ID))
       return false;
-    
+
     if (publish_gnss_[GNSS1_ID])
       if (!configureGNSSDataRates(GNSS1_ID))
         return false;
@@ -341,7 +341,7 @@ bool MicrostrainConfig::setupDevice(RosNodeType* node)
   {
     if (!configureRTK(node))
       return false;
-    
+
     if (publish_rtk_)
       if (!configureRTKDataRates())
         return false;
@@ -1101,7 +1101,7 @@ bool MicrostrainConfig::configureFilterDataRates()
     };
     getSupportedMipChannels(mscl::MipTypes::DataClass::CLASS_ESTFILTER, filter_aiding_status_fields, filter_aiding_status_data_rate_, &channels_to_stream);
   }
-  
+
   // Streaming for /nav/dual_antenna_status
   if (filter_enable_gnss_heading_aiding_)
   {
@@ -1307,7 +1307,8 @@ void MicrostrainConfig::getSupportedMipChannels(mscl::MipTypes::DataClass data_c
       auto existing_channel = std::find_if(channels_to_stream->begin(), channels_to_stream->end(), [channel](const mscl::MipChannel& m)
       {
         return m.channelField() == channel;
-      });
+      }
+      );
       if (existing_channel != channels_to_stream->end())
       {
         if (existing_channel->sampleRate() < data_rate_hz)

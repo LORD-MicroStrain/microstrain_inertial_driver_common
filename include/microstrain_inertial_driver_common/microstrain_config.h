@@ -301,7 +301,7 @@ private:
    * \param channels_to_stream  List of channels and their associated rate that will be populated with the proper channels and data rates
    */
   void getSupportedMipChannels(mscl::MipTypes::DataClass data_class, const mscl::MipTypes::MipChannelFields& channel_fields, int data_rate, mscl::MipChannels* channels_to_stream);
-  
+
   /**
    * \brief Enables or disables a filter aiding measurement
    * \param aiding_measurement  The aiding measurement to enable or disable
