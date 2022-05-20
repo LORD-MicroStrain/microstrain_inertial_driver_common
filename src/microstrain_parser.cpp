@@ -83,7 +83,7 @@ void MicrostrainParser::parseAuxString(const std::string& aux_string)
     }
     MICROSTRAIN_DEBUG(node_, "Found beginning of NMEA packet at %lu", nmea_start_index);
 
-    // Make sure that what follows the dollar sign is a string that is 5 characters long and a comma
+    // Make sure that what follows the dollar sign is a string that is at least 5 characters long and a comma
     const size_t first_comma_index = aux_string_.find(',', nmea_start_index + 1);
     if (first_comma_index == std::string::npos || first_comma_index - nmea_start_index > 6)
     {
@@ -112,8 +112,8 @@ void MicrostrainParser::parseAuxString(const std::string& aux_string)
     }
 
     // Get the NMEA substring, and update the index for the next iteration
-    const std::string& nmea_sentence = aux_string_.substr(nmea_start_index, (nmea_end_index - nmea_start_index) + strlen(NMEA_STOP_SEQUENCE));
-    search_index = nmea_end_index + strlen(NMEA_STOP_SEQUENCE);
+    const size_t nmea_sentence_len = (nmea_end_index - nmea_start_index) + strlen(NMEA_STOP_SEQUENCE);
+    const std::string& nmea_sentence = aux_string_.substr(nmea_start_index, nmea_sentence_len);
     MICROSTRAIN_DEBUG(node_, "Found NMEA sentence %s", nmea_sentence.c_str());
 
     // Publish the NMEA sentence to ROS
@@ -125,6 +125,7 @@ void MicrostrainParser::parseAuxString(const std::string& aux_string)
 
     // Remove the sentence from the string
     aux_string_.erase(0, nmea_end_index + 1);
+    search_index = 0;
   }
 
   // If the string is longer than the max NMEA sentence size, trim it down
