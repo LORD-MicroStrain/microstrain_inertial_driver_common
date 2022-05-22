@@ -1382,7 +1382,7 @@ void MicrostrainParser::parseRTKPacket(const mscl::MipDataPacket& packet)
 
 void MicrostrainParser::printPacketStats()
 {
-  if (config_->inertial_device_)
+  if (config_->inertial_device_ == nullptr)
   {
     return;
   }
