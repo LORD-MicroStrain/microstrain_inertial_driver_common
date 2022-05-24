@@ -123,7 +123,7 @@ void MicrostrainParser::parseAuxString(const std::string& aux_string)
     if (publishers_->nmea_sentence_pub_ != nullptr)
       publishers_->nmea_sentence_pub_->publish(publishers_->nmea_sentence_msg_);
 
-    // Remove the sentence from the string
+    // Remove everything from the beginning of the string to the end of the NMEA sentence as it should all be parsed now
     aux_string_.erase(0, nmea_end_index + 1);
     search_index = 0;
   }
