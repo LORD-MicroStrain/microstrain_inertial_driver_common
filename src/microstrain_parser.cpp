@@ -14,6 +14,7 @@
 //
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 #include <algorithm>
+#include <string>
 #include "microstrain_inertial_driver_common/microstrain_parser.h"
 
 namespace microstrain
@@ -522,6 +523,11 @@ void MicrostrainParser::parseFilterPacket(const mscl::MipDataPacket& packet)
         else if (point.qualifier() == mscl::MipTypes::CH_PITCH)
         {
           curr_filter_pitch_ = point.as_float();
+
+          if (config_->use_enu_frame_)
+          {
+             curr_filter_pitch_ *= -1.0;
+          }
         }
         else if (point.qualifier() == mscl::MipTypes::CH_YAW)
         {
@@ -529,12 +535,16 @@ void MicrostrainParser::parseFilterPacket(const mscl::MipDataPacket& packet)
 
           if (config_->use_enu_frame_)
           {
+            curr_filter_yaw_ = M_PI/2.0 - curr_filter_yaw_;
+
+            if (curr_filter_yaw_ > M_PI)
+                curr_filter_yaw_ -= 2.0*M_PI;
+            else if (curr_filter_yaw_ < -M_PI)
+                curr_filter_yaw_ += 2.0*M_PI;
           }
-          else
-          {
-            publishers_->filter_heading_msg_.heading_deg = curr_filter_yaw_ * 180.0 / 3.14;
-            publishers_->filter_heading_msg_.heading_rad = curr_filter_yaw_;
-          }
+
+          publishers_->filter_heading_msg_.heading_deg = curr_filter_yaw_ * 180.0 / M_PI;
+          publishers_->filter_heading_msg_.heading_rad = curr_filter_yaw_;
         }
         else if (point.qualifier() == mscl::MipTypes::CH_FLAGS)
         {
@@ -554,7 +564,7 @@ void MicrostrainParser::parseFilterPacket(const mscl::MipDataPacket& packet)
 
         if (config_->use_enu_frame_)
         {
-          tf2::Quaternion q_body2enu, q_ned2enu, q_vehiclebody2sensorbody, 
+          tf2::Quaternion q_body2enu, q_ned2enu, q_vehiclebody2sensorbody,
                           qbody2ned(quaternion.as_floatAt(1), quaternion.as_floatAt(2),
                                     quaternion.as_floatAt(3), quaternion.as_floatAt(0));
 
@@ -598,7 +608,7 @@ void MicrostrainParser::parseFilterPacket(const mscl::MipDataPacket& packet)
         {
           curr_filter_angular_rate_y_ = point.as_float();
 
-          if(config_->use_enu_frame_)
+          if (config_->use_enu_frame_)
             curr_filter_angular_rate_y_ *= -1.0;
 
           publishers_->filter_msg_.twist.twist.angular.y = curr_filter_angular_rate_y_;
@@ -609,7 +619,7 @@ void MicrostrainParser::parseFilterPacket(const mscl::MipDataPacket& packet)
         {
           curr_filter_angular_rate_z_ = point.as_float();
 
-          if(config_->use_enu_frame_)
+          if (config_->use_enu_frame_)
             curr_filter_angular_rate_z_ *= -1.0;
 
           publishers_->filter_msg_.twist.twist.angular.z = curr_filter_angular_rate_z_;
@@ -633,7 +643,7 @@ void MicrostrainParser::parseFilterPacket(const mscl::MipDataPacket& packet)
         {
           float accel_y = point.as_float();
 
-          if(config_->use_enu_frame_)
+          if (config_->use_enu_frame_)
             accel_y *= -1.0;
 
           publishers_->filtered_imu_msg_.linear_acceleration.y = accel_y;
@@ -642,7 +652,7 @@ void MicrostrainParser::parseFilterPacket(const mscl::MipDataPacket& packet)
         {
           float accel_z = point.as_float();
 
-          if(config_->use_enu_frame_)
+          if (config_->use_enu_frame_)
             accel_z *= -1.0;
 
           publishers_->filtered_imu_msg_.linear_acceleration.z = accel_z;
@@ -995,25 +1005,46 @@ void MicrostrainParser::parseFilterPacket(const mscl::MipDataPacket& packet)
   std::copy(config_->imu_angular_cov_.begin(), config_->imu_angular_cov_.end(),
             publishers_->filtered_imu_msg_.angular_velocity_covariance.begin());
 
+  // Optionally transform the velocity into the vehicle frame
+  if (config_->filter_vel_in_vehicle_frame_)
+  {
+    const tf2::Vector3 tf_curr_vel = tf2::Vector3(curr_filter_vel_north_, curr_filter_vel_east_, curr_filter_vel_down_);
+    const tf2::Quaternion quaternion(
+      curr_filter_quaternion_.as_floatAt(1),
+      curr_filter_quaternion_.as_floatAt(2),
+      curr_filter_quaternion_.as_floatAt(3),
+      curr_filter_quaternion_.as_floatAt(0));
+    const tf2::Vector3 tf_rotated_vel = tf2::quatRotate(quaternion.inverse(), tf_curr_vel);
+
+    // Set the rotated velocity to the filter messages
+    publishers_->filter_msg_.twist.twist.linear.x = tf_rotated_vel.getX();
+    publishers_->filter_msg_.twist.twist.linear.y = tf_rotated_vel.getY();
+    publishers_->filter_msg_.twist.twist.linear.z = tf_rotated_vel.getZ();
+
+    publishers_->filter_relative_pos_msg_.twist.twist.linear.x = tf_rotated_vel.getX();
+    publishers_->filter_relative_pos_msg_.twist.twist.linear.y = tf_rotated_vel.getY();
+    publishers_->filter_relative_pos_msg_.twist.twist.linear.z = tf_rotated_vel.getZ();
+  }
+
   // Publish
   if (publishers_->filter_status_pub_ != nullptr && filter_status_received)
     publishers_->filter_status_pub_->publish(publishers_->filter_status_msg_);
-  
+
   if (publishers_->filter_heading_pub_ != nullptr && filter_heading_received)
     publishers_->filter_heading_pub_->publish(publishers_->filter_heading_msg_);
 
   if (publishers_->filter_heading_state_pub_ != nullptr && filter_heading_state_received)
     publishers_->filter_heading_state_pub_->publish(publishers_->filter_heading_state_msg_);
-  
+
   if (publishers_->filter_pub_ != nullptr && filter_odom_received)
     publishers_->filter_pub_->publish(publishers_->filter_msg_);
 
   if (publishers_->filtered_imu_pub_ != nullptr && filter_imu_received)
     publishers_->filtered_imu_pub_->publish(publishers_->filtered_imu_msg_);
-  
+
   if (publishers_->filter_relative_pos_pub_ != nullptr && filter_relative_odom_received)
     publishers_->filter_relative_pos_pub_->publish(publishers_->filter_relative_pos_msg_);
-  
+
   if (publishers_->transform_broadcaster_ != nullptr && relative_transform_received)
     publishers_->transform_broadcaster_->sendTransform(publishers_->filter_transform_msg_);
 
@@ -1164,6 +1195,13 @@ void MicrostrainParser::parseGNSSPacket(const mscl::MipDataPacket& packet, int g
           else
             publishers_->gnss_odom_msg_[gnss_id].twist.twist.linear.z = down_velocity;
         }
+        else if (point.qualifier() == mscl::MipTypes::CH_SPEED_ACCURACY)
+        {
+          float speed_cov = pow(point.as_float(), 2);
+          publishers_->gnss_odom_msg_[gnss_id].twist.covariance[0] = speed_cov;
+          publishers_->gnss_odom_msg_[gnss_id].twist.covariance[7] = speed_cov;
+          publishers_->gnss_odom_msg_[gnss_id].twist.covariance[14] = speed_cov;
+        }
       }
       break;
 
@@ -1193,13 +1231,13 @@ void MicrostrainParser::parseGNSSPacket(const mscl::MipDataPacket& packet, int g
   // Publish
   if (publishers_->gnss_pub_[gnss_id] != nullptr && has_nav_sat_fix)
     publishers_->gnss_pub_[gnss_id]->publish(publishers_->gnss_msg_[gnss_id]);
-  
+
   if (publishers_->gnss_odom_pub_[gnss_id] != nullptr && has_odom)
     publishers_->gnss_odom_pub_[gnss_id]->publish(publishers_->gnss_odom_msg_[gnss_id]);
 
   if (publishers_->gnss_time_pub_[gnss_id] != nullptr && time_valid)
     publishers_->gnss_time_pub_[gnss_id]->publish(publishers_->gnss_time_msg_[gnss_id]);
-    
+
   if (publishers_->gnss_fix_info_pub_[gnss_id] != nullptr && has_fix_info)
     publishers_->gnss_fix_info_pub_[gnss_id]->publish(publishers_->gnss_fix_info_msg_[gnss_id]);
 }

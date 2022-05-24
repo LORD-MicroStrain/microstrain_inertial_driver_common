@@ -171,6 +171,9 @@ public:
   // Whether to enable the hardware odometer through the GPIO pins
   bool enable_hardware_odometer_;
 
+  // Whether to publish the velocity in the vehicle frame
+  bool filter_vel_in_vehicle_frame_;
+
   // FILTER
   double gps_leap_seconds_;
   bool filter_enable_gnss_heading_aiding_;
@@ -298,7 +301,7 @@ private:
    * \param channels_to_stream  List of channels and their associated rate that will be populated with the proper channels and data rates
    */
   void getSupportedMipChannels(mscl::MipTypes::DataClass data_class, const mscl::MipTypes::MipChannelFields& channel_fields, int data_rate, mscl::MipChannels* channels_to_stream);
-  
+
   /**
    * \brief Enables or disables a filter aiding measurement
    * \param aiding_measurement  The aiding measurement to enable or disable

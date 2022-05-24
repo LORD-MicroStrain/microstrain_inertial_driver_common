@@ -89,7 +89,7 @@ bool MicrostrainNodeBase::configure(RosNodeType* config_node)
           config_.imu_mag_data_rate_,
           config_.imu_gps_corr_data_rate_,
         }
-      ) : 1,
+        ) : 1,
       config_.publish_gnss_[GNSS1_ID] ? std::max(
         {
           config_.gnss_nav_sat_fix_data_rate_[GNSS1_ID],
@@ -97,7 +97,7 @@ bool MicrostrainNodeBase::configure(RosNodeType* config_node)
           config_.gnss_time_reference_data_rate_[GNSS1_ID],
           config_.gnss_fix_info_data_rate_[GNSS1_ID],
         }
-      ) : 1,
+        ) : 1,
       config_.publish_gnss_[GNSS2_ID] ? std::max(
         {
           config_.gnss_nav_sat_fix_data_rate_[GNSS2_ID],
@@ -105,7 +105,7 @@ bool MicrostrainNodeBase::configure(RosNodeType* config_node)
           config_.gnss_time_reference_data_rate_[GNSS2_ID],
           config_.gnss_fix_info_data_rate_[GNSS2_ID],
         }
-      ) : 1,
+        ) : 1,
       config_.publish_filter_ ? std::max(
         {
           config_.filter_status_data_rate_,
@@ -118,7 +118,7 @@ bool MicrostrainNodeBase::configure(RosNodeType* config_node)
           config_.filter_gnss_dual_antenna_status_data_rate_,
           config_.filter_aiding_measurement_summary_data_rate_,
         }
-      ) : 1
+        ) : 1
     }
   );  // NOLINT(whitespace/parens)  No way to get around this
   timer_update_rate_hz_ = std::min(2 * max_rate, 1000);

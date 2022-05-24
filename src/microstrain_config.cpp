@@ -93,6 +93,9 @@ bool MicrostrainConfig::configure(RosNodeType* node)
   // HARDWARE ODOM
   get_param<bool>(node, "enable_hardware_odometer", enable_hardware_odometer_, false);
 
+  // ROS TF control
+  get_param<bool>(node, "filter_vel_in_vehicle_frame", filter_vel_in_vehicle_frame_, false);
+
   // RTK/GQ7 specific
   get_param<bool>(node, "rtk_dongle_enable", publish_rtk_, false);
   get_param<bool>(node, "subscribe_rtcm", subscribe_rtcm_, false);
@@ -269,7 +272,6 @@ bool MicrostrainConfig::connectDevice(RosNodeType* node)
       aux_connection_ = std::unique_ptr<mscl::Connection>(new mscl::Connection(mscl::Connection::Serial(realpath(aux_port.c_str(), 0), (uint32_t)baudrate)));
       aux_connection_->rawByteMode(true);
     }
-
   }
   catch (mscl::Error_Connection& e)
   {
@@ -317,7 +319,7 @@ bool MicrostrainConfig::setupDevice(RosNodeType* node)
   {
     if (!configureGNSS(node, GNSS1_ID))
       return false;
-    
+
     if (publish_gnss_[GNSS1_ID])
       if (!configureGNSSDataRates(GNSS1_ID))
         return false;
@@ -339,7 +341,7 @@ bool MicrostrainConfig::setupDevice(RosNodeType* node)
   {
     if (!configureRTK(node))
       return false;
-    
+
     if (publish_rtk_)
       if (!configureRTKDataRates())
         return false;
@@ -1006,7 +1008,7 @@ bool MicrostrainConfig::configureFilter(RosNodeType* node)
     MICROSTRAIN_INFO(node_, "Note: The device does not support the next-gen filter initialization command.");
   }
 
-  // Configure the hardware odometer settings  
+  // Configure the hardware odometer settings
   if (inertial_device_->features().supportsCommand(mscl::MipTypes::Command::CMD_ODOMETER_SETTINGS))
   {
     mscl::OdometerConfiguration odom_config;
@@ -1099,7 +1101,7 @@ bool MicrostrainConfig::configureFilterDataRates()
     };
     getSupportedMipChannels(mscl::MipTypes::DataClass::CLASS_ESTFILTER, filter_aiding_status_fields, filter_aiding_status_data_rate_, &channels_to_stream);
   }
-  
+
   // Streaming for /nav/dual_antenna_status
   if (filter_enable_gnss_heading_aiding_)
   {
@@ -1305,7 +1307,8 @@ void MicrostrainConfig::getSupportedMipChannels(mscl::MipTypes::DataClass data_c
       auto existing_channel = std::find_if(channels_to_stream->begin(), channels_to_stream->end(), [channel](const mscl::MipChannel& m)
       {
         return m.channelField() == channel;
-      });
+      }
+      );
       if (existing_channel != channels_to_stream->end())
       {
         if (existing_channel->sampleRate() < data_rate_hz)
