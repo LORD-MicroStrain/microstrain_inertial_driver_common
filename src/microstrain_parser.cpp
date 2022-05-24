@@ -83,12 +83,12 @@ void MicrostrainParser::parseAuxString(const std::string& aux_string)
     }
     MICROSTRAIN_DEBUG(node_, "Found beginning of NMEA packet at %lu", nmea_start_index);
 
-    // Make sure that what follows the dollar sign is a string that is at least 5 characters long and a comma
+    // Make sure that there is a comma somewhere after the start index
     const size_t first_comma_index = aux_string_.find(',', nmea_start_index + 1);
-    if (first_comma_index == std::string::npos || first_comma_index - nmea_start_index > 6)
+    if (first_comma_index == std::string::npos)
     {
       // This is either an invalid NMEA message, or a MIP packet, either way skip it
-      MICROSTRAIN_DEBUG(node_, "Found start of NMEA packet, but the %s was not followed by 5 characters and a comma, skipping", NMEA_START_SEQUENCE);
+      MICROSTRAIN_DEBUG(node_, "Found start of NMEA packet, but the %s was not followed by a comma, skipping", NMEA_START_SEQUENCE);
       search_index++;
       continue;
     }
