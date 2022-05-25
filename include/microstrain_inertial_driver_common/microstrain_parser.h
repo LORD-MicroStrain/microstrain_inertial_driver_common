@@ -20,6 +20,10 @@
 namespace microstrain
 {
 
+static constexpr auto NMEA_MAX_LENGTH = 82;
+static constexpr auto NMEA_START_SEQUENCE = "$GPGGA,";
+static constexpr auto NMEA_STOP_SEQUENCE = "\r\n";
+
 /**
  * Contains parsing code that will parse messages read from the device and publish them
  */
@@ -142,6 +146,8 @@ private:
   float curr_filter_att_uncert_roll_;
   float curr_filter_att_uncert_pitch_;
   float curr_filter_att_uncert_yaw_;
+
+  std::string aux_string_;
 };  // struct MicrostrainParser
 
 }  // namespace microstrain
