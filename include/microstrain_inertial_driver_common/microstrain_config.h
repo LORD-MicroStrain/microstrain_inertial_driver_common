@@ -282,6 +282,7 @@ public:
   bool raw_file_enable_;
   bool raw_file_include_support_data_;
   std::ofstream raw_file_;
+  std::ofstream raw_file_aux_;
 
 private:
   /**

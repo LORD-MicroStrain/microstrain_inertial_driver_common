@@ -42,7 +42,11 @@ void MicrostrainNodeBase::parseAndPublishMain()
 
 void MicrostrainNodeBase::parseAndPublishAux()
 {
-  parser_.parseAuxString(config_.aux_connection_->getRawBytesStr());
+  const std::string& aux_string = config_.aux_connection_->getRawBytesStr();
+  parser_.parseAuxString(aux_string);
+
+  if (config_.raw_file_enable_)
+    config_.raw_file_aux_.write(aux_string.c_str(), aux_string.size());
 }
 
 bool MicrostrainNodeBase::initialize(RosNodeType* init_node)

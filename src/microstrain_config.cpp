@@ -434,6 +434,24 @@ bool MicrostrainConfig::setupRawFile(RosNodeType* node)
       MICROSTRAIN_INFO(node_, "Raw binary datafile opened at %s", filename.c_str());
     }
 
+    // Record aux data too if we are publishing NMEA
+    if (publish_nmea_ && supports_rtk_)
+    {
+      std::string filename_aux = raw_file_directory + std::string("/") + inertial_device_->modelName() + std::string("_") +
+                                 inertial_device_->serialNumber() + std::string("_aux_") + time_string + std::string(".bin");
+      raw_file_aux_.open(filename_aux, std::ios::out | std::ios::binary | std::ios::trunc);
+
+      if (!raw_file_aux_.is_open())
+      {
+        MICROSTRAIN_ERROR(node_, "ERROR opening raw binary aux datafile at %s", filename_aux.c_str());
+        return false;
+      }
+      else
+      {
+        MICROSTRAIN_INFO(node_, "Raw binary aux datafile opened at %s", filename.c_str());
+      }
+    }
+
     inertial_device_->connection().debugMode(true);
   }
   return true;
