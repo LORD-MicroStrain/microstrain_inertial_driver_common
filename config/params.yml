@@ -92,14 +92,14 @@ raw_file_directory : "/home/your_name"
 # ****************************************************************** 
 
 publish_imu   : True
-imu_data_rate : 100
+imu_data_rate : 100.0
 
 # The speed at which the individual IMU publishers will publish at.
 #      If set to -1, will use imu_data_rate to determine the rate at which to stream and publish
 #      If set to 0, the stream will be turned off and the publisher will not be created
-imu_raw_data_rate      : -1  # Rate of imu/data topic
-imu_mag_data_rate      : -1  # Rate of mag topic
-imu_gps_corr_data_rate : -1  # Rate of gps_corr topic
+imu_raw_data_rate      : -1.0  # Rate of imu/data topic
+imu_mag_data_rate      : -1.0  # Rate of mag topic
+imu_gps_corr_data_rate : -1.0  # Rate of gps_corr topic
                              # Note that this is still dependent on publish_gps_corr being set to True in order to publish
 
 # Static IMU message covariance values (the device does not generate these) 
@@ -117,7 +117,7 @@ publish_gps_corr : False
 # GNSS Settings (only applicable for devices with GNSS) 
 # ****************************************************************** 
 publish_gnss1   : True
-gnss1_data_rate : 2
+gnss1_data_rate : 2.0
 
 # The speed at which the individual GNSS1 publishers will publish at.
 #      If set to -1, will use gnss1_data_rate to determine the rate at which to stream and publish
@@ -125,10 +125,10 @@ gnss1_data_rate : 2
 #
 #      Note: The parameters' "gnss1_nav_sat_fix_data_rate", "gnss1_odom_data_rate" associated ROS messages share several MIP fields,
 #            so if more than one is set to stream, and they are set to stream at different rates, messages will be published on both topics, at the higher rate
-gnss1_nav_sat_fix_data_rate    : -1  # Rate of gnss1/fix topic
-gnss1_odom_data_rate           : -1  # Rate of gnss1/odom topic
-gnss1_time_reference_data_rate : -1  # Rate of gnss1/time_ref topic
-gnss1_fix_info_data_rate       : -1  # Rate of gnss1/fix_info topic
+gnss1_nav_sat_fix_data_rate    : -1.0  # Rate of gnss1/fix topic
+gnss1_odom_data_rate           : -1.0  # Rate of gnss1/odom topic
+gnss1_time_reference_data_rate : -1.0  # Rate of gnss1/time_ref topic
+gnss1_fix_info_data_rate       : -1.0  # Rate of gnss1/fix_info topic
 
 # Antenna #1 lever arm offset vector
 #     For GQ7 - in the vehicle frame wrt IMU origin (meters)
@@ -138,7 +138,7 @@ gnss1_antenna_offset : [0.0, -0.7, -1.0]
 
 # GNSS2 settings are only applicable for multi-GNSS systems (e.g. GQ7) 
 publish_gnss2   : True
-gnss2_data_rate : 2
+gnss2_data_rate : 2.0
 
 # The speed at which the individual GNSS2 publishers will publish at.
 #      If set to -1, will use gnss2_data_rate to determine the rate at which to stream and publish
@@ -146,10 +146,10 @@ gnss2_data_rate : 2
 #
 #      Note: The parameters' "gnss2_nav_sat_fix_data_rate", "gnss2_odom_data_rate" associated ROS messages share several MIP fields,
 #            so if more than one is set to stream, and they are set to stream at different rates, messages will be published on both topics, at the higher rate
-gnss2_nav_sat_fix_data_rate    : -1  # Rate of gnss2/fix topic
-gnss2_odom_data_rate           : -1  # Rate of gnss2/odom topic
-gnss2_time_reference_data_rate : -1  # Rate of gnss2/time_ref topic
-gnss2_fix_info_data_rate       : -1  # Rate of gnss2/fix_info topic
+gnss2_nav_sat_fix_data_rate    : -1.0  # Rate of gnss2/fix topic
+gnss2_odom_data_rate           : -1.0  # Rate of gnss2/odom topic
+gnss2_time_reference_data_rate : -1.0  # Rate of gnss2/time_ref topic
+gnss2_fix_info_data_rate       : -1.0  # Rate of gnss2/fix_info topic
 
 # Antenna #2 lever arm offset vector (In the vehicle frame wrt IMU origin (meters) )
 # Note: Make this as accurate as possible for good performance 
@@ -163,7 +163,7 @@ rtk_dongle_enable : False
 # The speed at which the individual RTK publishers will publish at.
 #      If set to -1, will publish at 1 hz which was the default before allowing users to configure this rate
 #      If set to 0, the stream will be turned off and the publisher will not be created
-rtk_status_data_rate : -1  # Rate of rtk/status or rtk/status_v1 topics
+rtk_status_data_rate : -1.0  # Rate of rtk/status or rtk/status_v1 topics
                            # Note that this is still reliant on rtk_dongle_enable being set to true to publish
 
 # (GQ7 Only) Allow the user to send RTCM messages to this node, and stream those messages to the GQ7
@@ -178,7 +178,7 @@ publish_nmea   : False
 # ****************************************************************** 
 
 publish_filter   : True
-filter_data_rate : 10
+filter_data_rate : 10.0
 
 # The speed at which the individual Filter publishers will publish at.
 #      If set to -1, will use filter_data_rate to determine the rate at which to stream and publish
@@ -186,20 +186,20 @@ filter_data_rate : 10
 #
 #      Note: The parameters' "filter_odom_data_rate", "filter_imu_data_rate", "filter_relative_odom_data_rate" associated ROS messages share several MIP fields,
 #            so if more than one is set to stream, and they are set to stream at different rates, messages will be published on both topics, at the higher rate
-filter_status_data_rate                     : -1  # Rate of nav/status topic
-filter_heading_data_rate                    : -1  # Rate of nav/heading topic
-filter_heading_state_data_rate              : -1  # Rate of nav/heading_state topic
-filter_odom_data_rate                       : -1  # Rate of nav/odom topic
-filter_imu_data_rate                        : -1  # Rate of nav/filtered_imu/data
-filter_relative_odom_data_rate              : -1  # Rate of nav/relative_pos topic and the transform between filter_frame_id and filter_child_frame_id
-                                                  # Note that this is still dependent on publish_relative_position being set to True in order to publish
-                                                  # Note that this data rate will also control the rate at which the transform between "filter_frame_id" and "filter_child_frame_id" will be published at
-filter_aiding_status_data_rate              : -1  # Rate of gnss1/aiding_status and gnss2/aiding_status topics
-                                                  # Note that this is still dependent on filter_enable_gnss_pos_vel_aiding being set to True in order to publish
-filter_gnss_dual_antenna_data_rate          : -1  # Rate of nav/dual_antenna_status topic
-                                                  # Note that this is still dependent on filter_enable_gnss_heading_aiding being set to True in order to publish
-filter_aiding_measurement_summary_data_rate : -1  # Rate of nav/aiding_summary topic
-                                                  # Note that this is still dependent on publish_filter_aiding_measurement_summary being set to True in order to publish
+filter_status_data_rate                     : -1.0  # Rate of nav/status topic
+filter_heading_data_rate                    : -1.0  # Rate of nav/heading topic
+filter_heading_state_data_rate              : -1.0  # Rate of nav/heading_state topic
+filter_odom_data_rate                       : -1.0  # Rate of nav/odom topic
+filter_imu_data_rate                        : -1.0  # Rate of nav/filtered_imu/data
+filter_relative_odom_data_rate              : -1.0  # Rate of nav/relative_pos topic and the transform between filter_frame_id and filter_child_frame_id
+                                                    # Note that this is still dependent on publish_relative_position being set to True in order to publish
+                                                    # Note that this data rate will also control the rate at which the transform between "filter_frame_id" and "filter_child_frame_id" will be published at
+filter_aiding_status_data_rate              : -1.0  # Rate of gnss1/aiding_status and gnss2/aiding_status topics
+                                                    # Note that this is still dependent on filter_enable_gnss_pos_vel_aiding being set to True in order to publish
+filter_gnss_dual_antenna_data_rate          : -1.0  # Rate of nav/dual_antenna_status topic
+                                                    # Note that this is still dependent on filter_enable_gnss_heading_aiding being set to True in order to publish
+filter_aiding_measurement_summary_data_rate : -1.0  # Rate of nav/aiding_summary topic
+                                                    # Note that this is still dependent on publish_filter_aiding_measurement_summary being set to True in order to publish
 
 # Sensor2vehicle frame transformation selector
 #     0 = None, 1 = Euler Angles, 2 - matrix, 3 - quaternion

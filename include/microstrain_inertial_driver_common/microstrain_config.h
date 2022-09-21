@@ -30,7 +30,7 @@ const std::vector<double> DEFAULT_MATRIX = { 9.0, 0.0 };
 const std::vector<double> DEFAULT_VECTOR = { 3.0, 0.0 };
 const std::vector<double> DEFAULT_QUATERNION = { 4.0, 0.0 };
 
-static constexpr int DEFAULT_DATA_RATE = -1;  // If a data rate is set to this, the data rate will be set to the default data rate
+static constexpr float DEFAULT_DATA_RATE = -1;  // If a data rate is set to this, the data rate will be set to the default data rate
 
 /**
  * Contains configuration information for the node, configures the device on startup
@@ -146,9 +146,15 @@ public:
    */
   bool configureSensor2vehicle(RosNodeType* node);
 
+  // Generic config options
+  bool debug_;
+
   // Device pointer used to interact with the device
   std::unique_ptr<mscl::InertialNode> inertial_device_;
   std::unique_ptr<mscl::Connection> aux_connection_;
+
+  // Information used to connect to the device
+  int32_t baudrate_;
 
   // Config read from the device
   bool supports_gnss1_;
@@ -227,34 +233,34 @@ public:
   std::vector<double> imu_orientation_cov_;
 
   // Update rates
-  int imu_data_rate_;
-  int gnss_data_rate_[NUM_GNSS];
-  int filter_data_rate_;
+  float imu_data_rate_;
+  float gnss_data_rate_[NUM_GNSS];
+  float filter_data_rate_;
 
   // IMU update rates
-  int imu_raw_data_rate_;
-  int imu_mag_data_rate_;
-  int imu_gps_corr_data_rate_;
+  float imu_raw_data_rate_;
+  float imu_mag_data_rate_;
+  float imu_gps_corr_data_rate_;
 
   // GNSS update rates
-  int gnss_nav_sat_fix_data_rate_[NUM_GNSS] = { DEFAULT_DATA_RATE };
-  int gnss_odom_data_rate_[NUM_GNSS] = { DEFAULT_DATA_RATE };
-  int gnss_time_reference_data_rate_[NUM_GNSS] = { DEFAULT_DATA_RATE };
-  int gnss_fix_info_data_rate_[NUM_GNSS] = { DEFAULT_DATA_RATE };
+  float gnss_nav_sat_fix_data_rate_[NUM_GNSS] = { DEFAULT_DATA_RATE };
+  float gnss_odom_data_rate_[NUM_GNSS] = { DEFAULT_DATA_RATE };
+  float gnss_time_reference_data_rate_[NUM_GNSS] = { DEFAULT_DATA_RATE };
+  float gnss_fix_info_data_rate_[NUM_GNSS] = { DEFAULT_DATA_RATE };
 
   // RTK update rates
-  int rtk_status_data_rate_ = DEFAULT_DATA_RATE;  // Note that this will be used for both the RTKv1 and RTKv2 status messages
+  float rtk_status_data_rate_ = DEFAULT_DATA_RATE;  // Note that this will be used for both the RTKv1 and RTKv2 status messages
 
   // Filter update rates
-  int filter_status_data_rate_ = DEFAULT_DATA_RATE;
-  int filter_heading_data_rate_ = DEFAULT_DATA_RATE;
-  int filter_heading_state_data_rate_ = DEFAULT_DATA_RATE;
-  int filter_odom_data_rate_ = DEFAULT_DATA_RATE;
-  int filter_imu_data_rate_ = DEFAULT_DATA_RATE;
-  int filter_relative_odom_data_rate_ = DEFAULT_DATA_RATE;  // Note that this will be used for both the relative odometry message and the transform published on the /tf topic
-  int filter_aiding_status_data_rate_ = DEFAULT_DATA_RATE;
-  int filter_gnss_dual_antenna_status_data_rate_ = DEFAULT_DATA_RATE;
-  int filter_aiding_measurement_summary_data_rate_ = DEFAULT_DATA_RATE;
+  float filter_status_data_rate_ = DEFAULT_DATA_RATE;
+  float filter_heading_data_rate_ = DEFAULT_DATA_RATE;
+  float filter_heading_state_data_rate_ = DEFAULT_DATA_RATE;
+  float filter_odom_data_rate_ = DEFAULT_DATA_RATE;
+  float filter_imu_data_rate_ = DEFAULT_DATA_RATE;
+  float filter_relative_odom_data_rate_ = DEFAULT_DATA_RATE;  // Note that this will be used for both the relative odometry message and the transform published on the /tf topic
+  float filter_aiding_status_data_rate_ = DEFAULT_DATA_RATE;
+  float filter_gnss_dual_antenna_status_data_rate_ = DEFAULT_DATA_RATE;
+  float filter_aiding_measurement_summary_data_rate_ = DEFAULT_DATA_RATE;
 
   // Gnss antenna offsets
   std::vector<double> gnss_antenna_offset_[NUM_GNSS];
@@ -291,7 +297,7 @@ private:
    * \param data_rate  The data rate value to populate with the config parameter
    * \param default_data_rate  The value to set data_rate to if it is set to -1
    */
-  static void getDataRateParam(RosNodeType* node, const std::string& key, int& data_rate, int default_data_rate);
+  static void getDataRateParam(RosNodeType* node, const std::string& key, float& data_rate, float default_data_rate);
 
   /**
    * \brief Convenience function to populate a list of channels and their requested data rates based on whether the device supports them
@@ -300,7 +306,7 @@ private:
    * \param data_rate  The rate in hertz to stream the MIP data at
    * \param channels_to_stream  List of channels and their associated rate that will be populated with the proper channels and data rates
    */
-  void getSupportedMipChannels(mscl::MipTypes::DataClass data_class, const mscl::MipTypes::MipChannelFields& channel_fields, int data_rate, mscl::MipChannels* channels_to_stream);
+  void getSupportedMipChannels(mscl::MipTypes::DataClass data_class, const mscl::MipTypes::MipChannelFields& channel_fields, float data_rate, mscl::MipChannels* channels_to_stream);
 
   /**
    * \brief Enables or disables a filter aiding measurement

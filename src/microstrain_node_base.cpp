@@ -28,14 +28,22 @@ void MicrostrainNodeBase::parseAndPublishMain()
   }
 
   // Save raw data, if enabled
-  if (config_.raw_file_enable_)
+  if (config_.inertial_device_->connection().debugMode())
   {
     mscl::ConnectionDebugDataVec raw_packets = config_.inertial_device_->connection().getDebugData();
 
     for (mscl::ConnectionDebugData raw_packet : raw_packets)
     {
       const mscl::Bytes& raw_packet_bytes = raw_packet.data();
-      config_.raw_file_.write(reinterpret_cast<const char*>(raw_packet_bytes.data()), raw_packet_bytes.size());
+      if (config_.raw_file_enable_)
+        config_.raw_file_.write(reinterpret_cast<const char*>(raw_packet_bytes.data()), raw_packet_bytes.size());
+      if (config_.debug_)
+      {
+        if (raw_packet.fromRead())
+          bytes_read_ += raw_packet_bytes.size();
+        else
+          bytes_written_ += raw_packet_bytes.size();
+      }
     }
   }
 }
@@ -43,6 +51,24 @@ void MicrostrainNodeBase::parseAndPublishMain()
 void MicrostrainNodeBase::parseAndPublishAux()
 {
   parser_.parseAuxString(config_.aux_connection_->getRawBytesStr());
+}
+
+void MicrostrainNodeBase::logDeviceDebugInfo()
+{
+  const size_t baudrate_max = (config_.baudrate_ / 9);
+  const size_t total_bytes = bytes_read_ + bytes_written_;
+  MICROSTRAIN_DEBUG(node_, "Device debug info");
+  MICROSTRAIN_DEBUG(node_, "  total bytes   = %lu", total_bytes);
+  MICROSTRAIN_DEBUG(node_, "  bytes read    = %lu", bytes_read_);
+  MICROSTRAIN_DEBUG(node_, "  bytes written = %lu", bytes_written_);
+
+  // If within 100 bytes of the baudrate max bytes, log a warning
+  if (total_bytes + 100 >= baudrate_max)
+    MICROSTRAIN_WARN(node_, "Total bytes is above or close to the maximum bytes (%lu) for the configured baudrate %u. If connected via serial, consider increasing the baudrate. If connected via USB, this can be ignored", baudrate_max, config_.baudrate_);
+
+  // Reset the counters
+  bytes_read_ = 0;
+  bytes_written_ = 0;
 }
 
 bool MicrostrainNodeBase::initialize(RosNodeType* init_node)

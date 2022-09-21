@@ -42,6 +42,9 @@ bool MicrostrainConfig::configure(RosNodeType* node)
   /// Generic configuration used by the rest of the driver
   ///
 
+  // General
+  get_param<bool>(node, "debug", debug_, false);
+
   // Device
   get_param<bool>(node, "use_device_timestamp", use_device_timestamp_, false);
   get_param<bool>(node, "use_ros_time", use_ros_time_, false);
@@ -58,7 +61,7 @@ bool MicrostrainConfig::configure(RosNodeType* node)
   // IMU
   get_param<bool>(node, "publish_imu", publish_imu_, true);
   get_param<bool>(node, "publish_gps_corr", publish_gps_corr_, false);
-  get_param<int32_t>(node, "imu_data_rate", imu_data_rate_, 10);
+  get_param<float>(node, "imu_data_rate", imu_data_rate_, 10);
   get_param<std::vector<double>>(node, "imu_orientation_cov", imu_orientation_cov_, DEFAULT_MATRIX);
   get_param<std::vector<double>>(node, "imu_linear_cov", imu_linear_cov_, DEFAULT_MATRIX);
   get_param<std::vector<double>>(node, "imu_angular_cov", imu_angular_cov_, DEFAULT_MATRIX);
@@ -72,8 +75,8 @@ bool MicrostrainConfig::configure(RosNodeType* node)
   // GNSS 1/2
   get_param<bool>(node, "publish_gnss1", publish_gnss_[GNSS1_ID], false);
   get_param<bool>(node, "publish_gnss2", publish_gnss_[GNSS2_ID], false);
-  get_param<int32_t>(node, "gnss1_data_rate", gnss_data_rate_[GNSS1_ID], 1);
-  get_param<int32_t>(node, "gnss2_data_rate", gnss_data_rate_[GNSS2_ID], 1);
+  get_param<float>(node, "gnss1_data_rate", gnss_data_rate_[GNSS1_ID], 1);
+  get_param<float>(node, "gnss2_data_rate", gnss_data_rate_[GNSS2_ID], 1);
   get_param<std::vector<double>>(node, "gnss1_antenna_offset", gnss_antenna_offset_[GNSS1_ID], DEFAULT_VECTOR);
   get_param<std::vector<double>>(node, "gnss2_antenna_offset", gnss_antenna_offset_[GNSS2_ID], DEFAULT_VECTOR);
   get_param<std::string>(node, "gnss1_frame_id", gnss_frame_id_[GNSS1_ID], gnss_frame_id_[GNSS1_ID]);
@@ -108,7 +111,7 @@ bool MicrostrainConfig::configure(RosNodeType* node)
 
   // FILTER
   get_param<bool>(node, "publish_filter", publish_filter_, false);
-  get_param<int32_t>(node, "filter_data_rate", filter_data_rate_, 10);
+  get_param<float>(node, "filter_data_rate", filter_data_rate_, 10);
   get_param<std::string>(node, "filter_frame_id", filter_frame_id_, filter_frame_id_);
   get_param<std::string>(node, "filter_child_frame_id", filter_child_frame_id_, filter_child_frame_id_);
   get_param<bool>(node, "publish_relative_position", publish_filter_relative_pos_, false);
@@ -168,6 +171,9 @@ bool MicrostrainConfig::configure(RosNodeType* node)
 
   if (!setupRawFile(node))
     return false;
+  
+  if (debug_)
+    inertial_device_->connection().debugMode(true);
 
   return true;
 }
@@ -177,13 +183,12 @@ bool MicrostrainConfig::connectDevice(RosNodeType* node)
   // Read the config required for only this section
   std::string port;
   std::string aux_port;
-  int32_t baudrate;
   bool poll_port;
   double poll_rate_hz;
   int32_t poll_max_tries;
   get_param<std::string>(node, "port", port, "/dev/ttyACM0");
   get_param<std::string>(node, "aux_port", aux_port, "/dev/ttyACM1");
-  get_param<int32_t>(node, "baudrate", baudrate, 115200);
+  get_param<int32_t>(node, "baudrate", baudrate_, 115200);
   get_param<bool>(node, "poll_port", poll_port, false);
   get_param<double>(node, "poll_rate_hz", poll_rate_hz, 1.0);
   get_param<int32_t>(node, "poll_max_tries", poll_max_tries, 60);
@@ -223,9 +228,9 @@ bool MicrostrainConfig::connectDevice(RosNodeType* node)
     //
     // Initialize the serial interface to the device and create the inertial device object
     //
-    MICROSTRAIN_INFO(node_, "Attempting to open serial port <%s> at <%d>", port.c_str(), baudrate);
+    MICROSTRAIN_INFO(node_, "Attempting to open serial port <%s> at <%d>", port.c_str(), (uint32_t)baudrate_);
 
-    mscl::Connection connection = mscl::Connection::Serial(realpath(port.c_str(), 0), (uint32_t)baudrate);
+    mscl::Connection connection = mscl::Connection::Serial(realpath(port.c_str(), 0), (uint32_t)baudrate_);
     inertial_device_ = std::unique_ptr<mscl::InertialNode>(new mscl::InertialNode(connection));
 
     // At this point, we have connected to the device but if it is streaming.
@@ -268,8 +273,8 @@ bool MicrostrainConfig::connectDevice(RosNodeType* node)
     // Connect the aux port if we were asked to stream RTCM corrections
     if (supports_rtk_ && (subscribe_rtcm_ || publish_nmea_))
     {
-      MICROSTRAIN_INFO(node_, "Attempting to open aux serial port <%s> at <%d>", aux_port.c_str(), baudrate);
-      aux_connection_ = std::unique_ptr<mscl::Connection>(new mscl::Connection(mscl::Connection::Serial(realpath(aux_port.c_str(), 0), (uint32_t)baudrate)));
+      MICROSTRAIN_INFO(node_, "Attempting to open aux serial port <%s> at <%d>", aux_port.c_str(), (uint32_t)baudrate_);
+      aux_connection_ = std::unique_ptr<mscl::Connection>(new mscl::Connection(mscl::Connection::Serial(realpath(aux_port.c_str(), 0), (uint32_t)baudrate_)));
       aux_connection_->rawByteMode(true);
     }
   }
@@ -1267,15 +1272,15 @@ bool MicrostrainConfig::configureSensor2vehicle(RosNodeType* node)
   return true;
 }
 
-void MicrostrainConfig::getDataRateParam(RosNodeType* node, const std::string& key, int& data_rate, int default_data_rate)
+void MicrostrainConfig::getDataRateParam(RosNodeType* node, const std::string& key, float& data_rate, float default_data_rate)
 {
   // Get the data rate, and if it is set to the default value, set the rate to the default rate
-  get_param<int>(node, key, data_rate, DEFAULT_DATA_RATE);
+  get_param<float>(node, key, data_rate, DEFAULT_DATA_RATE);
   if (data_rate == DEFAULT_DATA_RATE)
     data_rate = default_data_rate;
 }
 
-void MicrostrainConfig::getSupportedMipChannels(mscl::MipTypes::DataClass data_class, const mscl::MipTypes::MipChannelFields& channel_fields, int data_rate, mscl::MipChannels* channels_to_stream)
+void MicrostrainConfig::getSupportedMipChannels(mscl::MipTypes::DataClass data_class, const mscl::MipTypes::MipChannelFields& channel_fields, float data_rate, mscl::MipChannels* channels_to_stream)
 {
   // If the list is null, return early to avoid a segfault
   if (channels_to_stream == nullptr)
@@ -1297,7 +1302,7 @@ void MicrostrainConfig::getSupportedMipChannels(mscl::MipTypes::DataClass data_c
   }
 
   // Only add channels that the device supports and log a warning if the device does not support the channel
-  const auto& data_rate_hz = mscl::SampleRate::Hertz(data_rate);
+  const auto& data_rate_decimation = mscl::SampleRate::Decimation(inertial_device_->getDataRateBase(data_class) / data_rate);
   const auto& supported_channels = inertial_device_->features().supportedChannelFields(data_class);
   for (const auto channel : channel_fields)
   {
@@ -1311,25 +1316,25 @@ void MicrostrainConfig::getSupportedMipChannels(mscl::MipTypes::DataClass data_c
       );
       if (existing_channel != channels_to_stream->end())
       {
-        if (existing_channel->sampleRate() < data_rate_hz)
+        if (existing_channel->sampleRate().samples() > data_rate_decimation.samples())
         {
-          MICROSTRAIN_DEBUG(node_, "Updating MIP field with descriptor 0x%x to stream at %d hz", static_cast<uint16_t>(channel), data_rate);
-          *existing_channel = mscl::MipChannel(channel, data_rate_hz);
+          MICROSTRAIN_DEBUG(node_, "Updating MIP field with descriptor 0x%x to stream at %f hz", static_cast<uint16_t>(channel), data_rate);
+          *existing_channel = mscl::MipChannel(channel, data_rate_decimation);
         }
         else
         {
-          MICROSTRAIN_DEBUG(node_, "MIP field with descriptor 0x%x is already streaming faster than %d hz, so we are not updating it", static_cast<uint16_t>(channel), data_rate);
+          MICROSTRAIN_DEBUG(node_, "MIP field with descriptor 0x%x is already streaming faster than %f hz, so we are not updating it", static_cast<uint16_t>(channel), data_rate);
         }
       }
       else
       {
-        MICROSTRAIN_DEBUG(node_, "Streaming MIP field with descriptor 0x%x at a rate of %d hz", static_cast<uint16_t>(channel), data_rate);
-        channels_to_stream->push_back(mscl::MipChannel(channel, data_rate_hz));
+        MICROSTRAIN_DEBUG(node_, "Streaming MIP field with descriptor 0x%x at a rate of %f hz", static_cast<uint16_t>(channel), data_rate);
+        channels_to_stream->push_back(mscl::MipChannel(channel, data_rate_decimation));
       }
     }
     else
     {
-      MICROSTRAIN_WARN(node_, "Attempted to stream MIP field with descriptor 0x%x at a rate of %d hz, but the device reported that it does not support it", static_cast<uint16_t>(channel), data_rate);
+      MICROSTRAIN_WARN(node_, "Attempted to stream MIP field with descriptor 0x%x at a rate of %f hz, but the device reported that it does not support it", static_cast<uint16_t>(channel), data_rate);
     }
   }
 }
