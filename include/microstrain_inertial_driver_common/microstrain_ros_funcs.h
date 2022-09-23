@@ -343,7 +343,7 @@ inline void stop_timer(RosTimerType timer)
  */
 inline void get_param_float(RosNodeType* node, const std::string& param_name, float& param_val, const float default_val)
 {
-  // Seems like ROS should be able to figure this out, but for ROS2 at least, floats need to be explicitly 
+  // Seems like ROS should be able to figure this out, but for ROS2 at least, we need to cast ints to floats so people don't have to put decimal points
   try
   {
     get_param<float>(node, param_name, param_val, default_val);
