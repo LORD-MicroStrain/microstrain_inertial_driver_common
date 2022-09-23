@@ -171,7 +171,7 @@ bool MicrostrainConfig::configure(RosNodeType* node)
 
   if (!setupRawFile(node))
     return false;
-  
+
   if (debug_)
     inertial_device_->connection().debugMode(true);
 
