@@ -291,6 +291,14 @@ public:
 
 private:
   /**
+   * \brief Forces the device to idle
+   * \param max_tries The number of times to try setting the device to idle
+   * \param interval Amount of time to wait between setting the device to idle
+   * \return true if the device is now idle, false if setting to idle failed
+   */
+  bool forceIdle(const uint8_t max_tries = 3, const float interval = 2);
+
+  /**
    * \brief Gets the raw value of a data rate parameter, or populates the parameter with the default data rate if it is set to the default value
    * \param node  The ROS node that contains configuration information. For ROS1 this is the private node handle ("~")
    * \param key  The key to look for in the config for the data rate param

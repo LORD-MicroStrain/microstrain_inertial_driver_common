@@ -182,11 +182,13 @@ bool MicrostrainConfig::connectDevice(RosNodeType* node)
 {
   // Read the config required for only this section
   std::string port;
+  bool set_baud;
   std::string aux_port;
   bool poll_port;
   double poll_rate_hz;
   int32_t poll_max_tries;
   get_param<std::string>(node, "port", port, "/dev/ttyACM0");
+  get_param<bool>(node, "set_baud", set_baud, false);
   get_param<std::string>(node, "aux_port", aux_port, "/dev/ttyACM1");
   get_param<int32_t>(node, "baudrate", baudrate_, 115200);
   get_param<bool>(node, "poll_port", poll_port, false);
@@ -233,26 +235,28 @@ bool MicrostrainConfig::connectDevice(RosNodeType* node)
     mscl::Connection connection = mscl::Connection::Serial(realpath(port.c_str(), 0), (uint32_t)baudrate_);
     inertial_device_ = std::unique_ptr<mscl::InertialNode>(new mscl::InertialNode(connection));
 
-    // At this point, we have connected to the device but if it is streaming.
-    // Reading information may fail. Retry a few times to accomodate
-    int32_t set_to_idle_tries = 0;
-    while (set_to_idle_tries++ < 3)
+    // At this point, we have connected to the device but if it is streaming, reading information may fail. Retry setting to idle to accomodate
+    bool idle_success = forceIdle();
+
+    // If the device is not idle, we may have the wrong baudrate, so figure out the right one, configure it, and then switch back
+    if (!idle_success && set_baud)
     {
-      try
+      for (const uint32_t baud : {115200, 9600, 19200, 230400, 460800, 921600})
       {
-        // Put into idle mode
-        MICROSTRAIN_INFO(node_, "Setting to Idle: Stopping data streams and/or waking from sleep");
-        inertial_device_->setToIdle();
-        break;  // If setting to idle succeeded, we don't need to loop anymore as the device can now communicate
-      }
-      catch (const mscl::Error_Communication& e)
-      {
-        MICROSTRAIN_WARN(node_,
-            "It looks like the device is streaming. Waiting a second before setting to idle again");
-        RosRateType rate(1.0);
-        rate.sleep();
+        MICROSTRAIN_INFO(node_, "Attempting to open port at %d baud", baud);
+        inertial_device_->connection().updateBaudRate(baud);
+        if ((idle_success = forceIdle()) == true)
+        {
+          MICROSTRAIN_INFO(node_, "Device was previously configured at %d baud, changing to %d baud", baud, baudrate_);
+          inertial_device_->setUARTBaudRate(baudrate_);
+          break;
+        }
       }
     }
+
+    // If at this point, the device is still not idle, return an error
+    if (!idle_success)
+      return false;
 
     // Print the device info
     MICROSTRAIN_INFO(node_, R"(
@@ -378,6 +382,12 @@ bool MicrostrainConfig::setupDevice(RosNodeType* node)
     else
     {
       MICROSTRAIN_ERROR(node_, "**The device does not support the factory streaming channels setup command!");
+    }
+
+    // Warn users with a low baudrate
+    if (baudrate_ < 460800)
+    {
+      MICROSTRAIN_WARN(node_, "WARNING: The configured baudrate is too low to stream factory support channels over serial. If the device is connected via USB, this warning can be ignored.");
     }
   }
 
@@ -1270,6 +1280,28 @@ bool MicrostrainConfig::configureSensor2vehicle(RosNodeType* node)
     }
   }
   return true;
+}
+
+bool MicrostrainConfig::forceIdle(const uint8_t max_tries, const float interval)
+{
+  int32_t tries = 0;
+  while (tries++ < max_tries)
+  {
+    try
+    {
+      // Put into idle mode
+      MICROSTRAIN_INFO(node_, "Setting to Idle: Stopping data streams and/or waking from sleep");
+      inertial_device_->setToIdle();
+      return true;  // If setting to idle succeeded, we don't need to loop anymore as the device can now communicate
+    }
+    catch (const mscl::Error_Communication& e)
+    {
+      MICROSTRAIN_WARN(node_, "Unable to communicate with device. Waiting a second before setting to idle again, as the device may just be streaming");
+      RosRateType rate(interval);
+      rate.sleep();
+    }
+  }
+  return false;
 }
 
 void MicrostrainConfig::getDataRateParam(RosNodeType* node, const std::string& key, float& data_rate, float default_data_rate)
