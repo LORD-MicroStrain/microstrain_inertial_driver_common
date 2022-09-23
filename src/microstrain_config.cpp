@@ -61,7 +61,7 @@ bool MicrostrainConfig::configure(RosNodeType* node)
   // IMU
   get_param<bool>(node, "publish_imu", publish_imu_, true);
   get_param<bool>(node, "publish_gps_corr", publish_gps_corr_, false);
-  get_param<float>(node, "imu_data_rate", imu_data_rate_, 10);
+  get_param_float(node, "imu_data_rate", imu_data_rate_, 10);
   get_param<std::vector<double>>(node, "imu_orientation_cov", imu_orientation_cov_, DEFAULT_MATRIX);
   get_param<std::vector<double>>(node, "imu_linear_cov", imu_linear_cov_, DEFAULT_MATRIX);
   get_param<std::vector<double>>(node, "imu_angular_cov", imu_angular_cov_, DEFAULT_MATRIX);
@@ -75,8 +75,8 @@ bool MicrostrainConfig::configure(RosNodeType* node)
   // GNSS 1/2
   get_param<bool>(node, "publish_gnss1", publish_gnss_[GNSS1_ID], false);
   get_param<bool>(node, "publish_gnss2", publish_gnss_[GNSS2_ID], false);
-  get_param<float>(node, "gnss1_data_rate", gnss_data_rate_[GNSS1_ID], 1);
-  get_param<float>(node, "gnss2_data_rate", gnss_data_rate_[GNSS2_ID], 1);
+  get_param_float(node, "gnss1_data_rate", gnss_data_rate_[GNSS1_ID], 1);
+  get_param_float(node, "gnss2_data_rate", gnss_data_rate_[GNSS2_ID], 1);
   get_param<std::vector<double>>(node, "gnss1_antenna_offset", gnss_antenna_offset_[GNSS1_ID], DEFAULT_VECTOR);
   get_param<std::vector<double>>(node, "gnss2_antenna_offset", gnss_antenna_offset_[GNSS2_ID], DEFAULT_VECTOR);
   get_param<std::string>(node, "gnss1_frame_id", gnss_frame_id_[GNSS1_ID], gnss_frame_id_[GNSS1_ID]);
@@ -111,7 +111,7 @@ bool MicrostrainConfig::configure(RosNodeType* node)
 
   // FILTER
   get_param<bool>(node, "publish_filter", publish_filter_, false);
-  get_param<float>(node, "filter_data_rate", filter_data_rate_, 10);
+  get_param_float(node, "filter_data_rate", filter_data_rate_, 10);
   get_param<std::string>(node, "filter_frame_id", filter_frame_id_, filter_frame_id_);
   get_param<std::string>(node, "filter_child_frame_id", filter_child_frame_id_, filter_child_frame_id_);
   get_param<bool>(node, "publish_relative_position", publish_filter_relative_pos_, false);
@@ -1307,7 +1307,7 @@ bool MicrostrainConfig::forceIdle(const uint8_t max_tries, const float interval)
 void MicrostrainConfig::getDataRateParam(RosNodeType* node, const std::string& key, float& data_rate, float default_data_rate)
 {
   // Get the data rate, and if it is set to the default value, set the rate to the default rate
-  get_param<float>(node, key, data_rate, DEFAULT_DATA_RATE);
+  get_param_float(node, key, data_rate, DEFAULT_DATA_RATE);
   if (data_rate == DEFAULT_DATA_RATE)
     data_rate = default_data_rate;
 }
@@ -1321,20 +1321,30 @@ void MicrostrainConfig::getSupportedMipChannels(mscl::MipTypes::DataClass data_c
     return;
   }
 
+  // Compile a list of descriptors
+  std::stringstream descriptors_ss;
+  for (const auto& channel : channel_fields)
+  {
+    descriptors_ss << " 0x" << std::hex << static_cast<uint16_t>(channel);
+  }
+
   // If the data rate is 0, just return early
   if (data_rate == 0)
   {
-    std::stringstream descriptors_ss;
-    for (const auto& channel : channel_fields)
-    {
-      descriptors_ss << " 0x" << std::hex << static_cast<uint16_t>(channel);
-    }
     MICROSTRAIN_DEBUG(node_, "Disabling MIP fields with descriptors%s because the rate was set to 0", descriptors_ss.str().c_str());
     return;
   }
 
+  // Calculate the decimation, and if the number is not evenly divisible, log a warning
+  const uint64_t data_rate_base = inertial_device_->getDataRateBase(data_class);
+  const auto& data_rate_decimation = mscl::SampleRate::Decimation(data_rate_base / data_rate);
+  if (std::remainder(data_rate_base, data_rate) != 0)
+  {
+    MICROSTRAIN_WARN(node_, "Requested data rate for descriptor set 0x%02x is not a valid data rate as the base rate is not evenly divisible by the data rate (%lu / %f)", data_class, data_rate_base, data_rate);
+    MICROSTRAIN_WARN(node_, "  Streaming descriptors%s at %u hz instead of %f hz", descriptors_ss.str().c_str(), data_rate_decimation.samples(), data_rate);
+  }
+
   // Only add channels that the device supports and log a warning if the device does not support the channel
-  const auto& data_rate_decimation = mscl::SampleRate::Decimation(inertial_device_->getDataRateBase(data_class) / data_rate);
   const auto& supported_channels = inertial_device_->features().supportedChannelFields(data_class);
   for (const auto channel : channel_fields)
   {
