@@ -42,6 +42,11 @@ public:
    */
   void parseAndPublishAux();
 
+  /**
+   * \brief If debug is enabled, this will be run every second to print debug information about the device
+   */
+  void logDeviceDebugInfo();
+
 protected:
   /**
    * \brief Default constructor
@@ -89,7 +94,11 @@ protected:
 
   RosTimerType main_parsing_timer_;
   RosTimerType aux_parsing_timer_;
+  RosTimerType log_debug_timer_;
   RosTimerType device_status_timer_;
+
+  size_t bytes_read_ = 0;  /// Number of bytes read this second
+  size_t bytes_written_ = 0;  /// Number of bytes written this second
 };  // MicrostrainNodeBase class
 
 }  // namespace microstrain
