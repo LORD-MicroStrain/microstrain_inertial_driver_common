@@ -55,7 +55,7 @@ void MicrostrainNodeBase::parseAndPublishAux()
 
 void MicrostrainNodeBase::logDeviceDebugInfo()
 {
-  const size_t baudrate_max = (config_.baudrate_ / 9);
+  const size_t baudrate_max = (config_.baudrate_ / 10);
   const size_t total_bytes = bytes_read_ + bytes_written_;
   MICROSTRAIN_DEBUG(node_, "Device debug info");
   MICROSTRAIN_DEBUG(node_, "  total bytes   = %lu", total_bytes);
