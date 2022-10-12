@@ -1006,7 +1006,7 @@ void MicrostrainParser::parseFilterPacket(const mscl::MipDataPacket& packet)
             publishers_->filtered_imu_msg_.angular_velocity_covariance.begin());
 
   // Optionally transform the velocity into the vehicle frame
-  if (config_->filter_vel_in_vehicle_frame_)
+  if (config_->filter_vel_in_vehicle_frame_ && curr_filter_quaternion_.size() == 4)
   {
     const tf2::Vector3 tf_curr_vel = tf2::Vector3(curr_filter_vel_north_, curr_filter_vel_east_, curr_filter_vel_down_);
     const tf2::Quaternion quaternion(

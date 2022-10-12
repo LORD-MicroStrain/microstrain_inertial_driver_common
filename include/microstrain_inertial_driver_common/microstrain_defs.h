@@ -158,7 +158,7 @@ constexpr auto NUM_GNSS = 2;
 #include "nmea_msgs/msg/sentence.hpp"
 
 // .h header was deprecated in rolling and will likely be removed in future releases.
-#if MICROSTRAIN_ROLLING == 1
+#if MICROSTRAIN_ROLLING == 1 || MICROSTRAIN_HUMBLE == 1
 #include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
 #else
 #include "tf2_geometry_msgs/tf2_geometry_msgs.h"
