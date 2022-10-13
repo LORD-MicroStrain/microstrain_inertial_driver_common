@@ -68,70 +68,148 @@ void MicrostrainParser::parseAuxString(const std::string& aux_string)
 {
   // Append the string to our cached string
   aux_string_ += aux_string;
+  MICROSTRAIN_DEBUG(node_, "Read %lu new bytes from aux port. Parsing a total of %lu bytes including cached data", aux_string.size(), aux_string_.size());
 
-  // Each string may have more than one NMEA message
-  size_t search_index = 0;
-  while (search_index < aux_string_.size())
+  // Iterate until we find a valid packet
+  size_t trim_length = 0;
+  for (size_t i = 0; i < aux_string_.size(); i++)
   {
-    // If we can't find a $, there are no more NMEA sentences, so exit early
-    const size_t nmea_start_index = aux_string_.find(NMEA_START_SEQUENCE, search_index);
-    if (nmea_start_index == std::string::npos)
+    // NMEA parsing logic
+    if (aux_string_[i] == '$' || aux_string_[i] == '!')
     {
-      MICROSTRAIN_DEBUG(node_, "Unable to find Start of NMEA sentence (%s) in string, skipping", NMEA_START_SEQUENCE);
-      if(aux_string_.find("\x75\x65", search_index) != std::string::npos)
-        MICROSTRAIN_DEBUG(node_, "This is probably a MIP packet");
-      break;
-    }
-    MICROSTRAIN_DEBUG(node_, "Found beginning of NMEA packet at %lu", nmea_start_index);
+      MICROSTRAIN_DEBUG(node_, "Found possible beginning of NMEA sentence at %lu", i);
+      for (size_t j = i; j < aux_string_.size() - 1; j++)
+      {
+        if (aux_string_[j] == '\r' && aux_string_[j + 1] == '\n')
+        {
+          MICROSTRAIN_DEBUG(node_, "Found possible end of NMEA sentence at %lu", j + 1);
+          // Attempt to find the checksum
+          size_t checksum_start_index = i;
+          for (size_t k = j; k > i; k--)
+          {
+            if (aux_string_[k] == '*')
+            {
+              checksum_start_index = k + 1;
+              break;
+            }
+          }
 
-    // Make sure that there is a comma somewhere after the start index
-    const size_t first_comma_index = aux_string_.find(',', nmea_start_index + 1);
-    if (first_comma_index == std::string::npos)
+          // If we couldn't find the checksum, this isn't a valid sentence, so move on
+          if (checksum_start_index == i)
+          {
+            MICROSTRAIN_DEBUG(node_, "Found beginning and end of NMEA sentence, but could not find the checksum. Skipping");
+            break;
+          }
+
+          // Extract the expected checksum
+          const std::string& expected_checksum_str = aux_string_.substr(checksum_start_index, j - checksum_start_index);
+          const uint16_t expected_checksum = static_cast<uint16_t>(std::stoi(expected_checksum_str, nullptr, 16));
+
+          // Calculate the actual checksum
+          uint16_t actual_checksum = 0;
+          for (size_t l = i + 1; l < checksum_start_index - 1; l++)
+            actual_checksum ^= aux_string_[l];
+          
+          // Extract the sentence
+          const std::string& sentence = aux_string_.substr(i, (j - i) + 2);
+          
+          // If the checksum is invalid, move on
+          if (actual_checksum != expected_checksum)
+          {
+            MICROSTRAIN_DEBUG(node_, "Found what appeared to be a valid NMEA sentence, but the checksums did not match. Skipping");
+            MICROSTRAIN_DEBUG(node_, "  Sentence:          %s", sentence.c_str());
+            MICROSTRAIN_DEBUG(node_, "  Expected Checksum: 0x%02x", expected_checksum);
+            MICROSTRAIN_DEBUG(node_, "  Actual Checksum:   0x%02x", actual_checksum);
+            break;
+          }
+
+          // Looks like it is a valid NMEA sentence. Publish
+          publishers_->nmea_sentence_msg_.header.stamp = ros_time_now(node_);
+          publishers_->nmea_sentence_msg_.header.frame_id = config_->nmea_frame_id_;
+          publishers_->nmea_sentence_msg_.sentence = sentence;
+          if (publishers_->nmea_sentence_pub_ != nullptr)
+            publishers_->nmea_sentence_pub_->publish(publishers_->nmea_sentence_msg_);
+          
+          // Move the iterator past the end of the sentence, and mark it for deletion
+          MICROSTRAIN_DEBUG(node_, "Found valid NMEA sentence starting at index %lu and ending at index %lu: %s", i, j + 1, sentence.c_str());
+          trim_length = i = j + 1;
+          break;
+        }
+      }
+    }
+
+    // MIP parsing (just to throw away the packets, and log some debug info)
+    else if (i + 1 < aux_string_.size() && aux_string_[i] == 0x75 && aux_string_[i + 1] == 0x65)
     {
-      // This is either an invalid NMEA message, or a MIP packet, either way skip it
-      MICROSTRAIN_DEBUG(node_, "Found start of NMEA packet, but the %s was not followed by a comma, skipping", NMEA_START_SEQUENCE);
-      search_index++;
-      continue;
+      MICROSTRAIN_DEBUG(node_, "Found what appears to be a MIP packet starting at %lu", i);
+
+      // Find the descriptor set and length assuming we have enough data
+      if (i + 2 >= aux_string_.size())
+      {
+        MICROSTRAIN_DEBUG(node_, "Not enough bytes to extract descriptor set of MIP packet");
+        continue;
+      }
+      if (i + 3 >= aux_string_.size())
+      {
+        MICROSTRAIN_DEBUG(node_, "Not enough bytes to extract length of MIP packet");
+        continue;
+      }
+      const uint8_t descriptor_set = aux_string_[i + 2];
+      const uint8_t payload_length = aux_string_[i + 3];
+
+      // Make sure we have enough remaining data to extract the rest of the packet
+      const size_t checksum_start_index = i + 3 + payload_length + 1;
+      const size_t packet_end_index = checksum_start_index + 1;
+      if (packet_end_index >= aux_string_.size())
+      {
+        MICROSTRAIN_DEBUG(node_, "We only have %lu bytes of data, but the MIP packet supposedly ends at index %lu", aux_string_.size(), packet_end_index);
+        continue;
+      }
+
+      // Extract the expected checksum
+      const uint16_t expected_checksum = (static_cast<uint8_t>(aux_string_[checksum_start_index]) << 8) | static_cast<uint8_t>(aux_string_[packet_end_index]);
+
+      // Calculate the actual checksum
+      uint8_t checksum_msb = 0;
+      uint8_t checksum_lsb = 0;
+      size_t count = 0;
+      for (size_t j = i; j < checksum_start_index; j++)
+      {
+        count++;
+        checksum_msb += static_cast<uint8_t>(aux_string_[j]);
+        checksum_lsb += checksum_msb;
+      }
+      const uint16_t actual_checksum = (static_cast<uint16_t>(checksum_msb) << 8) | static_cast<uint16_t>(checksum_lsb);
+
+      // If the checksums do not match, log some debug information
+      if (expected_checksum != actual_checksum)
+      {
+        std::stringstream message_ss;
+        for (size_t j = i; j <= packet_end_index; j++)
+          message_ss << std::setfill('0') << std::setw(2) << std::hex << static_cast<uint16_t>(static_cast<uint8_t>(aux_string_[j]));
+        MICROSTRAIN_DEBUG(node_, "Found what appeared to be a valid MIP message, but the checksums did not match. Skipping");
+        MICROSTRAIN_DEBUG(node_, "  Message:           0x%s", message_ss.str().c_str());
+        MICROSTRAIN_DEBUG(node_, "  Expected Checksum: 0x%02x", expected_checksum);
+        MICROSTRAIN_DEBUG(node_, "  Actual Checksum:   0x%02x", actual_checksum);
+        continue;
+      }
+
+      // Move the iterator past the end of the packet, and mark it for deletion
+      MICROSTRAIN_DEBUG(node_, "Found valid MIP packet on aux port starting at index %lu and ending at %lu, skipping...", i, packet_end_index);
+      trim_length = i = packet_end_index + 1;
     }
-
-    // Search for the end of the NMEA string
-    const size_t nmea_end_index = aux_string_.find(NMEA_STOP_SEQUENCE, first_comma_index + 1);
-    if (nmea_end_index == std::string::npos)
-    {
-      MICROSTRAIN_WARN(node_, "Malformed NMEA sentence received. Ignoring sentence");
-      break;
-    }
-    MICROSTRAIN_DEBUG(node_, "Found end of NMEA packet at %lu", nmea_end_index);
-
-    // If there is another $ between the first $ and the end string, the first $ might have been part of a MIP message, so start over at the second $
-    const size_t possible_mid_index = aux_string_.find(NMEA_START_SEQUENCE, nmea_start_index + 1);
-    if (possible_mid_index != std::string::npos && possible_mid_index < nmea_end_index)
-    {
-      MICROSTRAIN_DEBUG(node_, "Found another %s within what we thought was a NMEA packet, likely the first %s was part of a MIP packet, starting over from second %s", NMEA_START_SEQUENCE, NMEA_START_SEQUENCE, NMEA_START_SEQUENCE);
-      search_index = possible_mid_index;
-      continue;
-    }
-
-    // Get the NMEA substring, and update the index for the next iteration
-    const size_t nmea_sentence_len = (nmea_end_index - nmea_start_index) + strlen(NMEA_STOP_SEQUENCE);
-    const std::string& nmea_sentence = aux_string_.substr(nmea_start_index, nmea_sentence_len);
-    MICROSTRAIN_DEBUG(node_, "Found NMEA sentence %s", nmea_sentence.c_str());
-
-    // Publish the NMEA sentence to ROS
-    publishers_->nmea_sentence_msg_.header.stamp = ros_time_now(node_);
-    publishers_->nmea_sentence_msg_.header.frame_id = config_->nmea_frame_id_;
-    publishers_->nmea_sentence_msg_.sentence = nmea_sentence;
-    if (publishers_->nmea_sentence_pub_ != nullptr)
-      publishers_->nmea_sentence_pub_->publish(publishers_->nmea_sentence_msg_);
-
-    // Remove everything from the beginning of the string to the end of the NMEA sentence as it should all be parsed now
-    aux_string_.erase(0, nmea_end_index + 1);
-    search_index = 0;
   }
 
-  // If the string is longer than the max NMEA sentence size, trim it down
+  // Trim the string
+  MICROSTRAIN_DEBUG(node_, "Aux string is %lu bytes before trimming", aux_string_.size());
+  MICROSTRAIN_DEBUG(node_, "Trimming %lu bytes from the beginning of the cached aux string", trim_length);
+  aux_string_.erase(0, trim_length);
   if (aux_string_.size() > NMEA_MAX_LENGTH)
-    aux_string_.erase(0, (aux_string_.size() - NMEA_MAX_LENGTH) - 1);
+  {
+    MICROSTRAIN_DEBUG(node_, "Aux buffer has grown to %lu bytes. Trimming down to %d bytes", aux_string_.size(), NMEA_MAX_LENGTH);
+    aux_string_.erase(0, aux_string_.size() - NMEA_MAX_LENGTH);
+  }
+  MICROSTRAIN_DEBUG(node_, "Aux string is %lu bytes after trimming", aux_string_.size());
 }
 
 RosTimeType MicrostrainParser::getPacketTimestamp(const mscl::MipDataPacket& packet) const
