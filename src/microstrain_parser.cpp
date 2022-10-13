@@ -78,64 +78,57 @@ void MicrostrainParser::parseAuxString(const std::string& aux_string)
     if (aux_string_[i] == '$' || aux_string_[i] == '!')
     {
       MICROSTRAIN_DEBUG(node_, "Found possible beginning of NMEA sentence at %lu", i);
-      for (size_t j = i; j < aux_string_.size() - 1; j++)
+
+      // Attempt to find the end of the sentence (this index will point to the \r in the \r\n, so is technically one less than the end index)
+      const size_t nmea_end_index = aux_string_.find("\r\n", i + 1);
+      if (nmea_end_index == std::string::npos)
       {
-        if (aux_string_[j] == '\r' && aux_string_[j + 1] == '\n')
-        {
-          MICROSTRAIN_DEBUG(node_, "Found possible end of NMEA sentence at %lu", j + 1);
-          // Attempt to find the checksum
-          size_t checksum_start_index = i;
-          for (size_t k = j; k > i; k--)
-          {
-            if (aux_string_[k] == '*')
-            {
-              checksum_start_index = k + 1;
-              break;
-            }
-          }
-
-          // If we couldn't find the checksum, this isn't a valid sentence, so move on
-          if (checksum_start_index == i)
-          {
-            MICROSTRAIN_DEBUG(node_, "Found beginning and end of NMEA sentence, but could not find the checksum. Skipping");
-            break;
-          }
-
-          // Extract the expected checksum
-          const std::string& expected_checksum_str = aux_string_.substr(checksum_start_index, j - checksum_start_index);
-          const uint16_t expected_checksum = static_cast<uint16_t>(std::stoi(expected_checksum_str, nullptr, 16));
-
-          // Calculate the actual checksum
-          uint16_t actual_checksum = 0;
-          for (size_t l = i + 1; l < checksum_start_index - 1; l++)
-            actual_checksum ^= aux_string_[l];
-          
-          // Extract the sentence
-          const std::string& sentence = aux_string_.substr(i, (j - i) + 2);
-          
-          // If the checksum is invalid, move on
-          if (actual_checksum != expected_checksum)
-          {
-            MICROSTRAIN_DEBUG(node_, "Found what appeared to be a valid NMEA sentence, but the checksums did not match. Skipping");
-            MICROSTRAIN_DEBUG(node_, "  Sentence:          %s", sentence.c_str());
-            MICROSTRAIN_DEBUG(node_, "  Expected Checksum: 0x%02x", expected_checksum);
-            MICROSTRAIN_DEBUG(node_, "  Actual Checksum:   0x%02x", actual_checksum);
-            break;
-          }
-
-          // Looks like it is a valid NMEA sentence. Publish
-          publishers_->nmea_sentence_msg_.header.stamp = ros_time_now(node_);
-          publishers_->nmea_sentence_msg_.header.frame_id = config_->nmea_frame_id_;
-          publishers_->nmea_sentence_msg_.sentence = sentence;
-          if (publishers_->nmea_sentence_pub_ != nullptr)
-            publishers_->nmea_sentence_pub_->publish(publishers_->nmea_sentence_msg_);
-          
-          // Move the iterator past the end of the sentence, and mark it for deletion
-          MICROSTRAIN_DEBUG(node_, "Found valid NMEA sentence starting at index %lu and ending at index %lu: %s", i, j + 1, sentence.c_str());
-          trim_length = i = j + 1;
-          break;
-        }
+        MICROSTRAIN_DEBUG(node_, "Could not find end of NMEA sentence. Continuing...");
+        continue;
       }
+      MICROSTRAIN_DEBUG(node_, "Found possible end of NMEA sentence at %lu", nmea_end_index + 1);
+
+      // Attempt to find the checksum
+      const size_t checksum_delimiter_index = aux_string_.rfind('*', nmea_end_index);
+      if (checksum_delimiter_index == std::string::npos)
+      {
+        MICROSTRAIN_DEBUG(node_, "Found beginning and end of NMEA sentence, but could not find the checksum. Skipping");
+        continue;
+      }
+      const size_t checksum_start_index = checksum_delimiter_index + 1;
+
+      // Extract the expected checksum
+      const std::string& expected_checksum_str = aux_string_.substr(checksum_start_index, nmea_end_index - checksum_start_index);
+      const uint16_t expected_checksum = static_cast<uint16_t>(std::stoi(expected_checksum_str, nullptr, 16));
+
+      // Calculate the actual checksum
+      uint16_t actual_checksum = 0;
+      for (size_t k = i + 1; k < checksum_start_index - 1; k++)
+        actual_checksum ^= aux_string_[k];
+      
+      // Extract the sentence
+      const std::string& sentence = aux_string_.substr(i, (nmea_end_index - i) + 2);
+      
+      // If the checksum is invalid, move on
+      if (actual_checksum != expected_checksum)
+      {
+        MICROSTRAIN_DEBUG(node_, "Found what appeared to be a valid NMEA sentence, but the checksums did not match. Skipping");
+        MICROSTRAIN_DEBUG(node_, "  Sentence:          %s", sentence.c_str());
+        MICROSTRAIN_DEBUG(node_, "  Expected Checksum: 0x%02x", expected_checksum);
+        MICROSTRAIN_DEBUG(node_, "  Actual Checksum:   0x%02x", actual_checksum);
+        continue;
+      }
+
+      // Looks like it is a valid NMEA sentence. Publish
+      publishers_->nmea_sentence_msg_.header.stamp = ros_time_now(node_);
+      publishers_->nmea_sentence_msg_.header.frame_id = config_->nmea_frame_id_;
+      publishers_->nmea_sentence_msg_.sentence = sentence;
+      if (publishers_->nmea_sentence_pub_ != nullptr)
+        publishers_->nmea_sentence_pub_->publish(publishers_->nmea_sentence_msg_);
+      
+      // Move the iterator past the end of the sentence, and mark it for deletion
+      MICROSTRAIN_DEBUG(node_, "Found valid NMEA sentence starting at index %lu and ending at index %lu: %s", i, nmea_end_index + 1, sentence.c_str());
+      trim_length = i = nmea_end_index + 1;
     }
 
     // MIP parsing (just to throw away the packets, and log some debug info)
