@@ -615,8 +615,7 @@ bool MicrostrainConfig::configureGNSS(RosNodeType* node, uint8_t gnss_id)
   }
   else
   {
-    MICROSTRAIN_ERROR(node_, "Could not set GNSS%d antenna offset!", gnss_id + 1);
-    return false;
+    MICROSTRAIN_INFO(node_, "Note: Device does not support configuring GNSS%d offset", gnss_id + 1);
   }
   return true;
 }
@@ -1198,8 +1197,7 @@ bool MicrostrainConfig::configureSensor2vehicle(RosNodeType* node)
     }
     else
     {
-      MICROSTRAIN_ERROR(node_, "**Failed to set sensor2vehicle frame transformation with euler angles!");
-      return false;
+      MICROSTRAIN_INFO(node_, "Note: device does not support sensor2vehicle frame transformation with euler angles");
     }
   }
   // Matrix
@@ -1234,8 +1232,7 @@ bool MicrostrainConfig::configureSensor2vehicle(RosNodeType* node)
     }
     else
     {
-      MICROSTRAIN_ERROR(node_, "**Failed to set sensor2vehicle frame transformation with a matrix!");
-      return false;
+      MICROSTRAIN_INFO(node_, "Note: device does not support sensor2vehicle frame transformation with a matrix");
     }
   }
   // Quaternion
@@ -1275,8 +1272,7 @@ bool MicrostrainConfig::configureSensor2vehicle(RosNodeType* node)
     }
     else
     {
-      MICROSTRAIN_ERROR(node_, "**Failed to set sensor2vehicle frame transformation with quaternion!");
-      return false;
+      MICROSTRAIN_INFO(node_, "Note: device does not support sensor2vehicle frame transformation with a quaternion");
     }
   }
   return true;
