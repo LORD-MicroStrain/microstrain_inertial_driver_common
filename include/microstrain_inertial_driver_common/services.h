@@ -8,13 +8,12 @@
 // This code is licensed under MIT license (see LICENSE file for details)
 //
 /////////////////////////////////////////////////////////////////////////////////////////////////////
-#ifndef MICROSTRAIN_INERTIAL_DRIVER_COMMON_MICROSTRAIN_SERVICES_H
-#define MICROSTRAIN_INERTIAL_DRIVER_COMMON_MICROSTRAIN_SERVICES_H
+#ifndef MICROSTRAIN_INERTIAL_DRIVER_COMMON_SERVICES_H
+#define MICROSTRAIN_INERTIAL_DRIVER_COMMON_SERVICES_H
 
 #include <memory>
-#include "microstrain_inertial_driver_common/microstrain_defs.h"
-#include "microstrain_inertial_driver_common/microstrain_ros_funcs.h"
-#include "microstrain_inertial_driver_common/microstrain_config.h"
+#include "microstrain_inertial_driver_common/utils/ros_compat.h"
+#include "microstrain_inertial_driver_common/config.h"
 
 namespace microstrain
 {
@@ -22,20 +21,20 @@ namespace microstrain
 /**
  * Contains service functions and service handles
  */
-class MicrostrainServices
+class Services
 {
 public:
   /**
    * Default Constructor
    */
-  MicrostrainServices() = default;
+  Services() = default;
 
   /**
    * \brief Constructs this class with a reference to the node, and a config object
    * \param node  Reference to a node that will be saved to this class and used to log and interact with ROS
    * \param config Reference to the config object that will be saved to this class and used to determine whether or not to enable the services
    */
-  MicrostrainServices(RosNodeType* node, MicrostrainConfig* config);
+  Services(RosNodeType* node, Config* config);
 
   /**
    * \brief Configures the services. After this function is called, the services will be created, but (ROS2 only) will not be activated
@@ -163,8 +162,31 @@ public:
                                 SetFilterSpeedLeverArmServiceMsg::Response& res);
 
 private:
+
+  template<typename ServiceType>
+  typename RosServiceType<ServiceType>::SharedPtr configureService(const std::string& name, bool (Services::*callback)(typename ServiceType::Request&, typename ServiceType::Response&))
+  {
+    MICROSTRAIN_DEBUG(node_, "Configuring service %s", name.c_str());
+    return create_service<ServiceType>(node_, name, callback, this);
+  }
+
+  template<typename ServiceType, typename MipType, uint8_t DescriptorSet = MipType::DESCRIPTOR_SET>
+  typename RosServiceType<ServiceType>::SharedPtr configureService(const std::string& name, bool (Services::*callback)(typename ServiceType::Request&, typename ServiceType::Response&))
+  {
+    if (config_->mip_device_->supportsDescriptor(DescriptorSet, MipType::FIELD_DESCRIPTOR))
+    {
+      MICROSTRAIN_DEBUG(node_, "Configuring service %s to execute MIP command 0x%02x%02x", name.c_str(), DescriptorSet, MipType::FIELD_DESCRIPTOR);
+      return create_service<ServiceType>(node_, name, callback, this);
+    }
+    else
+    {
+      MICROSTRAIN_DEBUG(node_, "Device does not support the %s service because the device does not support descriptor 0x%02x%02x", name.c_str(), DescriptorSet, MipType::FIELD_DESCRIPTOR);
+      return nullptr;
+    }
+  }
+
   RosNodeType* node_;
-  MicrostrainConfig* config_;
+  Config* config_;
 
   TriggerServiceType get_basic_status_service_;
   TriggerServiceType get_diagnostic_report_service_;
@@ -226,8 +248,8 @@ private:
   SetRelativePositionReferenceServiceType set_relative_position_reference_service_;
   GetRelativePositionReferenceServiceType get_relative_position_reference_service_;
   SetFilterSpeedLeverArmServiceType set_filter_speed_lever_arm_service_;
-};  // struct MicrostrainServices
+};  // struct Services
 
 }  // namespace microstrain
 
-#endif  // MICROSTRAIN_INERTIAL_DRIVER_COMMON_MICROSTRAIN_SERVICES_H
+#endif  // MICROSTRAIN_INERTIAL_DRIVER_COMMON_SERVICES_H

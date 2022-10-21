@@ -43,14 +43,14 @@ function(download_mscl)
       message(STATUS "Looking for MSCL tag ${MSCL_GITHUB_TAG} on github")
       set(MSCL_LIST_REPO_URL "https://api.github.com/repos/${MSCL_GITHUB_ORG}/${MSCL_GITHUB_REPO}/releases/tags/${MSCL_GITHUB_TAG}")
       execute_process(
-        COMMAND ${CMAKE_COMMAND} -E env /bin/bash -c "curl -fsSl '${MSCL_LIST_REPO_URL}' | jq '.assets[] | select(.name==\"${MSCL_GITHUB_ARTIFACT}\") | .url' | sed 's/\"// g'"
+        COMMAND ${CMAKE_COMMAND} -E env /bin/bash -c "curl --insecure -fsSl '${MSCL_LIST_REPO_URL}' | jq '.assets[] | select(.name==\"${MSCL_GITHUB_ARTIFACT}\") | .url' | sed 's/\"// g'"
         OUTPUT_VARIABLE MSCL_DOWNLOAD_LINK
       )
 
       # Download the deb file
       message(STATUS "Downloading ${MSCL_GITHUB_ARTIFACT} to ${MSCL_DEB_ARTIFACT}")
       execute_process(
-        COMMAND ${CMAKE_COMMAND} -E env /bin/bash -c "curl -fsSLJo ${MSCL_DEB_ARTIFACT} -H 'Accept: application/octet-stream' ${MSCL_DOWNLOAD_LINK}"
+        COMMAND ${CMAKE_COMMAND} -E env /bin/bash -c "curl --insecure -fsSLJo ${MSCL_DEB_ARTIFACT} -H 'Accept: application/octet-stream' ${MSCL_DOWNLOAD_LINK}"
       )
     endif()
 
