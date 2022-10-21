@@ -63,7 +63,7 @@ public:
   template<typename MessageType>
   class Publisher
   {
-  public:
+   public:
     using SharedPtr = std::shared_ptr<Publisher<MessageType>>;
     using SharedPtrVec = std::vector<SharedPtr>;
 
@@ -101,12 +101,14 @@ public:
 
     void activate()
     {
-      publisher_->on_activate();
+      if (publisher_ != nullptr)
+        publisher_->on_activate();
     }
 
     void deactivate()
     {
-      publisher_->on_deactivate();
+      if (publisher_ != nullptr)
+        publisher_->on_deactivate();
     }
 
     void publish()
@@ -140,7 +142,7 @@ public:
     }
 
 
-  private:
+   private:
     const std::string topic_;
     bool updated_;
 

@@ -75,8 +75,9 @@ bool Config::configure(RosNodeType* node)
   get_param<std::string>(node, "imu_frame_id", imu_frame_id_, imu_frame_id_);
 
   // GNSS 1/2
-  get_param<std::vector<float>>(node, "gnss1_antenna_offset", gnss_antenna_offset_[GNSS1_ID], {0, 0, 0});
-  get_param<std::vector<float>>(node, "gnss2_antenna_offset", gnss_antenna_offset_[GNSS2_ID], {0, 0, 0});
+  std::vector<double> gnss_antenna_offset_double[NUM_GNSS];
+  get_param<std::vector<double>>(node, "gnss1_antenna_offset", gnss_antenna_offset_double[GNSS1_ID], DEFAULT_VECTOR);
+  get_param<std::vector<double>>(node, "gnss2_antenna_offset", gnss_antenna_offset_double[GNSS2_ID], DEFAULT_VECTOR);
   get_param<std::string>(node, "gnss1_frame_id", gnss_frame_id_[GNSS1_ID], gnss_frame_id_[GNSS1_ID]);
   get_param<std::string>(node, "gnss2_frame_id", gnss_frame_id_[GNSS2_ID], gnss_frame_id_[GNSS2_ID]);
 
@@ -120,6 +121,10 @@ bool Config::configure(RosNodeType* node)
   // Raw data file save
   get_param<bool>(node, "raw_file_enable", raw_file_enable_, false);
   get_param<bool>(node, "raw_file_include_support_data", raw_file_include_support_data_, false);
+
+  // ROS2 can only fetch double vectors from config, so convert the doubles to floats for the MIP SDK
+  for (int i = 0; i < NUM_GNSS; i++)
+    gnss_antenna_offset_[i] = std::vector<float>(gnss_antenna_offset_double[i].begin(), gnss_antenna_offset_double[i].end());
 
   // Log the MIP SDK version
   MICROSTRAIN_INFO(node_, "Using MIP SDK version: %s", MIP_SDK_VERSION_FULL);
@@ -560,35 +565,47 @@ bool Config::configureFilter(RosNodeType* node)
   int filter_init_condition_src;
   int filter_auto_heading_alignment_selector;
   int filter_init_reference_frame;
-  std::vector<float> filter_init_position(3, 0.0);
-  std::vector<float> filter_init_velocity(3, 0.0);
-  std::vector<float> filter_init_attitude(3, 0.0);
+  std::vector<double> filter_init_position_double(3, 0.0);
+  std::vector<double> filter_init_velocity_double(3, 0.0);
+  std::vector<double> filter_init_attitude_double(3, 0.0);
   int filter_relative_position_frame;
-  std::vector<double> filter_relative_position_ref(3, 0.0);
-  std::vector<float> filter_speed_lever_arm(3, 0.0);
+  std::vector<double> filter_relative_position_ref_double(3, 0.0);
+  std::vector<double> filter_speed_lever_arm_double(3, 0.0);
   double filter_gnss_antenna_cal_max_offset;
   get_param<int32_t>(node, "filter_adaptive_level", filter_adaptive_level, 2);
   get_param<int32_t>(node, "filter_adaptive_time_limit_ms", filter_adaptive_time_limit_ms, 15000);
   get_param<int32_t>(node, "filter_init_condition_src", filter_init_condition_src, 0);
   get_param<int32_t>(node, "filter_auto_heading_alignment_selector", filter_auto_heading_alignment_selector, 0);
   get_param<int32_t>(node, "filter_init_reference_frame", filter_init_reference_frame, 2);
-  get_param<std::vector<float>>(node, "filter_init_position", filter_init_position, {0, 0, 0});
-  get_param<std::vector<float>>(node, "filter_init_velocity", filter_init_velocity, {0, 0, 0});
-  get_param<std::vector<float>>(node, "filter_init_attitude", filter_init_attitude, {0, 0, 0});
+  get_param<std::vector<double>>(node, "filter_init_position", filter_init_position_double, DEFAULT_VECTOR);
+  get_param<std::vector<double>>(node, "filter_init_velocity", filter_init_velocity_double, DEFAULT_VECTOR);
+  get_param<std::vector<double>>(node, "filter_init_attitude", filter_init_attitude_double, DEFAULT_VECTOR);
   get_param<int32_t>(node, "filter_relative_position_frame", filter_relative_position_frame, 2);
-  get_param<std::vector<double>>(node, "filter_relative_position_ref", filter_relative_position_ref, DEFAULT_VECTOR);
-  get_param<std::vector<float>>(node, "filter_speed_lever_arm", filter_speed_lever_arm, {0, 0, 0});
+  get_param<std::vector<double>>(node, "filter_relative_position_ref", filter_relative_position_ref_double, DEFAULT_VECTOR);
+  get_param<std::vector<double>>(node, "filter_speed_lever_arm", filter_speed_lever_arm_double, DEFAULT_VECTOR);
   get_param<double>(node, "filter_gnss_antenna_cal_max_offset", filter_gnss_antenna_cal_max_offset, 0.1);
 
   // Sensor2vehicle config
   int filter_sensor2vehicle_frame_selector;
-  std::vector<float> filter_sensor2vehicle_frame_transformation_euler(3, 0.0);
-  std::vector<float> filter_sensor2vehicle_frame_transformation_matrix(9, 0.0);
-  std::vector<float> filter_sensor2vehicle_frame_transformation_quaternion(4, 0.0);
+  std::vector<double> filter_sensor2vehicle_frame_transformation_euler_double(3, 0.0);
+  std::vector<double> filter_sensor2vehicle_frame_transformation_matrix_double(9, 0.0);
+  std::vector<double> filter_sensor2vehicle_frame_transformation_quaternion_double(4, 0.0);
   get_param<int32_t>(node, "filter_sensor2vehicle_frame_selector", filter_sensor2vehicle_frame_selector, 0);
-  get_param<std::vector<float>>(node, "filter_sensor2vehicle_frame_transformation_euler", filter_sensor2vehicle_frame_transformation_euler, {0, 0, 0});
-  get_param<std::vector<float>>(node, "filter_sensor2vehicle_frame_transformation_matrix", filter_sensor2vehicle_frame_transformation_matrix, {0, 0, 0});
-  get_param<std::vector<float>>(node, "filter_sensor2vehicle_frame_transformation_quaternion", filter_sensor2vehicle_frame_transformation_quaternion, {0, 0, 0});
+  get_param<std::vector<double>>(node, "filter_sensor2vehicle_frame_transformation_euler", filter_sensor2vehicle_frame_transformation_euler_double, DEFAULT_VECTOR);
+  get_param<std::vector<double>>(node, "filter_sensor2vehicle_frame_transformation_matrix", filter_sensor2vehicle_frame_transformation_matrix_double, DEFAULT_VECTOR);
+  get_param<std::vector<double>>(node, "filter_sensor2vehicle_frame_transformation_quaternion", filter_sensor2vehicle_frame_transformation_quaternion_double, DEFAULT_VECTOR);
+
+  // ROS2 can only fetch double vectors from config, so convert the doubles to floats for the MIP SDK
+  std::vector<float> filter_init_position(filter_init_position_double.begin(), filter_init_position_double.end());
+  std::vector<float> filter_init_velocity(filter_init_velocity_double.begin(), filter_init_velocity_double.end());
+  std::vector<float> filter_init_attitude(filter_init_attitude_double.begin(), filter_init_attitude_double.end());
+
+  std::vector<double> filter_relative_position_ref(filter_relative_position_ref_double.begin(), filter_relative_position_ref_double.end());
+  std::vector<float> filter_speed_lever_arm(filter_speed_lever_arm_double.begin(), filter_speed_lever_arm_double.end());
+
+  std::vector<float> filter_sensor2vehicle_frame_transformation_euler(filter_sensor2vehicle_frame_transformation_euler_double.begin(), filter_sensor2vehicle_frame_transformation_euler_double.end());
+  std::vector<float> filter_sensor2vehicle_frame_transformation_matrix(filter_sensor2vehicle_frame_transformation_matrix_double.begin(), filter_sensor2vehicle_frame_transformation_matrix_double.end());
+  std::vector<float> filter_sensor2vehicle_frame_transformation_quaternion(filter_sensor2vehicle_frame_transformation_quaternion_double.begin(), filter_sensor2vehicle_frame_transformation_quaternion_double.end());
 
   mip::CmdResult mip_cmd_result;
   const uint8_t descriptor_set = mip::commands_filter::DESCRIPTOR_SET;

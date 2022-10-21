@@ -19,8 +19,6 @@
 /**
  * Common Defines
  */
-
-
 #ifndef M_PI
 #define M_PI (3.14159265358979323846)
 #endif
@@ -298,25 +296,6 @@ using FilterHeadingStateMsg = ::microstrain_inertial_msgs::FilterHeadingState;
 using GPSCorrelationTimestampStampedMsg = ::microstrain_inertial_msgs::GPSCorrelationTimestampStamped;
 using TransformStampedMsg = ::geometry_msgs::TransformStamped;
 
-// ROS1 Publisher Types
-using OdometryPubType = RosPubType<OdometryMsg>::SharedPtr;
-using ImuPubType = RosPubType<ImuMsg>::SharedPtr;
-using NavSatFixPubType = RosPubType<NavSatFixMsg>::SharedPtr;
-using MagneticFieldPubType = RosPubType<MagneticFieldMsg>::SharedPtr;
-using TimeReferencePubType = RosPubType<TimeReferenceMsg>::SharedPtr;
-using NMEASentencePubType = RosPubType<NMEASentenceMsg>::SharedPtr;
-using StatusPubType = RosPubType<StatusMsg>::SharedPtr;
-using RTKStatusPubType = RosPubType<RTKStatusMsg>::SharedPtr;
-using RTKStatusPubTypeV1 = RosPubType<RTKStatusMsgV1>::SharedPtr;
-using FilterStatusPubType = RosPubType<FilterStatusMsg>::SharedPtr;
-using FilterHeadingPubType = RosPubType<FilterHeadingMsg>::SharedPtr;
-using FilterAidingMeasurementSummaryPubType = RosPubType<FilterAidingMeasurementSummaryMsg>::SharedPtr;
-using GNSSAidingStatusPubType = RosPubType<GNSSAidingStatusMsg>::SharedPtr;
-using GNSSDualAntennaStatusPubType = RosPubType<GNSSDualAntennaStatusMsg>::SharedPtr;
-using GNSSFixInfoPubType = RosPubType<GNSSFixInfoMsg>::SharedPtr;
-using FilterHeadingStatePubType = RosPubType<FilterHeadingStateMsg>::SharedPtr;
-using GPSCorrelationTimestampStampedPubType = RosPubType<GPSCorrelationTimestampStampedMsg>::SharedPtr;
-
 // ROS1 Transform Broadcaster
 using TransformBroadcasterType = std::shared_ptr<::tf2_ros::TransformBroadcaster>;
 
@@ -418,93 +397,6 @@ using DeviceReportServiceMsg = ::microstrain_inertial_msgs::DeviceReport;
 using DeviceSettingsServiceMsg = ::microstrain_inertial_msgs::DeviceSettings;
 
 using SetFilterSpeedLeverArmServiceMsg = ::microstrain_inertial_msgs::SetFilterSpeedLeverArm;
-
-// ROS1 Service Types
-using TriggerServiceType = RosServiceType<TriggerServiceMsg>::SharedPtr;
-using EmptyServiceType = RosServiceType<EmptyServiceMsg>::SharedPtr;
-
-using SetAccelBiasServiceType = RosServiceType<SetAccelBiasServiceMsg>::SharedPtr;
-using GetAccelBiasServiceType = RosServiceType<GetAccelBiasServiceMsg>::SharedPtr;
-
-using SetGyroBiasServiceType = RosServiceType<SetGyroBiasServiceMsg>::SharedPtr;
-using GetGyroBiasServiceType = RosServiceType<GetGyroBiasServiceMsg>::SharedPtr;
-
-using SetHardIronValuesServiceType = RosServiceType<SetHardIronValuesServiceMsg>::SharedPtr;
-using GetHardIronValuesServiceType = RosServiceType<GetHardIronValuesServiceMsg>::SharedPtr;
-
-using SetSoftIronMatrixServiceType = RosServiceType<SetSoftIronMatrixServiceMsg>::SharedPtr;
-using GetSoftIronMatrixServiceType = RosServiceType<GetSoftIronMatrixServiceMsg>::SharedPtr;
-
-using SetComplementaryFilterServiceType = RosServiceType<SetComplementaryFilterServiceMsg>::SharedPtr;
-using GetComplementaryFilterServiceType = RosServiceType<GetComplementaryFilterServiceMsg>::SharedPtr;
-
-using SetConingScullingCompServiceType = RosServiceType<SetConingScullingCompServiceMsg>::SharedPtr;
-using GetConingScullingCompServiceType = RosServiceType<GetConingScullingCompServiceMsg>::SharedPtr;
-
-using SetSensor2VehicleRotationServiceType = RosServiceType<SetSensor2VehicleRotationServiceMsg>::SharedPtr;
-using GetSensor2VehicleRotationServiceType = RosServiceType<GetSensor2VehicleRotationServiceMsg>::SharedPtr;
-
-using SetSensor2VehicleOffsetServiceType = RosServiceType<SetSensor2VehicleOffsetServiceMsg>::SharedPtr;
-using GetSensor2VehicleOffsetServiceType = RosServiceType<GetSensor2VehicleOffsetServiceMsg>::SharedPtr;
-
-using GetSensor2VehicleTransformationServiceType = RosServiceType<GetSensor2VehicleTransformationServiceMsg>::SharedPtr;
-
-using InitFilterEulerServiceType = RosServiceType<InitFilterEulerServiceMsg>::SharedPtr;
-using InitFilterHeadingServiceType = RosServiceType<InitFilterHeadingServiceMsg>::SharedPtr;
-
-using SetHeadingSourceServiceType = RosServiceType<SetHeadingSourceServiceMsg>::SharedPtr;
-using GetHeadingSourceServiceType = RosServiceType<GetHeadingSourceServiceMsg>::SharedPtr;
-
-using SetReferencePositionServiceType = RosServiceType<SetReferencePositionServiceMsg>::SharedPtr;
-using GetReferencePositionServiceType = RosServiceType<GetReferencePositionServiceMsg>::SharedPtr;
-
-using SetEstimationControlFlagsServiceType = RosServiceType<SetEstimationControlFlagsServiceMsg>::SharedPtr;
-using GetEstimationControlFlagsServiceType = RosServiceType<GetEstimationControlFlagsServiceMsg>::SharedPtr;
-
-using SetDynamicsModeServiceType = RosServiceType<SetDynamicsModeServiceMsg>::SharedPtr;
-using GetDynamicsModeServiceType = RosServiceType<GetDynamicsModeServiceMsg>::SharedPtr;
-
-using SetZeroAngleUpdateThresholdServiceType = RosServiceType<SetZeroAngleUpdateThresholdServiceMsg>::SharedPtr;
-using GetZeroAngleUpdateThresholdServiceType = RosServiceType<GetZeroAngleUpdateThresholdServiceMsg>::SharedPtr;
-
-using SetZeroVelocityUpdateThresholdServiceType = RosServiceType<SetZeroVelocityUpdateThresholdServiceMsg>::SharedPtr;
-using GetZeroVelocityUpdateThresholdServiceType = RosServiceType<GetZeroVelocityUpdateThresholdServiceMsg>::SharedPtr;
-
-using SetTareOrientationServiceType = RosServiceType<SetTareOrientationServiceMsg>::SharedPtr;
-
-using SetAccelNoiseServiceType = RosServiceType<SetAccelNoiseServiceMsg>::SharedPtr;
-using GetAccelNoiseServiceType = RosServiceType<GetAccelNoiseServiceMsg>::SharedPtr;
-
-using SetGyroNoiseServiceType = RosServiceType<SetGyroNoiseServiceMsg>::SharedPtr;
-using GetGyroNoiseServiceType = RosServiceType<GetGyroNoiseServiceMsg>::SharedPtr;
-
-using SetMagNoiseServiceType = RosServiceType<SetMagNoiseServiceMsg>::SharedPtr;
-using GetMagNoiseServiceType = RosServiceType<GetMagNoiseServiceMsg>::SharedPtr;
-
-using SetGyroBiasModelServiceType = RosServiceType<SetGyroBiasModelServiceMsg>::SharedPtr;
-using GetGyroBiasModelServiceType = RosServiceType<GetGyroBiasModelServiceMsg>::SharedPtr;
-
-using SetAccelBiasModelServiceType = RosServiceType<SetAccelBiasModelServiceMsg>::SharedPtr;
-using GetAccelBiasModelServiceType = RosServiceType<GetAccelBiasModelServiceMsg>::SharedPtr;
-
-using SetGravityAdaptiveValsServiceType = RosServiceType<SetGravityAdaptiveValsServiceMsg>::SharedPtr;
-using GetGravityAdaptiveValsServiceType = RosServiceType<GetGravityAdaptiveValsServiceMsg>::SharedPtr;
-
-using SetMagAdaptiveValsServiceType = RosServiceType<SetMagAdaptiveValsServiceMsg>::SharedPtr;
-using GetMagAdaptiveValsServiceType = RosServiceType<GetMagAdaptiveValsServiceMsg>::SharedPtr;
-
-using SetMagDipAdaptiveValsServiceType = RosServiceType<SetMagDipAdaptiveValsServiceMsg>::SharedPtr;
-using GetMagDipAdaptiveValsServiceType = RosServiceType<GetMagDipAdaptiveValsServiceMsg>::SharedPtr;
-
-using ExternalHeadingUpdateServiceType = RosServiceType<ExternalHeadingUpdateServiceMsg>::SharedPtr;
-
-using SetRelativePositionReferenceServiceType = RosServiceType<SetRelativePositionReferenceServiceMsg>::SharedPtr;
-using GetRelativePositionReferenceServiceType = RosServiceType<GetRelativePositionReferenceServiceMsg>::SharedPtr;
-
-using DeviceReportServiceType = RosServiceType<DeviceReportServiceMsg>::SharedPtr;
-using DeviceSettingsServiceType = RosServiceType<DeviceSettingsServiceMsg>::SharedPtr;
-
-using SetFilterSpeedLeverArmServiceType = RosServiceType<SetFilterSpeedLeverArmServiceMsg>::SharedPtr;
 
 // ROS1 Logging
 #define MICROSTRAIN_DEBUG(NODE, ...) ROS_DEBUG(__VA_ARGS__)
@@ -672,6 +564,23 @@ using RosTimerType = ::rclcpp::TimerBase::SharedPtr;
 using RosRateType = ::rclcpp::Rate;
 using RosHeaderType = ::std_msgs::msg::Header;
 
+/**
+ * \brief Wrapper to allow the publisher from ROS2 be compatible with ROS1
+ *        This could almost be just "using", but the "MessageSharedPtr" of the base class is constant, and we need it to not be constant
+ */
+template<typename MessageType>
+class RosPubType : public ::rclcpp_lifecycle::LifecyclePublisher<MessageType>
+{
+ public:
+  using MessageSharedPtr = std::shared_ptr<MessageType>;
+
+  RosPubType(const ::rclcpp_lifecycle::LifecyclePublisher<MessageType>& rhs) : ::rclcpp_lifecycle::LifecyclePublisher<MessageType>(rhs) {}
+};
+
+// Alias for the service type so it can be compatible with ROS1
+template<typename ServiceType>
+using RosServiceType = ::rclcpp::Service<ServiceType>;
+
 // ROS2 Publisher Message Types
 using OdometryMsg = ::nav_msgs::msg::Odometry;
 using ImuMsg = ::sensor_msgs::msg::Imu;
@@ -692,26 +601,6 @@ using GNSSFixInfoMsg = ::microstrain_inertial_msgs::msg::GNSSFixInfo;
 using FilterHeadingStateMsg = ::microstrain_inertial_msgs::msg::FilterHeadingState;
 using GPSCorrelationTimestampStampedMsg = ::microstrain_inertial_msgs::msg::GPSCorrelationTimestampStamped;
 using TransformStampedMsg = ::geometry_msgs::msg::TransformStamped;
-
-// ROS2 Publisher Types
-using OdometryPubType = ::rclcpp_lifecycle::LifecyclePublisher<OdometryMsg>::SharedPtr;
-using ImuPubType = ::rclcpp_lifecycle::LifecyclePublisher<ImuMsg>::SharedPtr;
-using NavSatFixPubType = ::rclcpp_lifecycle::LifecyclePublisher<NavSatFixMsg>::SharedPtr;
-using MagneticFieldPubType = ::rclcpp_lifecycle::LifecyclePublisher<MagneticFieldMsg>::SharedPtr;
-using TimeReferencePubType = ::rclcpp_lifecycle::LifecyclePublisher<TimeReferenceMsg>::SharedPtr;
-using NMEASentencePubType = ::rclcpp_lifecycle::LifecyclePublisher<NMEASentenceMsg>::SharedPtr;
-using StatusPubType = ::rclcpp_lifecycle::LifecyclePublisher<StatusMsg>::SharedPtr;
-using RTKStatusPubType = ::rclcpp_lifecycle::LifecyclePublisher<RTKStatusMsg>::SharedPtr;
-using RTKStatusPubTypeV1 = ::rclcpp_lifecycle::LifecyclePublisher<RTKStatusMsgV1>::SharedPtr;
-using FilterStatusPubType = ::rclcpp_lifecycle::LifecyclePublisher<FilterStatusMsg>::SharedPtr;
-using FilterHeadingPubType = ::rclcpp_lifecycle::LifecyclePublisher<FilterHeadingMsg>::SharedPtr;
-using FilterAidingMeasurementSummaryPubType = ::rclcpp_lifecycle::LifecyclePublisher<FilterAidingMeasurementSummaryMsg>::SharedPtr;
-using GNSSAidingStatusPubType = ::rclcpp_lifecycle::LifecyclePublisher<GNSSAidingStatusMsg>::SharedPtr;
-using GNSSDualAntennaStatusPubType = ::rclcpp_lifecycle::LifecyclePublisher<GNSSDualAntennaStatusMsg>::SharedPtr;
-using GNSSFixInfoPubType = ::rclcpp_lifecycle::LifecyclePublisher<GNSSFixInfoMsg>::SharedPtr;
-using FilterHeadingStatePubType = ::rclcpp_lifecycle::LifecyclePublisher<FilterHeadingStateMsg>::SharedPtr;
-using GPSCorrelationTimestampStampedPubType =
-    ::rclcpp_lifecycle::LifecyclePublisher<GPSCorrelationTimestampStampedMsg>::SharedPtr;
 
 // ROS2 Transform Broadcaster
 using TransformBroadcasterType = std::shared_ptr<::tf2_ros::TransformBroadcaster>;
@@ -814,96 +703,6 @@ using DeviceReportServiceMsg = microstrain_inertial_msgs::srv::DeviceReport;
 using DeviceSettingsServiceMsg = microstrain_inertial_msgs::srv::DeviceSettings;
 
 using SetFilterSpeedLeverArmServiceMsg = microstrain_inertial_msgs::srv::SetFilterSpeedLeverArm;
-
-// ROS2 Service Types
-using TriggerServiceType = ::rclcpp::Service<TriggerServiceMsg>::SharedPtr;
-using EmptyServiceType = ::rclcpp::Service<EmptyServiceMsg>::SharedPtr;
-
-using SetAccelBiasServiceType = ::rclcpp::Service<SetAccelBiasServiceMsg>::SharedPtr;
-using GetAccelBiasServiceType = ::rclcpp::Service<GetAccelBiasServiceMsg>::SharedPtr;
-
-using SetGyroBiasServiceType = ::rclcpp::Service<SetGyroBiasServiceMsg>::SharedPtr;
-using GetGyroBiasServiceType = ::rclcpp::Service<GetGyroBiasServiceMsg>::SharedPtr;
-
-using SetHardIronValuesServiceType = ::rclcpp::Service<SetHardIronValuesServiceMsg>::SharedPtr;
-using GetHardIronValuesServiceType = ::rclcpp::Service<GetHardIronValuesServiceMsg>::SharedPtr;
-
-using SetSoftIronMatrixServiceType = ::rclcpp::Service<SetSoftIronMatrixServiceMsg>::SharedPtr;
-using GetSoftIronMatrixServiceType = ::rclcpp::Service<GetSoftIronMatrixServiceMsg>::SharedPtr;
-
-using SetComplementaryFilterServiceType = ::rclcpp::Service<SetComplementaryFilterServiceMsg>::SharedPtr;
-using GetComplementaryFilterServiceType = ::rclcpp::Service<GetComplementaryFilterServiceMsg>::SharedPtr;
-
-using SetConingScullingCompServiceType = ::rclcpp::Service<SetConingScullingCompServiceMsg>::SharedPtr;
-using GetConingScullingCompServiceType = ::rclcpp::Service<GetConingScullingCompServiceMsg>::SharedPtr;
-
-using SetSensor2VehicleRotationServiceType = ::rclcpp::Service<SetSensor2VehicleRotationServiceMsg>::SharedPtr;
-using GetSensor2VehicleRotationServiceType = ::rclcpp::Service<GetSensor2VehicleRotationServiceMsg>::SharedPtr;
-
-using SetSensor2VehicleOffsetServiceType = ::rclcpp::Service<SetSensor2VehicleOffsetServiceMsg>::SharedPtr;
-using GetSensor2VehicleOffsetServiceType = ::rclcpp::Service<GetSensor2VehicleOffsetServiceMsg>::SharedPtr;
-
-using GetSensor2VehicleTransformationServiceType =
-    ::rclcpp::Service<GetSensor2VehicleTransformationServiceMsg>::SharedPtr;
-
-using InitFilterEulerServiceType = ::rclcpp::Service<InitFilterEulerServiceMsg>::SharedPtr;
-using InitFilterHeadingServiceType = ::rclcpp::Service<InitFilterHeadingServiceMsg>::SharedPtr;
-
-using SetHeadingSourceServiceType = ::rclcpp::Service<SetHeadingSourceServiceMsg>::SharedPtr;
-using GetHeadingSourceServiceType = ::rclcpp::Service<GetHeadingSourceServiceMsg>::SharedPtr;
-
-using SetReferencePositionServiceType = ::rclcpp::Service<SetReferencePositionServiceMsg>::SharedPtr;
-using GetReferencePositionServiceType = ::rclcpp::Service<GetReferencePositionServiceMsg>::SharedPtr;
-
-using SetEstimationControlFlagsServiceType = ::rclcpp::Service<SetEstimationControlFlagsServiceMsg>::SharedPtr;
-using GetEstimationControlFlagsServiceType = ::rclcpp::Service<GetEstimationControlFlagsServiceMsg>::SharedPtr;
-
-using SetDynamicsModeServiceType = ::rclcpp::Service<SetDynamicsModeServiceMsg>::SharedPtr;
-using GetDynamicsModeServiceType = ::rclcpp::Service<GetDynamicsModeServiceMsg>::SharedPtr;
-
-using SetZeroAngleUpdateThresholdServiceType = ::rclcpp::Service<SetZeroAngleUpdateThresholdServiceMsg>::SharedPtr;
-using GetZeroAngleUpdateThresholdServiceType = ::rclcpp::Service<GetZeroAngleUpdateThresholdServiceMsg>::SharedPtr;
-
-using SetZeroVelocityUpdateThresholdServiceType =
-    ::rclcpp::Service<SetZeroVelocityUpdateThresholdServiceMsg>::SharedPtr;
-using GetZeroVelocityUpdateThresholdServiceType =
-    ::rclcpp::Service<GetZeroVelocityUpdateThresholdServiceMsg>::SharedPtr;
-
-using SetTareOrientationServiceType = ::rclcpp::Service<SetTareOrientationServiceMsg>::SharedPtr;
-
-using SetAccelNoiseServiceType = ::rclcpp::Service<SetAccelNoiseServiceMsg>::SharedPtr;
-using GetAccelNoiseServiceType = ::rclcpp::Service<GetAccelNoiseServiceMsg>::SharedPtr;
-
-using SetGyroNoiseServiceType = ::rclcpp::Service<SetGyroNoiseServiceMsg>::SharedPtr;
-using GetGyroNoiseServiceType = ::rclcpp::Service<GetGyroNoiseServiceMsg>::SharedPtr;
-
-using SetMagNoiseServiceType = ::rclcpp::Service<SetMagNoiseServiceMsg>::SharedPtr;
-using GetMagNoiseServiceType = ::rclcpp::Service<GetMagNoiseServiceMsg>::SharedPtr;
-
-using SetGyroBiasModelServiceType = ::rclcpp::Service<SetGyroBiasModelServiceMsg>::SharedPtr;
-using GetGyroBiasModelServiceType = ::rclcpp::Service<GetGyroBiasModelServiceMsg>::SharedPtr;
-
-using SetAccelBiasModelServiceType = ::rclcpp::Service<SetAccelBiasModelServiceMsg>::SharedPtr;
-using GetAccelBiasModelServiceType = ::rclcpp::Service<GetAccelBiasModelServiceMsg>::SharedPtr;
-
-using SetGravityAdaptiveValsServiceType = ::rclcpp::Service<SetGravityAdaptiveValsServiceMsg>::SharedPtr;
-using GetGravityAdaptiveValsServiceType = ::rclcpp::Service<GetGravityAdaptiveValsServiceMsg>::SharedPtr;
-
-using SetMagAdaptiveValsServiceType = ::rclcpp::Service<SetMagAdaptiveValsServiceMsg>::SharedPtr;
-using GetMagAdaptiveValsServiceType = ::rclcpp::Service<GetMagAdaptiveValsServiceMsg>::SharedPtr;
-
-using SetMagDipAdaptiveValsServiceType = ::rclcpp::Service<SetMagDipAdaptiveValsServiceMsg>::SharedPtr;
-using GetMagDipAdaptiveValsServiceType = ::rclcpp::Service<GetMagDipAdaptiveValsServiceMsg>::SharedPtr;
-
-using ExternalHeadingUpdateServiceType = ::rclcpp::Service<ExternalHeadingUpdateServiceMsg>::SharedPtr;
-
-using SetRelativePositionReferenceServiceType = ::rclcpp::Service<SetRelativePositionReferenceServiceMsg>::SharedPtr;
-using GetRelativePositionReferenceServiceType = ::rclcpp::Service<GetRelativePositionReferenceServiceMsg>::SharedPtr;
-
-using DeviceReportServiceType = ::rclcpp::Service<DeviceReportServiceMsg>::SharedPtr;
-using DeviceSettingsServiceType = ::rclcpp::Service<DeviceSettingsServiceMsg>::SharedPtr;
-
-using SetFilterSpeedLeverArmServiceType = ::rclcpp::Service<SetFilterSpeedLeverArmServiceMsg>::SharedPtr;
 
 // ROS2 Logging
 #define MICROSTRAIN_DEBUG(NODE, ...) RCLCPP_DEBUG(NODE->get_logger(), __VA_ARGS__)
