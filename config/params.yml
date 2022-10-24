@@ -151,9 +151,8 @@ gnss2_antenna_offset : [0.0, 0.7, -1.0]
 rtk_dongle_enable : False
 
 # The speed at which the individual RTK publishers will publish at.
-#      If set to -1, will publish at 1 hz which was the default before allowing users to configure this rate
 #      If set to 0, the stream will be turned off and the publisher will not be created
-rtk_status_data_rate : -1  # Rate of rtk/status or rtk/status_v1 topics
+rtk_status_data_rate : 1  # Rate of rtk/status or rtk/status_v1 topics
 
 # (GQ7 Only) Allow the user to send RTCM messages to this node, and stream those messages to the GQ7
 subscribe_rtcm : False

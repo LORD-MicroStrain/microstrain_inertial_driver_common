@@ -28,7 +28,6 @@ bool Services::configure()
     using namespace mip::commands_base;
 
     device_report_service_ = configureService<DeviceReportServiceMsg, GetDeviceInfo>("device_report", &Services::deviceReport);
-
   }
 
   {
@@ -719,31 +718,17 @@ bool Services::getSensor2vehicleTransformation(GetSensor2VehicleTransformationSe
 bool Services::setReferencePosition(SetReferencePositionServiceMsg::Request& req,
                                                  SetReferencePositionServiceMsg::Response& res)
 {
-  /*
-  res.success = false;
+  // TODO: Untested
+  MICROSTRAIN_DEBUG(node_, "Setting reference position to [%f, %f, %f]", req.position.x, req.position.y, req.position.z);
 
-  if (config_->inertial_device_)
-  {
-    try
-    {
-      MICROSTRAIN_INFO(node_, "Setting reference Position\n");
-
-      mscl::Position referencePosition(req.position.x, req.position.y, req.position.z);
-      mscl::FixedReferencePositionData referencePositionData(true, referencePosition);
-
-      config_->inertial_device_->setFixedReferencePosition(referencePositionData);
-
-      MICROSTRAIN_INFO(node_, "Reference position successfully set\n");
-      res.success = true;
-    }
-    catch (mscl::Error& e)
-    {
-      MICROSTRAIN_ERROR(node_, "Error: %s", e.what());
-    }
-  }
+  mip::CmdResult mip_cmd_result;
+  res.success = !!(mip_cmd_result = mip::commands_filter::writeReferencePosition(*(config_->mip_device_->device_), true, req.position.x, req.position.y, req.position.z));
+  if (!res.success)
+    MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to set reference position");
+  else
+    MICROSTRAIN_DEBUG(node_, "Set reference position");
 
   return res.success;
-  */
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -753,33 +738,28 @@ bool Services::setReferencePosition(SetReferencePositionServiceMsg::Request& req
 bool Services::getReferencePosition(GetReferencePositionServiceMsg::Request& req,
                                                  GetReferencePositionServiceMsg::Response& res)
 {
-  /*
-  res.success = false;
+  // TODO: Untested
+  MICROSTRAIN_DEBUG(node_, "Getting reference position");
 
-  if (config_->inertial_device_)
+  bool enable;
+  double latitude, longitude, altitude;
+  mip::CmdResult mip_cmd_result;
+  res.success = !!(mip_cmd_result = mip::commands_filter::readReferencePosition(*(config_->mip_device_->device_), &enable, &latitude, &longitude, &altitude));
+  if (res.success)
   {
-    try
-    {
-      MICROSTRAIN_INFO(node_, "Getting reference position");
-
-      mscl::Position referencePosition = config_->inertial_device_->getFixedReferencePosition().referencePosition;
-      MICROSTRAIN_INFO(node_, "Reference position: Lat %f , Long %f, Alt %f", referencePosition.latitude(),
-                       referencePosition.longitude(), referencePosition.altitude());
-
-      res.position.x = referencePosition.latitude();
-      res.position.y = referencePosition.longitude();
-      res.position.z = referencePosition.altitude();
-
-      res.success = true;
-    }
-    catch (mscl::Error& e)
-    {
-      MICROSTRAIN_ERROR(node_, "Error: %s", e.what());
-    }
+    MICROSTRAIN_DEBUG(node_, "Got reference position:");
+    MICROSTRAIN_DEBUG(node_, "  enabled = %d", enable);
+    MICROSTRAIN_DEBUG(node_, "  position = [%f, %f, %f]", latitude, longitude, altitude);
+    res.position.x = latitude;
+    res.position.y = longitude;
+    res.position.z = altitude;
+  }
+  else
+  {
+    MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to get reference position");
   }
 
   return res.success;
-  */
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1023,7 +1003,6 @@ bool Services::getDiagnosticReport(TriggerServiceMsg::Request& req, TriggerServi
 bool Services::setZeroAngleUpdateThreshold(SetZeroAngleUpdateThresholdServiceMsg::Request& req,
                                                           SetZeroAngleUpdateThresholdServiceMsg::Response& res)
 {
-  // TODO: Untested
   MICROSTRAIN_DEBUG(node_, "Setting auto angular ZUPT");
   MICROSTRAIN_DEBUG(node_, "  enable = %d", req.enable);
   MICROSTRAIN_DEBUG(node_, "  threshold = %f", req.threshold);
@@ -1045,7 +1024,6 @@ bool Services::setZeroAngleUpdateThreshold(SetZeroAngleUpdateThresholdServiceMsg
 bool Services::getZeroAngleUpdateThreshold(GetZeroAngleUpdateThresholdServiceMsg::Request& req,
                                                           GetZeroAngleUpdateThresholdServiceMsg::Response& res)
 {
-  // TODO: Untested
   MICROSTRAIN_DEBUG(node_, "Getting auto angular ZUPT");
 
   uint8_t enable;
@@ -1075,7 +1053,6 @@ bool Services::getZeroAngleUpdateThreshold(GetZeroAngleUpdateThresholdServiceMsg
 bool Services::setZeroVelocityUpdateThreshold(SetZeroVelocityUpdateThresholdServiceMsg::Request& req,
                                                              SetZeroVelocityUpdateThresholdServiceMsg::Response& res)
 {
-  // TODO: Untested
   MICROSTRAIN_DEBUG(node_, "Setting auto vel ZUPT");
   MICROSTRAIN_DEBUG(node_, "  enable = %d", req.enable);
   MICROSTRAIN_DEBUG(node_, "  threshold = %f", req.threshold);
@@ -1097,7 +1074,6 @@ bool Services::setZeroVelocityUpdateThreshold(SetZeroVelocityUpdateThresholdServ
 bool Services::getZeroVelocityUpdateThreshold(GetZeroVelocityUpdateThresholdServiceMsg::Request& req,
                                                              GetZeroVelocityUpdateThresholdServiceMsg::Response& res)
 {
-  // TODO: Untested
   MICROSTRAIN_DEBUG(node_, "Getting auto vel ZUPT");
 
   uint8_t enable;
@@ -1147,31 +1123,17 @@ bool Services::setTareOrientation(SetTareOrientationServiceMsg::Request& req,
 
 bool Services::setAccelNoise(SetAccelNoiseServiceMsg::Request& req, SetAccelNoiseServiceMsg::Response& res)
 {
-  /*
-  res.success = false;
+  // TODO: Untested
+  MICROSTRAIN_DEBUG(node_, "Setting accel noise to [%f, %f, %f]", req.noise.x, req.noise.y, req.noise.z);
 
-  if (config_->inertial_device_)
-  {
-    try
-    {
-      MICROSTRAIN_INFO(node_, "Setting the accel noise values\n");
-      mscl::GeometricVector noise(req.noise.x, req.noise.y, req.noise.z);
-      config_->inertial_device_->setAccelNoiseStandardDeviation(noise);
-
-      noise = config_->inertial_device_->getAccelNoiseStandardDeviation();
-      MICROSTRAIN_INFO(node_, "Accel noise values successfully set.\n");
-      MICROSTRAIN_INFO(node_, "Returned values: %f X %f Y %f Z\n", noise.x(), noise.y(), noise.z());
-
-      res.success = true;
-    }
-    catch (mscl::Error& e)
-    {
-      MICROSTRAIN_ERROR(node_, "Error: %s", e.what());
-    }
-  }
+  mip::CmdResult mip_cmd_result;
+  res.success = !!(mip_cmd_result = mip::commands_filter::writeAccelNoise(*(config_->mip_device_->device_), req.noise.x, req.noise.y, req.noise.z));
+  if (!res.success)
+    MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to set accel noise");
+  else
+    MICROSTRAIN_DEBUG(node_, "Set accel noise");
 
   return res.success;
-  */
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1180,31 +1142,25 @@ bool Services::setAccelNoise(SetAccelNoiseServiceMsg::Request& req, SetAccelNois
 
 bool Services::getAccelNoise(GetAccelNoiseServiceMsg::Request& req, GetAccelNoiseServiceMsg::Response& res)
 {
-  /*
-  res.success = false;
+  // TODO: Untested
+  MICROSTRAIN_DEBUG(node_, "Getting accel noise");
 
-  if (config_->inertial_device_)
+  float x, y, z;
+  mip::CmdResult mip_cmd_result;
+  res.success = !!(mip_cmd_result = mip::commands_filter::readAccelNoise(*(config_->mip_device_->device_), &x, &y, &z));
+  if (res.success)
   {
-    try
-    {
-      MICROSTRAIN_INFO(node_, "Getting the accel noise values\n");
-
-      mscl::GeometricVector noise = config_->inertial_device_->getAccelNoiseStandardDeviation();
-      MICROSTRAIN_INFO(node_, "Returned values: %f X %f Y %f Z\n", noise.x(), noise.y(), noise.z());
-
-      res.noise.x = noise.x();
-      res.noise.y = noise.y();
-      res.noise.z = noise.z();
-      res.success = true;
-    }
-    catch (mscl::Error& e)
-    {
-      MICROSTRAIN_ERROR(node_, "Error: %s", e.what());
-    }
+    MICROSTRAIN_DEBUG(node_, "Got accel noise [%f, %f, %f]", x, y, z);
+    res.noise.x = x;
+    res.noise.y = y;
+    res.noise.z = z;
+  }
+  else
+  {
+    MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to get accel noise");
   }
 
   return res.success;
-  */
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1213,31 +1169,17 @@ bool Services::getAccelNoise(GetAccelNoiseServiceMsg::Request& req, GetAccelNois
 
 bool Services::setGyroNoise(SetGyroNoiseServiceMsg::Request& req, SetGyroNoiseServiceMsg::Response& res)
 {
-  /*
-  res.success = false;
+  // TODO: Untested
+  MICROSTRAIN_DEBUG(node_, "Setting gyro noise to [%f, %f, %f]", req.noise.x, req.noise.y, req.noise.z);
 
-  if (config_->inertial_device_)
-  {
-    try
-    {
-      MICROSTRAIN_INFO(node_, "Setting the gyro noise values\n");
-      mscl::GeometricVector noise(req.noise.x, req.noise.y, req.noise.z);
-      config_->inertial_device_->setGyroNoiseStandardDeviation(noise);
-
-      noise = config_->inertial_device_->getGyroNoiseStandardDeviation();
-      MICROSTRAIN_INFO(node_, "Gyro noise values successfully set.\n");
-      MICROSTRAIN_INFO(node_, "Returned values: %f X %f Y %f Z\n", noise.x(), noise.y(), noise.z());
-
-      res.success = true;
-    }
-    catch (mscl::Error& e)
-    {
-      MICROSTRAIN_ERROR(node_, "Error: %s", e.what());
-    }
-  }
+  mip::CmdResult mip_cmd_result;
+  res.success = !!(mip_cmd_result = mip::commands_filter::writeGyroNoise(*(config_->mip_device_->device_), req.noise.x, req.noise.y, req.noise.z));
+  if (!res.success)
+    MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to set gyro noise");
+  else
+    MICROSTRAIN_DEBUG(node_, "Set gyro noise");
 
   return res.success;
-  */
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1246,31 +1188,25 @@ bool Services::setGyroNoise(SetGyroNoiseServiceMsg::Request& req, SetGyroNoiseSe
 
 bool Services::getGyroNoise(GetGyroNoiseServiceMsg::Request& req, GetGyroNoiseServiceMsg::Response& res)
 {
-  /*
-  res.success = false;
+  // TODO: Untested
+  MICROSTRAIN_DEBUG(node_, "Getting gyro noise");
 
-  if (config_->inertial_device_)
+  float x, y, z;
+  mip::CmdResult mip_cmd_result;
+  res.success = !!(mip_cmd_result = mip::commands_filter::readGyroNoise(*(config_->mip_device_->device_), &x, &y, &z));
+  if (res.success)
   {
-    try
-    {
-      MICROSTRAIN_INFO(node_, "Getting the gyro noise values\n");
-
-      mscl::GeometricVector noise = config_->inertial_device_->getGyroNoiseStandardDeviation();
-      MICROSTRAIN_INFO(node_, "Gyro noise values: %f X %f Y %f Z\n", noise.x(), noise.y(), noise.z());
-
-      res.noise.x = noise.x();
-      res.noise.y = noise.y();
-      res.noise.z = noise.z();
-      res.success = true;
-    }
-    catch (mscl::Error& e)
-    {
-      MICROSTRAIN_ERROR(node_, "Error: %s", e.what());
-    }
+    MICROSTRAIN_DEBUG(node_, "Got gyro noise [%f, %f, %f]", x, y, z);
+    res.noise.x = x;
+    res.noise.y = y;
+    res.noise.z = z;
+  }
+  else
+  {
+    MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to get gyro noise");
   }
 
   return res.success;
-  */
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1279,31 +1215,17 @@ bool Services::getGyroNoise(GetGyroNoiseServiceMsg::Request& req, GetGyroNoiseSe
 
 bool Services::setMagNoise(SetMagNoiseServiceMsg::Request& req, SetMagNoiseServiceMsg::Response& res)
 {
-  /*
-  res.success = false;
+  // TODO: Untested
+  MICROSTRAIN_DEBUG(node_, "Setting mag noise to [%f, %f, %f]", req.noise.x, req.noise.y, req.noise.z);
 
-  if (config_->inertial_device_)
-  {
-    try
-    {
-      MICROSTRAIN_INFO(node_, "Setting the mag noise values\n");
-      mscl::GeometricVector noise(req.noise.x, req.noise.y, req.noise.z);
-      config_->inertial_device_->setHardIronOffsetProcessNoise(noise);
-
-      noise = config_->inertial_device_->getHardIronOffsetProcessNoise();
-      MICROSTRAIN_INFO(node_, "Mag noise values successfully set.\n");
-      MICROSTRAIN_INFO(node_, "Returned values: %f X %f Y %f Z\n", noise.x(), noise.y(), noise.z());
-
-      res.success = true;
-    }
-    catch (mscl::Error& e)
-    {
-      MICROSTRAIN_ERROR(node_, "Error: %s", e.what());
-    }
-  }
+  mip::CmdResult mip_cmd_result;
+  res.success = !!(mip_cmd_result = mip::commands_filter::writeHardIronOffsetNoise(*(config_->mip_device_->device_), req.noise.x, req.noise.y, req.noise.z));
+  if (!res.success)
+    MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to set mag noise");
+  else
+    MICROSTRAIN_DEBUG(node_, "Set mag noise");
 
   return res.success;
-  */
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1312,30 +1234,25 @@ bool Services::setMagNoise(SetMagNoiseServiceMsg::Request& req, SetMagNoiseServi
 
 bool Services::getMagNoise(GetMagNoiseServiceMsg::Request& req, GetMagNoiseServiceMsg::Response& res)
 {
-  /*
-  res.success = false;
+  // TODO: Untested
+  MICROSTRAIN_DEBUG(node_, "Getting mag noise");
 
-  if (config_->inertial_device_)
+  float x, y, z;
+  mip::CmdResult mip_cmd_result;
+  res.success = !!(mip_cmd_result = mip::commands_filter::readHardIronOffsetNoise(*(config_->mip_device_->device_), &x, &y, &z));
+  if (res.success)
   {
-    try
-    {
-      MICROSTRAIN_INFO(node_, "Getting the mag noise values\n");
-      mscl::GeometricVector noise = config_->inertial_device_->getHardIronOffsetProcessNoise();
-      MICROSTRAIN_INFO(node_, "Returned values: %f X %f Y %f Z\n", noise.x(), noise.y(), noise.z());
-
-      res.noise.x = noise.x();
-      res.noise.y = noise.y();
-      res.noise.z = noise.z();
-      res.success = true;
-    }
-    catch (mscl::Error& e)
-    {
-      MICROSTRAIN_ERROR(node_, "Error: %s", e.what());
-    }
+    MICROSTRAIN_DEBUG(node_, "Got mag noise [%f, %f, %f]", x, y, z);
+    res.noise.x = x;
+    res.noise.y = y;
+    res.noise.z = z;
+  }
+  else
+  {
+    MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to get mag noise");
   }
 
   return res.success;
-  */
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1345,40 +1262,19 @@ bool Services::getMagNoise(GetMagNoiseServiceMsg::Request& req, GetMagNoiseServi
 bool Services::setGyroBiasModel(SetGyroBiasModelServiceMsg::Request& req,
                                               SetGyroBiasModelServiceMsg::Response& res)
 {
-  /*
-  res.success = false;
+  // TODO: Untested
+  MICROSTRAIN_DEBUG(node_, "Setting gyro bias model:");
+  MICROSTRAIN_DEBUG(node_, "  beta = [%f, %f, %f]", req.beta_vector.x, req.beta_vector.y, req.beta_vector.z);
+  MICROSTRAIN_DEBUG(node_, "  noise = [%f, %f, %f]", req.noise_vector.x, req.noise_vector.y, req.noise_vector.z);
 
-  if (config_->inertial_device_)
-  {
-    try
-    {
-      MICROSTRAIN_INFO(node_, "Setting the gyro bias model values\n");
-
-      mscl::GeometricVectors collection;
-      mscl::GeometricVector noise(req.noise_vector.x, req.noise_vector.y, req.noise_vector.z);
-      collection.push_back(noise);
-
-      mscl::GeometricVector beta_vector(req.beta_vector.x, req.beta_vector.y, req.beta_vector.z);
-      collection.push_back(beta_vector);
-
-      config_->inertial_device_->setGyroBiasModelParams(collection);
-
-      collection = config_->inertial_device_->getGyroBiasModelParams();
-      MICROSTRAIN_INFO(node_, "Gyro bias model values successfully set.\n");
-      MICROSTRAIN_INFO(node_, "Returned values:  Beta: %f X %f Y %f Z, White Noise: %f X %f Y %f Z\n",
-                       collection[0].x(), collection[0].y(), collection[0].z(), collection[1].x(), collection[1].y(),
-                       collection[1].z());
-
-      res.success = true;
-    }
-    catch (mscl::Error& e)
-    {
-      MICROSTRAIN_ERROR(node_, "Error: %s", e.what());
-    }
-  }
+  mip::CmdResult mip_cmd_result;
+  res.success = !!(mip_cmd_result = mip::commands_filter::writeGyroBiasModel(*(config_->mip_device_->device_), req.beta_vector.x, req.beta_vector.y, req.beta_vector.z, req.noise_vector.x, req.noise_vector.y, req.noise_vector.z));
+  if (!res.success)
+    MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to set gyro bias model");
+  else
+    MICROSTRAIN_DEBUG(node_, "Set gyro bias model");
 
   return res.success;
-  */
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1388,36 +1284,30 @@ bool Services::setGyroBiasModel(SetGyroBiasModelServiceMsg::Request& req,
 bool Services::getGyroBiasModel(GetGyroBiasModelServiceMsg::Request& req,
                                               GetGyroBiasModelServiceMsg::Response& res)
 {
-  /*
-  res.success = false;
+  // TODO: Untested
+  MICROSTRAIN_DEBUG(node_, "Getting gyro bias model");
 
-  if (config_->inertial_device_)
+  float x_beta, y_beta, z_beta, x, y, z;
+  mip::CmdResult mip_cmd_result;
+  res.success = !!(mip_cmd_result = mip::commands_filter::readGyroBiasModel(*(config_->mip_device_->device_), &x_beta, &y_beta, &z_beta, &x, &y, &z));
+  if (res.success)
   {
-    try
-    {
-      MICROSTRAIN_INFO(node_, "Getting the gyro bias model values\n");
-      mscl::GeometricVectors collection = config_->inertial_device_->getGyroBiasModelParams();
-      MICROSTRAIN_INFO(node_, "Gyro bias model values:  Beta: %f X %f Y %f Z, White Noise: %f X %f Y %f Z\n",
-                       collection[0].x(), collection[0].y(), collection[0].z(), collection[1].x(), collection[1].y(),
-                       collection[1].z());
-
-      res.noise_vector.x = collection[0].x();
-      res.noise_vector.y = collection[0].y();
-      res.noise_vector.z = collection[0].z();
-      res.beta_vector.x = collection[1].x();
-      res.beta_vector.y = collection[1].y();
-      res.beta_vector.z = collection[1].z();
-
-      res.success = true;
-    }
-    catch (mscl::Error& e)
-    {
-      MICROSTRAIN_ERROR(node_, "Error: %s", e.what());
-    }
+    MICROSTRAIN_DEBUG(node_, "Got gyro bias model:");
+    MICROSTRAIN_DEBUG(node_, "  beta = [%f, %f, %f]", x_beta, y_beta, z_beta);
+    MICROSTRAIN_DEBUG(node_, "  noise = [%f, %f, %f]", x, y, z);
+    res.beta_vector.x = x_beta;
+    res.beta_vector.y = y_beta;
+    res.beta_vector.z = z_beta;
+    res.noise_vector.x = x;
+    res.noise_vector.y = y;
+    res.noise_vector.z = z;
+  }
+  else
+  {
+    MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to get gyro bias model");
   }
 
   return res.success;
-  */
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1427,38 +1317,19 @@ bool Services::getGyroBiasModel(GetGyroBiasModelServiceMsg::Request& req,
 bool Services::setAccelBiasModel(SetAccelBiasModelServiceMsg::Request& req,
                                                SetAccelBiasModelServiceMsg::Response& res)
 {
-  /*
-  res.success = false;
+  // TODO: Untested
+  MICROSTRAIN_DEBUG(node_, "Setting accel bias model:");
+  MICROSTRAIN_DEBUG(node_, "  beta = [%f, %f, %f]", req.beta_vector.x, req.beta_vector.y, req.beta_vector.z);
+  MICROSTRAIN_DEBUG(node_, "  noise = [%f, %f, %f]", req.noise_vector.x, req.noise_vector.y, req.noise_vector.z);
 
-  if (config_->inertial_device_)
-  {
-    try
-    {
-      MICROSTRAIN_INFO(node_, "Setting the accel bias model values\n");
-      mscl::GeometricVectors collection;
-      mscl::GeometricVector noise(req.noise_vector.x, req.noise_vector.y, req.noise_vector.z);
-      collection.push_back(noise);
-
-      mscl::GeometricVector beta_vector(req.beta_vector.x, req.beta_vector.y, req.beta_vector.z);
-      collection.push_back(beta_vector);
-      config_->inertial_device_->setAccelBiasModelParams(collection);
-
-      collection = config_->inertial_device_->getAccelBiasModelParams();
-      MICROSTRAIN_INFO(node_, "Accel bias model values successfully set.\n");
-      MICROSTRAIN_INFO(node_, "Returned values:  Beta: %f X %f Y %f Z, White Noise: %f X %f Y %f Z\n",
-                       collection[0].x(), collection[0].y(), collection[0].z(), collection[1].x(), collection[1].y(),
-                       collection[1].z());
-
-      res.success = true;
-    }
-    catch (mscl::Error& e)
-    {
-      MICROSTRAIN_ERROR(node_, "Error: %s", e.what());
-    }
-  }
+  mip::CmdResult mip_cmd_result;
+  res.success = !!(mip_cmd_result = mip::commands_filter::writeAccelBiasModel(*(config_->mip_device_->device_), req.beta_vector.x, req.beta_vector.y, req.beta_vector.z, req.noise_vector.x, req.noise_vector.y, req.noise_vector.z));
+  if (!res.success)
+    MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to set accel bias model");
+  else
+    MICROSTRAIN_DEBUG(node_, "Set accel bias model");
 
   return res.success;
-  */
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1468,37 +1339,30 @@ bool Services::setAccelBiasModel(SetAccelBiasModelServiceMsg::Request& req,
 bool Services::getAccelBiasModel(GetAccelBiasModelServiceMsg::Request& req,
                                                GetAccelBiasModelServiceMsg::Response& res)
 {
-  /*
-  res.success = false;
+  // TODO: Untested
+  MICROSTRAIN_DEBUG(node_, "Getting accel bias model");
 
-  if (config_->inertial_device_)
+  float x_beta, y_beta, z_beta, x, y, z;
+  mip::CmdResult mip_cmd_result;
+  res.success = !!(mip_cmd_result = mip::commands_filter::readAccelBiasModel(*(config_->mip_device_->device_), &x_beta, &y_beta, &z_beta, &x, &y, &z));
+  if (res.success)
   {
-    try
-    {
-      MICROSTRAIN_INFO(node_, "Getting the accel bias model values\n");
-      mscl::GeometricVectors collection = config_->inertial_device_->getAccelBiasModelParams();
-
-      MICROSTRAIN_INFO(node_, "Accel bias model values:  Beta: %f X %f Y %f Z, White Noise: %f X %f Y %f Z\n",
-                       collection[0].x(), collection[0].y(), collection[0].z(), collection[1].x(), collection[1].y(),
-                       collection[1].z());
-
-      res.noise_vector.x = collection[0].x();
-      res.noise_vector.y = collection[0].y();
-      res.noise_vector.z = collection[0].z();
-      res.beta_vector.x = collection[1].x();
-      res.beta_vector.y = collection[1].y();
-      res.beta_vector.z = collection[1].z();
-
-      res.success = true;
-    }
-    catch (mscl::Error& e)
-    {
-      MICROSTRAIN_ERROR(node_, "Error: %s", e.what());
-    }
+    MICROSTRAIN_DEBUG(node_, "Got accel bias model:");
+    MICROSTRAIN_DEBUG(node_, "  beta = [%f, %f, %f]", x_beta, y_beta, z_beta);
+    MICROSTRAIN_DEBUG(node_, "  noise = [%f, %f, %f]", x, y, z);
+    res.beta_vector.x = x_beta;
+    res.beta_vector.y = y_beta;
+    res.beta_vector.z = z_beta;
+    res.noise_vector.x = x;
+    res.noise_vector.y = y;
+    res.noise_vector.z = z;
+  }
+  else
+  {
+    MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to get accel bias model");
   }
 
   return res.success;
-  */
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1508,42 +1372,25 @@ bool Services::getAccelBiasModel(GetAccelBiasModelServiceMsg::Request& req,
 bool Services::setGravityAdaptiveVals(SetGravityAdaptiveValsServiceMsg::Request& req,
                                                     SetGravityAdaptiveValsServiceMsg::Response& res)
 {
-  /*
-  res.success = false;
+  // TODO: Untested
+  const auto mode = static_cast<mip::commands_filter::AccelMagnitudeErrorAdaptiveMeasurement::AdaptiveMeasurement>(req.enable);
+  MICROSTRAIN_DEBUG(node_, "Setting accel magnitude error adaptive measurement:");
+  MICROSTRAIN_DEBUG(node_, "  mode = %d", static_cast<uint8_t>(mode));
+  MICROSTRAIN_DEBUG(node_, "  low pass cutoff frequency = %f", req.low_pass_cutoff);
+  MICROSTRAIN_DEBUG(node_, "  low limit = %f", req.low_limit);
+  MICROSTRAIN_DEBUG(node_, "  high limit = %f", req.high_limit);
+  MICROSTRAIN_DEBUG(node_, "  low limit uncertainty = %f", req.low_limit_1sigma);
+  MICROSTRAIN_DEBUG(node_, "  high limit uncertainty = %f", req.high_limit_1sigma);
+  MICROSTRAIN_DEBUG(node_, "  minimum uncertainty = %f", req.min_1sigma);
 
-  if (config_->inertial_device_)
-  {
-    try
-    {
-      MICROSTRAIN_INFO(node_, "Setting the accel magnitude error adaptive measurement values\n");
-
-      mscl::AdaptiveMeasurementData adaptiveData;
-      adaptiveData.mode = static_cast<mscl::InertialTypes::AdaptiveMeasurementMode>(req.enable);
-      adaptiveData.lowPassFilterCutoff = req.low_pass_cutoff;
-      adaptiveData.lowLimit = req.low_limit;
-      adaptiveData.highLimit = req.high_limit;
-      adaptiveData.lowLimitUncertainty = req.low_limit_1sigma;
-      adaptiveData.highLimitUncertainty = req.high_limit_1sigma;
-      adaptiveData.minUncertainty = req.min_1sigma;
-
-      config_->inertial_device_->setGravityErrorAdaptiveMeasurement(adaptiveData);
-
-      adaptiveData = config_->inertial_device_->getGravityErrorAdaptiveMeasurement();
-      MICROSTRAIN_INFO(node_, "accel magnitude error adaptive measurement values successfully set.\n");
-      MICROSTRAIN_INFO(node_, "Returned values: Enable: %i, Parameters: %f %f %f %f %f %f", adaptiveData.mode,
-                       adaptiveData.lowPassFilterCutoff, adaptiveData.minUncertainty, adaptiveData.lowLimit,
-                       adaptiveData.highLimit, adaptiveData.lowLimitUncertainty, adaptiveData.highLimitUncertainty);
-
-      res.success = true;
-    }
-    catch (mscl::Error& e)
-    {
-      MICROSTRAIN_ERROR(node_, "Error: %s", e.what());
-    }
-  }
+  mip::CmdResult mip_cmd_result;
+  res.success = !!(mip_cmd_result = mip::commands_filter::writeAccelMagnitudeErrorAdaptiveMeasurement(*(config_->mip_device_->device_), mode, req.low_pass_cutoff, req.low_limit, req.high_limit, req.low_limit_1sigma, req.high_limit_1sigma, req.min_1sigma));
+  if (!res.success)
+    MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to set accel magnitude error adaptive measurement");
+  else
+    MICROSTRAIN_DEBUG(node_, "Set accel magnitude error adaptive measurement");
 
   return res.success;
-  */
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1553,38 +1400,37 @@ bool Services::setGravityAdaptiveVals(SetGravityAdaptiveValsServiceMsg::Request&
 bool Services::getGravityAdaptiveVals(GetGravityAdaptiveValsServiceMsg::Request& req,
                                                     GetGravityAdaptiveValsServiceMsg::Response& res)
 {
-  /*
-  res.success = false;
+  // TODO: Untested
+  MICROSTRAIN_DEBUG(node_, "Getting accel magnitude error adaptive measurements");
 
-  if (config_->inertial_device_)
+  mip::commands_filter::AccelMagnitudeErrorAdaptiveMeasurement::AdaptiveMeasurement mode;
+  float frequency, low_limit, high_limit, low_limit_uncertainty, high_limit_uncertainty, minimum_uncertainty;
+  mip::CmdResult mip_cmd_result;
+  res.success = !!(mip_cmd_result = mip::commands_filter::readAccelMagnitudeErrorAdaptiveMeasurement(*(config_->mip_device_->device_), &mode, &frequency, &low_limit, &high_limit, &low_limit_uncertainty, &high_limit_uncertainty, &minimum_uncertainty));
+  if (res.success)
   {
-    try
-    {
-      MICROSTRAIN_INFO(node_, "Getting the accel magnitude error adaptive measurement values\n");
-
-      mscl::AdaptiveMeasurementData adaptiveData = config_->inertial_device_->getGravityErrorAdaptiveMeasurement();
-      MICROSTRAIN_INFO(node_, "Accel magnitude error adaptive measurement values are: Enable: %i, Parameters: %f %f %f %f %f %f",
-          adaptiveData.mode, adaptiveData.lowPassFilterCutoff, adaptiveData.minUncertainty, adaptiveData.lowLimit,
-          adaptiveData.highLimit, adaptiveData.lowLimitUncertainty, adaptiveData.highLimitUncertainty);
-
-      res.enable = adaptiveData.mode;
-      res.low_pass_cutoff = adaptiveData.lowPassFilterCutoff;
-      res.low_limit = adaptiveData.lowLimit;
-      res.high_limit = adaptiveData.highLimit;
-      res.low_limit_1sigma = adaptiveData.lowLimitUncertainty;
-      res.high_limit_1sigma = adaptiveData.highLimitUncertainty;
-      res.min_1sigma = adaptiveData.minUncertainty;
-
-      res.success = true;
-    }
-    catch (mscl::Error& e)
-    {
-      MICROSTRAIN_ERROR(node_, "Error: %s", e.what());
-    }
+    MICROSTRAIN_DEBUG(node_, "Got accel magnitude error adaptive measurement:");
+    MICROSTRAIN_DEBUG(node_, "  mode = %d", static_cast<uint8_t>(mode));
+    MICROSTRAIN_DEBUG(node_, "  low pass cutoff frequency = %f", frequency);
+    MICROSTRAIN_DEBUG(node_, "  low limit = %f", low_limit);
+    MICROSTRAIN_DEBUG(node_, "  high limit = %f", high_limit);
+    MICROSTRAIN_DEBUG(node_, "  low limit uncertainty = %f", low_limit_uncertainty);
+    MICROSTRAIN_DEBUG(node_, "  high limit uncertainty = %f", high_limit_uncertainty);
+    MICROSTRAIN_DEBUG(node_, "  minimum uncertainty = %f", minimum_uncertainty);
+    res.enable = static_cast<float>(mode);
+    res.low_pass_cutoff = frequency;
+    res.low_limit = low_limit;
+    res.high_limit = high_limit;
+    res.low_limit_1sigma = low_limit_uncertainty;
+    res.high_limit_1sigma = high_limit_uncertainty;
+    res.min_1sigma = minimum_uncertainty;
+  }
+  else
+  {
+    MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to get accel magnitude error adaptive measurements");
   }
 
   return res.success;
-  */
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1594,43 +1440,25 @@ bool Services::getGravityAdaptiveVals(GetGravityAdaptiveValsServiceMsg::Request&
 bool Services::setMagAdaptiveVals(SetMagAdaptiveValsServiceMsg::Request& req,
                                                 SetMagAdaptiveValsServiceMsg::Response& res)
 {
-  /*
-  res.success = false;
+  // TODO: Untested
+  const auto mode = static_cast<mip::commands_filter::MagMagnitudeErrorAdaptiveMeasurement::AdaptiveMeasurement>(req.enable);
+  MICROSTRAIN_DEBUG(node_, "Setting mag magnitude error adaptive measurement:");
+  MICROSTRAIN_DEBUG(node_, "  mode = %d", static_cast<uint8_t>(mode));
+  MICROSTRAIN_DEBUG(node_, "  low pass cutoff frequency = %f", req.low_pass_cutoff);
+  MICROSTRAIN_DEBUG(node_, "  low limit = %f", req.low_limit);
+  MICROSTRAIN_DEBUG(node_, "  high limit = %f", req.high_limit);
+  MICROSTRAIN_DEBUG(node_, "  low limit uncertainty = %f", req.low_limit_1sigma);
+  MICROSTRAIN_DEBUG(node_, "  high limit uncertainty = %f", req.high_limit_1sigma);
+  MICROSTRAIN_DEBUG(node_, "  minimum uncertainty = %f", req.min_1sigma);
 
-  if (config_->inertial_device_)
-  {
-    try
-    {
-      MICROSTRAIN_INFO(node_, "Setting the mag magnitude error adaptive measurement values\n");
-
-      mscl::AdaptiveMeasurementData adaptiveData;
-      adaptiveData.mode = static_cast<mscl::InertialTypes::AdaptiveMeasurementMode>(req.enable);
-      adaptiveData.lowPassFilterCutoff = req.low_pass_cutoff;
-      adaptiveData.lowLimit = req.low_limit;
-      adaptiveData.highLimit = req.high_limit;
-      adaptiveData.lowLimitUncertainty = req.low_limit_1sigma;
-      adaptiveData.highLimitUncertainty = req.high_limit_1sigma;
-      adaptiveData.minUncertainty = req.min_1sigma;
-
-      config_->inertial_device_->setMagnetometerErrorAdaptiveMeasurement(adaptiveData);
-
-      adaptiveData = config_->inertial_device_->getMagnetometerErrorAdaptiveMeasurement();
-      MICROSTRAIN_INFO(node_, "mag magnitude error adaptive measurement values successfully set.\n");
-
-      MICROSTRAIN_INFO(node_, "Returned values: Enable: %i, Parameters: %f %f %f %f %f %f", adaptiveData.mode,
-                       adaptiveData.lowPassFilterCutoff, adaptiveData.minUncertainty, adaptiveData.lowLimit,
-                       adaptiveData.highLimit, adaptiveData.lowLimitUncertainty, adaptiveData.highLimitUncertainty);
-
-      res.success = true;
-    }
-    catch (mscl::Error& e)
-    {
-      MICROSTRAIN_ERROR(node_, "Error: %s", e.what());
-    }
-  }
+  mip::CmdResult mip_cmd_result;
+  res.success = !!(mip_cmd_result = mip::commands_filter::writeMagMagnitudeErrorAdaptiveMeasurement(*(config_->mip_device_->device_), mode, req.low_pass_cutoff, req.low_limit, req.high_limit, req.low_limit_1sigma, req.high_limit_1sigma, req.min_1sigma));
+  if (!res.success)
+    MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to set mag magnitude error adaptive measurement");
+  else
+    MICROSTRAIN_DEBUG(node_, "Set mag magnitude error adaptive measurement");
 
   return res.success;
-  */
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1640,39 +1468,37 @@ bool Services::setMagAdaptiveVals(SetMagAdaptiveValsServiceMsg::Request& req,
 bool Services::getMagAdaptiveVals(GetMagAdaptiveValsServiceMsg::Request& req,
                                                 GetMagAdaptiveValsServiceMsg::Response& res)
 {
-  /*
-  res.success = false;
+  // TODO: Untested
+  MICROSTRAIN_DEBUG(node_, "Getting mag magnitude error adaptive measurements");
 
-  if (config_->inertial_device_)
+  mip::commands_filter::MagMagnitudeErrorAdaptiveMeasurement::AdaptiveMeasurement mode;
+  float frequency, low_limit, high_limit, low_limit_uncertainty, high_limit_uncertainty, minimum_uncertainty;
+  mip::CmdResult mip_cmd_result;
+  res.success = !!(mip_cmd_result = mip::commands_filter::readMagMagnitudeErrorAdaptiveMeasurement(*(config_->mip_device_->device_), &mode, &frequency, &low_limit, &high_limit, &low_limit_uncertainty, &high_limit_uncertainty, &minimum_uncertainty));
+  if (res.success)
   {
-    try
-    {
-      MICROSTRAIN_INFO(node_, "Getting the mag magnitude error adaptive measurement values\n");
-
-      mscl::AdaptiveMeasurementData adaptiveData =
-          config_->inertial_device_->getMagnetometerErrorAdaptiveMeasurement();
-      MICROSTRAIN_INFO(node_, "Mag magnitude error adaptive measurement values are: Enable: %i, Parameters: %f %f %f %f %f %f",
-          adaptiveData.mode, adaptiveData.lowPassFilterCutoff, adaptiveData.minUncertainty, adaptiveData.lowLimit,
-          adaptiveData.highLimit, adaptiveData.lowLimitUncertainty, adaptiveData.highLimitUncertainty);
-
-      res.enable = adaptiveData.mode;
-      res.low_pass_cutoff = adaptiveData.lowPassFilterCutoff;
-      res.low_limit = adaptiveData.lowLimit;
-      res.high_limit = adaptiveData.highLimit;
-      res.low_limit_1sigma = adaptiveData.lowLimitUncertainty;
-      res.high_limit_1sigma = adaptiveData.highLimitUncertainty;
-      res.min_1sigma = adaptiveData.minUncertainty;
-
-      res.success = true;
-    }
-    catch (mscl::Error& e)
-    {
-      MICROSTRAIN_ERROR(node_, "Error: %s", e.what());
-    }
+    MICROSTRAIN_DEBUG(node_, "Got mag magnitude error adaptive measurement:");
+    MICROSTRAIN_DEBUG(node_, "  mode = %d", static_cast<uint8_t>(mode));
+    MICROSTRAIN_DEBUG(node_, "  low pass cutoff frequency = %f", frequency);
+    MICROSTRAIN_DEBUG(node_, "  low limit = %f", low_limit);
+    MICROSTRAIN_DEBUG(node_, "  high limit = %f", high_limit);
+    MICROSTRAIN_DEBUG(node_, "  low limit uncertainty = %f", low_limit_uncertainty);
+    MICROSTRAIN_DEBUG(node_, "  high limit uncertainty = %f", high_limit_uncertainty);
+    MICROSTRAIN_DEBUG(node_, "  minimum uncertainty = %f", minimum_uncertainty);
+    res.enable = static_cast<float>(mode);
+    res.low_pass_cutoff = frequency;
+    res.low_limit = low_limit;
+    res.high_limit = high_limit;
+    res.low_limit_1sigma = low_limit_uncertainty;
+    res.high_limit_1sigma = high_limit_uncertainty;
+    res.min_1sigma = minimum_uncertainty;
+  }
+  else
+  {
+    MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to get mag magnitude error adaptive measurements");
   }
 
   return res.success;
-  */
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1682,40 +1508,22 @@ bool Services::getMagAdaptiveVals(GetMagAdaptiveValsServiceMsg::Request& req,
 bool Services::setMagDipAdaptiveVals(SetMagDipAdaptiveValsServiceMsg::Request& req,
                                                     SetMagDipAdaptiveValsServiceMsg::Response& res)
 {
-  /*
-  res.success = false;
+  // TODO: Untested
+  MICROSTRAIN_DEBUG(node_, "Setting mag dip angle error adaptive measurement:");
+  MICROSTRAIN_DEBUG(node_, "  enable = %f", req.enable);
+  MICROSTRAIN_DEBUG(node_, "  low pass cutoff frequency = %f", req.low_pass_cutoff);
+  MICROSTRAIN_DEBUG(node_, "  high limit = %f", req.high_limit);
+  MICROSTRAIN_DEBUG(node_, "  high limit uncertainty = %f", req.high_limit_1sigma);
+  MICROSTRAIN_DEBUG(node_, "  minimum uncertainty = %f", req.min_1sigma);
 
-  if (config_->inertial_device_)
-  {
-    try
-    {
-      MICROSTRAIN_INFO(node_, "Setting the mag dip angle error adaptive measurement values\n");
-
-      mscl::AdaptiveMeasurementData adaptiveData;
-      adaptiveData.mode = static_cast<mscl::InertialTypes::AdaptiveMeasurementMode>(req.enable);
-      adaptiveData.lowPassFilterCutoff = req.low_pass_cutoff;
-      adaptiveData.highLimit = req.high_limit;
-      adaptiveData.highLimitUncertainty = req.high_limit_1sigma;
-      adaptiveData.minUncertainty = req.min_1sigma;
-
-      config_->inertial_device_->setMagDipAngleErrorAdaptiveMeasurement(adaptiveData);
-
-      adaptiveData = config_->inertial_device_->getMagDipAngleErrorAdaptiveMeasurement();
-      MICROSTRAIN_INFO(node_, "mag dip angle error adaptive measurement values successfully set.\n");
-      MICROSTRAIN_INFO(node_, "Returned values: Enable: %i, Parameters: %f %f %f %f\n", adaptiveData.mode,
-                       adaptiveData.lowPassFilterCutoff, adaptiveData.minUncertainty, adaptiveData.highLimit,
-                       adaptiveData.highLimitUncertainty);
-
-      res.success = true;
-    }
-    catch (mscl::Error& e)
-    {
-      MICROSTRAIN_ERROR(node_, "Error: %s", e.what());
-    }
-  }
+  mip::CmdResult mip_cmd_result;
+  res.success = !!(mip_cmd_result = mip::commands_filter::writeMagDipAngleErrorAdaptiveMeasurement(*(config_->mip_device_->device_), static_cast<bool>(req.enable), req.low_pass_cutoff, req.high_limit, req.high_limit_1sigma, req.min_1sigma));
+  if (!res.success)
+    MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to set mag dip angle error adaptive measurement");
+  else
+    MICROSTRAIN_DEBUG(node_, "Set mag dip angle error adaptive measurement");
 
   return res.success;
-  */
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1725,37 +1533,33 @@ bool Services::setMagDipAdaptiveVals(SetMagDipAdaptiveValsServiceMsg::Request& r
 bool Services::getMagDipAdaptiveVals(GetMagDipAdaptiveValsServiceMsg::Request& req,
                                                     GetMagDipAdaptiveValsServiceMsg::Response& res)
 {
-  /*
-  res.success = false;
+  // TODO: Untested
+  MICROSTRAIN_DEBUG(node_, "Getting mag dip angle error adaptive measurements");
 
-  if (config_->inertial_device_)
+  bool enable;
+  float frequency, high_limit, high_limit_uncertainty, minimum_uncertainty;
+  mip::CmdResult mip_cmd_result;
+  res.success = !!(mip_cmd_result = mip::commands_filter::readMagDipAngleErrorAdaptiveMeasurement(*(config_->mip_device_->device_), &enable, &frequency, &high_limit, &high_limit_uncertainty, &minimum_uncertainty));
+  if (res.success)
   {
-    try
-    {
-      MICROSTRAIN_INFO(node_, "Getting the mag dip angle error adaptive measurement values\n");
-
-      mscl::AdaptiveMeasurementData adaptiveData =
-          config_->inertial_device_->getMagDipAngleErrorAdaptiveMeasurement();
-      MICROSTRAIN_INFO(node_, "Returned values: Enable: %i, Parameters: %f %f %f %f %f %f", adaptiveData.mode,
-                       adaptiveData.lowPassFilterCutoff, adaptiveData.minUncertainty, adaptiveData.lowLimit,
-                       adaptiveData.highLimit, adaptiveData.lowLimitUncertainty, adaptiveData.highLimitUncertainty);
-
-      res.enable = adaptiveData.mode;
-      res.low_pass_cutoff = adaptiveData.lowPassFilterCutoff;
-      res.high_limit = adaptiveData.highLimit;
-      res.high_limit_1sigma = adaptiveData.highLimitUncertainty;
-      res.min_1sigma = adaptiveData.minUncertainty;
-
-      res.success = true;
-    }
-    catch (mscl::Error& e)
-    {
-      MICROSTRAIN_ERROR(node_, "Error: %s", e.what());
-    }
+    MICROSTRAIN_DEBUG(node_, "Got mag dip angle error adaptive measurement:");
+    MICROSTRAIN_DEBUG(node_, "  mode = %d", enable);
+    MICROSTRAIN_DEBUG(node_, "  low pass cutoff frequency = %f", frequency);
+    MICROSTRAIN_DEBUG(node_, "  high limit = %f", high_limit);
+    MICROSTRAIN_DEBUG(node_, "  high limit uncertainty = %f", high_limit_uncertainty);
+    MICROSTRAIN_DEBUG(node_, "  minimum uncertainty = %f", minimum_uncertainty);
+    res.enable = static_cast<float>(enable);
+    res.low_pass_cutoff = frequency;
+    res.high_limit = high_limit;
+    res.high_limit_1sigma = high_limit_uncertainty;
+    res.min_1sigma = minimum_uncertainty;
+  }
+  else
+  {
+    MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to get mag dip angle error adaptive measurements");
   }
 
   return res.success;
-  */
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1812,7 +1616,6 @@ bool Services::getDynamicsMode(GetDynamicsModeServiceMsg::Request& req,
 bool Services::deviceSettings(DeviceSettingsServiceMsg::Request& req,
                                           DeviceSettingsServiceMsg::Response& res)
 {
-  // TODO: Untested
   MICROSTRAIN_DEBUG(node_, "Processing device settings command with function selector %d", req.function_selector);
 
   mip::CmdResult mip_cmd_result;
@@ -1838,11 +1641,10 @@ bool Services::deviceSettings(DeviceSettingsServiceMsg::Request& req,
 
     // Unsupported function selector
     default:
-    {
-      MICROSTRAIN_ERROR(node_, "Unsupported function selector for device_settins service %d", req.function_selector);
+      MICROSTRAIN_ERROR(node_, "Unsupported function selector for device_settins service: %d", req.function_selector);
       res.success = false;
-    }
-    break;
+      return res.success;
+      break;
   }
 
   if (!mip_cmd_result)
@@ -1898,7 +1700,6 @@ bool Services::commandedAngRateZupt(TriggerServiceMsg::Request& req, TriggerServ
 bool Services::externalHeadingUpdate(ExternalHeadingUpdateServiceMsg::Request& req,
                                                   ExternalHeadingUpdateServiceMsg::Response& res)
 {
-  // TODO: Untested
   MICROSTRAIN_DEBUG(node_, "Updating with external heading");
   MICROSTRAIN_DEBUG(node_, "  gps time of week = %f", req.gps_tow);
   MICROSTRAIN_DEBUG(node_, "  gps week number = %u", req.gps_week_number);
@@ -1923,7 +1724,6 @@ bool Services::externalHeadingUpdate(ExternalHeadingUpdateServiceMsg::Request& r
 bool Services::setRelativePositionReference(SetRelativePositionReferenceServiceMsg::Request& req,
                                                           SetRelativePositionReferenceServiceMsg::Response& res)
 {
-  // TODO: Untested
   const auto frame = static_cast<mip::commands_filter::FilterReferenceFrame>(req.frame);
   double coordinates[3] = {req.position.x, req.position.y, req.position.z};
   MICROSTRAIN_DEBUG(node_, "Setting relative position reference");
@@ -1948,7 +1748,6 @@ bool Services::setRelativePositionReference(SetRelativePositionReferenceServiceM
 bool Services::getRelativePositionReference(GetRelativePositionReferenceServiceMsg::Request& req,
                                                           GetRelativePositionReferenceServiceMsg::Response& res)
 {
-  // TODO: Untested
   MICROSTRAIN_DEBUG(node_, "Getting relative position reference");
 
   uint8_t source;
@@ -1979,7 +1778,6 @@ bool Services::getRelativePositionReference(GetRelativePositionReferenceServiceM
 bool Services::setFilterSpeedLeverArm(SetFilterSpeedLeverArmServiceMsg::Request& req,
                               SetFilterSpeedLeverArmServiceMsg::Response& res)
 {
-  // TODO: Untested
   float offset[3] = {req.offset.x, req.offset.y, req.offset.z};
   MICROSTRAIN_DEBUG(node_, "Setting filter speed lever arm [%f, %f, %f]", offset[0], offset[1], offset[2]);
 
