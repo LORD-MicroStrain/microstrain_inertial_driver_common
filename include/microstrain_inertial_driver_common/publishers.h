@@ -67,7 +67,10 @@ public:
     using SharedPtr = std::shared_ptr<Publisher<MessageType>>;
     using SharedPtrVec = std::vector<SharedPtr>;
 
-    Publisher(const std::string& topic) : topic_(topic) {}
+    Publisher(const std::string& topic) : topic_(topic)
+    {
+      message_ = std::make_shared<MessageType>();
+    }
 
     static SharedPtr initialize(const std::string& topic)
     {
@@ -89,7 +92,6 @@ public:
 
     void configure(RosNodeType* node)
     {
-      message_ = std::make_shared<MessageType>();
       publisher_ = create_publisher<MessageType>(node, topic_, 100);
     }
 

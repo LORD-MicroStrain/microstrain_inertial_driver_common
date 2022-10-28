@@ -47,9 +47,12 @@ bool Publishers::configure()
   filter_heading_state_pub_->configure(node_, config_);
   filter_aiding_mesaurement_summary_pub_->configure(node_, config_);
   filter_odom_pub_->configure(node_, config_);
-  filter_relative_odom_pub_->configure(node_, config_);
   filter_imu_pub_->configure(node_, config_);
   gnss_dual_antenna_status_pub_->configure(node_, config_);
+
+  // Only publish relative odom if we support the relative position descriptor set
+  if (config_->mip_device_->supportsDescriptor(mip::data_filter::DESCRIPTOR_SET, mip::data_filter::RelPosNed::DESCRIPTOR_SET))
+    filter_relative_odom_pub_->configure(node_, config_);
 
   if (config_->publish_nmea_)
     nmea_sentence_pub_->configure(node_);
@@ -78,8 +81,7 @@ bool Publishers::configure()
   std::copy(config_->imu_orientation_cov_.begin(), config_->imu_orientation_cov_.end(), imu_msg->orientation_covariance.begin());
 
   // Transform broadcaster setup
-  if (filter_relative_odom_pub_)
-    transform_broadcaster_ = create_transform_broadcaster(node_);
+  transform_broadcaster_ = create_transform_broadcaster(node_);
 
   // Register callbacks for each data field we care about. Note that order is preserved here, so if a data field needs to be parsed before another, change it here.
   for (const uint8_t descriptor_set : std::initializer_list<uint8_t>{mip::data_sensor::DESCRIPTOR_SET, mip::data_gnss::DESCRIPTOR_SET, mip::data_gnss::MIP_GNSS1_DATA_DESC_SET, mip::data_gnss::MIP_GNSS2_DATA_DESC_SET, mip::data_gnss::MIP_GNSS3_DATA_DESC_SET, mip::data_filter::DESCRIPTOR_SET})

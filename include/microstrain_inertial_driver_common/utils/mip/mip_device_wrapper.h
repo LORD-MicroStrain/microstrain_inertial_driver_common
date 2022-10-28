@@ -30,6 +30,10 @@ class DeviceInterface
   mip::CmdResult updateDeviceDescriptors();
   mip::CmdResult updateBaseRate(const uint8_t descriptor_set);
 
+  mip::CmdResult writeMessageFormat(uint8_t descriptor_set, uint8_t num_descriptors, const mip::DescriptorRate* descriptors);
+
+  mip::CmdResult writeDatastreamControl(uint8_t descriptor_set, bool enable);
+
   bool supportsDescriptorSet(const uint8_t descriptor_set);
   bool supportsDescriptor(const uint8_t descriptor_set, const uint8_t field_descriptor);
 

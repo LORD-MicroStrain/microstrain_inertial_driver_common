@@ -4,6 +4,7 @@
 #include <stdexcept>
 
 #include "mip/mip.hpp"
+#include "mip/mip_all.hpp"
 
 #include "microstrain_inertial_driver_common/utils/mip/mip_device_wrapper.h"
 
@@ -89,9 +90,76 @@ mip::CmdResult DeviceInterface::updateDeviceDescriptors()
 
 mip::CmdResult DeviceInterface::updateBaseRate(const uint8_t descriptor_set)
 {
+  // Initialize the base rates
   if (base_rates_.find(descriptor_set) == base_rates_.end())
     base_rates_[descriptor_set] = 0;
-  return mip::commands_3dm::getBaseRate(*device_, descriptor_set, &(base_rates_[descriptor_set]));
+
+  // If the device supports the getBaseRate command, use that one, otherwise use the specific function
+  if (supportsDescriptor(mip::commands_3dm::DESCRIPTOR_SET, mip::commands_3dm::CMD_GET_BASE_RATE))
+  {
+    return mip::commands_3dm::getBaseRate(*device_, descriptor_set, &(base_rates_[descriptor_set]));
+  }
+  else
+  {
+    switch (descriptor_set)
+    {
+      case mip::data_sensor::DESCRIPTOR_SET:
+        return mip::commands_3dm::imuGetBaseRate(*device_, &(base_rates_[descriptor_set]));
+      case mip::data_gnss::DESCRIPTOR_SET:
+        return mip::commands_3dm::gpsGetBaseRate(*device_, &(base_rates_[descriptor_set]));
+      case mip::data_filter::DESCRIPTOR_SET:
+        return mip::commands_3dm::filterGetBaseRate(*device_, &(base_rates_[descriptor_set]));
+      default:
+        return mip::CmdResult::fromAckNack(mip::CmdResult::NACK_INVALID_PARAM);
+    }
+  }
+}
+
+mip::CmdResult DeviceInterface::writeMessageFormat(uint8_t descriptor_set, uint8_t num_descriptors, const mip::DescriptorRate* descriptors)
+{
+  // If the device supports the generic message format command use that, otherwise use the specific function
+  if (supportsDescriptor(mip::commands_3dm::DESCRIPTOR_SET, mip::commands_3dm::CMD_MESSAGE_FORMAT))
+  {
+    return mip::commands_3dm::writeMessageFormat(*device_, descriptor_set, num_descriptors, descriptors);
+  }
+  else
+  {
+    switch (descriptor_set)
+    {
+      case mip::data_sensor::DESCRIPTOR_SET:
+        return mip::commands_3dm::writeImuMessageFormat(*device_, num_descriptors, descriptors);
+      case mip::data_gnss::DESCRIPTOR_SET:
+        return mip::commands_3dm::writeGpsMessageFormat(*device_, num_descriptors, descriptors);
+      case mip::data_filter::DESCRIPTOR_SET:
+        return mip::commands_3dm::writeFilterMessageFormat(*device_, num_descriptors, descriptors);
+      default:
+        return mip::CmdResult::fromAckNack(mip::CmdResult::NACK_INVALID_PARAM);
+    }
+  }
+}
+
+mip::CmdResult DeviceInterface::writeDatastreamControl(uint8_t descriptor_set, bool enable)
+{
+  // Try just sending the descriptor set
+  const mip::CmdResult mip_cmd_result = mip::commands_3dm::writeDatastreamControl(*device_, descriptor_set, enable);
+  if (mip_cmd_result.value != mip::CmdResult::NACK_INVALID_PARAM)
+  {
+    return mip_cmd_result;
+  }
+  else
+  {
+    switch (descriptor_set)
+    {
+      case mip::data_sensor::DESCRIPTOR_SET:
+        return mip::commands_3dm::writeDatastreamControl(*device_, mip::commands_3dm::DatastreamControl::LEGACY_IMU_STREAM, enable);
+      case mip::data_gnss::DESCRIPTOR_SET:
+        return mip::commands_3dm::writeDatastreamControl(*device_, mip::commands_3dm::DatastreamControl::LEGACY_GNSS_STREAM, enable);
+      case mip::data_filter::DESCRIPTOR_SET:
+        return mip::commands_3dm::writeDatastreamControl(*device_, mip::commands_3dm::DatastreamControl::LEGACY_FILTER_STREAM, enable);
+      default:
+        return mip::CmdResult::fromAckNack(mip::CmdResult::NACK_INVALID_PARAM);
+    }
+  }
 }
 
 bool DeviceInterface::supportsDescriptorSet(const uint8_t descriptor_set)
@@ -123,7 +191,7 @@ uint16_t DeviceInterface::getDecimationFromHertz(const uint8_t descriptor_set, c
   mip::CmdResult result;
   if (base_rates_.find(descriptor_set) == base_rates_.end())
     if (!(result = updateBaseRate(descriptor_set)))
-      throw std::runtime_error(std::string("Error") + "(" + std::to_string(result.value) + "): " + result.name());
+      throw std::runtime_error(std::string("MIP Error") + "(" + std::to_string(result.value) + "): " + result.name());
 
   return base_rates_[descriptor_set] / hertz;
 }

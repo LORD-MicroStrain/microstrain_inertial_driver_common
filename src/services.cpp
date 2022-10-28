@@ -202,7 +202,6 @@ bool Services::resetFilter(EmptyServiceMsg::Request& req, EmptyServiceMsg::Respo
 bool Services::initFilterEuler(InitFilterEulerServiceMsg::Request& req,
                                             InitFilterEulerServiceMsg::Response& res)
 {
-  // TODO: Untested
   MICROSTRAIN_DEBUG(node_, "Initializing filter euler to [%f, %f, %f]", req.angle.x, req.angle.y, req.angle.z);
 
   mip::CmdResult mip_cmd_result;
@@ -222,7 +221,6 @@ bool Services::initFilterEuler(InitFilterEulerServiceMsg::Request& req,
 bool Services::initFilterHeading(InitFilterHeadingServiceMsg::Request& req,
                                               InitFilterHeadingServiceMsg::Response& res)
 {
-  // TODO: Untested
   MICROSTRAIN_DEBUG(node_, "Initializing filter heading to %f", req.angle);
 
   mip::CmdResult mip_cmd_result;
@@ -331,18 +329,18 @@ bool Services::getGyroBias(GetGyroBiasServiceMsg::Request& req, GetGyroBiasServi
 
 bool Services::gyroBiasCapture(TriggerServiceMsg::Request& req, TriggerServiceMsg::Response& res)
 {
+  const int32_t capture_timeout = 10000;
   MICROSTRAIN_DEBUG(node_, "Capturing gyro bias");
   MICROSTRAIN_WARN(node_, "Performing Gyro Bias capture.");
-  MICROSTRAIN_WARN(node_, "Please keep device stationary during the 10 second gyro bias capture interval");
+  MICROSTRAIN_WARN(node_, "Please keep device stationary during the %f second gyro bias capture interval", static_cast<float>(capture_timeout) / 1000);
 
   // We need to change the timeout to allow for this longer command
-  const int32_t capture_timeout = 10000;
   const int32_t old_mip_sdk_timeout = config_->mip_device_->device_->baseReplyTimeout();
   config_->mip_device_->device_->setBaseReplyTimeout(capture_timeout * 2);
 
   float gyro_bias[3];
   mip::CmdResult mip_cmd_result;
-  res.success = !!(mip_cmd_result = mip::commands_3dm::captureGyroBias(*(config_->mip_device_->device_), 10000, gyro_bias));
+  res.success = !!(mip_cmd_result = mip::commands_3dm::captureGyroBias(*(config_->mip_device_->device_), capture_timeout, gyro_bias));
   if (res.success)
   {
     MICROSTRAIN_DEBUG(node_, "Captured gyro bias: [%f, %f, %f]", gyro_bias[0], gyro_bias[1], gyro_bias[2]);
@@ -535,7 +533,6 @@ bool Services::getComplementaryFilter(GetComplementaryFilterServiceMsg::Request&
 bool Services::setHeadingSource(SetHeadingSourceServiceMsg::Request& req,
                                              SetHeadingSourceServiceMsg::Response& res)
 {
-  // TODO: Untested
   const auto source = static_cast<mip::commands_filter::HeadingSource::Source>(req.heading_source);
   MICROSTRAIN_DEBUG(node_, "Setting heading source to %d", req.heading_source);
 
@@ -556,7 +553,6 @@ bool Services::setHeadingSource(SetHeadingSourceServiceMsg::Request& req,
 bool Services::getHeadingSource(GetHeadingSourceServiceMsg::Request& req,
                                              GetHeadingSourceServiceMsg::Response& res)
 {
-  // TODO: Untested
   MICROSTRAIN_DEBUG(node_, "Getting heading source");
 
   mip::commands_filter::HeadingSource::Source source;
@@ -582,7 +578,6 @@ bool Services::getHeadingSource(GetHeadingSourceServiceMsg::Request& req,
 bool Services::setSensor2vehicleRotation(SetSensor2VehicleRotationServiceMsg::Request& req,
                                                       SetSensor2VehicleRotationServiceMsg::Response& res)
 {
-  // TODO: Untested
   MICROSTRAIN_DEBUG(node_, "Setting sensor to vehicle rotation to [%f, %f, %f]", req.angle.x, req.angle.y, req.angle.z);
 
   mip::CmdResult mip_cmd_result;
@@ -602,7 +597,6 @@ bool Services::setSensor2vehicleRotation(SetSensor2VehicleRotationServiceMsg::Re
 bool Services::getSensor2vehicleRotation(GetSensor2VehicleRotationServiceMsg::Request& req,
                                                       GetSensor2VehicleRotationServiceMsg::Response& res)
 {
-  // TODO: Untested
   MICROSTRAIN_DEBUG(node_, "Getting sensor to vehicle rotation");
 
   float roll, pitch, yaw;
@@ -631,7 +625,6 @@ bool Services::getSensor2vehicleRotation(GetSensor2VehicleRotationServiceMsg::Re
 bool Services::setSensor2vehicleOffset(SetSensor2VehicleOffsetServiceMsg::Request& req,
                                                     SetSensor2VehicleOffsetServiceMsg::Response& res)
 {
-  // TODO: Untested
   float offset[3] = {req.offset.x, req.offset.y, req.offset.z};
   MICROSTRAIN_DEBUG(node_, "Setting sensor to vehicle offset to [%f, %f, %f]", offset[0], offset[1], offset[2]);
 
@@ -652,7 +645,6 @@ bool Services::setSensor2vehicleOffset(SetSensor2VehicleOffsetServiceMsg::Reques
 bool Services::getSensor2vehicleOffset(GetSensor2VehicleOffsetServiceMsg::Request& req,
                                                     GetSensor2VehicleOffsetServiceMsg::Response& res)
 {
-  // TODO: Untested
   MICROSTRAIN_DEBUG(node_, "Getting sensor to vehicle offsets");
 
   float offsets[3];
@@ -680,7 +672,6 @@ bool Services::getSensor2vehicleOffset(GetSensor2VehicleOffsetServiceMsg::Reques
 bool Services::getSensor2vehicleTransformation(GetSensor2VehicleTransformationServiceMsg::Request& req,
                                                             GetSensor2VehicleTransformationServiceMsg::Response& res)
 {
-  // TODO: Untested
   MICROSTRAIN_DEBUG(node_, "Getting sensor to vehicle transformation");
 
   // Just call the two existing services
@@ -769,7 +760,6 @@ bool Services::getReferencePosition(GetReferencePositionServiceMsg::Request& req
 bool Services::setConingScullingComp(SetConingScullingCompServiceMsg::Request& req,
                                                    SetConingScullingCompServiceMsg::Response& res)
 {
-  // TODO: Untested
   MICROSTRAIN_DEBUG(node_, "Setting coning sculling enable to %d", req.enable);
 
   mip::CmdResult mip_cmd_result;
@@ -789,7 +779,6 @@ bool Services::setConingScullingComp(SetConingScullingCompServiceMsg::Request& r
 bool Services::getConingScullingComp(GetConingScullingCompServiceMsg::Request& req,
                                                    GetConingScullingCompServiceMsg::Response& res)
 {
-  // TODO: Untested
   MICROSTRAIN_DEBUG(node_, "Getting coning sculling enable");
 
   bool enable;
@@ -815,7 +804,6 @@ bool Services::getConingScullingComp(GetConingScullingCompServiceMsg::Request& r
 bool Services::setEstimationControlFlags(SetEstimationControlFlagsServiceMsg::Request& req,
                                                        SetEstimationControlFlagsServiceMsg::Response& res)
 {
-  // TODO: Untested
   const auto flags = static_cast<mip::commands_filter::EstimationControl::EnableFlags>(req.flags);
   MICROSTRAIN_DEBUG(node_, "Setting estimation control flags to %d", req.flags);
 
@@ -836,7 +824,6 @@ bool Services::setEstimationControlFlags(SetEstimationControlFlagsServiceMsg::Re
 bool Services::getEstimationControlFlags(GetEstimationControlFlagsServiceMsg::Request& req,
                                                        GetEstimationControlFlagsServiceMsg::Response& res)
 {
-  // TODO: Untested
   MICROSTRAIN_DEBUG(node_, "Getting estimation control flags");
 
   mip::commands_filter::EstimationControl::EnableFlags flags;
@@ -1103,7 +1090,6 @@ bool Services::getZeroVelocityUpdateThreshold(GetZeroVelocityUpdateThresholdServ
 bool Services::setTareOrientation(SetTareOrientationServiceMsg::Request& req,
                                                SetTareOrientationServiceMsg::Response& res)
 {
-  // TODO: Untested
   const auto axis = static_cast<mip::commands_filter::TareOrientation::MipTareAxes>(req.axis);
   MICROSTRAIN_DEBUG(node_, "Setting tare orientation %d", req.axis);
 
@@ -1123,7 +1109,6 @@ bool Services::setTareOrientation(SetTareOrientationServiceMsg::Request& req,
 
 bool Services::setAccelNoise(SetAccelNoiseServiceMsg::Request& req, SetAccelNoiseServiceMsg::Response& res)
 {
-  // TODO: Untested
   MICROSTRAIN_DEBUG(node_, "Setting accel noise to [%f, %f, %f]", req.noise.x, req.noise.y, req.noise.z);
 
   mip::CmdResult mip_cmd_result;
@@ -1142,7 +1127,6 @@ bool Services::setAccelNoise(SetAccelNoiseServiceMsg::Request& req, SetAccelNois
 
 bool Services::getAccelNoise(GetAccelNoiseServiceMsg::Request& req, GetAccelNoiseServiceMsg::Response& res)
 {
-  // TODO: Untested
   MICROSTRAIN_DEBUG(node_, "Getting accel noise");
 
   float x, y, z;
@@ -1169,7 +1153,6 @@ bool Services::getAccelNoise(GetAccelNoiseServiceMsg::Request& req, GetAccelNois
 
 bool Services::setGyroNoise(SetGyroNoiseServiceMsg::Request& req, SetGyroNoiseServiceMsg::Response& res)
 {
-  // TODO: Untested
   MICROSTRAIN_DEBUG(node_, "Setting gyro noise to [%f, %f, %f]", req.noise.x, req.noise.y, req.noise.z);
 
   mip::CmdResult mip_cmd_result;
@@ -1188,7 +1171,6 @@ bool Services::setGyroNoise(SetGyroNoiseServiceMsg::Request& req, SetGyroNoiseSe
 
 bool Services::getGyroNoise(GetGyroNoiseServiceMsg::Request& req, GetGyroNoiseServiceMsg::Response& res)
 {
-  // TODO: Untested
   MICROSTRAIN_DEBUG(node_, "Getting gyro noise");
 
   float x, y, z;
@@ -1215,7 +1197,6 @@ bool Services::getGyroNoise(GetGyroNoiseServiceMsg::Request& req, GetGyroNoiseSe
 
 bool Services::setMagNoise(SetMagNoiseServiceMsg::Request& req, SetMagNoiseServiceMsg::Response& res)
 {
-  // TODO: Untested
   MICROSTRAIN_DEBUG(node_, "Setting mag noise to [%f, %f, %f]", req.noise.x, req.noise.y, req.noise.z);
 
   mip::CmdResult mip_cmd_result;
@@ -1234,7 +1215,6 @@ bool Services::setMagNoise(SetMagNoiseServiceMsg::Request& req, SetMagNoiseServi
 
 bool Services::getMagNoise(GetMagNoiseServiceMsg::Request& req, GetMagNoiseServiceMsg::Response& res)
 {
-  // TODO: Untested
   MICROSTRAIN_DEBUG(node_, "Getting mag noise");
 
   float x, y, z;
@@ -1262,7 +1242,6 @@ bool Services::getMagNoise(GetMagNoiseServiceMsg::Request& req, GetMagNoiseServi
 bool Services::setGyroBiasModel(SetGyroBiasModelServiceMsg::Request& req,
                                               SetGyroBiasModelServiceMsg::Response& res)
 {
-  // TODO: Untested
   MICROSTRAIN_DEBUG(node_, "Setting gyro bias model:");
   MICROSTRAIN_DEBUG(node_, "  beta = [%f, %f, %f]", req.beta_vector.x, req.beta_vector.y, req.beta_vector.z);
   MICROSTRAIN_DEBUG(node_, "  noise = [%f, %f, %f]", req.noise_vector.x, req.noise_vector.y, req.noise_vector.z);
@@ -1284,7 +1263,6 @@ bool Services::setGyroBiasModel(SetGyroBiasModelServiceMsg::Request& req,
 bool Services::getGyroBiasModel(GetGyroBiasModelServiceMsg::Request& req,
                                               GetGyroBiasModelServiceMsg::Response& res)
 {
-  // TODO: Untested
   MICROSTRAIN_DEBUG(node_, "Getting gyro bias model");
 
   float x_beta, y_beta, z_beta, x, y, z;
@@ -1317,7 +1295,6 @@ bool Services::getGyroBiasModel(GetGyroBiasModelServiceMsg::Request& req,
 bool Services::setAccelBiasModel(SetAccelBiasModelServiceMsg::Request& req,
                                                SetAccelBiasModelServiceMsg::Response& res)
 {
-  // TODO: Untested
   MICROSTRAIN_DEBUG(node_, "Setting accel bias model:");
   MICROSTRAIN_DEBUG(node_, "  beta = [%f, %f, %f]", req.beta_vector.x, req.beta_vector.y, req.beta_vector.z);
   MICROSTRAIN_DEBUG(node_, "  noise = [%f, %f, %f]", req.noise_vector.x, req.noise_vector.y, req.noise_vector.z);
@@ -1339,7 +1316,6 @@ bool Services::setAccelBiasModel(SetAccelBiasModelServiceMsg::Request& req,
 bool Services::getAccelBiasModel(GetAccelBiasModelServiceMsg::Request& req,
                                                GetAccelBiasModelServiceMsg::Response& res)
 {
-  // TODO: Untested
   MICROSTRAIN_DEBUG(node_, "Getting accel bias model");
 
   float x_beta, y_beta, z_beta, x, y, z;
@@ -1372,7 +1348,6 @@ bool Services::getAccelBiasModel(GetAccelBiasModelServiceMsg::Request& req,
 bool Services::setGravityAdaptiveVals(SetGravityAdaptiveValsServiceMsg::Request& req,
                                                     SetGravityAdaptiveValsServiceMsg::Response& res)
 {
-  // TODO: Untested
   const auto mode = static_cast<mip::commands_filter::AccelMagnitudeErrorAdaptiveMeasurement::AdaptiveMeasurement>(req.enable);
   MICROSTRAIN_DEBUG(node_, "Setting accel magnitude error adaptive measurement:");
   MICROSTRAIN_DEBUG(node_, "  mode = %d", static_cast<uint8_t>(mode));
@@ -1400,7 +1375,6 @@ bool Services::setGravityAdaptiveVals(SetGravityAdaptiveValsServiceMsg::Request&
 bool Services::getGravityAdaptiveVals(GetGravityAdaptiveValsServiceMsg::Request& req,
                                                     GetGravityAdaptiveValsServiceMsg::Response& res)
 {
-  // TODO: Untested
   MICROSTRAIN_DEBUG(node_, "Getting accel magnitude error adaptive measurements");
 
   mip::commands_filter::AccelMagnitudeErrorAdaptiveMeasurement::AdaptiveMeasurement mode;
@@ -1440,7 +1414,6 @@ bool Services::getGravityAdaptiveVals(GetGravityAdaptiveValsServiceMsg::Request&
 bool Services::setMagAdaptiveVals(SetMagAdaptiveValsServiceMsg::Request& req,
                                                 SetMagAdaptiveValsServiceMsg::Response& res)
 {
-  // TODO: Untested
   const auto mode = static_cast<mip::commands_filter::MagMagnitudeErrorAdaptiveMeasurement::AdaptiveMeasurement>(req.enable);
   MICROSTRAIN_DEBUG(node_, "Setting mag magnitude error adaptive measurement:");
   MICROSTRAIN_DEBUG(node_, "  mode = %d", static_cast<uint8_t>(mode));
@@ -1468,7 +1441,6 @@ bool Services::setMagAdaptiveVals(SetMagAdaptiveValsServiceMsg::Request& req,
 bool Services::getMagAdaptiveVals(GetMagAdaptiveValsServiceMsg::Request& req,
                                                 GetMagAdaptiveValsServiceMsg::Response& res)
 {
-  // TODO: Untested
   MICROSTRAIN_DEBUG(node_, "Getting mag magnitude error adaptive measurements");
 
   mip::commands_filter::MagMagnitudeErrorAdaptiveMeasurement::AdaptiveMeasurement mode;
@@ -1508,7 +1480,6 @@ bool Services::getMagAdaptiveVals(GetMagAdaptiveValsServiceMsg::Request& req,
 bool Services::setMagDipAdaptiveVals(SetMagDipAdaptiveValsServiceMsg::Request& req,
                                                     SetMagDipAdaptiveValsServiceMsg::Response& res)
 {
-  // TODO: Untested
   MICROSTRAIN_DEBUG(node_, "Setting mag dip angle error adaptive measurement:");
   MICROSTRAIN_DEBUG(node_, "  enable = %f", req.enable);
   MICROSTRAIN_DEBUG(node_, "  low pass cutoff frequency = %f", req.low_pass_cutoff);
@@ -1533,7 +1504,6 @@ bool Services::setMagDipAdaptiveVals(SetMagDipAdaptiveValsServiceMsg::Request& r
 bool Services::getMagDipAdaptiveVals(GetMagDipAdaptiveValsServiceMsg::Request& req,
                                                     GetMagDipAdaptiveValsServiceMsg::Response& res)
 {
-  // TODO: Untested
   MICROSTRAIN_DEBUG(node_, "Getting mag dip angle error adaptive measurements");
 
   bool enable;
@@ -1569,7 +1539,6 @@ bool Services::getMagDipAdaptiveVals(GetMagDipAdaptiveValsServiceMsg::Request& r
 bool Services::setDynamicsMode(SetDynamicsModeServiceMsg::Request& req,
                                             SetDynamicsModeServiceMsg::Response& res)
 {
-  // TODO: Untested
   const auto mode = static_cast<mip::commands_filter::VehicleDynamicsMode::DynamicsMode>(req.mode);
   MICROSTRAIN_DEBUG(node_, "Setting vehicle dynamics mode to %d", req.mode);
 
@@ -1590,7 +1559,6 @@ bool Services::setDynamicsMode(SetDynamicsModeServiceMsg::Request& req,
 bool Services::getDynamicsMode(GetDynamicsModeServiceMsg::Request& req,
                                             GetDynamicsModeServiceMsg::Response& res)
 {
-  // TODO: Untested
   MICROSTRAIN_DEBUG(node_, "Getting vehicle dynamics mode");
 
   mip::commands_filter::VehicleDynamicsMode::DynamicsMode mode;
@@ -1618,6 +1586,10 @@ bool Services::deviceSettings(DeviceSettingsServiceMsg::Request& req,
 {
   MICROSTRAIN_DEBUG(node_, "Processing device settings command with function selector %d", req.function_selector);
 
+  // We need to change the timeout to allow for this longer command
+  const int32_t old_mip_sdk_timeout = config_->mip_device_->device_->baseReplyTimeout();
+  config_->mip_device_->device_->setBaseReplyTimeout(10000);  // 10 seconds should be enough
+
   mip::CmdResult mip_cmd_result;
   switch (req.function_selector)
   {
@@ -1643,14 +1615,16 @@ bool Services::deviceSettings(DeviceSettingsServiceMsg::Request& req,
     default:
       MICROSTRAIN_ERROR(node_, "Unsupported function selector for device_settins service: %d", req.function_selector);
       res.success = false;
-      return res.success;
       break;
   }
 
   if (!mip_cmd_result)
     MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to run device settings command");
-  else
+  else if (res.success)
     MICROSTRAIN_DEBUG(node_, "Ran device settings command");
+
+  // Reset the timeout
+  config_->mip_device_->device_->setBaseReplyTimeout(old_mip_sdk_timeout);
 
   return res.success;
 }
@@ -1661,7 +1635,6 @@ bool Services::deviceSettings(DeviceSettingsServiceMsg::Request& req,
 
 bool Services::commandedVelZupt(TriggerServiceMsg::Request& req, TriggerServiceMsg::Response& res)
 {
-  // TODO: Untested
   MICROSTRAIN_DEBUG(node_, "Commanding vel ZUPT");
 
   mip::CmdResult mip_cmd_result;
@@ -1680,7 +1653,6 @@ bool Services::commandedVelZupt(TriggerServiceMsg::Request& req, TriggerServiceM
 
 bool Services::commandedAngRateZupt(TriggerServiceMsg::Request& req, TriggerServiceMsg::Response& res)
 {
-  // TODO: Untested
   MICROSTRAIN_DEBUG(node_, "Commanding angular ZUPT");
 
   mip::CmdResult mip_cmd_result;

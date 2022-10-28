@@ -132,13 +132,13 @@ bool MIPPublisherMapping::configure(RosNodeType* config_node)
     mip::CmdResult mip_cmd_result;
     const uint8_t descriptor_set = streamed_descriptor_mapping.first;
     const std::vector<mip::DescriptorRate> descriptor_rates = streamed_descriptor_mapping.second;
-    if (!(mip_cmd_result = mip::commands_3dm::writeMessageFormat(*(mip_device_->device_), descriptor_set, descriptor_rates.size(), descriptor_rates.data())))
+    if (!(mip_cmd_result = mip_device_->writeMessageFormat(descriptor_set, descriptor_rates.size(), descriptor_rates.data())))
     {
       MICROSTRAIN_ERROR(node_, "Failed to write message format for descriptor set 0x%02x", descriptor_set);
       MICROSTRAIN_ERROR(node_, "  Error(%d): %s", mip_cmd_result.value, mip_cmd_result.name());
       return false;
     }
-    if (!(mip_cmd_result = mip::commands_3dm::writeDatastreamControl(*(mip_device_->device_), descriptor_set, true)))
+    if (!(mip_cmd_result = mip_device_->writeDatastreamControl(descriptor_set, true)))
     {
       MICROSTRAIN_ERROR(node_, "Failed to enable descriptor set 0x%02x", descriptor_set);
       MICROSTRAIN_ERROR(node_, "  Error(%d): %s", mip_cmd_result.value, mip_cmd_result.name());
