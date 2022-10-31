@@ -1,0 +1,58 @@
+#include <thread>
+#include <chrono>
+#include <stdio.h>
+#include <stdexcept>
+
+#include "microstrain_inertial_driver_common/utils/mip/ros_mip_device_aux.h"
+
+namespace microstrain
+{
+
+bool RosMipDeviceAux::configure(RosNodeType* config_node)
+{
+  // Initialize and connect the connection
+  std::string port;
+  int32_t baudrate;
+  get_param<std::string>(config_node, "aux_port", port, "/dev/ttyACM1");
+  get_param<int32_t>(config_node, "baudrate", baudrate, 115200);  // TODO(robbiefish): Change this to be specific to aux
+  connection_ = std::unique_ptr<RosConnection>(new RosConnection(node_));
+  if (!connection_->connect(config_node, port, baudrate))
+    return false;
+
+  // Setup the device interface
+  mip::CmdResult mip_cmd_result;
+  device_ = std::unique_ptr<mip::DeviceInterface>(new mip::DeviceInterface(connection_.get(), buffer_, sizeof(buffer_), connection_->parseTimeout(), connection_->baseReplyTimeout()));
+
+  // Print the device info
+  mip::commands_base::BaseDeviceInfo device_info;
+  if (!(mip_cmd_result = getDeviceInfo(&device_info)))
+  {
+    MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Unable to read device info");
+    return false;
+  }
+  MICROSTRAIN_INFO(node_, R"(Aux Connection Info:
+    #######################
+    Model Name:       %s
+    Serial Number:    %s
+    Firmware Version: %s
+    #######################)", device_info.model_name, device_info.serial_number, firmwareVersionString(device_info.firmware_version).c_str());
+
+  // Configure the connection with a working device
+  if (!connection_->configure(config_node, this))
+    return false;
+
+  return true;
+}
+
+bool RosMipDeviceAux::send(const uint8_t* data, size_t data_len)
+{
+  return connection_->sendToDevice(data, data_len);
+}
+
+bool RosMipDeviceAux::recv(uint8_t* data, size_t data_len, size_t* out_len)
+{
+  mip::Timestamp timestamp;
+  return connection_->recvFromDevice(data, data_len, out_len, &timestamp);
+}
+
+}  // namespace microstrain

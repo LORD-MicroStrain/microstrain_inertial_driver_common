@@ -48,7 +48,7 @@ bool Subscribers::activate()
   }
 
   // Create a topic listener for external RTCM updates
-  if (config_->subscribe_rtcm_ && config_->supports_rtk_)
+  if (config_->subscribe_rtcm_)
   {
     MICROSTRAIN_INFO(node_, "Subscribed to %s for RTCM corrections", config_->rtcm_topic_.c_str());
     rtcm_sub_ = create_subscriber<>(node_, config_->rtcm_topic_.c_str(), 1000, &Subscribers::rtcmCallback, this);
@@ -102,7 +102,7 @@ void Subscribers::velZupt()
 
   mip::CmdResult mip_cmd_result;
   MICROSTRAIN_DEBUG(node_, "Sending Vel ZUPT");
-  if (!(mip_cmd_result = mip::commands_filter::commandedZupt(*(config_->mip_device_->device_))))
+  if (!(mip_cmd_result = mip::commands_filter::commandedZupt(*(config_->mip_device_))))
   {
     MICROSTRAIN_ERROR(node_, "Failed to send angular ZUPT");
     MICROSTRAIN_ERROR(node_, "Error(%d): %s", mip_cmd_result.value, mip_cmd_result.name());
@@ -140,7 +140,7 @@ void Subscribers::angZupt()
 
   mip::CmdResult mip_cmd_result;
   MICROSTRAIN_DEBUG(node_, "Sending Angular ZUPT");
-  if (!(mip_cmd_result = mip::commands_filter::commandedAngularZupt(*(config_->mip_device_->device_))))
+  if (!(mip_cmd_result = mip::commands_filter::commandedAngularZupt(*(config_->mip_device_))))
   {
     MICROSTRAIN_ERROR(node_, "Failed to send angular ZUPT");
     MICROSTRAIN_ERROR(node_, "Error(%d): %s", mip_cmd_result.value, mip_cmd_result.name());
@@ -160,12 +160,12 @@ void Subscribers::externalGpsTimeCallback(const TimeReferenceMsg& time)
 
   mip::CmdResult mip_cmd_result;
   MICROSTRAIN_INFO(node_, "GPS Update: w%i, s%ld", weeks, secs);
-  if (!(mip_cmd_result = mip::commands_base::writeGpsTimeUpdate((*config_->mip_device_->device_), mip::commands_base::GpsTimeUpdate::FieldId::WEEK_NUMBER, weeks)))
+  if (!(mip_cmd_result = mip::commands_base::writeGpsTimeUpdate(*(config_->mip_device_), mip::commands_base::GpsTimeUpdate::FieldId::WEEK_NUMBER, weeks)))
   {
     MICROSTRAIN_ERROR(node_, "Failed to send GPS time update for week number");
     MICROSTRAIN_ERROR(node_, "Error(%d): %s", mip_cmd_result.value, mip_cmd_result.name());
   }
-  if (!(mip_cmd_result = mip::commands_base::writeGpsTimeUpdate((*config_->mip_device_->device_), mip::commands_base::GpsTimeUpdate::FieldId::TIME_OF_WEEK, secs)))
+  if (!(mip_cmd_result = mip::commands_base::writeGpsTimeUpdate(*(config_->mip_device_), mip::commands_base::GpsTimeUpdate::FieldId::TIME_OF_WEEK, secs)))
   {
     MICROSTRAIN_ERROR(node_, "Failed to send GPS time update for time of week");
     MICROSTRAIN_ERROR(node_, "Error(%d): %s", mip_cmd_result.value, mip_cmd_result.name());
@@ -178,7 +178,7 @@ void Subscribers::externalGpsTimeCallback(const TimeReferenceMsg& time)
 void Subscribers::externalSpeedCallback(const InputSpeedMeasurementMsg& speed)
 {
   mip::CmdResult mip_cmd_result;
-  if (!(mip_cmd_result = mip::commands_filter::speedMeasurement(*(config_->mip_device_->device_), 1, speed.gps_tow, speed.speed, speed.speed_uncertainty)))
+  if (!(mip_cmd_result = mip::commands_filter::speedMeasurement(*(config_->mip_device_), 1, speed.gps_tow, speed.speed, speed.speed_uncertainty)))
   {
     MICROSTRAIN_ERROR(node_, "Failed to write external speed");
     MICROSTRAIN_ERROR(node_, "Error(%d): %s", mip_cmd_result.value, mip_cmd_result.name());
@@ -190,8 +190,18 @@ void Subscribers::externalSpeedCallback(const InputSpeedMeasurementMsg& speed)
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 void Subscribers::rtcmCallback(const RTCMMsg& rtcm)
 {
-  if (!config_->aux_connection_->sendToDevice(rtcm.data.data(), rtcm.data.size()))
-    MICROSTRAIN_ERROR(node_, "Failed to write RTCM to device");
+  MICROSTRAIN_DEBUG(node_, "Received RTCM message of size %lu", rtcm.data.size());
+  if (config_->aux_device_)
+  {
+    if (!config_->aux_device_->send(rtcm.data.data(), rtcm.data.size()))
+      MICROSTRAIN_ERROR(node_, "Failed to write RTCM to device");
+    else
+      MICROSTRAIN_DEBUG(node_, "Successfully wrote RTCM message of size %lu to aux port", rtcm.data.size());
+  }
+  else
+  {
+    MICROSTRAIN_WARN(node_, "Note: Device did not configure the aux port. See startup logs for why it was not configured");
+  }
 }
 
 }  // namespace microstrain

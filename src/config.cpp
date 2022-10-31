@@ -14,7 +14,6 @@
 //
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 #include <errno.h>
-#include <sys/stat.h>
 #include <vector>
 #include <string>
 #include <memory>
@@ -130,19 +129,10 @@ bool Config::configure(RosNodeType* node)
   MICROSTRAIN_INFO(node_, "Using MIP SDK version: %s", MIP_SDK_VERSION_FULL);
 
   // Connect to the device and set it up if we were asked to
-  bool device_setup;
-  get_param<bool>(node, "device_setup", device_setup, false);
-
   if (!connectDevice(node))
     return false;
 
-  if (device_setup)
-  {
-    if (!setupDevice(node))
-      return false;
-  }
-
-  if (!setupRawFile(node))
+  if (!setupDevice(node))
     return false;
 
   return true;
@@ -150,100 +140,19 @@ bool Config::configure(RosNodeType* node)
 
 bool Config::connectDevice(RosNodeType* node)
 {
-  // Read the config required for only this section
-  std::string port;
-  std::string aux_port;
-  int32_t baudrate;
-  bool poll_port;
-  double poll_rate_hz;
-  int32_t poll_max_tries;
-  get_param<std::string>(node, "port", port, "/dev/ttyACM0");
-  get_param<std::string>(node, "aux_port", aux_port, "/dev/ttyACM1");
-  get_param<int32_t>(node, "baudrate", baudrate, 115200);
-  get_param<bool>(node, "poll_port", poll_port, false);
-  get_param<double>(node, "poll_rate_hz", poll_rate_hz, 1.0);
-  get_param<int32_t>(node, "poll_max_tries", poll_max_tries, 60);
-
-  // If we were asked to, poll the port until it exists
-  if (poll_port)
-  {
-    int32_t poll_tries = 0;
-    RosRateType poll_rate(poll_rate_hz);
-    struct stat port_stat;
-    while (stat(port.c_str(), &port_stat) != 0 && (poll_tries++ < poll_max_tries || poll_max_tries == -1))
-    {
-      // If the error isn't that the file does not exist, polling won't help, so we can fail here
-      if (errno != ENOENT)
-      {
-        MICROSTRAIN_ERROR(node_,
-            "Error while polling for file %s. File appears to exist, but stat returned error: %s",
-            port.c_str(), strerror(errno));
-        return false;
-      }
-
-      // Wait for the specified amount of time
-      MICROSTRAIN_WARN(node_, "%s doesn't exist yet. Waiting for file to appear...", port.c_str());
-      poll_rate.sleep();
-    }
-
-    // If the file still doesn't exist we can safely fail here.
-    if (stat(port.c_str(), &port_stat) != 0)
-    {
-      MICROSTRAIN_ERROR(node_, "Unable to open requested port, error: %s", strerror(errno));
-      return false;
-    }
-  }
-
-  // Open the serial device interface
-  MICROSTRAIN_INFO(node_, "Attempting to open serial port <%s> at <%d>", port.c_str(), baudrate);
-  mip::CmdResult mip_cmd_result;
-  try
-  {
-    // TODO: Allow for different connection types here
-    mip_device_ = std::make_shared<MipDeviceSerial>(port, (uint32_t)baudrate);
-    mip_device_->open();
-  }
-  catch (const std::exception& e)
-  {
-    MICROSTRAIN_ERROR(node_, "Unable to open device: %s", e.what());
+  // Open the device interface
+  mip_device_ = std::make_shared<RosMipDeviceMain>(node_);
+  if (!mip_device_->configure(node))
     return false;
-  }
-
-  // At this point, we have connected to the device but if it is streaming.
-  // Reading information may fail. Retry a few times to accomodate
-  MICROSTRAIN_INFO(node_, "Setting device to idle in order to configure");
-  if (!(mip_cmd_result = mip_device_->forceIdle()))
-  {
-    MICROSTRAIN_ERROR(node_, "Unable to set device to idle");
-    MICROSTRAIN_ERROR(node_, "  Error(%d): %s", mip_cmd_result.value, mip_cmd_result.name());
-    return false;
-  }
-
-  // Print the device info
-  mip::commands_base::BaseDeviceInfo device_info;
-  if (!(mip_cmd_result = mip_device_->getDeviceInfo(&device_info)))
-  {
-    MICROSTRAIN_ERROR(node_, "Unable to read device info");
-    MICROSTRAIN_ERROR(node_, "  Error(%d): %s", mip_cmd_result.value, mip_cmd_result.name());
-    return false;
-  }
-  MICROSTRAIN_INFO(node_, R"(
-    #######################
-    Model Name:    %s
-    Serial Number: %s
-    #######################
-  )", device_info.model_name, device_info.serial_number);
 
   // Connect the aux port
-  if (mip_device_->supportsDescriptorSet(mip::data_gnss::MIP_GNSS3_DATA_DESC_SET))
+  if (rtk_dongle_enable_)
   {
     if (subscribe_rtcm_ || publish_nmea_)
     {
-      MICROSTRAIN_INFO(node_, "Attempting to open aux serial port <%s> at <%d>", aux_port.c_str(), baudrate);
-      if (raw_file_enable_)
-        aux_connection_ = std::make_unique<mip::extras::RecordingConnectionWrapper<mip::platform::SerialConnection>>(&raw_file_aux_, &raw_file_aux_, aux_port, baudrate);
-      else
-        aux_connection_ = std::make_unique<mip::platform::SerialConnection>(aux_port, baudrate);
+      aux_device_ = std::make_shared<RosMipDeviceAux>(node_);
+      if (!aux_device_->configure(node))
+        return false;
     }
     else
     {
@@ -252,7 +161,7 @@ bool Config::connectDevice(RosNodeType* node)
   }
   else
   {
-    MICROSTRAIN_INFO(node_, "Note: the device does not appear to have an aux port");
+    MICROSTRAIN_INFO(node_, "Note: Not opening aux port because RTK dongle enable was not set to true.");
   }
   return true;
 }
@@ -260,8 +169,10 @@ bool Config::connectDevice(RosNodeType* node)
 bool Config::setupDevice(RosNodeType* node)
 {
   // Read the config used by this section
+  bool device_setup;
   bool save_settings;
   bool filter_reset_after_config;
+  get_param<bool>(node, "device_setup", device_setup, false);
   get_param<bool>(node, "save_settings", save_settings, true);
   get_param<bool>(node, "filter_reset_after_config", filter_reset_after_config, true);
 
@@ -274,121 +185,59 @@ bool Config::setupDevice(RosNodeType* node)
     return false;
 
   // Send commands to the device to configure it
-  MICROSTRAIN_DEBUG(node_, "Configuring device");
-  if (!configureBase(node) ||
-      !configure3DM(node) ||
-      !configureGNSS(node) ||
-      !configureFilter(node))
-    return false;
-
-  // Save the settings to the device, if enabled
-  if (save_settings)
+  if (device_setup)
   {
-    if (mip_device_->supportsDescriptor(mip::commands_3dm::DESCRIPTOR_SET, mip::commands_3dm::CMD_DEVICE_SETTINGS))
-    {
-      MICROSTRAIN_INFO(node_, "Saving the launch file configuration settings to the device");
-      if (!(mip_cmd_result = mip::commands_3dm::saveDeviceSettings(*(mip_device_->device_))))
-      {
-        MICROSTRAIN_ERROR(node_, "Failed to save device settings");
-        MICROSTRAIN_ERROR(node_, "  Error(%d): %s", mip_cmd_result.value, mip_cmd_result.name());
-        return false;
-      }
-    }
-    else
-    {
-      MICROSTRAIN_WARN(node_, "Device does not support the device settings command");
-    }
-  }
-  else
-  {
-    MICROSTRAIN_INFO(node_, "Note: The settings were not saved as startup settings. Power cycling will remove changes from device");
-  }
-
-  // Reset the filter, if enabled
-  if (filter_reset_after_config)
-  {
-    if (mip_device_->supportsDescriptor(mip::commands_filter::DESCRIPTOR_SET, mip::commands_filter::CMD_RESET_FILTER))
-    {
-      MICROSTRAIN_INFO(node_, "Resetting the filter after the configuration is complete.");
-      if (!(mip_cmd_result = mip::commands_filter::reset(*(mip_device_->device_))))
-      {
-        MICROSTRAIN_ERROR(node_, "Failed to reset filter");
-        MICROSTRAIN_ERROR(node_, "  Error(%d): %s", mip_cmd_result.value, mip_cmd_result.name());
-        return false;
-      }
-    }
-    else
-    {
-      MICROSTRAIN_WARN(node_, "Device does not support the filter reset command");
-    }
-  }
-  else
-  {
-    MICROSTRAIN_INFO(node_, "Note: The filter was not reset after configuration.");
-  }
-  return true;
-}
-
-bool Config::setupRawFile(RosNodeType* node)
-{
-  // Open raw data file, if enabled, and configure the device for raw data output
-  std::string raw_file_directory;
-  get_param<std::string>(node, "raw_file_directory", raw_file_directory, std::string("."));
-
-  if (raw_file_enable_)
-  {
-    time_t raw_time;
-    struct tm curr_time;
-    char curr_time_buffer[100];
-
-    // Get the device info
-    mip::CmdResult mip_cmd_result;
-    mip::commands_base::BaseDeviceInfo device_info;
-    if (!(mip_cmd_result = mip_device_->getDeviceInfo(&device_info)))
-    {
-      MICROSTRAIN_ERROR(node_, "Unable to read device info for binary file");
-      MICROSTRAIN_ERROR(node_, "  Error(%d): %s", mip_cmd_result.value, mip_cmd_result.name());
+    MICROSTRAIN_DEBUG(node_, "Configuring device");
+    if (!configureBase(node) ||
+        !configure3DM(node) ||
+        !configureGNSS(node) ||
+        !configureFilter(node))
       return false;
-    }
 
-    // Get the current time
-    time(&raw_time);
-    localtime_r(&raw_time, &curr_time);
-    strftime(curr_time_buffer, sizeof(curr_time_buffer), "%y_%m_%d_%H_%M_%S", &curr_time);
-
-    std::string time_string(curr_time_buffer);
-
-    std::string filename = raw_file_directory + std::string("/") + device_info.model_name + std::string("_") +
-                           device_info.serial_number + std::string("_") + time_string + std::string(".bin");
-
-    raw_file_.open(filename, std::ios::out | std::ios::binary | std::ios::trunc);
-
-    if (!raw_file_.is_open())
+    // Save the settings to the device, if enabled
+    if (save_settings)
     {
-      MICROSTRAIN_ERROR(node_, "ERROR opening raw binary datafile at %s", filename.c_str());
-      return false;
-    }
-    else
-    {
-      MICROSTRAIN_INFO(node_, "Raw binary datafile opened at %s", filename.c_str());
-    }
-
-    // Record aux data too if we are publishing NMEA or subscribing to RTCM
-    if ((publish_nmea_ || subscribe_rtcm_) && mip_device_->supportsDescriptorSet(mip::data_gnss::MIP_GNSS3_DATA_DESC_SET))
-    {
-      std::string filename_aux = raw_file_directory + std::string("/") + device_info.model_name + std::string("_") +
-                                 device_info.serial_number + std::string("_aux_") + time_string + std::string(".bin");
-      raw_file_aux_.open(filename_aux, std::ios::out | std::ios::binary | std::ios::trunc);
-
-      if (!raw_file_aux_.is_open())
+      if (mip_device_->supportsDescriptor(mip::commands_3dm::DESCRIPTOR_SET, mip::commands_3dm::CMD_DEVICE_SETTINGS))
       {
-        MICROSTRAIN_ERROR(node_, "ERROR opening raw binary aux datafile at %s", filename_aux.c_str());
-        return false;
+        MICROSTRAIN_INFO(node_, "Saving the launch file configuration settings to the device");
+        if (!(mip_cmd_result = mip::commands_3dm::saveDeviceSettings(*mip_device_)))
+        {
+          MICROSTRAIN_ERROR(node_, "Failed to save device settings");
+          MICROSTRAIN_ERROR(node_, "  Error(%d): %s", mip_cmd_result.value, mip_cmd_result.name());
+          return false;
+        }
       }
       else
       {
-        MICROSTRAIN_INFO(node_, "Raw binary aux datafile opened at %s", filename.c_str());
+        MICROSTRAIN_WARN(node_, "Device does not support the device settings command");
       }
+    }
+    else
+    {
+      MICROSTRAIN_INFO(node_, "Note: The settings were not saved as startup settings. Power cycling will remove changes from device");
+    }
+
+    // Reset the filter, if enabled
+    if (filter_reset_after_config)
+    {
+      if (mip_device_->supportsDescriptor(mip::commands_filter::DESCRIPTOR_SET, mip::commands_filter::CMD_RESET_FILTER))
+      {
+        MICROSTRAIN_INFO(node_, "Resetting the filter after the configuration is complete.");
+        if (!(mip_cmd_result = mip::commands_filter::reset(*mip_device_)))
+        {
+          MICROSTRAIN_ERROR(node_, "Failed to reset filter");
+          MICROSTRAIN_ERROR(node_, "  Error(%d): %s", mip_cmd_result.value, mip_cmd_result.name());
+          return false;
+        }
+      }
+      else
+      {
+        MICROSTRAIN_WARN(node_, "Device does not support the filter reset command");
+      }
+    }
+    else
+    {
+      MICROSTRAIN_INFO(node_, "Note: The filter was not reset after configuration.");
     }
   }
   return true;
@@ -434,7 +283,7 @@ bool Config::configure3DM(RosNodeType* node)
 
         mip::commands_3dm::GpioConfig::PinMode gpio_pin_mode_bitfield;
         gpio_pin_mode_bitfield.value = gpio_pin_mode;
-        if (!(mip_cmd_result = mip::commands_3dm::writeGpioConfig(*(mip_device_->device_), gpio_pin,
+        if (!(mip_cmd_result = mip::commands_3dm::writeGpioConfig(*mip_device_, gpio_pin,
             static_cast<mip::commands_3dm::GpioConfig::Feature>(gpio_feature),
             static_cast<mip::commands_3dm::GpioConfig::Behavior>(gpio_behavior),
             gpio_pin_mode_bitfield)))
@@ -459,7 +308,7 @@ bool Config::configure3DM(RosNodeType* node)
   if (mip_device_->supportsDescriptor(descriptor_set, mip::commands_3dm::CMD_PPS_SOURCE))
   {
     MICROSTRAIN_INFO(node_, "Setting PPS source to 0x%04x", filter_pps_source);
-    if (!(mip_cmd_result = mip::commands_3dm::writePpsSource(*(mip_device_->device_), static_cast<mip::commands_3dm::PpsSource::Source>(filter_pps_source))))
+    if (!(mip_cmd_result = mip::commands_3dm::writePpsSource(*mip_device_, static_cast<mip::commands_3dm::PpsSource::Source>(filter_pps_source))))
     {
       MICROSTRAIN_ERROR(node_, "Failed to configure PPS source");
       MICROSTRAIN_ERROR(node_, "  Error(%d): %s", mip_cmd_result.value, mip_cmd_result.name());
@@ -476,7 +325,7 @@ bool Config::configure3DM(RosNodeType* node)
   {
     const auto hardware_odometer_mode = enable_hardware_odometer_ ? mip::commands_3dm::Odometer::Mode::QUADRATURE : mip::commands_3dm::Odometer::Mode::DISABLED;
     MICROSTRAIN_INFO(node_, "Setting hardware odometer to: mode = %d, scaling = %f, uncertainty = %f", static_cast<int32_t>(hardware_odometer_mode), hardware_odometer_scaling, hardware_odometer_uncertainty);
-    if (!(mip::commands_3dm::writeOdometer(*(mip_device_->device_), hardware_odometer_mode, hardware_odometer_scaling, hardware_odometer_uncertainty)))
+    if (!(mip::commands_3dm::writeOdometer(*mip_device_, hardware_odometer_mode, hardware_odometer_scaling, hardware_odometer_uncertainty)))
     {
       MICROSTRAIN_ERROR(node_, "Failed to configure hardware odometer");
       MICROSTRAIN_ERROR(node_, "  Error(%d): %s", mip_cmd_result.value, mip_cmd_result.name());
@@ -493,7 +342,7 @@ bool Config::configure3DM(RosNodeType* node)
   {
     if (raw_file_include_support_data_)
     {
-      if (!(mip_cmd_result = mip::commands_3dm::factoryStreaming(*(mip_device_->device_), mip::commands_3dm::FactoryStreaming::Action::MERGE, 0)))
+      if (!(mip_cmd_result = mip::commands_3dm::factoryStreaming(*mip_device_, mip::commands_3dm::FactoryStreaming::Action::MERGE, 0)))
       {
         MICROSTRAIN_ERROR(node_, "Failed to configure factory streaming channels");
         MICROSTRAIN_ERROR(node_, "  Error(%d): %s", mip_cmd_result.value, mip_cmd_result.name());
@@ -528,7 +377,7 @@ bool Config::configureGNSS(RosNodeType* node)
   {
     uint8_t reserved[3];
     MICROSTRAIN_INFO(node_, "Setting RTK dongle enable to %d", rtk_dongle_enable_);
-    if (!(mip_cmd_result = mip::commands_gnss::writeRtkDongleConfiguration(*(mip_device_->device_), rtk_dongle_enable_, reserved)))
+    if (!(mip_cmd_result = mip::commands_gnss::writeRtkDongleConfiguration(*mip_device_, rtk_dongle_enable_, reserved)))
     {
       MICROSTRAIN_ERROR(node_, "Failed to write RTK dongle configuration");
       MICROSTRAIN_ERROR(node_, "  Error(%d): %s", mip_cmd_result.value, mip_cmd_result.name());
@@ -619,7 +468,7 @@ bool Config::configureFilter(RosNodeType* node)
       declination = 0;
 
     MICROSTRAIN_INFO(node_, "Setting Declination Source to %d %f", declination_source, declination);
-    if (!(mip_cmd_result = mip::commands_filter::writeMagneticDeclinationSource(*(mip_device_->device_), declination_source_enum, declination)))
+    if (!(mip_cmd_result = mip::commands_filter::writeMagneticDeclinationSource(*mip_device_, declination_source_enum, declination)))
     {
       MICROSTRAIN_ERROR(node_, "Failed to set declination source");
       MICROSTRAIN_ERROR(node_, "  Error(%d): %s", mip_cmd_result.value, mip_cmd_result.name());
@@ -636,7 +485,7 @@ bool Config::configureFilter(RosNodeType* node)
   {
     MICROSTRAIN_INFO(node_, "Setting single antenna offset to [%f, %f, %f]",
         gnss_antenna_offset_[GNSS1_ID][0], gnss_antenna_offset_[GNSS1_ID][1], gnss_antenna_offset_[GNSS1_ID][2]);
-    if (!(mip_cmd_result = mip::commands_filter::writeAntennaOffset(*(mip_device_->device_), gnss_antenna_offset_[GNSS1_ID].data())))
+    if (!(mip_cmd_result = mip::commands_filter::writeAntennaOffset(*mip_device_, gnss_antenna_offset_[GNSS1_ID].data())))
     {
       MICROSTRAIN_ERROR(node_, "Cound not set single antenna offset");
       MICROSTRAIN_ERROR(node_, "  Error(%d): %s", mip_cmd_result.value, mip_cmd_result.name());
@@ -647,7 +496,7 @@ bool Config::configureFilter(RosNodeType* node)
   {
     MICROSTRAIN_INFO(node_, "Setting GNSS1 antenna offset to [%f, %f, %f]",
         gnss_antenna_offset_[GNSS1_ID][0], gnss_antenna_offset_[GNSS1_ID][1], gnss_antenna_offset_[GNSS1_ID][2]);
-    if (!(mip_cmd_result = mip::commands_filter::writeMultiAntennaOffset(*(mip_device_->device_), GNSS1_ID + 1, gnss_antenna_offset_[GNSS1_ID].data())))
+    if (!(mip_cmd_result = mip::commands_filter::writeMultiAntennaOffset(*mip_device_, GNSS1_ID + 1, gnss_antenna_offset_[GNSS1_ID].data())))
     {
       MICROSTRAIN_ERROR(node_, "Could not set multi antenna offset for GNSS1");
       MICROSTRAIN_ERROR(node_, "  Error(%d): %s", mip_cmd_result.value, mip_cmd_result.name());
@@ -656,7 +505,7 @@ bool Config::configureFilter(RosNodeType* node)
 
     MICROSTRAIN_INFO(node_, "Setting GNSS2 antenna offset to [%f, %f, %f]",
         gnss_antenna_offset_[GNSS2_ID][0], gnss_antenna_offset_[GNSS2_ID][1], gnss_antenna_offset_[GNSS2_ID][2]);
-    if (!(mip_cmd_result = mip::commands_filter::writeMultiAntennaOffset(*(mip_device_->device_), GNSS2_ID + 1, gnss_antenna_offset_[GNSS2_ID].data())))
+    if (!(mip_cmd_result = mip::commands_filter::writeMultiAntennaOffset(*mip_device_, GNSS2_ID + 1, gnss_antenna_offset_[GNSS2_ID].data())))
     {
       MICROSTRAIN_ERROR(node_, "Could not set multi antenna offset for GNSS2");
       MICROSTRAIN_ERROR(node_, "  Error(%d): %s", mip_cmd_result.value, mip_cmd_result.name());
@@ -672,7 +521,7 @@ bool Config::configureFilter(RosNodeType* node)
   if (mip_device_->supportsDescriptor(descriptor_set, mip::commands_filter::CMD_VEHICLE_DYNAMICS_MODE))
   {
     MICROSTRAIN_INFO(node_, "Setting vehicle dynamics mode to 0x%02x", dynamics_mode);
-    if (!(mip_cmd_result = mip::commands_filter::writeVehicleDynamicsMode(*(mip_device_->device_), static_cast<mip::commands_filter::VehicleDynamicsMode::DynamicsMode>(dynamics_mode))))
+    if (!(mip_cmd_result = mip::commands_filter::writeVehicleDynamicsMode(*mip_device_, static_cast<mip::commands_filter::VehicleDynamicsMode::DynamicsMode>(dynamics_mode))))
     {
       MICROSTRAIN_ERROR(node_, "Could not set vehicle dynamics mode");
       MICROSTRAIN_ERROR(node_, "  Error(%d): %s", mip_cmd_result.value, mip_cmd_result.name());
@@ -689,7 +538,7 @@ bool Config::configureFilter(RosNodeType* node)
   {
     MICROSTRAIN_INFO(node_, "Setting heading source to %d", heading_source);
     const auto heading_source_enum = static_cast<mip::commands_filter::HeadingSource::Source>(heading_source);
-    if (!(mip_cmd_result = mip::commands_filter::writeHeadingSource(*(mip_device_->device_), heading_source_enum)))
+    if (!(mip_cmd_result = mip::commands_filter::writeHeadingSource(*mip_device_, heading_source_enum)))
     {
       MICROSTRAIN_ERROR(node_, "Could not set heading source");
       MICROSTRAIN_ERROR(node_, "  Error(%d): %s", mip_cmd_result.value, mip_cmd_result.name());
@@ -701,7 +550,7 @@ bool Config::configureFilter(RosNodeType* node)
       if (heading_source_enum == mip::commands_filter::HeadingSource::Source::NONE)
       {
         MICROSTRAIN_INFO(node_, "Setting initial heading to %f", initial_heading);
-        if (!(mip_cmd_result = mip::commands_filter::setInitialHeading(*(mip_device_->device_), initial_heading)))
+        if (!(mip_cmd_result = mip::commands_filter::setInitialHeading(*mip_device_, initial_heading)))
         {
           MICROSTRAIN_ERROR(node_, "Could not set initial heading");
           MICROSTRAIN_ERROR(node_, "  Error(%d): %s", mip_cmd_result.value, mip_cmd_result.name());
@@ -727,7 +576,7 @@ bool Config::configureFilter(RosNodeType* node)
   if (mip_device_->supportsDescriptor(descriptor_set, mip::commands_filter::CMD_AUTOINIT_CONTROL))
   {
     MICROSTRAIN_INFO(node_, "Setting autoinitialization to %d", filter_auto_init);
-    if (!(mip::commands_filter::writeAutoInitControl(*(mip_device_->device_), filter_auto_init)))
+    if (!(mip::commands_filter::writeAutoInitControl(*mip_device_, filter_auto_init)))
     {
       MICROSTRAIN_ERROR(node_, "Failed to configure filter auto initialization");
       MICROSTRAIN_ERROR(node_, "  Error(%d): %s", mip_cmd_result.value, mip_cmd_result.name());
@@ -743,7 +592,7 @@ bool Config::configureFilter(RosNodeType* node)
   if (mip_device_->supportsDescriptor(descriptor_set, mip::commands_filter::CMD_ADAPTIVE_FILTER_OPTIONS))
   {
     MICROSTRAIN_INFO(node_, "Setting autoadaptive options to: level = %d, time_limit = %d", filter_adaptive_level, filter_adaptive_time_limit_ms);
-    if (!(mip_cmd_result = mip::commands_filter::writeAdaptiveFilterOptions(*(mip_device_->device_), filter_adaptive_level, filter_adaptive_time_limit_ms)))
+    if (!(mip_cmd_result = mip::commands_filter::writeAdaptiveFilterOptions(*mip_device_, filter_adaptive_level, filter_adaptive_time_limit_ms)))
     {
       MICROSTRAIN_ERROR(node_, "Failed to configure auto adaptive filter settings");
       MICROSTRAIN_ERROR(node_, "  Error(%d): %s", mip_cmd_result.value, mip_cmd_result.name());
@@ -778,7 +627,7 @@ bool Config::configureFilter(RosNodeType* node)
     {
       MICROSTRAIN_INFO(node_, "Setting relative position to: [%f, %f, %f], ref frame = %d",
           filter_relative_position_ref[0], filter_relative_position_ref[1], filter_relative_position_ref[2], filter_relative_position_frame);
-      if (!(mip_cmd_result = mip::commands_filter::writeRelPosConfiguration(*(mip_device_->device_), 1, static_cast<mip::commands_filter::FilterReferenceFrame>(filter_relative_position_frame), filter_relative_position_ref.data())))
+      if (!(mip_cmd_result = mip::commands_filter::writeRelPosConfiguration(*mip_device_, 1, static_cast<mip::commands_filter::FilterReferenceFrame>(filter_relative_position_frame), filter_relative_position_ref.data())))
       {
         MICROSTRAIN_ERROR(node_, "Failed to configure relative position settings");
         MICROSTRAIN_ERROR(node_, "  Error(%d): %s", mip_cmd_result.value, mip_cmd_result.name());
@@ -799,7 +648,7 @@ bool Config::configureFilter(RosNodeType* node)
   if (mip_device_->supportsDescriptor(descriptor_set, mip::commands_filter::CMD_SPEED_LEVER_ARM))
   {
     MICROSTRAIN_INFO(node_, "Setting speed lever arm to: [%f, %f, %f]", filter_speed_lever_arm[0], filter_speed_lever_arm[1], filter_speed_lever_arm[2]);
-    if (!(mip_cmd_result = mip::commands_filter::writeSpeedLeverArm(*(mip_device_->device_), 1, filter_speed_lever_arm.data())))
+    if (!(mip_cmd_result = mip::commands_filter::writeSpeedLeverArm(*mip_device_, 1, filter_speed_lever_arm.data())))
     {
       MICROSTRAIN_ERROR(node_, "Failed to configure speed lever arm");
       MICROSTRAIN_ERROR(node_, "  Error(%d): %s", mip_cmd_result.value, mip_cmd_result.name());
@@ -815,7 +664,7 @@ bool Config::configureFilter(RosNodeType* node)
   if (mip_device_->supportsDescriptor(descriptor_set, mip::commands_filter::CMD_VEHICLE_CONSTRAINT_CONTROL))
   {
     MICROSTRAIN_INFO(node_, "Setting wheeled vehicle contraint enable to %d", filter_enable_wheeled_vehicle_constraint_);
-    if (!(mip_cmd_result = mip::commands_filter::writeWheeledVehicleConstraintControl(*(mip_device_->device_), filter_enable_wheeled_vehicle_constraint_)))
+    if (!(mip_cmd_result = mip::commands_filter::writeWheeledVehicleConstraintControl(*mip_device_, filter_enable_wheeled_vehicle_constraint_)))
     {
       MICROSTRAIN_ERROR(node_, "Failed to configure wheeled vehicle constraint");
       MICROSTRAIN_ERROR(node_, "  Error(%d): %s", mip_cmd_result.value, mip_cmd_result.name());
@@ -831,7 +680,7 @@ bool Config::configureFilter(RosNodeType* node)
   if (mip_device_->supportsDescriptor(descriptor_set, mip::commands_filter::CMD_GYRO_CONSTRAINT_CONTROL))
   {
     MICROSTRAIN_INFO(node_, "Setting vertical gyro contraint enable to %d", filter_enable_vertical_gyro_constraint_);
-    if (!(mip::commands_filter::writeVerticalGyroConstraintControl(*(mip_device_->device_), filter_enable_vertical_gyro_constraint_)))
+    if (!(mip::commands_filter::writeVerticalGyroConstraintControl(*mip_device_, filter_enable_vertical_gyro_constraint_)))
     {
       MICROSTRAIN_ERROR(node_, "Failed to configure vertical gyro constraint");
       MICROSTRAIN_ERROR(node_, "  Error(%d): %s", mip_cmd_result.value, mip_cmd_result.name());
@@ -847,7 +696,7 @@ bool Config::configureFilter(RosNodeType* node)
   if (mip_device_->supportsDescriptor(descriptor_set, mip::commands_filter::CMD_ANTENNA_CALIBRATION_CONTROL))
   {
     MICROSTRAIN_INFO(node_, "Setting GNSS antenna calibration control to: enable = %d, offset = %f", filter_enable_gnss_antenna_cal_, filter_gnss_antenna_cal_max_offset);
-    if (!(mip_cmd_result = mip::commands_filter::writeGnssAntennaCalControl(*(mip_device_->device_), filter_enable_gnss_antenna_cal_, filter_gnss_antenna_cal_max_offset)))
+    if (!(mip_cmd_result = mip::commands_filter::writeGnssAntennaCalControl(*mip_device_, filter_enable_gnss_antenna_cal_, filter_gnss_antenna_cal_max_offset)))
     {
       MICROSTRAIN_ERROR(node_, "Failed to configure antenna calibration");
       MICROSTRAIN_ERROR(node_, "  Error(%d): %s", mip_cmd_result.value, mip_cmd_result.name());
@@ -870,7 +719,7 @@ bool Config::configureFilter(RosNodeType* node)
     MICROSTRAIN_INFO(node_, "  initial position = [%f, %f, %f]", filter_init_position[0], filter_init_position[1], filter_init_position[2]);
     MICROSTRAIN_INFO(node_, "  initial velocity = [%f, %f, %f]", filter_init_velocity[0], filter_init_velocity[1], filter_init_velocity[2]);
     MICROSTRAIN_INFO(node_, "  reference frame selector = %d", filter_init_reference_frame);
-    if (!(mip_cmd_result = mip::commands_filter::writeInitializationConfiguration(*(mip_device_->device_), !filter_auto_init,
+    if (!(mip_cmd_result = mip::commands_filter::writeInitializationConfiguration(*mip_device_, !filter_auto_init,
         static_cast<mip::commands_filter::InitializationConfiguration::InitialConditionSource>(filter_init_condition_src),
         static_cast<mip::commands_filter::InitializationConfiguration::AlignmentSelector>(filter_auto_heading_alignment_selector),
         filter_init_attitude[2], filter_init_attitude[1], filter_init_attitude[0],
@@ -899,7 +748,7 @@ bool Config::configureFilter(RosNodeType* node)
     {
       MICROSTRAIN_INFO(node_, "Setting sensor to vehicle rotation euler to [%f, %f, %f]", -filter_sensor2vehicle_frame_transformation_euler[0],
           -filter_sensor2vehicle_frame_transformation_euler[1], -filter_sensor2vehicle_frame_transformation_euler[2]);
-      if (!(mip_cmd_result = mip::commands_filter::writeSensorToVehicleRotationEuler(*(mip_device_->device_), -filter_sensor2vehicle_frame_transformation_euler[0],
+      if (!(mip_cmd_result = mip::commands_filter::writeSensorToVehicleRotationEuler(*mip_device_, -filter_sensor2vehicle_frame_transformation_euler[0],
           -filter_sensor2vehicle_frame_transformation_euler[1], -filter_sensor2vehicle_frame_transformation_euler[2])))
       {
         MICROSTRAIN_ERROR(node_, "Failed to configure sensor to vehicle rotation euler");
@@ -911,7 +760,7 @@ bool Config::configureFilter(RosNodeType* node)
     {
       MICROSTRAIN_INFO(node_, "Setting sensor to vehicle transformation euler to [%f, %f, %f]", filter_sensor2vehicle_frame_transformation_euler[0],
           filter_sensor2vehicle_frame_transformation_euler[1], filter_sensor2vehicle_frame_transformation_euler[2]);
-      if (!(mip_cmd_result = mip::commands_3dm::writeSensor2VehicleTransformEuler(*(mip_device_->device_), -filter_sensor2vehicle_frame_transformation_euler[0],
+      if (!(mip_cmd_result = mip::commands_3dm::writeSensor2VehicleTransformEuler(*mip_device_, -filter_sensor2vehicle_frame_transformation_euler[0],
           -filter_sensor2vehicle_frame_transformation_euler[1], -filter_sensor2vehicle_frame_transformation_euler[2])))
       {
         MICROSTRAIN_ERROR(node_, "Failed to configure sensor to vehicle transformation euler");
@@ -936,7 +785,7 @@ bool Config::configureFilter(RosNodeType* node)
           filter_sensor2vehicle_frame_transformation_matrix[2], filter_sensor2vehicle_frame_transformation_matrix[5], filter_sensor2vehicle_frame_transformation_matrix[8]
       };
       MICROSTRAIN_INFO(node_, "Setting sensor to vehicle rotation matrix to [ [%f, %f, %f], [%f, %f, %f], [%f, %f, %f] ]", dcm[0], dcm[1], dcm[2], dcm[3], dcm[4], dcm[5], dcm[6], dcm[7], dcm[8]);
-      if (!(mip_cmd_result = mip::commands_filter::writeSensorToVehicleRotationDcm(*(mip_device_->device_), dcm)))
+      if (!(mip_cmd_result = mip::commands_filter::writeSensorToVehicleRotationDcm(*mip_device_, dcm)))
       {
         MICROSTRAIN_ERROR(node_, "Failed to configure sensor to vehicle rotation matrix");
         MICROSTRAIN_ERROR(node_, "  Error(%d): %s", mip_cmd_result.value, mip_cmd_result.name());
@@ -952,7 +801,7 @@ bool Config::configureFilter(RosNodeType* node)
         filter_sensor2vehicle_frame_transformation_matrix[6], filter_sensor2vehicle_frame_transformation_matrix[7], filter_sensor2vehicle_frame_transformation_matrix[8]
       };
       MICROSTRAIN_INFO(node_, "Setting sensor to vehicle rotation matrix to [ [%f, %f, %f], [%f, %f, %f], [%f, %f, %f] ]", dcm[0], dcm[1], dcm[2], dcm[3], dcm[4], dcm[5], dcm[6], dcm[7], dcm[8]);
-      if (!(mip_cmd_result = mip::commands_3dm::writeSensor2VehicleTransformDcm(*(mip_device_->device_), dcm)))
+      if (!(mip_cmd_result = mip::commands_3dm::writeSensor2VehicleTransformDcm(*mip_device_, dcm)))
       {
         MICROSTRAIN_ERROR(node_, "Failed to configure sensor to vehicle transformation matrix");
         MICROSTRAIN_ERROR(node_, "  Error(%d): %s", mip_cmd_result.value, mip_cmd_result.name());
@@ -976,7 +825,7 @@ bool Config::configureFilter(RosNodeType* node)
         -filter_sensor2vehicle_frame_transformation_quaternion[2]
       };
       MICROSTRAIN_INFO(node_, "Setting sensor to vehicle rotation quaternion to [%f, %f, %f, %f]", quaternion[0], quaternion[1], quaternion[2], quaternion[3]);
-      if (!(mip_cmd_result = mip::commands_filter::writeSensorToVehicleRotationQuaternion(*(mip_device_->device_), quaternion)))
+      if (!(mip_cmd_result = mip::commands_filter::writeSensorToVehicleRotationQuaternion(*mip_device_, quaternion)))
       {
         MICROSTRAIN_ERROR(node_, "Failed to configure sensor to vehicle rotation quaternion");
         MICROSTRAIN_ERROR(node_, "  Error(%d): %s", mip_cmd_result.value, mip_cmd_result.name());
@@ -993,7 +842,7 @@ bool Config::configureFilter(RosNodeType* node)
         filter_sensor2vehicle_frame_transformation_quaternion[3]
       };
       MICROSTRAIN_INFO(node_, "Setting sensor to vehicle transformation quaternion to [%f, %f, %f, %f]", quaternion[0], quaternion[1], quaternion[2], quaternion[3]);
-      if (!(mip_cmd_result = mip::commands_3dm::writeSensor2VehicleTransformQuaternion(*(mip_device_->device_), quaternion)))
+      if (!(mip_cmd_result = mip::commands_3dm::writeSensor2VehicleTransformQuaternion(*mip_device_, quaternion)))
       {
         MICROSTRAIN_ERROR(node_, "Failed to configure sensor to vehicle transformation quaternion");
         MICROSTRAIN_ERROR(node_, "  Error(%d): %s", mip_cmd_result.value, mip_cmd_result.name());
@@ -1043,7 +892,7 @@ bool Config::configureFilterAidingMeasurement(const mip::commands_filter::Aiding
       break;
   }
 
-  const mip::CmdResult mip_cmd_result = mip::commands_filter::writeAidingMeasurementEnable(*(mip_device_->device_), aiding_source, enable);
+  const mip::CmdResult mip_cmd_result = mip::commands_filter::writeAidingMeasurementEnable(*mip_device_, aiding_source, enable);
   if (mip_cmd_result == mip::CmdResult::NACK_INVALID_PARAM)
   {
     if (enable)

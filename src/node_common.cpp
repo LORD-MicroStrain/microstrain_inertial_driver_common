@@ -48,7 +48,7 @@ void logCallbackProxy(const void* context, void* user, mip::LoggerLevel level, c
 void NodeCommon::parseAndPublishMain()
 {
   // This should receive all packets and populate published message buffers
-  config_.mip_device_->device_->update();
+  config_.mip_device_->device().update();
 
   // Publish the populated messages
   publishers_.publish();
@@ -59,8 +59,7 @@ void NodeCommon::parseAndPublishAux()
   // Read the raw bytes from the port
   uint8_t aux_buffer[1024];
   size_t aux_buffer_out_size;
-  mip::Timestamp timestamp;
-  if (!config_.aux_connection_->recvFromDevice(aux_buffer, sizeof(aux_buffer), &aux_buffer_out_size, &timestamp))
+  if (!config_.aux_device_->recv(aux_buffer, sizeof(aux_buffer), &aux_buffer_out_size))
   {
     MICROSTRAIN_ERROR(node_, "Unable to read data from aux port");
     return;
@@ -123,7 +122,7 @@ void NodeCommon::parseAndPublishAux()
       }
 
       // Looks like it is a valid NMEA sentence. Publish
-      auto nmea_sentence_msg = publishers_.nmea_sentence_pub_->getMessage();
+      auto nmea_sentence_msg = publishers_.nmea_sentence_pub_->getMessageToUpdate();
       nmea_sentence_msg->header.stamp = ros_time_now(node_);
       nmea_sentence_msg->header.frame_id = config_.nmea_frame_id_;
       nmea_sentence_msg->sentence = sentence;
@@ -274,6 +273,8 @@ bool NodeCommon::configure(RosNodeType* config_node)
 
   // Determine loop rate as 2*(max update rate), but abs. max of 1kHz
   timer_update_rate_hz_ = std::min(2 * config_.mip_publisher_mapping_->getMaxDataRate(), 1000);
+  if (timer_update_rate_hz_ <= 0)
+    timer_update_rate_hz_ = 1.0;
   MICROSTRAIN_INFO(node_, "Setting spin rate to <%f> hz", timer_update_rate_hz_);
   return true;
 }
@@ -302,7 +303,7 @@ bool NodeCommon::activate()
   // Resume the device
   mip::CmdResult mip_cmd_result;
   MICROSTRAIN_INFO(node_, "Resuming the device data streams");
-  if (!(mip_cmd_result = mip::commands_base::resume(*(config_.mip_device_->device_))))
+  if (!(mip_cmd_result = mip::commands_base::resume(*(config_.mip_device_))))
   {
     MICROSTRAIN_ERROR(node_, "Failed to resume device data streams");
     MICROSTRAIN_ERROR(node_, "Error(%d): %s", mip_cmd_result.value, mip_cmd_result.name());
@@ -341,11 +342,11 @@ bool NodeCommon::shutdown()
 
   // Disconnect the device
   if (config_.mip_device_)
-    if (!config_.mip_device_->close())
-      MICROSTRAIN_ERROR(node_, "Unable to disconnect device");
+    config_.mip_device_.reset();
 
   // Disconnect the aux device
-  config_.aux_connection_.reset();
+  if (config_.aux_device_)
+    config_.aux_device_.reset();
 
   // Close the raw data file if enabled
   if (config_.raw_file_enable_)

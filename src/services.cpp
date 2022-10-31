@@ -160,15 +160,7 @@ bool Services::deviceReport(DeviceReportServiceMsg::Request& req, DeviceReportSe
     res.model_number = device_info.model_number;
     res.serial_number = device_info.serial_number;
     res.options = device_info.device_options;
-
-    // Parse the firmware version
-    const uint16_t major = device_info.firmware_version / 1000;
-    const uint16_t minor_and_patch = device_info.firmware_version - (major * 1000);
-    const uint16_t minor = (minor_and_patch / 100);
-    const uint16_t patch = minor_and_patch - (minor * 100);
-    std::stringstream firmware_ss;
-    firmware_ss << major << "." << minor << "." << patch;
-    res.firmware_version = firmware_ss.str().c_str();
+    res.firmware_version = RosMipDevice::firmwareVersionString(device_info.firmware_version);
   }
   else
   {
@@ -186,7 +178,7 @@ bool Services::resetFilter(EmptyServiceMsg::Request& req, EmptyServiceMsg::Respo
 {
   MICROSTRAIN_DEBUG(node_, "Resetting filter");
 
-  const mip::CmdResult mip_cmd_result = mip::commands_filter::reset(*(config_->mip_device_->device_));
+  const mip::CmdResult mip_cmd_result = mip::commands_filter::reset(*(config_->mip_device_));
   if (!mip_cmd_result)
     MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to reset filter");
   else
@@ -205,7 +197,7 @@ bool Services::initFilterEuler(InitFilterEulerServiceMsg::Request& req,
   MICROSTRAIN_DEBUG(node_, "Initializing filter euler to [%f, %f, %f]", req.angle.x, req.angle.y, req.angle.z);
 
   mip::CmdResult mip_cmd_result;
-  res.success = !!(mip_cmd_result = mip::commands_filter::setInitialAttitude(*(config_->mip_device_->device_), req.angle.x, req.angle.y, req.angle.z));
+  res.success = !!(mip_cmd_result = mip::commands_filter::setInitialAttitude(*(config_->mip_device_), req.angle.x, req.angle.y, req.angle.z));
   if (!res.success)
     MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to initialize filter euler");
   else
@@ -224,7 +216,7 @@ bool Services::initFilterHeading(InitFilterHeadingServiceMsg::Request& req,
   MICROSTRAIN_DEBUG(node_, "Initializing filter heading to %f", req.angle);
 
   mip::CmdResult mip_cmd_result;
-  res.success = !!(mip_cmd_result = mip::commands_filter::setInitialHeading(*(config_->mip_device_->device_), req.angle));
+  res.success = !!(mip_cmd_result = mip::commands_filter::setInitialHeading(*(config_->mip_device_), req.angle));
   if (!res.success)
     MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to initialize filter heading");
   else
@@ -243,7 +235,7 @@ bool Services::setAccelBias(SetAccelBiasServiceMsg::Request& req, SetAccelBiasSe
   MICROSTRAIN_DEBUG(node_, "Setting accel bias to [%f, %f, %f]", accel_bias[0], accel_bias[1], accel_bias[2]);
 
   mip::CmdResult mip_cmd_result;
-  res.success = !!(mip_cmd_result = mip::commands_3dm::writeAccelBias(*(config_->mip_device_->device_), accel_bias));
+  res.success = !!(mip_cmd_result = mip::commands_3dm::writeAccelBias(*(config_->mip_device_), accel_bias));
   if (!res.success)
     MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to set accel bias");
   else
@@ -262,7 +254,7 @@ bool Services::getAccelBias(GetAccelBiasServiceMsg::Request& req, GetAccelBiasSe
 
   float accel_bias[3];
   mip::CmdResult mip_cmd_result;
-  res.success = !!(mip_cmd_result = mip::commands_3dm::readAccelBias(*(config_->mip_device_->device_), accel_bias));
+  res.success = !!(mip_cmd_result = mip::commands_3dm::readAccelBias(*(config_->mip_device_), accel_bias));
   if (res.success)
   {
     MICROSTRAIN_DEBUG(node_, "Got accel bias [%f, %f, %f]", accel_bias[0], accel_bias[1], accel_bias[2]);
@@ -288,7 +280,7 @@ bool Services::setGyroBias(SetGyroBiasServiceMsg::Request& req, SetGyroBiasServi
   MICROSTRAIN_DEBUG(node_, "Setting gyro bias to [%f, %f, %f]", gyro_bias[0], gyro_bias[1], gyro_bias[2]);
 
   mip::CmdResult mip_cmd_result;
-  res.success = !!(mip_cmd_result = mip::commands_3dm::writeGyroBias(*(config_->mip_device_->device_), gyro_bias));
+  res.success = !!(mip_cmd_result = mip::commands_3dm::writeGyroBias(*(config_->mip_device_), gyro_bias));
   if (!res.success)
     MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to set gyro bias");
   else
@@ -307,7 +299,7 @@ bool Services::getGyroBias(GetGyroBiasServiceMsg::Request& req, GetGyroBiasServi
 
   float gyro_bias[3];
   mip::CmdResult mip_cmd_result;
-  res.success = !!(mip_cmd_result = mip::commands_3dm::readGyroBias(*(config_->mip_device_->device_), gyro_bias));
+  res.success = !!(mip_cmd_result = mip::commands_3dm::readGyroBias(*(config_->mip_device_), gyro_bias));
   if (res.success)
   {
     MICROSTRAIN_DEBUG(node_, "Got gyro bias [%f, %f, %f]", gyro_bias[0], gyro_bias[1], gyro_bias[2]);
@@ -335,12 +327,12 @@ bool Services::gyroBiasCapture(TriggerServiceMsg::Request& req, TriggerServiceMs
   MICROSTRAIN_WARN(node_, "Please keep device stationary during the %f second gyro bias capture interval", static_cast<float>(capture_timeout) / 1000);
 
   // We need to change the timeout to allow for this longer command
-  const int32_t old_mip_sdk_timeout = config_->mip_device_->device_->baseReplyTimeout();
-  config_->mip_device_->device_->setBaseReplyTimeout(capture_timeout * 2);
+  const int32_t old_mip_sdk_timeout = config_->mip_device_->device().baseReplyTimeout();
+  config_->mip_device_->device().setBaseReplyTimeout(capture_timeout * 2);
 
   float gyro_bias[3];
   mip::CmdResult mip_cmd_result;
-  res.success = !!(mip_cmd_result = mip::commands_3dm::captureGyroBias(*(config_->mip_device_->device_), capture_timeout, gyro_bias));
+  res.success = !!(mip_cmd_result = mip::commands_3dm::captureGyroBias(*(config_->mip_device_), capture_timeout, gyro_bias));
   if (res.success)
   {
     MICROSTRAIN_DEBUG(node_, "Captured gyro bias: [%f, %f, %f]", gyro_bias[0], gyro_bias[1], gyro_bias[2]);
@@ -354,7 +346,7 @@ bool Services::gyroBiasCapture(TriggerServiceMsg::Request& req, TriggerServiceMs
   }
 
   // Reset the timeout
-  config_->mip_device_->device_->setBaseReplyTimeout(old_mip_sdk_timeout);
+  config_->mip_device_->device().setBaseReplyTimeout(old_mip_sdk_timeout);
 
   return res.success;
 }
@@ -370,7 +362,7 @@ bool Services::setHardIronValues(SetHardIronValuesServiceMsg::Request& req,
   MICROSTRAIN_DEBUG(node_, "Setting hard iron offset to [%f, %f, %f]", mag_offset[0], mag_offset[1], mag_offset[2]);
 
   mip::CmdResult mip_cmd_result;
-  res.success = !!(mip_cmd_result = mip::commands_3dm::writeMagHardIronOffset(*(config_->mip_device_->device_), mag_offset));
+  res.success = !!(mip_cmd_result = mip::commands_3dm::writeMagHardIronOffset(*(config_->mip_device_), mag_offset));
   if (!res.success)
     MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to set hard iron offset");
   else
@@ -390,7 +382,7 @@ bool Services::getHardIronValues(GetHardIronValuesServiceMsg::Request& req,
 
   float mag_offsets[3];
   mip::CmdResult mip_cmd_result;
-  res.success = !!(mip_cmd_result = mip::commands_3dm::readMagHardIronOffset(*(config_->mip_device_->device_), mag_offsets));
+  res.success = !!(mip_cmd_result = mip::commands_3dm::readMagHardIronOffset(*(config_->mip_device_), mag_offsets));
   if (res.success)
   {
     MICROSTRAIN_DEBUG(node_, "Got hard iron offsets [%f, %f, %f]", mag_offsets[0], mag_offsets[1], mag_offsets[2]);
@@ -425,7 +417,7 @@ bool Services::setSoftIronMatrix(SetSoftIronMatrixServiceMsg::Request& req,
   MICROSTRAIN_DEBUG(node_, "  [%f, %f, %f]", soft_iron_matrix[6], soft_iron_matrix[7], soft_iron_matrix[8]);
 
   mip::CmdResult mip_cmd_result;
-  res.success = !!(mip_cmd_result = mip::commands_3dm::writeMagSoftIronMatrix(*(config_->mip_device_->device_), soft_iron_matrix));
+  res.success = !!(mip_cmd_result = mip::commands_3dm::writeMagSoftIronMatrix(*(config_->mip_device_), soft_iron_matrix));
   if (!res.success)
     MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to set soft iron matrix");
   else
@@ -445,7 +437,7 @@ bool Services::getSoftIronMatrix(GetSoftIronMatrixServiceMsg::Request& req,
 
   float soft_iron_matrix[9];
   mip::CmdResult mip_cmd_result;
-  res.success = !!(mip_cmd_result = mip::commands_3dm::readMagSoftIronMatrix(*(config_->mip_device_->device_), soft_iron_matrix));
+  res.success = !!(mip_cmd_result = mip::commands_3dm::readMagSoftIronMatrix(*(config_->mip_device_), soft_iron_matrix));
   if (res.success)
   {
     MICROSTRAIN_DEBUG(node_, "Got soft iron matrix:");
@@ -484,7 +476,7 @@ bool Services::setComplementaryFilter(SetComplementaryFilterServiceMsg::Request&
   MICROSTRAIN_DEBUG(node_, "  heading time constant = %f", req.north_comp_time_const);
 
   mip::CmdResult mip_cmd_result;
-  res.success = !!(mip_cmd_result = mip::commands_3dm::writeComplementaryFilter(*(config_->mip_device_->device_), req.up_comp_enable, req.north_comp_enable, req.up_comp_time_const, req.north_comp_time_const));
+  res.success = !!(mip_cmd_result = mip::commands_3dm::writeComplementaryFilter(*(config_->mip_device_), req.up_comp_enable, req.north_comp_enable, req.up_comp_time_const, req.north_comp_time_const));
   if (!res.success)
     MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to set complementary filter");
   else
@@ -505,7 +497,7 @@ bool Services::getComplementaryFilter(GetComplementaryFilterServiceMsg::Request&
   mip::CmdResult mip_cmd_result;
   bool pitch_roll_comp_enable, heading_comp_enable;
   float pitch_roll_time_constant, heading_time_constant;
-  res.success = !!(mip_cmd_result = mip::commands_3dm::readComplementaryFilter(*(config_->mip_device_->device_), &pitch_roll_comp_enable, &heading_comp_enable, &pitch_roll_time_constant, &heading_time_constant));
+  res.success = !!(mip_cmd_result = mip::commands_3dm::readComplementaryFilter(*(config_->mip_device_), &pitch_roll_comp_enable, &heading_comp_enable, &pitch_roll_time_constant, &heading_time_constant));
   if (res.success)
   {
     MICROSTRAIN_DEBUG(node_, "Got complementary filter:");
@@ -537,7 +529,7 @@ bool Services::setHeadingSource(SetHeadingSourceServiceMsg::Request& req,
   MICROSTRAIN_DEBUG(node_, "Setting heading source to %d", req.heading_source);
 
   mip::CmdResult mip_cmd_result;
-  res.success = !!(mip_cmd_result = mip::commands_filter::writeHeadingSource(*(config_->mip_device_->device_), source));
+  res.success = !!(mip_cmd_result = mip::commands_filter::writeHeadingSource(*(config_->mip_device_), source));
   if (!res.success)
     MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to set heading source");
   else
@@ -557,7 +549,7 @@ bool Services::getHeadingSource(GetHeadingSourceServiceMsg::Request& req,
 
   mip::commands_filter::HeadingSource::Source source;
   mip::CmdResult mip_cmd_result;
-  res.success = !!(mip_cmd_result = mip::commands_filter::readHeadingSource(*(config_->mip_device_->device_), &source));
+  res.success = !!(mip_cmd_result = mip::commands_filter::readHeadingSource(*(config_->mip_device_), &source));
   if (res.success)
   {
     MICROSTRAIN_DEBUG(node_, "Got heading source %d", static_cast<int8_t>(source));
@@ -581,7 +573,7 @@ bool Services::setSensor2vehicleRotation(SetSensor2VehicleRotationServiceMsg::Re
   MICROSTRAIN_DEBUG(node_, "Setting sensor to vehicle rotation to [%f, %f, %f]", req.angle.x, req.angle.y, req.angle.z);
 
   mip::CmdResult mip_cmd_result;
-  res.success = !!(mip_cmd_result = mip::commands_filter::writeSensorToVehicleRotationEuler(*(config_->mip_device_->device_), req.angle.x, req.angle.y, req.angle.z));
+  res.success = !!(mip_cmd_result = mip::commands_filter::writeSensorToVehicleRotationEuler(*(config_->mip_device_), req.angle.x, req.angle.y, req.angle.z));
   if (!res.success)
     MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to set sensor to vehicle rotation");
   else
@@ -601,7 +593,7 @@ bool Services::getSensor2vehicleRotation(GetSensor2VehicleRotationServiceMsg::Re
 
   float roll, pitch, yaw;
   mip::CmdResult mip_cmd_result;
-  res.success = !!(mip_cmd_result = mip::commands_filter::readSensorToVehicleRotationEuler(*(config_->mip_device_->device_), &roll, &pitch, &yaw));
+  res.success = !!(mip_cmd_result = mip::commands_filter::readSensorToVehicleRotationEuler(*(config_->mip_device_), &roll, &pitch, &yaw));
   if (res.success)
   {
     MICROSTRAIN_DEBUG(node_, "Got sensor to vehicle rotation [%f, %f, %f]", roll, pitch, yaw);
@@ -629,7 +621,7 @@ bool Services::setSensor2vehicleOffset(SetSensor2VehicleOffsetServiceMsg::Reques
   MICROSTRAIN_DEBUG(node_, "Setting sensor to vehicle offset to [%f, %f, %f]", offset[0], offset[1], offset[2]);
 
   mip::CmdResult mip_cmd_result;
-  res.success = !!(mip_cmd_result = mip::commands_filter::writeSensorToVehicleOffset(*(config_->mip_device_->device_), offset));
+  res.success = !!(mip_cmd_result = mip::commands_filter::writeSensorToVehicleOffset(*(config_->mip_device_), offset));
   if (!res.success)
     MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to set sensor to vehicle offset");
   else
@@ -649,7 +641,7 @@ bool Services::getSensor2vehicleOffset(GetSensor2VehicleOffsetServiceMsg::Reques
 
   float offsets[3];
   mip::CmdResult mip_cmd_result;
-  res.success = !!(mip_cmd_result = mip::commands_filter::readSensorToVehicleOffset(*(config_->mip_device_->device_), offsets));
+  res.success = !!(mip_cmd_result = mip::commands_filter::readSensorToVehicleOffset(*(config_->mip_device_), offsets));
   if (res.success)
   {
     MICROSTRAIN_DEBUG(node_, "Got sensor to vehicle offsets [%f, %f, %f]", offsets[0], offsets[1], offsets[2]);
@@ -713,7 +705,7 @@ bool Services::setReferencePosition(SetReferencePositionServiceMsg::Request& req
   MICROSTRAIN_DEBUG(node_, "Setting reference position to [%f, %f, %f]", req.position.x, req.position.y, req.position.z);
 
   mip::CmdResult mip_cmd_result;
-  res.success = !!(mip_cmd_result = mip::commands_filter::writeReferencePosition(*(config_->mip_device_->device_), true, req.position.x, req.position.y, req.position.z));
+  res.success = !!(mip_cmd_result = mip::commands_filter::writeReferencePosition(*(config_->mip_device_), true, req.position.x, req.position.y, req.position.z));
   if (!res.success)
     MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to set reference position");
   else
@@ -735,7 +727,7 @@ bool Services::getReferencePosition(GetReferencePositionServiceMsg::Request& req
   bool enable;
   double latitude, longitude, altitude;
   mip::CmdResult mip_cmd_result;
-  res.success = !!(mip_cmd_result = mip::commands_filter::readReferencePosition(*(config_->mip_device_->device_), &enable, &latitude, &longitude, &altitude));
+  res.success = !!(mip_cmd_result = mip::commands_filter::readReferencePosition(*(config_->mip_device_), &enable, &latitude, &longitude, &altitude));
   if (res.success)
   {
     MICROSTRAIN_DEBUG(node_, "Got reference position:");
@@ -763,7 +755,7 @@ bool Services::setConingScullingComp(SetConingScullingCompServiceMsg::Request& r
   MICROSTRAIN_DEBUG(node_, "Setting coning sculling enable to %d", req.enable);
 
   mip::CmdResult mip_cmd_result;
-  res.success = !!(mip_cmd_result = mip::commands_3dm::writeConingScullingEnable(*(config_->mip_device_->device_), req.enable));
+  res.success = !!(mip_cmd_result = mip::commands_3dm::writeConingScullingEnable(*(config_->mip_device_), req.enable));
   if (!res.success)
     MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to set coning sculling enable");
   else
@@ -783,7 +775,7 @@ bool Services::getConingScullingComp(GetConingScullingCompServiceMsg::Request& r
 
   bool enable;
   mip::CmdResult mip_cmd_result;
-  res.success = !!(mip_cmd_result = mip::commands_3dm::readConingScullingEnable(*(config_->mip_device_->device_), &enable));
+  res.success = !!(mip_cmd_result = mip::commands_3dm::readConingScullingEnable(*(config_->mip_device_), &enable));
   if (res.success)
   {
     MICROSTRAIN_DEBUG(node_, "Got coning sculling enable %d", enable);
@@ -808,7 +800,7 @@ bool Services::setEstimationControlFlags(SetEstimationControlFlagsServiceMsg::Re
   MICROSTRAIN_DEBUG(node_, "Setting estimation control flags to %d", req.flags);
 
   mip::CmdResult mip_cmd_result;
-  res.success = !!(mip_cmd_result = mip::commands_filter::writeEstimationControl(*(config_->mip_device_->device_), flags));
+  res.success = !!(mip_cmd_result = mip::commands_filter::writeEstimationControl(*(config_->mip_device_), flags));
   if (!res.success)
     MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to set estimation control flags");
   else
@@ -828,7 +820,7 @@ bool Services::getEstimationControlFlags(GetEstimationControlFlagsServiceMsg::Re
 
   mip::commands_filter::EstimationControl::EnableFlags flags;
   mip::CmdResult mip_cmd_result;
-  res.success = !!(mip_cmd_result = mip::commands_filter::readEstimationControl(*(config_->mip_device_->device_), &flags));
+  res.success = !!(mip_cmd_result = mip::commands_filter::readEstimationControl(*(config_->mip_device_), &flags));
   if (res.success)
   {
     MICROSTRAIN_DEBUG(node_, "Got estimation control flags %d", static_cast<int8_t>(flags));
@@ -856,7 +848,7 @@ bool Services::getBasicStatus(TriggerServiceMsg::Request& req, TriggerServiceMsg
   uint8_t mip_buffer[mip::C::MIP_FIELD_PAYLOAD_LENGTH_MAX];
   uint8_t mip_buffer_out_size = sizeof(mip_buffer);
   memset(mip_buffer, 0, sizeof(mip_buffer));
-  res.success = !!(mip_cmd_result = mip::C::mip_interface_run_command_with_response(config_->mip_device_->device_.get(), mip::commands_3dm::DESCRIPTOR_SET, 0x64, mip_buffer, 3, 0x90, mip_buffer, &mip_buffer_out_size));
+  res.success = !!(mip_cmd_result = mip::C::mip_interface_run_command_with_response(&(config_->mip_device_->device()), mip::commands_3dm::DESCRIPTOR_SET, 0x64, mip_buffer, 3, 0x90, mip_buffer, &mip_buffer_out_size));
 
   // Just print the raw bytes on success
   if (res.success)
@@ -893,7 +885,7 @@ bool Services::getBasicStatus(TriggerServiceMsg::Request& req, TriggerServiceMsg
   mip_buffer[0] = model_number & 0xFF;
   mip_buffer[1] = (model_number >> 8) & 0xFF;
   mip_buffer[2] = 1;
-  res.success = !!(mip_cmd_result = mip::C::mip_interface_run_command_with_response(config_->mip_device_->device_.get(), mip::commands_3dm::DESCRIPTOR_SET, 0x64, mip_buffer, 3, 0x90, mip_buffer, &mip_buffer_out_size));
+  res.success = !!(mip_cmd_result = mip::C::mip_interface_run_command_with_response(&(config_->mip_device_->device()), mip::commands_3dm::DESCRIPTOR_SET, 0x64, mip_buffer, 3, 0x90, mip_buffer, &mip_buffer_out_size));
 
   // Just print the raw bytes on success
   if (res.success)
@@ -925,7 +917,7 @@ bool Services::getDiagnosticReport(TriggerServiceMsg::Request& req, TriggerServi
   uint8_t mip_buffer[mip::C::MIP_FIELD_PAYLOAD_LENGTH_MAX];
   uint8_t mip_buffer_out_size = sizeof(mip_buffer);
   memset(mip_buffer, 0, sizeof(mip_buffer));
-  res.success = !!(mip_cmd_result = mip::C::mip_interface_run_command_with_response(config_->mip_device_->device_.get(), mip::commands_3dm::DESCRIPTOR_SET, 0x64, mip_buffer, 3, 0x90, mip_buffer, &mip_buffer_out_size));
+  res.success = !!(mip_cmd_result = mip::C::mip_interface_run_command_with_response(&(config_->mip_device_->device()), mip::commands_3dm::DESCRIPTOR_SET, 0x64, mip_buffer, 3, 0x90, mip_buffer, &mip_buffer_out_size));
 
   // Just print the raw bytes on success
   if (res.success)
@@ -963,7 +955,7 @@ bool Services::getDiagnosticReport(TriggerServiceMsg::Request& req, TriggerServi
   mip_buffer[0] = model_number & 0xFF;
   mip_buffer[1] = (model_number >> 8) & 0xFF;
   mip_buffer[2] = 2;
-  res.success = !!(mip_cmd_result = mip::C::mip_interface_run_command_with_response(config_->mip_device_->device_.get(), mip::commands_3dm::DESCRIPTOR_SET, 0x64, mip_buffer, 3, 0x90, mip_buffer, &mip_buffer_out_size));
+  res.success = !!(mip_cmd_result = mip::C::mip_interface_run_command_with_response(&(config_->mip_device_->device()), mip::commands_3dm::DESCRIPTOR_SET, 0x64, mip_buffer, 3, 0x90, mip_buffer, &mip_buffer_out_size));
 
   // Just print the raw bytes on success
   if (res.success)
@@ -995,7 +987,7 @@ bool Services::setZeroAngleUpdateThreshold(SetZeroAngleUpdateThresholdServiceMsg
   MICROSTRAIN_DEBUG(node_, "  threshold = %f", req.threshold);
 
   mip::CmdResult mip_cmd_result;
-  res.success = !!(mip_cmd_result = mip::commands_filter::writeAutoAngularZupt(*(config_->mip_device_->device_), req.enable, req.threshold));
+  res.success = !!(mip_cmd_result = mip::commands_filter::writeAutoAngularZupt(*(config_->mip_device_), req.enable, req.threshold));
   if (!res.success)
     MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to set auto angular ZUPT");
   else
@@ -1016,7 +1008,7 @@ bool Services::getZeroAngleUpdateThreshold(GetZeroAngleUpdateThresholdServiceMsg
   uint8_t enable;
   float threshold;
   mip::CmdResult mip_cmd_result;
-  res.success = !!(mip_cmd_result = mip::commands_filter::readAutoAngularZupt(*(config_->mip_device_->device_), &enable, &threshold));
+  res.success = !!(mip_cmd_result = mip::commands_filter::readAutoAngularZupt(*(config_->mip_device_), &enable, &threshold));
   if (res.success)
   {
     MICROSTRAIN_DEBUG(node_, "Got auto angular ZUPT");
@@ -1045,7 +1037,7 @@ bool Services::setZeroVelocityUpdateThreshold(SetZeroVelocityUpdateThresholdServ
   MICROSTRAIN_DEBUG(node_, "  threshold = %f", req.threshold);
 
   mip::CmdResult mip_cmd_result;
-  res.success = !!(mip_cmd_result = mip::commands_filter::writeAutoZupt(*(config_->mip_device_->device_), req.enable, req.threshold));
+  res.success = !!(mip_cmd_result = mip::commands_filter::writeAutoZupt(*(config_->mip_device_), req.enable, req.threshold));
   if (!res.success)
     MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to set auto vel ZUPT");
   else
@@ -1066,7 +1058,7 @@ bool Services::getZeroVelocityUpdateThreshold(GetZeroVelocityUpdateThresholdServ
   uint8_t enable;
   float threshold;
   mip::CmdResult mip_cmd_result;
-  res.success = !!(mip_cmd_result = mip::commands_filter::readAutoZupt(*(config_->mip_device_->device_), &enable, &threshold));
+  res.success = !!(mip_cmd_result = mip::commands_filter::readAutoZupt(*(config_->mip_device_), &enable, &threshold));
   if (res.success)
   {
     MICROSTRAIN_DEBUG(node_, "Got auto vel ZUPT");
@@ -1094,7 +1086,7 @@ bool Services::setTareOrientation(SetTareOrientationServiceMsg::Request& req,
   MICROSTRAIN_DEBUG(node_, "Setting tare orientation %d", req.axis);
 
   mip::CmdResult mip_cmd_result;
-  res.success = !!(mip_cmd_result = mip::commands_filter::writeTareOrientation(*(config_->mip_device_->device_), axis));
+  res.success = !!(mip_cmd_result = mip::commands_filter::writeTareOrientation(*(config_->mip_device_), axis));
   if (!res.success)
     MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to set tare orientation");
   else
@@ -1112,7 +1104,7 @@ bool Services::setAccelNoise(SetAccelNoiseServiceMsg::Request& req, SetAccelNois
   MICROSTRAIN_DEBUG(node_, "Setting accel noise to [%f, %f, %f]", req.noise.x, req.noise.y, req.noise.z);
 
   mip::CmdResult mip_cmd_result;
-  res.success = !!(mip_cmd_result = mip::commands_filter::writeAccelNoise(*(config_->mip_device_->device_), req.noise.x, req.noise.y, req.noise.z));
+  res.success = !!(mip_cmd_result = mip::commands_filter::writeAccelNoise(*(config_->mip_device_), req.noise.x, req.noise.y, req.noise.z));
   if (!res.success)
     MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to set accel noise");
   else
@@ -1131,7 +1123,7 @@ bool Services::getAccelNoise(GetAccelNoiseServiceMsg::Request& req, GetAccelNois
 
   float x, y, z;
   mip::CmdResult mip_cmd_result;
-  res.success = !!(mip_cmd_result = mip::commands_filter::readAccelNoise(*(config_->mip_device_->device_), &x, &y, &z));
+  res.success = !!(mip_cmd_result = mip::commands_filter::readAccelNoise(*(config_->mip_device_), &x, &y, &z));
   if (res.success)
   {
     MICROSTRAIN_DEBUG(node_, "Got accel noise [%f, %f, %f]", x, y, z);
@@ -1156,7 +1148,7 @@ bool Services::setGyroNoise(SetGyroNoiseServiceMsg::Request& req, SetGyroNoiseSe
   MICROSTRAIN_DEBUG(node_, "Setting gyro noise to [%f, %f, %f]", req.noise.x, req.noise.y, req.noise.z);
 
   mip::CmdResult mip_cmd_result;
-  res.success = !!(mip_cmd_result = mip::commands_filter::writeGyroNoise(*(config_->mip_device_->device_), req.noise.x, req.noise.y, req.noise.z));
+  res.success = !!(mip_cmd_result = mip::commands_filter::writeGyroNoise(*(config_->mip_device_), req.noise.x, req.noise.y, req.noise.z));
   if (!res.success)
     MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to set gyro noise");
   else
@@ -1175,7 +1167,7 @@ bool Services::getGyroNoise(GetGyroNoiseServiceMsg::Request& req, GetGyroNoiseSe
 
   float x, y, z;
   mip::CmdResult mip_cmd_result;
-  res.success = !!(mip_cmd_result = mip::commands_filter::readGyroNoise(*(config_->mip_device_->device_), &x, &y, &z));
+  res.success = !!(mip_cmd_result = mip::commands_filter::readGyroNoise(*(config_->mip_device_), &x, &y, &z));
   if (res.success)
   {
     MICROSTRAIN_DEBUG(node_, "Got gyro noise [%f, %f, %f]", x, y, z);
@@ -1200,7 +1192,7 @@ bool Services::setMagNoise(SetMagNoiseServiceMsg::Request& req, SetMagNoiseServi
   MICROSTRAIN_DEBUG(node_, "Setting mag noise to [%f, %f, %f]", req.noise.x, req.noise.y, req.noise.z);
 
   mip::CmdResult mip_cmd_result;
-  res.success = !!(mip_cmd_result = mip::commands_filter::writeHardIronOffsetNoise(*(config_->mip_device_->device_), req.noise.x, req.noise.y, req.noise.z));
+  res.success = !!(mip_cmd_result = mip::commands_filter::writeHardIronOffsetNoise(*(config_->mip_device_), req.noise.x, req.noise.y, req.noise.z));
   if (!res.success)
     MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to set mag noise");
   else
@@ -1219,7 +1211,7 @@ bool Services::getMagNoise(GetMagNoiseServiceMsg::Request& req, GetMagNoiseServi
 
   float x, y, z;
   mip::CmdResult mip_cmd_result;
-  res.success = !!(mip_cmd_result = mip::commands_filter::readHardIronOffsetNoise(*(config_->mip_device_->device_), &x, &y, &z));
+  res.success = !!(mip_cmd_result = mip::commands_filter::readHardIronOffsetNoise(*(config_->mip_device_), &x, &y, &z));
   if (res.success)
   {
     MICROSTRAIN_DEBUG(node_, "Got mag noise [%f, %f, %f]", x, y, z);
@@ -1247,7 +1239,7 @@ bool Services::setGyroBiasModel(SetGyroBiasModelServiceMsg::Request& req,
   MICROSTRAIN_DEBUG(node_, "  noise = [%f, %f, %f]", req.noise_vector.x, req.noise_vector.y, req.noise_vector.z);
 
   mip::CmdResult mip_cmd_result;
-  res.success = !!(mip_cmd_result = mip::commands_filter::writeGyroBiasModel(*(config_->mip_device_->device_), req.beta_vector.x, req.beta_vector.y, req.beta_vector.z, req.noise_vector.x, req.noise_vector.y, req.noise_vector.z));
+  res.success = !!(mip_cmd_result = mip::commands_filter::writeGyroBiasModel(*(config_->mip_device_), req.beta_vector.x, req.beta_vector.y, req.beta_vector.z, req.noise_vector.x, req.noise_vector.y, req.noise_vector.z));
   if (!res.success)
     MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to set gyro bias model");
   else
@@ -1267,7 +1259,7 @@ bool Services::getGyroBiasModel(GetGyroBiasModelServiceMsg::Request& req,
 
   float x_beta, y_beta, z_beta, x, y, z;
   mip::CmdResult mip_cmd_result;
-  res.success = !!(mip_cmd_result = mip::commands_filter::readGyroBiasModel(*(config_->mip_device_->device_), &x_beta, &y_beta, &z_beta, &x, &y, &z));
+  res.success = !!(mip_cmd_result = mip::commands_filter::readGyroBiasModel(*(config_->mip_device_), &x_beta, &y_beta, &z_beta, &x, &y, &z));
   if (res.success)
   {
     MICROSTRAIN_DEBUG(node_, "Got gyro bias model:");
@@ -1300,7 +1292,7 @@ bool Services::setAccelBiasModel(SetAccelBiasModelServiceMsg::Request& req,
   MICROSTRAIN_DEBUG(node_, "  noise = [%f, %f, %f]", req.noise_vector.x, req.noise_vector.y, req.noise_vector.z);
 
   mip::CmdResult mip_cmd_result;
-  res.success = !!(mip_cmd_result = mip::commands_filter::writeAccelBiasModel(*(config_->mip_device_->device_), req.beta_vector.x, req.beta_vector.y, req.beta_vector.z, req.noise_vector.x, req.noise_vector.y, req.noise_vector.z));
+  res.success = !!(mip_cmd_result = mip::commands_filter::writeAccelBiasModel(*(config_->mip_device_), req.beta_vector.x, req.beta_vector.y, req.beta_vector.z, req.noise_vector.x, req.noise_vector.y, req.noise_vector.z));
   if (!res.success)
     MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to set accel bias model");
   else
@@ -1320,7 +1312,7 @@ bool Services::getAccelBiasModel(GetAccelBiasModelServiceMsg::Request& req,
 
   float x_beta, y_beta, z_beta, x, y, z;
   mip::CmdResult mip_cmd_result;
-  res.success = !!(mip_cmd_result = mip::commands_filter::readAccelBiasModel(*(config_->mip_device_->device_), &x_beta, &y_beta, &z_beta, &x, &y, &z));
+  res.success = !!(mip_cmd_result = mip::commands_filter::readAccelBiasModel(*(config_->mip_device_), &x_beta, &y_beta, &z_beta, &x, &y, &z));
   if (res.success)
   {
     MICROSTRAIN_DEBUG(node_, "Got accel bias model:");
@@ -1359,7 +1351,7 @@ bool Services::setGravityAdaptiveVals(SetGravityAdaptiveValsServiceMsg::Request&
   MICROSTRAIN_DEBUG(node_, "  minimum uncertainty = %f", req.min_1sigma);
 
   mip::CmdResult mip_cmd_result;
-  res.success = !!(mip_cmd_result = mip::commands_filter::writeAccelMagnitudeErrorAdaptiveMeasurement(*(config_->mip_device_->device_), mode, req.low_pass_cutoff, req.low_limit, req.high_limit, req.low_limit_1sigma, req.high_limit_1sigma, req.min_1sigma));
+  res.success = !!(mip_cmd_result = mip::commands_filter::writeAccelMagnitudeErrorAdaptiveMeasurement(*(config_->mip_device_), mode, req.low_pass_cutoff, req.low_limit, req.high_limit, req.low_limit_1sigma, req.high_limit_1sigma, req.min_1sigma));
   if (!res.success)
     MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to set accel magnitude error adaptive measurement");
   else
@@ -1380,7 +1372,7 @@ bool Services::getGravityAdaptiveVals(GetGravityAdaptiveValsServiceMsg::Request&
   mip::commands_filter::AccelMagnitudeErrorAdaptiveMeasurement::AdaptiveMeasurement mode;
   float frequency, low_limit, high_limit, low_limit_uncertainty, high_limit_uncertainty, minimum_uncertainty;
   mip::CmdResult mip_cmd_result;
-  res.success = !!(mip_cmd_result = mip::commands_filter::readAccelMagnitudeErrorAdaptiveMeasurement(*(config_->mip_device_->device_), &mode, &frequency, &low_limit, &high_limit, &low_limit_uncertainty, &high_limit_uncertainty, &minimum_uncertainty));
+  res.success = !!(mip_cmd_result = mip::commands_filter::readAccelMagnitudeErrorAdaptiveMeasurement(*(config_->mip_device_), &mode, &frequency, &low_limit, &high_limit, &low_limit_uncertainty, &high_limit_uncertainty, &minimum_uncertainty));
   if (res.success)
   {
     MICROSTRAIN_DEBUG(node_, "Got accel magnitude error adaptive measurement:");
@@ -1425,7 +1417,7 @@ bool Services::setMagAdaptiveVals(SetMagAdaptiveValsServiceMsg::Request& req,
   MICROSTRAIN_DEBUG(node_, "  minimum uncertainty = %f", req.min_1sigma);
 
   mip::CmdResult mip_cmd_result;
-  res.success = !!(mip_cmd_result = mip::commands_filter::writeMagMagnitudeErrorAdaptiveMeasurement(*(config_->mip_device_->device_), mode, req.low_pass_cutoff, req.low_limit, req.high_limit, req.low_limit_1sigma, req.high_limit_1sigma, req.min_1sigma));
+  res.success = !!(mip_cmd_result = mip::commands_filter::writeMagMagnitudeErrorAdaptiveMeasurement(*(config_->mip_device_), mode, req.low_pass_cutoff, req.low_limit, req.high_limit, req.low_limit_1sigma, req.high_limit_1sigma, req.min_1sigma));
   if (!res.success)
     MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to set mag magnitude error adaptive measurement");
   else
@@ -1446,7 +1438,7 @@ bool Services::getMagAdaptiveVals(GetMagAdaptiveValsServiceMsg::Request& req,
   mip::commands_filter::MagMagnitudeErrorAdaptiveMeasurement::AdaptiveMeasurement mode;
   float frequency, low_limit, high_limit, low_limit_uncertainty, high_limit_uncertainty, minimum_uncertainty;
   mip::CmdResult mip_cmd_result;
-  res.success = !!(mip_cmd_result = mip::commands_filter::readMagMagnitudeErrorAdaptiveMeasurement(*(config_->mip_device_->device_), &mode, &frequency, &low_limit, &high_limit, &low_limit_uncertainty, &high_limit_uncertainty, &minimum_uncertainty));
+  res.success = !!(mip_cmd_result = mip::commands_filter::readMagMagnitudeErrorAdaptiveMeasurement(*(config_->mip_device_), &mode, &frequency, &low_limit, &high_limit, &low_limit_uncertainty, &high_limit_uncertainty, &minimum_uncertainty));
   if (res.success)
   {
     MICROSTRAIN_DEBUG(node_, "Got mag magnitude error adaptive measurement:");
@@ -1488,7 +1480,7 @@ bool Services::setMagDipAdaptiveVals(SetMagDipAdaptiveValsServiceMsg::Request& r
   MICROSTRAIN_DEBUG(node_, "  minimum uncertainty = %f", req.min_1sigma);
 
   mip::CmdResult mip_cmd_result;
-  res.success = !!(mip_cmd_result = mip::commands_filter::writeMagDipAngleErrorAdaptiveMeasurement(*(config_->mip_device_->device_), static_cast<bool>(req.enable), req.low_pass_cutoff, req.high_limit, req.high_limit_1sigma, req.min_1sigma));
+  res.success = !!(mip_cmd_result = mip::commands_filter::writeMagDipAngleErrorAdaptiveMeasurement(*(config_->mip_device_), static_cast<bool>(req.enable), req.low_pass_cutoff, req.high_limit, req.high_limit_1sigma, req.min_1sigma));
   if (!res.success)
     MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to set mag dip angle error adaptive measurement");
   else
@@ -1509,7 +1501,7 @@ bool Services::getMagDipAdaptiveVals(GetMagDipAdaptiveValsServiceMsg::Request& r
   bool enable;
   float frequency, high_limit, high_limit_uncertainty, minimum_uncertainty;
   mip::CmdResult mip_cmd_result;
-  res.success = !!(mip_cmd_result = mip::commands_filter::readMagDipAngleErrorAdaptiveMeasurement(*(config_->mip_device_->device_), &enable, &frequency, &high_limit, &high_limit_uncertainty, &minimum_uncertainty));
+  res.success = !!(mip_cmd_result = mip::commands_filter::readMagDipAngleErrorAdaptiveMeasurement(*(config_->mip_device_), &enable, &frequency, &high_limit, &high_limit_uncertainty, &minimum_uncertainty));
   if (res.success)
   {
     MICROSTRAIN_DEBUG(node_, "Got mag dip angle error adaptive measurement:");
@@ -1543,7 +1535,7 @@ bool Services::setDynamicsMode(SetDynamicsModeServiceMsg::Request& req,
   MICROSTRAIN_DEBUG(node_, "Setting vehicle dynamics mode to %d", req.mode);
 
   mip::CmdResult mip_cmd_result;
-  res.success = !!(mip_cmd_result = mip::commands_filter::writeVehicleDynamicsMode(*(config_->mip_device_->device_), mode));
+  res.success = !!(mip_cmd_result = mip::commands_filter::writeVehicleDynamicsMode(*(config_->mip_device_), mode));
   if (!res.success)
     MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to set vehicle dynamics mode");
   else
@@ -1563,7 +1555,7 @@ bool Services::getDynamicsMode(GetDynamicsModeServiceMsg::Request& req,
 
   mip::commands_filter::VehicleDynamicsMode::DynamicsMode mode;
   mip::CmdResult mip_cmd_result;
-  res.success = !!(mip_cmd_result = mip::commands_filter::readVehicleDynamicsMode(*(config_->mip_device_->device_), &mode));
+  res.success = !!(mip_cmd_result = mip::commands_filter::readVehicleDynamicsMode(*(config_->mip_device_), &mode));
   if (res.success)
   {
     MICROSTRAIN_DEBUG(node_, "Got vehicle dynamics mode %d", static_cast<int8_t>(mode));
@@ -1587,8 +1579,8 @@ bool Services::deviceSettings(DeviceSettingsServiceMsg::Request& req,
   MICROSTRAIN_DEBUG(node_, "Processing device settings command with function selector %d", req.function_selector);
 
   // We need to change the timeout to allow for this longer command
-  const int32_t old_mip_sdk_timeout = config_->mip_device_->device_->baseReplyTimeout();
-  config_->mip_device_->device_->setBaseReplyTimeout(10000);  // 10 seconds should be enough
+  const int32_t old_mip_sdk_timeout = config_->mip_device_->device().baseReplyTimeout();
+  config_->mip_device_->device().setBaseReplyTimeout(10000);  // 10 seconds should be enough
 
   mip::CmdResult mip_cmd_result;
   switch (req.function_selector)
@@ -1596,19 +1588,19 @@ bool Services::deviceSettings(DeviceSettingsServiceMsg::Request& req,
     // Save
     case 3:
       MICROSTRAIN_DEBUG(node_, "Saving settings as startup");
-      res.success = !!(mip_cmd_result = mip::commands_3dm::saveDeviceSettings(*(config_->mip_device_->device_)));
+      res.success = !!(mip_cmd_result = mip::commands_3dm::saveDeviceSettings(*(config_->mip_device_)));
       break;
 
     // Load Saved Settings
     case 4:
       MICROSTRAIN_DEBUG(node_, "Loading saved settings");
-      res.success = !!(mip_cmd_result = mip::commands_3dm::loadDeviceSettings(*(config_->mip_device_->device_)));
+      res.success = !!(mip_cmd_result = mip::commands_3dm::loadDeviceSettings(*(config_->mip_device_)));
       break;
 
     // Load Default Settings
     case 5:
       MICROSTRAIN_DEBUG(node_, "Loading default settings");
-      res.success = !!(mip_cmd_result = mip::commands_3dm::defaultDeviceSettings(*(config_->mip_device_->device_)));
+      res.success = !!(mip_cmd_result = mip::commands_3dm::defaultDeviceSettings(*(config_->mip_device_)));
       break;
 
     // Unsupported function selector
@@ -1624,7 +1616,7 @@ bool Services::deviceSettings(DeviceSettingsServiceMsg::Request& req,
     MICROSTRAIN_DEBUG(node_, "Ran device settings command");
 
   // Reset the timeout
-  config_->mip_device_->device_->setBaseReplyTimeout(old_mip_sdk_timeout);
+  config_->mip_device_->device().setBaseReplyTimeout(old_mip_sdk_timeout);
 
   return res.success;
 }
@@ -1638,7 +1630,7 @@ bool Services::commandedVelZupt(TriggerServiceMsg::Request& req, TriggerServiceM
   MICROSTRAIN_DEBUG(node_, "Commanding vel ZUPT");
 
   mip::CmdResult mip_cmd_result;
-  res.success = !!(mip_cmd_result = mip::commands_filter::commandedZupt(*(config_->mip_device_->device_)));
+  res.success = !!(mip_cmd_result = mip::commands_filter::commandedZupt(*(config_->mip_device_)));
   if (!res.success)
     MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to send commanded vel ZUPT");
   else
@@ -1656,7 +1648,7 @@ bool Services::commandedAngRateZupt(TriggerServiceMsg::Request& req, TriggerServ
   MICROSTRAIN_DEBUG(node_, "Commanding angular ZUPT");
 
   mip::CmdResult mip_cmd_result;
-  res.success = !!(mip_cmd_result = mip::commands_filter::commandedAngularZupt(*(config_->mip_device_->device_)));
+  res.success = !!(mip_cmd_result = mip::commands_filter::commandedAngularZupt(*(config_->mip_device_)));
   if (!res.success)
     MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to send commanded angular ZUPT");
   else
@@ -1680,7 +1672,7 @@ bool Services::externalHeadingUpdate(ExternalHeadingUpdateServiceMsg::Request& r
   MICROSTRAIN_DEBUG(node_, "  heading type = %d", req.heading_type);
 
   mip::CmdResult mip_cmd_result;
-  res.success = !!(mip_cmd_result = mip::commands_filter::externalHeadingUpdateWithTime(*(config_->mip_device_->device_), req.gps_tow, req.gps_week_number, req.heading_rad, req.heading_1sigma_rad, req.heading_type));
+  res.success = !!(mip_cmd_result = mip::commands_filter::externalHeadingUpdateWithTime(*(config_->mip_device_), req.gps_tow, req.gps_week_number, req.heading_rad, req.heading_1sigma_rad, req.heading_type));
   if (!res.success)
     MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to update with external heading");
   else
@@ -1704,7 +1696,7 @@ bool Services::setRelativePositionReference(SetRelativePositionReferenceServiceM
   MICROSTRAIN_DEBUG(node_, "  position = [%f, %f, %f]", coordinates[0], coordinates[1], coordinates[2]);
 
   mip::CmdResult mip_cmd_result;
-  res.success = !!(mip_cmd_result = mip::commands_filter::writeRelPosConfiguration(*(config_->mip_device_->device_), req.source, frame, coordinates));
+  res.success = !!(mip_cmd_result = mip::commands_filter::writeRelPosConfiguration(*(config_->mip_device_), req.source, frame, coordinates));
   if (!res.success)
     MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to set relative position reference");
   else
@@ -1726,7 +1718,7 @@ bool Services::getRelativePositionReference(GetRelativePositionReferenceServiceM
   mip::commands_filter::FilterReferenceFrame frame;
   double coordinates[3];
   mip::CmdResult mip_cmd_result;
-  res.success = !!(mip_cmd_result = mip::commands_filter::readRelPosConfiguration(*(config_->mip_device_->device_), &source, &frame, coordinates));
+  res.success = !!(mip_cmd_result = mip::commands_filter::readRelPosConfiguration(*(config_->mip_device_), &source, &frame, coordinates));
   if (res.success)
   {
     MICROSTRAIN_DEBUG(node_, "Got relative position reference");
@@ -1754,7 +1746,7 @@ bool Services::setFilterSpeedLeverArm(SetFilterSpeedLeverArmServiceMsg::Request&
   MICROSTRAIN_DEBUG(node_, "Setting filter speed lever arm [%f, %f, %f]", offset[0], offset[1], offset[2]);
 
   mip::CmdResult mip_cmd_result;
-  res.success = !!(mip_cmd_result = mip::commands_filter::writeSpeedLeverArm(*(config_->mip_device_->device_), 1, offset));
+  res.success = !!(mip_cmd_result = mip::commands_filter::writeSpeedLeverArm(*(config_->mip_device_), 1, offset));
   if (!res.success)
     MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to set filter speed lever arm");
   else

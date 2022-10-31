@@ -6,30 +6,65 @@
 #include "mip/mip.hpp"
 #include "mip/mip_all.hpp"
 
-#include "microstrain_inertial_driver_common/utils/mip/mip_device_wrapper.h"
-
-mip::Timestamp getCurrentTimestamp()
-{
-  using namespace std::chrono;
-  return duration_cast<milliseconds>( steady_clock::now().time_since_epoch() ).count();
-}
+#include "microstrain_inertial_driver_common/utils/mip/ros_mip_device_main.h"
 
 namespace microstrain
 {
 
-bool DeviceInterface::open()
+bool RosMipDeviceMain::configure(RosNodeType* config_node)
 {
-  open_ = true;
+  // Initialize and connect the connection
+  std::string port;
+  int32_t baudrate;
+  get_param<std::string>(config_node, "port", port, "/dev/ttyACM0");
+  get_param<int32_t>(config_node, "baudrate", baudrate, 115200);
+  connection_ = std::unique_ptr<RosConnection>(new RosConnection(node_));
+  if (!connection_->connect(config_node, port, baudrate)) 
+    return false;
+
+  // Setup the device interface
+  mip::CmdResult mip_cmd_result;
+  device_ = std::unique_ptr<mip::DeviceInterface>(new mip::DeviceInterface(connection_.get(), buffer_, sizeof(buffer_), connection_->parseTimeout(), connection_->baseReplyTimeout()));
+
+  // At this point, we have connected to the device but if it is streaming.
+  // Reading information may fail. Retry setting to idle a few times to accomodate
+  MICROSTRAIN_INFO(node_, "Setting device to idle in order to configure");
+  if (!(mip_cmd_result = forceIdle()))
+  {
+    MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Unable to set device to idle");
+    return false;
+  }
+
+  // Print the device info
+  mip::commands_base::BaseDeviceInfo device_info;
+  if (!(mip_cmd_result = getDeviceInfo(&device_info)))
+  {
+    MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Unable to read device info");
+    return false;
+  }
+  MICROSTRAIN_INFO(node_, R"(Main Connection Info:
+    #######################
+    Model Name:       %s
+    Serial Number:    %s
+    Firmware Version: %s
+    #######################)", device_info.model_name, device_info.serial_number, firmwareVersionString(device_info.firmware_version).c_str());
+
+  // If the main name of the port contains "GNSS" it is likely we are talking to the aux port, so log a warning
+  if (std::string(device_info.model_name).find("GNSS") != std::string::npos)
+  {
+    MICROSTRAIN_WARN(node_, "Note: The configured main port appears to actually be the aux port.");
+    MICROSTRAIN_WARN(node_, "      Double check that the \"port\" option is configured to the main port of the device.");
+    MICROSTRAIN_WARN(node_, "      The node should start as usual, but no data will be published, and most services will not work.");
+  }
+
+  // Configure the connection with a working device
+  if (!connection_->configure(config_node, this))
+    return false;
+
   return true;
 }
 
-bool DeviceInterface::close()
-{
-  open_ = false;
-  return true;
-}
-
-mip::CmdResult DeviceInterface::forceIdle()
+mip::CmdResult RosMipDeviceMain::forceIdle()
 {
   // Setting to idle may fail the first couple times, so call it a few times in case the device is streaming too much data
   mip::CmdResult result;
@@ -44,22 +79,7 @@ mip::CmdResult DeviceInterface::forceIdle()
   return result;
 }
 
-mip::CmdResult DeviceInterface::getDeviceInfo(::mip::commands_base::BaseDeviceInfo* device_info)
-{
-  const mip::CmdResult result = mip::commands_base::getDeviceInfo(*device_, device_info);
-  if (!result)
-    return result;
-
-  // Strings are returned weird from the device, so fix them before returning
-  fixMipString(device_info->model_name, sizeof(device_info->model_name));
-  fixMipString(device_info->model_number, sizeof(device_info->model_number));
-  fixMipString(device_info->serial_number, sizeof(device_info->serial_number));
-  fixMipString(device_info->lot_number, sizeof(device_info->lot_number));
-  fixMipString(device_info->device_options, sizeof(device_info->device_options));
-  return result;
-}
-
-mip::CmdResult DeviceInterface::updateDeviceDescriptors()
+mip::CmdResult RosMipDeviceMain::updateDeviceDescriptors()
 {
   // Should never have even close to this many descriptors in total
   uint16_t descriptors[1024];
@@ -88,7 +108,7 @@ mip::CmdResult DeviceInterface::updateDeviceDescriptors()
   return result;
 }
 
-mip::CmdResult DeviceInterface::updateBaseRate(const uint8_t descriptor_set)
+mip::CmdResult RosMipDeviceMain::updateBaseRate(const uint8_t descriptor_set)
 {
   // Initialize the base rates
   if (base_rates_.find(descriptor_set) == base_rates_.end())
@@ -115,7 +135,7 @@ mip::CmdResult DeviceInterface::updateBaseRate(const uint8_t descriptor_set)
   }
 }
 
-mip::CmdResult DeviceInterface::writeMessageFormat(uint8_t descriptor_set, uint8_t num_descriptors, const mip::DescriptorRate* descriptors)
+mip::CmdResult RosMipDeviceMain::writeMessageFormat(uint8_t descriptor_set, uint8_t num_descriptors, const mip::DescriptorRate* descriptors)
 {
   // If the device supports the generic message format command use that, otherwise use the specific function
   if (supportsDescriptor(mip::commands_3dm::DESCRIPTOR_SET, mip::commands_3dm::CMD_MESSAGE_FORMAT))
@@ -138,7 +158,7 @@ mip::CmdResult DeviceInterface::writeMessageFormat(uint8_t descriptor_set, uint8
   }
 }
 
-mip::CmdResult DeviceInterface::writeDatastreamControl(uint8_t descriptor_set, bool enable)
+mip::CmdResult RosMipDeviceMain::writeDatastreamControl(uint8_t descriptor_set, bool enable)
 {
   // Try just sending the descriptor set
   const mip::CmdResult mip_cmd_result = mip::commands_3dm::writeDatastreamControl(*device_, descriptor_set, enable);
@@ -162,7 +182,7 @@ mip::CmdResult DeviceInterface::writeDatastreamControl(uint8_t descriptor_set, b
   }
 }
 
-bool DeviceInterface::supportsDescriptorSet(const uint8_t descriptor_set)
+bool RosMipDeviceMain::supportsDescriptorSet(const uint8_t descriptor_set)
 {
   // If the descriptor sets list isn't populated, fetch it from the device
   mip::CmdResult result;
@@ -174,7 +194,7 @@ bool DeviceInterface::supportsDescriptorSet(const uint8_t descriptor_set)
   return std::find(supported_descriptor_sets_.begin(), supported_descriptor_sets_.end(), descriptor_set) != supported_descriptor_sets_.end();
 }
 
-bool DeviceInterface::supportsDescriptor(const uint8_t descriptor_set, const uint8_t field_descriptor)
+bool RosMipDeviceMain::supportsDescriptor(const uint8_t descriptor_set, const uint8_t field_descriptor)
 {
   // If we don't support the descriptor set, we definitely don't support the field descriptor
   if (!supportsDescriptorSet(descriptor_set))
@@ -185,7 +205,7 @@ bool DeviceInterface::supportsDescriptor(const uint8_t descriptor_set, const uin
   return std::find(supported_descriptors_.begin(), supported_descriptors_.end(), full_descriptor) != supported_descriptors_.end();
 }
 
-uint16_t DeviceInterface::getDecimationFromHertz(const uint8_t descriptor_set, const uint16_t hertz)
+uint16_t RosMipDeviceMain::getDecimationFromHertz(const uint8_t descriptor_set, const uint16_t hertz)
 {
   // Update the base rate if we don't have it yet
   mip::CmdResult result;
@@ -194,26 +214,6 @@ uint16_t DeviceInterface::getDecimationFromHertz(const uint8_t descriptor_set, c
       throw std::runtime_error(std::string("MIP Error") + "(" + std::to_string(result.value) + "): " + result.name());
 
   return base_rates_[descriptor_set] / hertz;
-}
-
-void DeviceInterface::fixMipString(char* str, const size_t str_len)
-{
-  // Trim the spaces from the start of the string
-  std::string cpp_str = std::string(str, str_len);
-  cpp_str.erase(cpp_str.begin(), std::find_if(cpp_str.begin(), cpp_str.end(), [](unsigned char c)
-  {
-    return !std::isspace(c);
-  }));
-
-  // If the size of the resulting string is the same as the initial string, we can't trim it efficiently
-  if (cpp_str.size() >= str_len)
-    return;
-
-  // Set the string to the same string but without the padding spaces and null terminate it
-  const std::string& cpp_str_null_terminated = std::string(cpp_str.c_str());
-  memset(str, 0, str_len);
-  memcpy(str, cpp_str_null_terminated.c_str(), cpp_str_null_terminated.size());
-  str[cpp_str_null_terminated.size()] = 0;
 }
 
 }  // namespace microstrain

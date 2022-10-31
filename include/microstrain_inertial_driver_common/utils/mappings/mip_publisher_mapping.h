@@ -8,7 +8,7 @@
 
 #include "microstrain_inertial_driver_common/utils/mappings/mip_mapping.h"
 #include "microstrain_inertial_driver_common/utils/ros_compat.h"
-#include "microstrain_inertial_driver_common/utils/mip/mip_device_wrapper.h"
+#include "microstrain_inertial_driver_common/utils/mip/ros_mip_device_main.h"
 
 namespace microstrain
 {
@@ -85,7 +85,7 @@ class MIPPublisherMapping
    * \param node  The ROS node that is constructing this object
    * \param inertial_device  Pointer to the inertial device that we will use to read information from the device 
    */
-  MIPPublisherMapping(RosNodeType* node, const std::shared_ptr<DeviceInterface> inertial_device);
+  MIPPublisherMapping(RosNodeType* node, const std::shared_ptr<RosMipDeviceMain> inertial_device);
 
   /**
    * \brief Configures the data rates associated with the topics. Updates the map with a data rate for each topic
@@ -144,7 +144,7 @@ class MIPPublisherMapping
   void streamSharedDescriptor(const uint8_t field_descriptor);
 
   RosNodeType* node_;
-  std::shared_ptr<DeviceInterface> mip_device_;
+  std::shared_ptr<RosMipDeviceMain> mip_device_;
 
   std::map<std::string, MIPPublisherMappingInfo> topic_info_mapping_;
   std::map<uint8_t, std::vector<mip::DescriptorRate>> streamed_descriptors_mapping_;

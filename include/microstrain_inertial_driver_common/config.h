@@ -20,11 +20,10 @@
 
 #include <mip/definitions/commands_filter.hpp>
 
-#include "microstrain_inertial_driver_common/utils/mip/mip_device_wrapper.h"
-#include "microstrain_inertial_driver_common/utils/mip/mip_device_serial.h"
-#include "microstrain_inertial_driver_common/utils/mappings/mip_publisher_mapping.h"
-
 #include "microstrain_inertial_driver_common/utils/ros_compat.h"
+#include "microstrain_inertial_driver_common/utils/mip/ros_mip_device_main.h"
+#include "microstrain_inertial_driver_common/utils/mip/ros_mip_device_aux.h"
+#include "microstrain_inertial_driver_common/utils/mappings/mip_publisher_mapping.h"
 
 namespace microstrain
 {
@@ -58,16 +57,9 @@ public:
    */
   bool configure(RosNodeType* node);
 
-  std::shared_ptr<DeviceInterface> mip_device_;
-  std::shared_ptr<mip::Connection> aux_connection_;
+  std::shared_ptr<RosMipDeviceMain> mip_device_;
+  std::shared_ptr<RosMipDeviceAux> aux_device_;
   std::shared_ptr<MIPPublisherMapping> mip_publisher_mapping_;
-
-  // Config read from the device
-  bool supports_gnss1_;
-  bool supports_gnss2_;
-  bool supports_rtk_;
-  bool supports_filter_;
-  bool supports_imu_;
 
   // Info for converting to the ENU frame
   bool use_enu_frame_;
@@ -154,13 +146,6 @@ private:
    * \return true if configuration was successful and false if configuration failed
    */
   bool setupDevice(RosNodeType* node);
-
-  /**
-   * \brief Creates the raw file and enables debug mode on the device to save data to a raw file
-   * \param node  The ROS node that contains configuration information. For ROS1 this is the private node handle ("~")
-   * \return true if configuration was successful and false if configuration failed
-   */
-  bool setupRawFile(RosNodeType* node);
 
   /**
    * \brief Configures base settings on the intertial device (descriptor set 0x01)

@@ -260,7 +260,7 @@ void Publishers::registerDataCallback(const uint8_t descriptor_set)
   mip_dispatch_handlers_.push_back(std::make_shared<mip::C::mip_dispatch_handler>());
 
   // Pass to the MIP SDK
-  config_->mip_device_->device_->registerDataCallback<DataField, Publishers, Callback>(*(mip_dispatch_handlers_.back()), this, descriptor_set);
+  config_->mip_device_->device().registerDataCallback<DataField, Publishers, Callback>(*(mip_dispatch_handlers_.back()), this, descriptor_set);
 }
 
 }  // namespace microstrain

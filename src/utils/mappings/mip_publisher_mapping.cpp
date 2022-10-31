@@ -5,7 +5,7 @@
 namespace microstrain
 {
 
-MIPPublisherMapping::MIPPublisherMapping(RosNodeType* node, const std::shared_ptr<DeviceInterface> inertial_device) : node_(node), mip_device_(inertial_device)
+MIPPublisherMapping::MIPPublisherMapping(RosNodeType* node, const std::shared_ptr<RosMipDeviceMain> inertial_device) : node_(node), mip_device_(inertial_device)
 {
   // Add all supported descriptors to the supported mapping
   for (const auto& mip_type_mapping : topic_to_mip_type_mapping_)
