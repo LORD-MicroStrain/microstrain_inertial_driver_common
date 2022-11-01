@@ -27,6 +27,8 @@ class RosMipDeviceMain : public RosMipDevice
   mip::CmdResult updateDeviceDescriptors();
   mip::CmdResult updateBaseRate(const uint8_t descriptor_set);
 
+  mip::CmdResult writeBaudRate(uint32_t baudrate, uint8_t port = 1);
+
   mip::CmdResult writeMessageFormat(uint8_t descriptor_set, uint8_t num_descriptors, const mip::DescriptorRate* descriptors);
 
   mip::CmdResult writeDatastreamControl(uint8_t descriptor_set, bool enable);

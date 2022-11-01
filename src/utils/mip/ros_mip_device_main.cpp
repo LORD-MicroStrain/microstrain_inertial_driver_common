@@ -16,8 +16,10 @@ bool RosMipDeviceMain::configure(RosNodeType* config_node)
   // Initialize and connect the connection
   std::string port;
   int32_t baudrate;
+  bool set_baud;
   get_param<std::string>(config_node, "port", port, "/dev/ttyACM0");
   get_param<int32_t>(config_node, "baudrate", baudrate, 115200);
+  get_param<bool>(config_node, "set_baud", set_baud, false);
   connection_ = std::unique_ptr<RosConnection>(new RosConnection(node_));
   if (!connection_->connect(config_node, port, baudrate)) 
     return false;
@@ -31,8 +33,56 @@ bool RosMipDeviceMain::configure(RosNodeType* config_node)
   MICROSTRAIN_INFO(node_, "Setting device to idle in order to configure");
   if (!(mip_cmd_result = forceIdle()))
   {
-    MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Unable to set device to idle");
+    // If the device is not idle, we may have the wrong baudrate, so figure out the right one, configure it, and then switch back
+    if (set_baud)
+    {
+      MICROSTRAIN_INFO(node_, "Note: Attempting to open device at different bauds to change the baudrate");
+      for (const uint32_t baud : {115200, 921600, 460800, 230400, 19200, 9600})
+      {
+        if (baud != baudrate)
+        {
+          // Open the port at the new baudrate
+          MICROSTRAIN_DEBUG(node_, "Attempting to open main port at %d baud in order to change the baudrate", baud);
+          if (!connection_->connect(config_node, port, baud))
+            continue;
+
+          // Check if we can set the node to idle now
+          if (!!(mip_cmd_result = forceIdle()))
+          {
+            // Looks like we got the right baudrate, so break out of the loop and let it get changed below
+            MICROSTRAIN_INFO(node_, "Note: Device was previously configured at %d baud", baud);
+            break;
+          }
+        }
+      }
+    }
+    else
+    {
+      MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Unable to set device to idle");
+      return false;
+    }
+  }
+
+  // If at this point, the last command was still a failure, notify the caller
+  if (!mip_cmd_result)
     return false;
+
+  if (set_baud)
+  {
+    // Set the baud rate
+    MICROSTRAIN_INFO(node_, "Note: Setting UART baudrate to %d", baudrate);
+    if (!(mip_cmd_result = writeBaudRate(baudrate, 1)))
+    {
+      MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to set baud rate");
+      return false;
+    }
+
+    // Wait for the changes to take affect
+    std::this_thread::sleep_for(std::chrono::milliseconds(250));
+
+    // Reopen the device now
+    if (!connection_->connect(config_node, port, baudrate))
+      return false;
   }
 
   // Print the device info
@@ -133,6 +183,14 @@ mip::CmdResult RosMipDeviceMain::updateBaseRate(const uint8_t descriptor_set)
         return mip::CmdResult::fromAckNack(mip::CmdResult::NACK_INVALID_PARAM);
     }
   }
+}
+
+mip::CmdResult RosMipDeviceMain::writeBaudRate(uint32_t baudrate, uint8_t port)
+{
+  if (supportsDescriptor(mip::commands_base::DESCRIPTOR_SET, mip::commands_base::CMD_COMM_SPEED))
+    return mip::commands_base::writeCommSpeed(*device_, port, baudrate);
+  else
+    return mip::commands_3dm::writeUartBaudrate(*device_, baudrate);
 }
 
 mip::CmdResult RosMipDeviceMain::writeMessageFormat(uint8_t descriptor_set, uint8_t num_descriptors, const mip::DescriptorRate* descriptors)

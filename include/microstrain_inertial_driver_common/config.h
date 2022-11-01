@@ -182,6 +182,8 @@ private:
    */
   bool configureFilterAidingMeasurement(const mip::commands_filter::AidingMeasurementEnable::AidingSource aiding_source, const bool enable);
 
+  bool configureHeadingSource(const mip::commands_filter::HeadingSource::Source heading_source);
+
   // Handle to the ROS node
   RosNodeType* node_;
 };  // Config class

@@ -78,8 +78,10 @@ bool RosConnection::connect(RosNodeType* config_node, const std::string& port, c
   }
   
   // Different timeouts based on the type of connection (TCP/Serial)
-  parse_timeout_ = mip::C::mip_timeout_from_baudrate(baudrate);
-  base_reply_timeout_ = 500;
+  //parse_timeout_ = mip::C::mip_timeout_from_baudrate(baudrate);
+  //base_reply_timeout_ = 500;
+  parse_timeout_ = 1000;
+  base_reply_timeout_ = 1000;
   return true;
 }
 

@@ -538,12 +538,8 @@ bool Config::configureFilter(RosNodeType* node)
   {
     MICROSTRAIN_INFO(node_, "Setting heading source to %d", heading_source);
     const auto heading_source_enum = static_cast<mip::commands_filter::HeadingSource::Source>(heading_source);
-    if (!(mip_cmd_result = mip::commands_filter::writeHeadingSource(*mip_device_, heading_source_enum)))
-    {
-      MICROSTRAIN_ERROR(node_, "Could not set heading source");
-      MICROSTRAIN_ERROR(node_, "  Error(%d): %s", mip_cmd_result.value, mip_cmd_result.name());
+    if (!configureHeadingSource(heading_source_enum))
       return false;
-    }
 
     if (mip_device_->supportsDescriptor(descriptor_set, mip::commands_filter::CMD_SET_INITIAL_HEADING))
     {
@@ -909,6 +905,21 @@ bool Config::configureFilterAidingMeasurement(const mip::commands_filter::Aiding
   else
   {
     MICROSTRAIN_INFO(node_, "Filter aiding %s = %d", aiding_measurement_name.c_str(), enable);
+  }
+  return true;
+}
+
+bool Config::configureHeadingSource(const mip::commands_filter::HeadingSource::Source heading_source)
+{
+  const mip::CmdResult mip_cmd_result = mip::commands_filter::writeHeadingSource(*mip_device_, heading_source);
+  if (mip_cmd_result == mip::CmdResult::NACK_INVALID_PARAM)
+  {
+    MICROSTRAIN_WARN(node_, "Heading source 0x%02x is not valid for this device. Please refer to the device manual for more information", static_cast<uint32_t>(heading_source));
+  }
+  else if (!mip_cmd_result)
+  {
+    MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to set heading source");
+    return false;
   }
   return true;
 }

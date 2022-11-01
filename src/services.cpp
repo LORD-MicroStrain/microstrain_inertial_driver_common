@@ -701,7 +701,6 @@ bool Services::getSensor2vehicleTransformation(GetSensor2VehicleTransformationSe
 bool Services::setReferencePosition(SetReferencePositionServiceMsg::Request& req,
                                                  SetReferencePositionServiceMsg::Response& res)
 {
-  // TODO: Untested
   MICROSTRAIN_DEBUG(node_, "Setting reference position to [%f, %f, %f]", req.position.x, req.position.y, req.position.z);
 
   mip::CmdResult mip_cmd_result;
@@ -721,7 +720,6 @@ bool Services::setReferencePosition(SetReferencePositionServiceMsg::Request& req
 bool Services::getReferencePosition(GetReferencePositionServiceMsg::Request& req,
                                                  GetReferencePositionServiceMsg::Response& res)
 {
-  // TODO: Untested
   MICROSTRAIN_DEBUG(node_, "Getting reference position");
 
   bool enable;

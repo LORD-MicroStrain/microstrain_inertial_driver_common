@@ -19,6 +19,10 @@ baudrate    : 115200
 debug       : False
 diagnostics : False
 
+# If set to true, this will configure the requested baudrate on the device.
+# Note that this will be set on both USB and serial, but will only actually affect the baudrate of a serial connection.
+set_baud : False
+
 # Frame IDs used in the different messages. By default these are set to arbitrary strings as not to interfere with other ROS services.
 # For more information on common frame IDs, check out: https://www.ros.org/reps/rep-0105.html
 #
