@@ -15,6 +15,18 @@ RosMipDevice::RosMipDevice(RosNodeType* node) : node_(node)
 {
 }
 
+bool RosMipDevice::send(const uint8_t* data, size_t data_len)
+{
+  return connection_->sendToDevice(data, data_len);
+}
+
+bool RosMipDevice::recv(uint8_t* data, size_t data_len, size_t* out_len)
+{
+  mip::Timestamp timestamp;
+  return connection_->recvFromDevice(data, data_len, out_len, &timestamp);
+}
+
+
 mip::CmdResult RosMipDevice::getDeviceInfo(::mip::commands_base::BaseDeviceInfo* device_info)
 {
   const mip::CmdResult result = mip::commands_base::getDeviceInfo(*device_, device_info);

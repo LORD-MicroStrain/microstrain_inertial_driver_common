@@ -1338,7 +1338,7 @@ bool Services::getAccelBiasModel(GetAccelBiasModelServiceMsg::Request& req,
 bool Services::setGravityAdaptiveVals(SetGravityAdaptiveValsServiceMsg::Request& req,
                                                     SetGravityAdaptiveValsServiceMsg::Response& res)
 {
-  const auto mode = static_cast<mip::commands_filter::AccelMagnitudeErrorAdaptiveMeasurement::AdaptiveMeasurement>(req.enable);
+  const auto mode = static_cast<mip::commands_filter::FilterAdaptiveMeasurement>(req.enable);
   MICROSTRAIN_DEBUG(node_, "Setting accel magnitude error adaptive measurement:");
   MICROSTRAIN_DEBUG(node_, "  mode = %d", static_cast<uint8_t>(mode));
   MICROSTRAIN_DEBUG(node_, "  low pass cutoff frequency = %f", req.low_pass_cutoff);
@@ -1367,7 +1367,7 @@ bool Services::getGravityAdaptiveVals(GetGravityAdaptiveValsServiceMsg::Request&
 {
   MICROSTRAIN_DEBUG(node_, "Getting accel magnitude error adaptive measurements");
 
-  mip::commands_filter::AccelMagnitudeErrorAdaptiveMeasurement::AdaptiveMeasurement mode;
+  mip::commands_filter::FilterAdaptiveMeasurement mode;
   float frequency, low_limit, high_limit, low_limit_uncertainty, high_limit_uncertainty, minimum_uncertainty;
   mip::CmdResult mip_cmd_result;
   res.success = !!(mip_cmd_result = mip::commands_filter::readAccelMagnitudeErrorAdaptiveMeasurement(*(config_->mip_device_), &mode, &frequency, &low_limit, &high_limit, &low_limit_uncertainty, &high_limit_uncertainty, &minimum_uncertainty));
@@ -1404,7 +1404,7 @@ bool Services::getGravityAdaptiveVals(GetGravityAdaptiveValsServiceMsg::Request&
 bool Services::setMagAdaptiveVals(SetMagAdaptiveValsServiceMsg::Request& req,
                                                 SetMagAdaptiveValsServiceMsg::Response& res)
 {
-  const auto mode = static_cast<mip::commands_filter::MagMagnitudeErrorAdaptiveMeasurement::AdaptiveMeasurement>(req.enable);
+  const auto mode = static_cast<mip::commands_filter::FilterAdaptiveMeasurement>(req.enable);
   MICROSTRAIN_DEBUG(node_, "Setting mag magnitude error adaptive measurement:");
   MICROSTRAIN_DEBUG(node_, "  mode = %d", static_cast<uint8_t>(mode));
   MICROSTRAIN_DEBUG(node_, "  low pass cutoff frequency = %f", req.low_pass_cutoff);
@@ -1433,7 +1433,7 @@ bool Services::getMagAdaptiveVals(GetMagAdaptiveValsServiceMsg::Request& req,
 {
   MICROSTRAIN_DEBUG(node_, "Getting mag magnitude error adaptive measurements");
 
-  mip::commands_filter::MagMagnitudeErrorAdaptiveMeasurement::AdaptiveMeasurement mode;
+  mip::commands_filter::FilterAdaptiveMeasurement mode;
   float frequency, low_limit, high_limit, low_limit_uncertainty, high_limit_uncertainty, minimum_uncertainty;
   mip::CmdResult mip_cmd_result;
   res.success = !!(mip_cmd_result = mip::commands_filter::readMagMagnitudeErrorAdaptiveMeasurement(*(config_->mip_device_), &mode, &frequency, &low_limit, &high_limit, &low_limit_uncertainty, &high_limit_uncertainty, &minimum_uncertainty));

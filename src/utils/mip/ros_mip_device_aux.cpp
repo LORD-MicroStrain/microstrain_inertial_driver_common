@@ -44,15 +44,4 @@ bool RosMipDeviceAux::configure(RosNodeType* config_node)
   return true;
 }
 
-bool RosMipDeviceAux::send(const uint8_t* data, size_t data_len)
-{
-  return connection_->sendToDevice(data, data_len);
-}
-
-bool RosMipDeviceAux::recv(uint8_t* data, size_t data_len, size_t* out_len)
-{
-  mip::Timestamp timestamp;
-  return connection_->recvFromDevice(data, data_len, out_len, &timestamp);
-}
-
 }  // namespace microstrain

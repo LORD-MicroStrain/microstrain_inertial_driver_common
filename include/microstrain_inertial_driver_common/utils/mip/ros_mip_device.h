@@ -40,6 +40,9 @@ class RosMipDevice
     else
       throw std::runtime_error("Attempt to access device on RosMipDevice before it was initialized");
   }
+  
+  bool send(const uint8_t* data, size_t data_len);
+  bool recv(uint8_t* data, size_t data_len, size_t* out_len);
 
   mip::CmdResult getDeviceInfo(mip::commands_base::BaseDeviceInfo* device_info);
 

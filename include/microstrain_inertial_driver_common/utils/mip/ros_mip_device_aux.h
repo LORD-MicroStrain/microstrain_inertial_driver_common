@@ -18,9 +18,6 @@ class RosMipDeviceAux : public RosMipDevice
   using RosMipDevice::RosMipDevice;
 
   bool configure(RosNodeType* config_node) final;
-
-  bool send(const uint8_t* data, size_t data_len);
-  bool recv(uint8_t* data, size_t data_len, size_t* out_len);
 };
 
 }  // namespace microstrain
