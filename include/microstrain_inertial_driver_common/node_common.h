@@ -1,9 +1,9 @@
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 //
-// Parker-Lord GX5-Series Driver Definition File
+// Parker-Lord Driver Definition File
 //
 // Copyright (c) 2017, Brian Bingham
-// Copyright (c)  2020, Parker Hannifin Corp
+// Copyright (c) 2020, Parker Hannifin Corp
 //
 // This code is licensed under MIT license (see LICENSE file for details)
 //
@@ -17,7 +17,7 @@
 #include <vector>
 #include <fstream>
 
-//#include <mip/mip_logging.h>
+// #include "mip/mip_logging.h"
 
 #include "microstrain_inertial_driver_common/config.h"
 #include "microstrain_inertial_driver_common/publishers.h"
@@ -43,7 +43,7 @@ public:
    */
   void parseAndPublishAux();
 
-  //void logCallback(const mip::LoggerLevel level, const std::string& log_str);
+  // void logCallback(const mip::LoggerLevel level, const std::string& log_str);
 
 protected:
   /**

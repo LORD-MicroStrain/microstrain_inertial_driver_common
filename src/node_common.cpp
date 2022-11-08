@@ -8,12 +8,9 @@
 //
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
-/////////////////////////////////////////////////////////////////////////////////////////////////////
-//
-// Include Files
-//
-/////////////////////////////////////////////////////////////////////////////////////////////////////
+#include <string>
 #include <algorithm>
+
 #include "microstrain_inertial_driver_common/node_common.h"
 
 namespace microstrain
@@ -107,10 +104,10 @@ void NodeCommon::parseAndPublishAux()
       uint16_t actual_checksum = 0;
       for (size_t k = i + 1; k < checksum_start_index - 1; k++)
         actual_checksum ^= aux_string_[k];
-      
+
       // Extract the sentence
       const std::string& sentence = aux_string_.substr(i, (nmea_end_index - i) + 2);
-      
+
       // If the checksum is invalid, move on
       if (actual_checksum != expected_checksum)
       {
@@ -127,7 +124,7 @@ void NodeCommon::parseAndPublishAux()
       nmea_sentence_msg->header.frame_id = config_.nmea_frame_id_;
       nmea_sentence_msg->sentence = sentence;
       publishers_.nmea_sentence_pub_->publish();
-      
+
       // Move the iterator past the end of the sentence, and mark it for deletion
       MICROSTRAIN_DEBUG(node_, "Found valid NMEA sentence starting at index %lu and ending at index %lu: %s", i, nmea_end_index + 1, sentence.c_str());
       trim_length = i = nmea_end_index + 1;
@@ -241,7 +238,7 @@ bool NodeCommon::initialize(RosNodeType* init_node)
   services_ = Services(node_, &config_);
 
   // Initialize the MIP SDK logger
-  //mip::initLogging(&logCallbackProxy, mip::LoggerLevel::MIP_LOGGER_LEVEL_DEBUG, this);
+  // mip::initLogging(&logCallbackProxy, mip::LoggerLevel::MIP_LOGGER_LEVEL_DEBUG, this);
 
   return true;
 }

@@ -1,6 +1,18 @@
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+// Parker-Lord Inertial Device Driver Implementation File
+//
+// Copyright (c) 2017, Brian Bingham
+// Copyright (c) 2020, Parker Hannifin Corp
+// This code is licensed under MIT license (see LICENSE file for details)
+//
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+
+#include <stdio.h>
+
+#include <string>
 #include <thread>
 #include <chrono>
-#include <stdio.h>
 #include <stdexcept>
 
 #include "mip/mip.hpp"
@@ -15,6 +27,14 @@ RosMipDevice::RosMipDevice(RosNodeType* node) : node_(node)
 {
 }
 
+mip::DeviceInterface& RosMipDevice::device()
+{
+  if (device_ != nullptr)
+    return *device_;
+  else
+    throw std::runtime_error("Attempt to access device on RosMipDevice before it was initialized");
+}
+
 bool RosMipDevice::send(const uint8_t* data, size_t data_len)
 {
   return connection_->sendToDevice(data, data_len);
@@ -23,7 +43,7 @@ bool RosMipDevice::send(const uint8_t* data, size_t data_len)
 bool RosMipDevice::recv(uint8_t* data, size_t data_len, size_t* out_len)
 {
   mip::Timestamp timestamp;
-  return connection_->recvFromDevice(data, data_len, out_len, &timestamp);
+  return connection_->recvFromDevice(data, data_len, 0, out_len, &timestamp);
 }
 
 
@@ -50,7 +70,7 @@ std::string RosMipDevice::firmwareVersionString(uint16_t firmware_version)
   const uint16_t minor = (minor_and_patch / 100);
   const uint16_t patch = minor_and_patch - (minor * 100);
   std::stringstream firmware_ss;
-  firmware_ss << major << "." << minor << "." << patch;
+  firmware_ss << major << "." << minor << "." << std::setfill('0') << std::setw(2) << patch;
   return firmware_ss.str();
 }
 

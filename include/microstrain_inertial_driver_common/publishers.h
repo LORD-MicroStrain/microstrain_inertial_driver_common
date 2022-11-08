@@ -1,15 +1,20 @@
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 //
-// Parker-Lord GX5-Series Driver Definition File
+// Parker-Lord Driver Definition File
 //
 // Copyright (c) 2017, Brian Bingham
-// Copyright (c)  2020, Parker Hannifin Corp
+// Copyright (c) 2020, Parker Hannifin Corp
 //
 // This code is licensed under MIT license (see LICENSE file for details)
 //
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 #ifndef MICROSTRAIN_INERTIAL_DRIVER_COMMON_PUBLISHERS_H
 #define MICROSTRAIN_INERTIAL_DRIVER_COMMON_PUBLISHERS_H
+
+#include <map>
+#include <memory>
+#include <vector>
+#include <string>
 
 #include "mip/mip_all.hpp"
 
@@ -60,6 +65,10 @@ public:
    */
   void publish();
 
+  /**
+   * Wrapper for a publisher
+   * @tparam MessageType The type of ROS message that this publisher will publish
+   */
   template<typename MessageType>
   class Publisher
   {
@@ -67,16 +76,30 @@ public:
     using SharedPtr = std::shared_ptr<Publisher<MessageType>>;
     using SharedPtrVec = std::vector<SharedPtr>;
 
-    Publisher(const std::string& topic) : topic_(topic)
+    /**
+     * \brief Constructs the publisher wrapper given a topic
+     * \param topic The topic that this publisher will publish to
+     */
+    explicit Publisher(const std::string& topic) : topic_(topic)
     {
       message_ = std::make_shared<MessageType>();
     }
 
+    /**
+     * \brief Helper function to initialize a shared pointer of this publisher type
+     * \param topic The topic that this publisher will publish to
+     * \return An instance of this object in a shared pointer
+     */
     static SharedPtr initialize(const std::string& topic)
     {
       return std::make_shared<Publisher<MessageType>>(topic);
     }
 
+    /**
+     * \brief Helper function to initialize a vector of shared pointers of this publisher type
+     * \param topics The topics that this publishers will publish to
+     * \return Vector of the same length as topics of publishers of this type
+     */
     static SharedPtrVec initializeVec(const std::vector<std::string>& topics)
     {
       SharedPtrVec ptrs;
@@ -85,34 +108,47 @@ public:
       return ptrs;
     }
 
-    operator bool() const
-    {
-      return publisher_ != nullptr;
-    }
-
+    /**
+     * \brief Configures this publisher by creating a ROS publisher. This function is used when the topic does not have a mapping in MipPublisherMapping
+     * \param node The node to initialize the publisher on
+     */
     void configure(RosNodeType* node)
     {
       publisher_ = create_publisher<MessageType>(node, topic_, 100);
     }
 
+    /**
+     * \brief Configures the publisher by creating a ROS publisher. The publisher will only be created if the publisher mapping in config says that we should publish the topic
+     * \param node The node to initialize the publisher on
+     * \param config Configuration object to use to look up if we should publish this topic
+     */
     void configure(RosNodeType* node, Config* config)
     {
       if (config->mip_publisher_mapping_->shouldPublish(topic_))
         configure(node);
     }
 
+    /**
+     * \brief Activates the publisher. After this function is called, the publisher is ready to call publish on
+     */
     void activate()
     {
       if (publisher_ != nullptr)
         publisher_->on_activate();
     }
 
+    /**
+     * \brief Deactivates the publisher
+     */
     void deactivate()
     {
       if (publisher_ != nullptr)
         publisher_->on_deactivate();
     }
 
+    /**
+     * \brief Publishes the message on the publisher. Will only be published if the message has been updated and the publisher was configured to actually publish
+     */
     void publish()
     {
       if (publisher_ != nullptr && message_ != nullptr && updated_)
@@ -122,21 +158,37 @@ public:
       }
     }
 
+    /**
+     * \brief Gets the topic this publisher will publish to
+     * \return The topic this publisher will publish to
+     */
     std::string topic() const
     {
       return topic_;
     }
 
+    /**
+     * \brief Gets whether or not this publisher's message has been updated
+     * \return true if the message has been updated, false if not
+     */
     bool updated() const
     {
       return updated_;
     }
 
+    /**
+     * \brief Gets the message without setting updated to true. Useful for updating things on the message at startup, or that do not mean the message must be republished
+     * \return Pointer to the message that this publisher is holding
+     */
     typename RosPubType<MessageType>::MessageSharedPtr getMessage()
     {
       return message_;
     }
 
+    /**
+     * \brief Gets the message and sets updated to true. Useful for updating the message if it should then be published after updating.
+     * \return Pointer to the message that this publisher is holding
+     */
     typename RosPubType<MessageType>::MessageSharedPtr getMessageToUpdate()
     {
       updated_ = true;
@@ -145,11 +197,11 @@ public:
 
 
    private:
-    const std::string topic_;
-    bool updated_;
+    const std::string topic_;  /// The topic that this class will publish to
+    bool updated_;  /// Whether or not the message has been updated since the last iteration
 
-    typename RosPubType<MessageType>::MessageSharedPtr message_;
-    typename RosPubType<MessageType>::SharedPtr publisher_;
+    typename RosPubType<MessageType>::MessageSharedPtr message_;  /// Pointer to a message that can be updated and published by this class
+    typename RosPubType<MessageType>::SharedPtr publisher_;  /// Pointer to the ROS publisher that will do the actual publishing for this class
   };
 
 
@@ -192,9 +244,16 @@ public:
   TransformStampedMsg filter_relative_transform_msg_;
 
 private:
+  /**
+   * \brief Helper function to register a data callback on this class
+   * \tparam DataField The type of data to listen for
+   * \tparam Callback The Callback function on this class to call when the data is received
+   * \param descriptor_set The descriptor set to use for the DataField. Defaults to the DataField's descriptor set
+   */
   template<class DataField, void (Publishers::*Callback)(const DataField&, uint8_t, mip::Timestamp)>
   void registerDataCallback(const uint8_t descriptor_set = DataField::DESCRIPTOR_SET);
 
+  // Calbacks to handle shared data from the MIP device
   void handleSharedEventSource(const mip::data_shared::EventSource& event_source, const uint8_t descriptor_set, mip::Timestamp timestamp);
   void handleSharedTicks(const mip::data_shared::Ticks& ticks, const uint8_t descriptor_set, mip::Timestamp timestamp);
   void handleSharedDeltaTicks(const mip::data_shared::DeltaTicks& delta_ticks, const uint8_t descriptor_set, mip::Timestamp timestamp);
@@ -203,18 +262,22 @@ private:
   void handleSharedReferenceTimestamp(const mip::data_shared::ReferenceTimestamp& reference_timestamp, const uint8_t descriptor_set, mip::Timestamp timestamp);
   void handleSharedReferenceTimeDelta(const mip::data_shared::ReferenceTimeDelta& reference_time_delta, const uint8_t descriptor_set, mip::Timestamp timestamp);
 
+  // Callbacks to handle sensor data from the MIP device
   void handleSensorScaledAccel(const mip::data_sensor::ScaledAccel& scaled_accel, const uint8_t descriptor_set, mip::Timestamp timestamp);
   void handleSensorScaledGyro(const mip::data_sensor::ScaledGyro& scaled_gyro, const uint8_t descriptor_set, mip::Timestamp timestamp);
   void handleSensorCompQuaternion(const mip::data_sensor::CompQuaternion& comp_quaternion, const uint8_t descriptor_set, mip::Timestamp timestamp);
   void handleSensorScaledMag(const mip::data_sensor::ScaledMag& scaled_mag, const uint8_t descriptor_set, mip::Timestamp timestamp);
   void handleSensorGpsTimestamp(const mip::data_sensor::GpsTimestamp& gps_timestamp, const uint8_t descriptor_set, mip::Timestamp timestamp);
 
+  // Callbcaks to handle GNSS data from the device
   void handleGnssPosLlh(const mip::data_gnss::PosLlh& pos_llh, const uint8_t descriptor_set, mip::Timestamp timestamp);
   void handleGnssVelNed(const mip::data_gnss::VelNed& vel_ned, const uint8_t descriptor_set, mip::Timestamp timestamp);
   void handleGnssFixInfo(const mip::data_gnss::FixInfo& fix_info, const uint8_t descriptor_set, mip::Timestamp timestamp);
 
+  // Callbacks to handle RTK data from the device
   void handleRtkCorrectionsStatus(const mip::data_gnss::RtkCorrectionsStatus& rtk_corrections_status, const uint8_t descriptor_set, mip::Timestamp timestamp);
 
+  // Callbacks to handle filter datat from the device
   void handleFilterStatus(const mip::data_filter::Status& status, const uint8_t descriptor_set, mip::Timestamp timestamp);
   void handleFilterEulerAngles(const mip::data_filter::EulerAngles& euler_angles, const uint8_t descriptor_set, mip::Timestamp timestamp);
   void handleFilterHeadingUpdateState(const mip::data_filter::HeadingUpdateState& heading_update_state, const uint8_t descriptor_set, mip::Timestamp timestamp);
@@ -232,10 +295,18 @@ private:
   void handleFilterGnssDualAntennaStatus(const mip::data_filter::GnssDualAntennaStatus& gnss_dual_antenna_status, const uint8_t descriptor_set, mip::Timestamp timestamp);
   void handleFilterAidingMeasurementSummary(const mip::data_filter::AidingMeasurementSummary& aiding_measurement_summary, const uint8_t descriptor_set, mip::Timestamp timestamp);
 
+  /**
+   * \brief Updates the header's timestamp to the type of timestamp based on the node's configuration
+   * \param header The header to update the timestamp of
+   * \param descriptor_set The descriptor set that should be used to lookup the timestamp if we want to use the device timestamp
+   * \param timestamp The timestamp provided by the MIP SDK for when the packet was received
+   */
   void updateHeaderTime(RosHeaderType* header, uint8_t descriptor_set, mip::Timestamp timestamp);
 
+  // List of MIP dispatch handlers used to subscribe to data from the MIP SDK
   std::vector<std::shared_ptr<mip::C::mip_dispatch_handler>> mip_dispatch_handlers_;
 
+  // Handles to the ROS node and the config
   RosNodeType* node_;
   Config* config_;
 
@@ -250,8 +321,7 @@ private:
 
   // Save the orientation information, as it is used by some other data to transform based on orientation
   tf2::Quaternion filter_attitude_quaternion_ = tf2::Quaternion(0, 0, 0, 1);
-
-};  // struct Publishers
+};
 
 template<class DataField, void (Publishers::*Callback)(const DataField&, uint8_t, mip::Timestamp)>
 void Publishers::registerDataCallback(const uint8_t descriptor_set)

@@ -1,6 +1,19 @@
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+// Parker-Lord Inertial Device Driver Implementation File
+//
+// Copyright (c) 2017, Brian Bingham
+// Copyright (c) 2020, Parker Hannifin Corp
+// This code is licensed under MIT license (see LICENSE file for details)
+//
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+
+#include <stdio.h>
+
+#include <string>
+#include <memory>
 #include <thread>
 #include <chrono>
-#include <stdio.h>
 #include <stdexcept>
 
 #include "mip/mip.hpp"
@@ -21,7 +34,7 @@ bool RosMipDeviceMain::configure(RosNodeType* config_node)
   get_param<int32_t>(config_node, "baudrate", baudrate, 115200);
   get_param<bool>(config_node, "set_baud", set_baud, false);
   connection_ = std::unique_ptr<RosConnection>(new RosConnection(node_));
-  if (!connection_->connect(config_node, port, baudrate)) 
+  if (!connection_->connect(config_node, port, baudrate))
     return false;
 
   // Setup the device interface
@@ -30,6 +43,7 @@ bool RosMipDeviceMain::configure(RosNodeType* config_node)
 
   // At this point, we have connected to the device but if it is streaming.
   // Reading information may fail. Retry setting to idle a few times to accomodate
+  bool changed_baud = false;
   MICROSTRAIN_INFO(node_, "Setting device to idle in order to configure");
   if (!(mip_cmd_result = forceIdle()))
   {
@@ -51,6 +65,7 @@ bool RosMipDeviceMain::configure(RosNodeType* config_node)
           {
             // Looks like we got the right baudrate, so break out of the loop and let it get changed below
             MICROSTRAIN_INFO(node_, "Note: Device was previously configured at %d baud", baud);
+            changed_baud = true;
             break;
           }
         }
@@ -77,12 +92,16 @@ bool RosMipDeviceMain::configure(RosNodeType* config_node)
       return false;
     }
 
-    // Wait for the changes to take affect
-    std::this_thread::sleep_for(std::chrono::milliseconds(250));
+    // Only need to reopen if we have changed the baud
+    if (changed_baud)
+    {
+      // Wait for the changes to take affect
+      std::this_thread::sleep_for(std::chrono::milliseconds(250));
 
-    // Reopen the device now
-    if (!connection_->connect(config_node, port, baudrate))
-      return false;
+      // Reopen the device now
+      if (!connection_->connect(config_node, port, baudrate))
+        return false;
+    }
   }
 
   // Print the device info
@@ -146,7 +165,7 @@ mip::CmdResult RosMipDeviceMain::updateDeviceDescriptors()
     return result;
 
   // Shoule be a continuous list, so just iterate and save the descriptor sets to a seperate list
-  for (uint16_t i = 0; i < total_descriptors; i++) 
+  for (uint16_t i = 0; i < total_descriptors; i++)
   {
     const uint8_t descriptor_set = static_cast<uint8_t>((descriptors[i] & 0xFF00) >> 8);
     if (std::find(supported_descriptor_sets_.begin(), supported_descriptor_sets_.end(), descriptor_set) == supported_descriptor_sets_.end())
@@ -247,7 +266,7 @@ bool RosMipDeviceMain::supportsDescriptorSet(const uint8_t descriptor_set)
   if (supported_descriptor_sets_.empty())
     if (!(result = updateDeviceDescriptors()))
       throw std::runtime_error(std::string("Error") + "(" + std::to_string(result.value) + "): " + result.name());
-  
+
   // If we have the descriptor set in our list of descriptor sets it is supported
   return std::find(supported_descriptor_sets_.begin(), supported_descriptor_sets_.end(), descriptor_set) != supported_descriptor_sets_.end();
 }

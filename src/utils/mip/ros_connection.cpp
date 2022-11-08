@@ -1,14 +1,29 @@
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+// Parker-Lord Inertial Device Driver Implementation File
+//
+// Copyright (c) 2017, Brian Bingham
+// Copyright (c) 2020, Parker Hannifin Corp
+// This code is licensed under MIT license (see LICENSE file for details)
+//
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+
 #include <sys/stat.h>
 
-#include <mip/platform/serial_connection.hpp>
-#include <mip/extras/recording_connection.hpp>
+#include <string>
+#include <memory>
+
+#include "mip/platform/serial_connection.hpp"
+#include "mip/extras/recording_connection.hpp"
 
 #include "microstrain_inertial_driver_common/utils/mip/ros_connection.h"
 #include "microstrain_inertial_driver_common/utils/mip/ros_mip_device.h"
 
 mip::Timestamp getCurrentTimestamp()
 {
-  using namespace std::chrono;
+  using std::chrono::duration_cast;
+  using std::chrono::milliseconds;
+  using std::chrono::steady_clock;
   return duration_cast<milliseconds>( steady_clock::now().time_since_epoch() ).count();
 }
 
@@ -76,10 +91,11 @@ bool RosConnection::connect(RosNodeType* config_node, const std::string& port, c
     MICROSTRAIN_ERROR(node_, "Failed to initialize the MIP connection: %s", e.what());
     return false;
   }
-  
+
+  // TODO(robbiefish): Currently, using the mip_timeout_from_baudrate method results in too short of a timeout. For now, we can just use the longer timeouts, but it would be good to use shorter timeouts when possible
   // Different timeouts based on the type of connection (TCP/Serial)
-  //parse_timeout_ = mip::C::mip_timeout_from_baudrate(baudrate);
-  //base_reply_timeout_ = 500;
+  // parse_timeout_ = mip::C::mip_timeout_from_baudrate(baudrate);
+  // base_reply_timeout_ = 500;
   parse_timeout_ = 1000;
   base_reply_timeout_ = 1000;
   return true;
@@ -149,10 +165,10 @@ bool RosConnection::sendToDevice(const uint8_t* data, size_t length)
     return false;
 }
 
-bool RosConnection::recvFromDevice(uint8_t* buffer, size_t max_length, size_t* count_out, mip::Timestamp* timestamp_out)
+bool RosConnection::recvFromDevice(uint8_t* buffer, size_t max_length, mip::Timeout timeout, size_t* count_out, mip::Timestamp* timestamp_out)
 {
   if (connection_ != nullptr)
-    return connection_->recvFromDevice(buffer, max_length, count_out, timestamp_out);
+    return connection_->recvFromDevice(buffer, max_length, timeout, count_out, timestamp_out);
   else
     return false;
 }

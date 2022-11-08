@@ -1,10 +1,23 @@
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+// Parker-Lord Driver Definition File
+//
+// Copyright (c) 2017, Brian Bingham
+// Copyright (c) 2020, Parker Hannifin Corp
+//
+// This code is licensed under MIT license (see LICENSE file for details)
+//
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+
 #ifndef MICROSTRAIN_INERTIAL_DRIVER_COMMON_UTILS_MAPPINGS_MIP_PUBLISHER_MAPPING_H_
 #define MICROSTRAIN_INERTIAL_DRIVER_COMMON_UTILS_MAPPINGS_MIP_PUBLISHER_MAPPING_H_
 
+#include <map>
+#include <vector>
 #include <string>
 #include <memory>
 
-#include <mip/mip_all.hpp>
+#include "mip/mip_all.hpp"
 
 #include "microstrain_inertial_driver_common/utils/mappings/mip_mapping.h"
 #include "microstrain_inertial_driver_common/utils/ros_compat.h"
@@ -53,7 +66,7 @@ static constexpr int32_t DATA_CLASS_DATA_RATE_DO_NOT_STREAM = 0;
 /**
  * Container for both a descriptor set and field descriptor
  */
-struct MIPDescriptor
+struct MipDescriptor
 {
   uint8_t descriptor_set;  /// Descriptor set
   uint8_t field_descriptor;  /// Field descriptor within the descriptor_set
@@ -62,30 +75,30 @@ struct MIPDescriptor
 /**
  * Container that will hold information associated with a topic
  */
-struct MIPPublisherMappingInfo
+struct MipPublisherMappingInfo
 {
   std::vector<uint8_t> descriptor_sets = {};  /// Descriptor sets used by this topic
-  std::vector<MIPDescriptor> descriptors = {};  /// Descriptors streamed by this topic
+  std::vector<MipDescriptor> descriptors = {};  /// Descriptors streamed by this topic
   int32_t data_rate = DATA_CLASS_DATA_RATE_DO_NOT_STREAM;  /// Data rate that this topic is streamed at
 };
 
 /**
  * Helper class used to lookup MIP or device information given a topic name
  */
-class MIPPublisherMapping
+class MipPublisherMapping
 {
  public:
   /**
    * \brief Default constructor
    */
-  MIPPublisherMapping() = default;
+  MipPublisherMapping() = default;
 
   /**
    * \brief Constructs the mapping with a reference to the ROS node and the device. The reference to the ROS node will be saved as a member variable for later usage
    * \param node  The ROS node that is constructing this object
    * \param inertial_device  Pointer to the inertial device that we will use to read information from the device 
    */
-  MIPPublisherMapping(RosNodeType* node, const std::shared_ptr<RosMipDeviceMain> inertial_device);
+  MipPublisherMapping(RosNodeType* node, const std::shared_ptr<RosMipDeviceMain> inertial_device);
 
   /**
    * \brief Configures the data rates associated with the topics. Updates the map with a data rate for each topic
@@ -106,7 +119,7 @@ class MIPPublisherMapping
    * \param topic  Name of the topic to search for
    * \return List of descriptors for the requested topic, or an empty vector if the topic cannot be found or is not supported by the device
    */
-  std::vector<MIPDescriptor> getDescriptors(const std::string& topic) const;
+  std::vector<MipDescriptor> getDescriptors(const std::string& topic) const;
 
   /**
    * \brief Gets the data rate of the associated topic. Will only return a valid number if called after "configure"
@@ -143,18 +156,18 @@ class MIPPublisherMapping
    */
   void streamSharedDescriptor(const uint8_t field_descriptor);
 
-  RosNodeType* node_;
-  std::shared_ptr<RosMipDeviceMain> mip_device_;
+  RosNodeType* node_;  /// Reference to the node object that initialized this class. Used for logging and extracting ROS information
+  std::shared_ptr<RosMipDeviceMain> mip_device_;  /// Reference to the MIP device pointer used to read and write information to the device
 
-  std::map<std::string, MIPPublisherMappingInfo> topic_info_mapping_;
-  std::map<uint8_t, std::vector<mip::DescriptorRate>> streamed_descriptors_mapping_;
+  std::map<std::string, MipPublisherMappingInfo> topic_info_mapping_;  /// Will be populated based on the device with a mapping between with the topic and ROS and MIP configuration.
+  std::map<uint8_t, std::vector<mip::DescriptorRate>> streamed_descriptors_mapping_;  /// Will be populated based on the device with a mapping between descriptor sets and the rates for each field descriptor.
 
   // Static mappings for topics. Note that this map contains all possible topics regardless of what the device supports
-  static const std::map<std::string, FieldWrapper::SharedPtrVec> topic_to_mip_type_mapping_;  /// Mapping between topics and MIP types which can be used to lookup the descriptor set and field descriptors for a topic.
-  static const std::map<std::string, std::string> topic_to_data_rate_config_key_mapping_;  /// Mapping between topics and the keys in the config used to configure their data rates
+  static const std::map<std::string, FieldWrapper::SharedPtrVec> static_topic_to_mip_type_mapping_;  /// Mapping between topics and MIP types which can be used to lookup the descriptor set and field descriptors for a topic.
+  static const std::map<std::string, std::string> static_topic_to_data_rate_config_key_mapping_;  /// Mapping between topics and the keys in the config used to configure their data rates
 
   // Static mappings for descriptor sets. Note that this map contains all possible descriptor sets regardless of what the device supports
-  static const std::map<uint8_t, std::string> descriptor_set_to_data_rate_config_key_mapping_;  /// Mapping between descriptor sets and the keys in the config used to configure their data rates if no more specific topic option was provided
+  static const std::map<uint8_t, std::string> static_descriptor_set_to_data_rate_config_key_mapping_;  /// Mapping between descriptor sets and the keys in the config used to configure their data rates if no more specific topic option was provided
 };
 
 }  // namespace microstrain

@@ -1,9 +1,9 @@
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 //
-// Parker-Lord GX5-Series Driver Definition File
+// Parker-Lord Driver Definition File
 //
 // Copyright (c) 2017, Brian Bingham
-// Copyright (c)  2020, Parker Hannifin Corp
+// Copyright (c) 2020, Parker Hannifin Corp
 //
 // This code is licensed under MIT license (see LICENSE file for details)
 //
@@ -18,7 +18,7 @@
 #include <memory>
 #include <fstream>
 
-#include <mip/definitions/commands_filter.hpp>
+#include "mip/definitions/commands_filter.hpp"
 
 #include "microstrain_inertial_driver_common/utils/ros_compat.h"
 #include "microstrain_inertial_driver_common/utils/mip/ros_mip_device_main.h"
@@ -57,9 +57,10 @@ public:
    */
   bool configure(RosNodeType* node);
 
+  // Connection classes and metadata used to interact with the MIP device
   std::shared_ptr<RosMipDeviceMain> mip_device_;
   std::shared_ptr<RosMipDeviceAux> aux_device_;
-  std::shared_ptr<MIPPublisherMapping> mip_publisher_mapping_;
+  std::shared_ptr<MipPublisherMapping> mip_publisher_mapping_;
 
   // Info for converting to the ENU frame
   bool use_enu_frame_;

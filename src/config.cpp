@@ -8,26 +8,21 @@
 //
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
-/////////////////////////////////////////////////////////////////////////////////////////////////////
-//
-// Include Files
-//
-/////////////////////////////////////////////////////////////////////////////////////////////////////
 #include <errno.h>
 #include <vector>
 #include <string>
 #include <memory>
 #include <algorithm>
 
-#include <mip/mip_version.h>
-#include <mip/definitions/commands_base.hpp>
-#include <mip/definitions/commands_3dm.hpp>
-#include <mip/definitions/commands_gnss.hpp>
-#include <mip/definitions/data_sensor.hpp>
-#include <mip/definitions/data_gnss.hpp>
-#include <mip/definitions/data_filter.hpp>
-#include <mip/platform/serial_connection.hpp>
-#include <mip/extras/recording_connection.hpp>
+#include "mip/mip_version.h"
+#include "mip/definitions/commands_base.hpp"
+#include "mip/definitions/commands_3dm.hpp"
+#include "mip/definitions/commands_gnss.hpp"
+#include "mip/definitions/data_sensor.hpp"
+#include "mip/definitions/data_gnss.hpp"
+#include "mip/definitions/data_filter.hpp"
+#include "mip/platform/serial_connection.hpp"
+#include "mip/extras/recording_connection.hpp"
 
 #include "microstrain_inertial_driver_common/config.h"
 
@@ -125,6 +120,9 @@ bool Config::configure(RosNodeType* node)
   for (int i = 0; i < NUM_GNSS; i++)
     gnss_antenna_offset_[i] = std::vector<float>(gnss_antenna_offset_double[i].begin(), gnss_antenna_offset_double[i].end());
 
+  // Log the driver version if it was built properly
+  MICROSTRAIN_INFO(node_, "Running microstrain_inertial_driver version: %s", MICROSTRAIN_DRIVER_VERSION);
+
   // Log the MIP SDK version
   MICROSTRAIN_INFO(node_, "Using MIP SDK version: %s", MIP_SDK_VERSION_FULL);
 
@@ -180,7 +178,7 @@ bool Config::setupDevice(RosNodeType* node)
 
   // Configure the device to stream data using the topic mapping
   MICROSTRAIN_DEBUG(node_, "Setting up data streams");
-  mip_publisher_mapping_ = std::make_shared<MIPPublisherMapping>(node_, mip_device_);
+  mip_publisher_mapping_ = std::make_shared<MipPublisherMapping>(node_, mip_device_);
   if (!mip_publisher_mapping_->configure(node))
     return false;
 
@@ -336,7 +334,7 @@ bool Config::configure3DM(RosNodeType* node)
   {
     MICROSTRAIN_INFO(node_, "Note: The device does not support the odometer settings command");
   }
-  
+
   // Support channel setup
   if (mip_device_->supportsDescriptor(descriptor_set, mip::commands_3dm::CMD_CONFIGURE_FACTORY_STREAMING))
   {

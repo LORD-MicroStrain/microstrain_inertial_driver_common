@@ -1,3 +1,17 @@
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+// Parker-Lord Inertial Device Driver Implementation File
+//
+// Copyright (c) 2017, Brian Bingham
+// Copyright (c) 2020, Parker Hannifin Corp
+// This code is licensed under MIT license (see LICENSE file for details)
+//
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+
+#include <map>
+#include <string>
+#include <memory>
+#include <vector>
 #include <algorithm>
 
 #include "microstrain_inertial_driver_common/utils/mappings/mip_publisher_mapping.h"
@@ -5,10 +19,10 @@
 namespace microstrain
 {
 
-MIPPublisherMapping::MIPPublisherMapping(RosNodeType* node, const std::shared_ptr<RosMipDeviceMain> inertial_device) : node_(node), mip_device_(inertial_device)
+MipPublisherMapping::MipPublisherMapping(RosNodeType* node, const std::shared_ptr<RosMipDeviceMain> inertial_device) : node_(node), mip_device_(inertial_device)
 {
   // Add all supported descriptors to the supported mapping
-  for (const auto& mip_type_mapping : topic_to_mip_type_mapping_)
+  for (const auto& mip_type_mapping : static_topic_to_mip_type_mapping_)
   {
     const std::string& topic = mip_type_mapping.first;
     const FieldWrapper::SharedPtrVec& fields = mip_type_mapping.second;
@@ -22,7 +36,7 @@ MIPPublisherMapping::MIPPublisherMapping(RosNodeType* node, const std::shared_pt
       {
         // Add the descriptor to the mapping for the topic
         if (topic_info_mapping_.find(topic) == topic_info_mapping_.end())
-          topic_info_mapping_[topic] = MIPPublisherMappingInfo();
+          topic_info_mapping_[topic] = MipPublisherMappingInfo();
 
         auto& topic_info = topic_info_mapping_[topic];
         topic_info.descriptors.push_back({descriptor_set, field_descriptor});
@@ -39,7 +53,7 @@ MIPPublisherMapping::MIPPublisherMapping(RosNodeType* node, const std::shared_pt
   }
 }
 
-bool MIPPublisherMapping::configure(RosNodeType* config_node)
+bool MipPublisherMapping::configure(RosNodeType* config_node)
 {
   // Add the data rates to the topic info map
   for (auto& mapping : topic_info_mapping_)
@@ -48,15 +62,15 @@ bool MIPPublisherMapping::configure(RosNodeType* config_node)
     auto& topic_info = mapping.second;
 
     // Get the data rate for the topic, and if it is not the default, use it, otherwise use the data class data rate
-    if (topic_to_data_rate_config_key_mapping_.find(topic) != topic_to_data_rate_config_key_mapping_.end())
+    if (static_topic_to_data_rate_config_key_mapping_.find(topic) != static_topic_to_data_rate_config_key_mapping_.end())
     {
-      get_param<int32_t>(config_node, topic_to_data_rate_config_key_mapping_.at(topic), topic_info.data_rate, FIELD_DATA_RATE_USE_DATA_CLASS);
+      get_param<int32_t>(config_node, static_topic_to_data_rate_config_key_mapping_.at(topic), topic_info.data_rate, FIELD_DATA_RATE_USE_DATA_CLASS);
       if (topic_info.data_rate != FIELD_DATA_RATE_USE_DATA_CLASS)
         continue;
     }
     else
     {
-      MICROSTRAIN_ERROR(node_, "Topic %s does not have an associated data rate, this should be added to the 'topic_to_data_rate_config_key_mapping_' map", topic.c_str());
+      MICROSTRAIN_ERROR(node_, "Topic %s does not have an associated data rate, this should be added to the 'static_topic_to_data_rate_config_key_mapping_' map", topic.c_str());
       return false;
     }
 
@@ -64,15 +78,15 @@ bool MIPPublisherMapping::configure(RosNodeType* config_node)
     std::vector<int32_t> descriptor_set_rates;
     for (const uint8_t descriptor_set : topic_info.descriptor_sets)
     {
-      if (descriptor_set_to_data_rate_config_key_mapping_.find(descriptor_set) != descriptor_set_to_data_rate_config_key_mapping_.end())
+      if (static_descriptor_set_to_data_rate_config_key_mapping_.find(descriptor_set) != static_descriptor_set_to_data_rate_config_key_mapping_.end())
       {
         int32_t descriptor_set_rate;
-        get_param<int32_t>(config_node, descriptor_set_to_data_rate_config_key_mapping_.at(descriptor_set), descriptor_set_rate, DATA_CLASS_DATA_RATE_DO_NOT_STREAM);
+        get_param<int32_t>(config_node, static_descriptor_set_to_data_rate_config_key_mapping_.at(descriptor_set), descriptor_set_rate, DATA_CLASS_DATA_RATE_DO_NOT_STREAM);
         descriptor_set_rates.push_back(descriptor_set_rate);
       }
       else
       {
-        MICROSTRAIN_ERROR(node_, "Descriptor sets 0x%02x used by topic %s does not have an associated data rate. This should be added to the 'descriptor_set_to_data_rate_config_key_mapping_' map", descriptor_set, topic.c_str());
+        MICROSTRAIN_ERROR(node_, "Descriptor sets 0x%02x used by topic %s does not have an associated data rate. This should be added to the 'static_descriptor_set_to_data_rate_config_key_mapping_' map", descriptor_set, topic.c_str());
         return false;
       }
     }
@@ -80,7 +94,7 @@ bool MIPPublisherMapping::configure(RosNodeType* config_node)
       topic_info.data_rate = *std::max_element(descriptor_set_rates.begin(), descriptor_set_rates.end());
     else
       topic_info.data_rate = DATA_CLASS_DATA_RATE_DO_NOT_STREAM;
-    
+
     // Get the decimation for the topic and add it to the map
     MICROSTRAIN_DEBUG(node_, "Configuring topic %s to stream at %d hz", topic.c_str(), topic_info.data_rate);
     for (const auto& descriptor : topic_info.descriptors)
@@ -93,7 +107,7 @@ bool MIPPublisherMapping::configure(RosNodeType* config_node)
       if (streamed_descriptors_mapping_.find(descriptor_set) == streamed_descriptors_mapping_.end())
         streamed_descriptors_mapping_[descriptor_set] = {};
       auto& descriptor_rates = streamed_descriptors_mapping_[descriptor_set];
-      
+
       // If the channel has already been added, just update the rate of the existing entry
       auto existing_descriptor_rate = std::find_if(descriptor_rates.begin(), descriptor_rates.end(), [field_descriptor](const mip::DescriptorRate& d)
       {
@@ -148,7 +162,7 @@ bool MIPPublisherMapping::configure(RosNodeType* config_node)
   return true;
 }
 
-std::vector<uint8_t> MIPPublisherMapping::getDescriptorSets(const std::string& topic) const
+std::vector<uint8_t> MipPublisherMapping::getDescriptorSets(const std::string& topic) const
 {
   if (topic_info_mapping_.find(topic) != topic_info_mapping_.end())
     return topic_info_mapping_.at(topic).descriptor_sets;
@@ -156,7 +170,7 @@ std::vector<uint8_t> MIPPublisherMapping::getDescriptorSets(const std::string& t
     return {};
 }
 
-std::vector<MIPDescriptor> MIPPublisherMapping::getDescriptors(const std::string& topic) const
+std::vector<MipDescriptor> MipPublisherMapping::getDescriptors(const std::string& topic) const
 {
   if (topic_info_mapping_.find(topic) != topic_info_mapping_.end())
     return topic_info_mapping_.at(topic).descriptors;
@@ -164,7 +178,7 @@ std::vector<MIPDescriptor> MIPPublisherMapping::getDescriptors(const std::string
     return {};
 }
 
-int32_t MIPPublisherMapping::getDataRate(const std::string& topic) const
+int32_t MipPublisherMapping::getDataRate(const std::string& topic) const
 {
   if (topic_info_mapping_.find(topic) != topic_info_mapping_.end())
     return topic_info_mapping_.at(topic).data_rate;
@@ -172,10 +186,10 @@ int32_t MIPPublisherMapping::getDataRate(const std::string& topic) const
     return DATA_CLASS_DATA_RATE_DO_NOT_STREAM;
 }
 
-int32_t MIPPublisherMapping::getMaxDataRate(uint8_t descriptor_set) const
+int32_t MipPublisherMapping::getMaxDataRate(uint8_t descriptor_set) const
 {
   std::vector<int32_t> data_rates;
-  for (const auto& element : topic_to_mip_type_mapping_)
+  for (const auto& element : static_topic_to_mip_type_mapping_)
   {
     const std::vector<uint8_t> descriptor_sets = getDescriptorSets(element.first);
     if (descriptor_set == mip::data_shared::DESCRIPTOR_SET || std::find(descriptor_sets.begin(), descriptor_sets.end(), descriptor_set) != descriptor_sets.end())
@@ -184,17 +198,17 @@ int32_t MIPPublisherMapping::getMaxDataRate(uint8_t descriptor_set) const
   return *std::max_element(data_rates.begin(), data_rates.end());
 }
 
-bool MIPPublisherMapping::canPublish(const std::string& topic) const
+bool MipPublisherMapping::canPublish(const std::string& topic) const
 {
   return !getDescriptors(topic).empty();
 }
 
-bool MIPPublisherMapping::shouldPublish(const std::string& topic) const
+bool MipPublisherMapping::shouldPublish(const std::string& topic) const
 {
   return canPublish(topic) && getDataRate(topic) != DATA_CLASS_DATA_RATE_DO_NOT_STREAM;
 }
 
-void MIPPublisherMapping::streamSharedDescriptor(const uint8_t field_descriptor)
+void MipPublisherMapping::streamSharedDescriptor(const uint8_t field_descriptor)
 {
   for (auto& streamed_descriptor_mapping : streamed_descriptors_mapping_)
   {
@@ -210,7 +224,7 @@ void MIPPublisherMapping::streamSharedDescriptor(const uint8_t field_descriptor)
   }
 }
 
-const std::map<std::string, FieldWrapper::SharedPtrVec> MIPPublisherMapping::topic_to_mip_type_mapping_ =
+const std::map<std::string, FieldWrapper::SharedPtrVec> MipPublisherMapping::static_topic_to_mip_type_mapping_ =
 {
   // IMU topic mappings
   {IMU_DATA_TOPIC, {
@@ -317,7 +331,7 @@ const std::map<std::string, FieldWrapper::SharedPtrVec> MIPPublisherMapping::top
   }}
 };
 
-const std::map<std::string, std::string> MIPPublisherMapping::topic_to_data_rate_config_key_mapping_ =
+const std::map<std::string, std::string> MipPublisherMapping::static_topic_to_data_rate_config_key_mapping_ =
 {
   // IMU data rates
   {IMU_DATA_TOPIC,              "imu_raw_data_rate"},
@@ -353,7 +367,7 @@ const std::map<std::string, std::string> MIPPublisherMapping::topic_to_data_rate
   {FILTER_AIDING_SUMMARY_TOPIC,      "filter_aiding_measurement_summary_data_rate"},
 };
 
-const std::map<uint8_t, std::string> MIPPublisherMapping::descriptor_set_to_data_rate_config_key_mapping_ = 
+const std::map<uint8_t, std::string> MipPublisherMapping::static_descriptor_set_to_data_rate_config_key_mapping_ =
 {
   {mip::data_sensor::DESCRIPTOR_SET,        "imu_data_rate"},
   {mip::data_gnss::DESCRIPTOR_SET,          "gnss1_data_rate"},

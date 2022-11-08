@@ -1,19 +1,21 @@
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 //
-// Parker-Lord GX5-Series Driver Definition File
+// Parker-Lord Driver Definition File
 //
 // Copyright (c) 2017, Brian Bingham
-// Copyright (c)  2020, Parker Hannifin Corp
+// Copyright (c) 2020, Parker Hannifin Corp
 //
 // This code is licensed under MIT license (see LICENSE file for details)
 //
 /////////////////////////////////////////////////////////////////////////////////////////////////////
+
 #ifndef MICROSTRAIN_INERTIAL_DRIVER_COMMON_UTILS_ROS_COMPAT_H
 #define MICROSTRAIN_INERTIAL_DRIVER_COMMON_UTILS_ROS_COMPAT_H
 
 /**
  * Common Includes
  */
+#include <string>
 #include <memory>
 
 /**
@@ -23,6 +25,10 @@
 #define M_PI (3.14159265358979323846)
 #endif
 
+// Version of the driver
+#ifndef MICROSTRAIN_DRIVER_VERSION
+#define MICROSTRAIN_DRIVER_VERSION "unknown"
+#endif
 
 namespace microstrain
 {
@@ -251,7 +257,7 @@ class RosPubType : public ::ros::Publisher
   using MessageSharedPtr = std::shared_ptr<MessageType>;
   using SharedPtr = std::shared_ptr<RosPubType<MessageType>>;
 
-  RosPubType(const ::ros::Publisher& rhs) : ::ros::Publisher(rhs) {}
+  explicit RosPubType(const ::ros::Publisher& rhs) : ::ros::Publisher(rhs) {}
 
   void on_activate() { (void)0; }
   void on_deactivate() { (void)0; }
@@ -263,7 +269,7 @@ class RosServiceType : public ::ros::ServiceServer
  public:
   using SharedPtr = std::shared_ptr<RosServiceType<ServiceType>>;
 
-  RosServiceType(const ::ros::ServiceServer& rhs) : ::ros::ServiceServer(rhs) {}
+  explicit RosServiceType(const ::ros::ServiceServer& rhs) : ::ros::ServiceServer(rhs) {}
 };
 
 // ROS1 General Types
@@ -273,7 +279,6 @@ using RosTimerType = std::shared_ptr<::ros::Timer>;
 using RosRateType = ::ros::Rate;
 using RosHeaderType = ::std_msgs::Header;
 using RosSubType = std::shared_ptr<::ros::Subscriber>;
-//using RosServiceType = std::shared_ptr<::ros::ServiceServer>;
 
 // ROS1 Publisher Message Types
 using OdometryMsg = ::nav_msgs::Odometry;
@@ -574,7 +579,7 @@ class RosPubType : public ::rclcpp_lifecycle::LifecyclePublisher<MessageType>
  public:
   using MessageSharedPtr = std::shared_ptr<MessageType>;
 
-  RosPubType(const ::rclcpp_lifecycle::LifecyclePublisher<MessageType>& rhs) : ::rclcpp_lifecycle::LifecyclePublisher<MessageType>(rhs) {}
+  explicit RosPubType(const ::rclcpp_lifecycle::LifecyclePublisher<MessageType>& rhs) : ::rclcpp_lifecycle::LifecyclePublisher<MessageType>(rhs) {}
 };
 
 // Alias for the service type so it can be compatible with ROS1

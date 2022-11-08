@@ -1,9 +1,9 @@
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 //
-// Parker-Lord GX5-Series Driver Definition File
+// Parker-Lord Driver Definition File
 //
 // Copyright (c) 2017, Brian Bingham
-// Copyright (c)  2020, Parker Hannifin Corp
+// Copyright (c) 2020, Parker Hannifin Corp
 //
 // This code is licensed under MIT license (see LICENSE file for details)
 //
@@ -12,6 +12,8 @@
 #define MICROSTRAIN_INERTIAL_DRIVER_COMMON_SERVICES_H
 
 #include <memory>
+#include <string>
+
 #include "microstrain_inertial_driver_common/utils/ros_compat.h"
 #include "microstrain_inertial_driver_common/config.h"
 
@@ -42,7 +44,7 @@ public:
    */
   bool configure();
 
-  // TODO(robbiefish): Document all of these service functions
+  // Service functions. Too many to document
   bool deviceReport(DeviceReportServiceMsg::Request& req, DeviceReportServiceMsg::Response& res);
   bool getBasicStatus(TriggerServiceMsg::Request& req, TriggerServiceMsg::Response& res);
   bool getDiagnosticReport(TriggerServiceMsg::Request& req, TriggerServiceMsg::Response& res);
@@ -162,7 +164,13 @@ public:
                                 SetFilterSpeedLeverArmServiceMsg::Response& res);
 
 private:
-
+  /**
+   * \brief Configures a non MIP command dependent service. This service will always be configured if this functions is called.
+   * \tparam ServiceType. The ROS service type that the service will use
+   * \param name The name to give the service
+   * \param callback The callback to trigger when the service is called
+   * \return Pointer to an initialized service
+   */
   template<typename ServiceType>
   typename RosServiceType<ServiceType>::SharedPtr configureService(const std::string& name, bool (Services::*callback)(typename ServiceType::Request&, typename ServiceType::Response&))
   {
@@ -170,6 +178,15 @@ private:
     return create_service<ServiceType>(node_, name, callback, this);
   }
 
+  /**
+   * \brief Configures a MIP command dependent service. This service will only be configured if the device supports the command
+   * \tparam ServiceType The ROS service type that the service will use
+   * \tparam MipType The MIP type that the device must support
+   * \tparam DescriptorSet The descriptor set to use with the MipType if the MipType's descriptor set should not be used
+   * \param name The name to give the service
+   * \param callback The callback to trigger when the service is called
+   * \return Pointer to an initialized service, or nullptr if the device does not support the MipType
+   */
   template<typename ServiceType, typename MipType, uint8_t DescriptorSet = MipType::DESCRIPTOR_SET>
   typename RosServiceType<ServiceType>::SharedPtr configureService(const std::string& name, bool (Services::*callback)(typename ServiceType::Request&, typename ServiceType::Response&))
   {
@@ -185,9 +202,11 @@ private:
     }
   }
 
+  // Handles to the ROS node and the config
   RosNodeType* node_;
   Config* config_;
 
+  // Pointers to the services that this class will hold onto
   RosServiceType<TriggerServiceMsg>::SharedPtr get_basic_status_service_;
   RosServiceType<TriggerServiceMsg>::SharedPtr get_diagnostic_report_service_;
   RosServiceType<DeviceReportServiceMsg>::SharedPtr device_report_service_;
@@ -248,7 +267,7 @@ private:
   RosServiceType<SetRelativePositionReferenceServiceMsg>::SharedPtr set_relative_position_reference_service_;
   RosServiceType<GetRelativePositionReferenceServiceMsg>::SharedPtr get_relative_position_reference_service_;
   RosServiceType<SetFilterSpeedLeverArmServiceMsg>::SharedPtr set_filter_speed_lever_arm_service_;
-};  // struct Services
+};
 
 }  // namespace microstrain
 

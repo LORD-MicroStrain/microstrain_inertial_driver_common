@@ -8,12 +8,9 @@
 //
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
-/////////////////////////////////////////////////////////////////////////////////////////////////////
-//
-// Include Files
-//
-/////////////////////////////////////////////////////////////////////////////////////////////////////
+#include <string>
 #include <memory>
+
 #include "microstrain_inertial_driver_common/services.h"
 
 namespace microstrain
@@ -25,13 +22,13 @@ Services::Services(RosNodeType* node, Config* config) : node_(node), config_(con
 bool Services::configure()
 {
   {
-    using namespace mip::commands_base;
+    using namespace mip::commands_base;  // NOLINT(build/namespaces)
 
     device_report_service_ = configureService<DeviceReportServiceMsg, GetDeviceInfo>("device_report", &Services::deviceReport);
   }
 
   {
-    using namespace mip::commands_3dm;
+    using namespace mip::commands_3dm;  // NOLINT(build/namespaces)
 
     get_basic_status_service_ = configureService<TriggerServiceMsg>("get_basic_status", &Services::getBasicStatus);
     get_diagnostic_report_service_ = configureService<TriggerServiceMsg>("get_diagnostic_report", &Services::getDiagnosticReport);
@@ -60,10 +57,10 @@ bool Services::configure()
   }
 
   {
-    using namespace mip::commands_filter;
+    using namespace mip::commands_filter;  // NOLINT(build/namespaces)
 
     set_tare_orientation_service_ = configureService<SetTareOrientationServiceMsg, TareOrientation>("set_tare_orientation", &Services::setTareOrientation);
-    
+
     set_sensor2vehicle_rotation_service_ = configureService<SetSensor2VehicleRotationServiceMsg, SensorToVehicleRotationEuler>("set_sensor2vehicle_rotation", &Services::setSensor2vehicleRotation);
     get_sensor2vehicle_rotation_service_ = configureService<GetSensor2VehicleRotationServiceMsg, SensorToVehicleRotationEuler>("get_sensor2vehicle_rotation", &Services::getSensor2vehicleRotation);
 
@@ -72,7 +69,7 @@ bool Services::configure()
 
     if (set_sensor2vehicle_offset_service_ && get_sensor2vehicle_offset_service_)
       get_sensor2vehicle_transformation_service_ = configureService<GetSensor2VehicleTransformationServiceMsg>("get_sensor2vehicle_transformation", &Services::getSensor2vehicleTransformation);
-    
+
     reset_filter_service_ = configureService<EmptyServiceMsg, Reset>("reset_kf", &Services::resetFilter);
 
     set_estimation_control_flags_service_ = configureService<SetEstimationControlFlagsServiceMsg, EstimationControl>("set_estimation_control_flags", &Services::setEstimationControlFlags);
@@ -336,8 +333,8 @@ bool Services::gyroBiasCapture(TriggerServiceMsg::Request& req, TriggerServiceMs
   if (res.success)
   {
     MICROSTRAIN_DEBUG(node_, "Captured gyro bias: [%f, %f, %f]", gyro_bias[0], gyro_bias[1], gyro_bias[2]);
-    
-    // TODO: This should really return the captured gyro bias instead of just printing it
+
+    // TODO(robbiefish): This should really return the captured gyro bias instead of just printing it
     MICROSTRAIN_INFO(node_, "Captured gyro bias: [%f, %f, %f]", gyro_bias[0], gyro_bias[1], gyro_bias[2]);
   }
   else
