@@ -49,6 +49,9 @@ bool Config::configure(RosNodeType* node)
   /// Generic configuration used by the rest of the driver
   ///
 
+  // General
+  getParam<bool>(node, "debug", debug_, false);
+
   // Device
   getParam<bool>(node, "use_device_timestamp", use_device_timestamp_, false);
   getParam<bool>(node, "use_ros_time", use_ros_time_, false);

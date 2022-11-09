@@ -57,6 +57,9 @@ public:
    */
   bool configure(RosNodeType* node);
 
+  // Generic config options
+  bool debug_;
+
   // Connection classes and metadata used to interact with the MIP device
   std::shared_ptr<RosMipDeviceMain> mip_device_;
   std::shared_ptr<RosMipDeviceAux> aux_device_;
