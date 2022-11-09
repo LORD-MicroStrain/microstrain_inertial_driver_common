@@ -19,14 +19,6 @@
 #include "microstrain_inertial_driver_common/utils/mip/ros_connection.h"
 #include "microstrain_inertial_driver_common/utils/mip/ros_mip_device.h"
 
-mip::Timestamp getCurrentTimestamp()
-{
-  using std::chrono::duration_cast;
-  using std::chrono::milliseconds;
-  using std::chrono::steady_clock;
-  return duration_cast<milliseconds>( steady_clock::now().time_since_epoch() ).count();
-}
-
 namespace microstrain
 {
 
@@ -167,10 +159,10 @@ bool RosConnection::sendToDevice(const uint8_t* data, size_t length)
 
 bool RosConnection::recvFromDevice(uint8_t* buffer, size_t max_length, mip::Timeout timeout, size_t* count_out, mip::Timestamp* timestamp_out)
 {
-  if (connection_ != nullptr)
-    return connection_->recvFromDevice(buffer, max_length, timeout, count_out, timestamp_out);
-  else
-    return false;
+  const bool success = (connection_ != nullptr) ? connection_->recvFromDevice(buffer, max_length, timeout, count_out, timestamp_out) : false;
+  if (success)
+    *timestamp_out = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+  return success;
 }
 
 }  // namespace microstrain

@@ -138,7 +138,15 @@ bool MipPublisherMapping::configure(RosNodeType* config_node)
   bool use_device_timestamp;
   get_param<bool>(config_node, "use_device_timestamp", use_device_timestamp, false);
   if (use_device_timestamp)
-    streamSharedDescriptor(mip::data_shared::DATA_GPS_TIME);
+  {
+    // Prospect devices
+    streamSharedDescriptor<mip::data_shared::GpsTimestamp>();
+
+    // Philo devices
+    streamAtDescriptorSetRate<mip::data_sensor::GpsTimestamp>();
+    streamAtDescriptorSetRate<mip::data_gnss::GpsTime>();
+    streamAtDescriptorSetRate<mip::data_filter::Timestamp>();
+  }
 
   // Enable each of the descriptor sets and save the message format
   for (const auto& streamed_descriptor_mapping : streamed_descriptors_mapping_)
@@ -206,22 +214,6 @@ bool MipPublisherMapping::canPublish(const std::string& topic) const
 bool MipPublisherMapping::shouldPublish(const std::string& topic) const
 {
   return canPublish(topic) && getDataRate(topic) != DATA_CLASS_DATA_RATE_DO_NOT_STREAM;
-}
-
-void MipPublisherMapping::streamSharedDescriptor(const uint8_t field_descriptor)
-{
-  for (auto& streamed_descriptor_mapping : streamed_descriptors_mapping_)
-  {
-    // Only stream the descriptor if it is supported within the descriptor set
-    const uint8_t descriptor_set = streamed_descriptor_mapping.first;
-    if (mip_device_->supportsDescriptor(descriptor_set, field_descriptor))
-    {
-      // Stream the field descriptor at the highest rate among the descriptor set
-      const uint16_t hertz = getMaxDataRate(descriptor_set);
-      const uint16_t decimation = mip_device_->getDecimationFromHertz(descriptor_set, hertz);
-      streamed_descriptor_mapping.second.push_back({field_descriptor, decimation});
-    }
-  }
 }
 
 const std::map<std::string, FieldWrapper::SharedPtrVec> MipPublisherMapping::static_topic_to_mip_type_mapping_ =

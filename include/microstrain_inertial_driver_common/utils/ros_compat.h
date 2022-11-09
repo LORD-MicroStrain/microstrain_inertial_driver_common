@@ -425,13 +425,15 @@ inline RosTimeType ros_time_now(RosNodeType* node)
 }
 
 /**
- * \brief Converts nanoseconds to ROS time
- * \param time  The current time in nanoseconds
- * \return ROS time at the specified nanoseconds
+ * \brief Sets the time in seconds and nanoseconds to a ROS time object
+ * \param time The time object to set the time on
+ * \param sec Number of seconds to set on the object
+ * \param nsec Number of nanoseconds to set on the object
  */
-inline RosTimeType to_ros_time(int64_t time)
+inline void setRosTime(RosTimeType* time, int32_t sec, int32_t nsec)
 {
-  return ros::Time().fromNSec(time);
+  time->sec = sec;
+  time->nsec = nsec;
 }
 
 /**
@@ -732,13 +734,15 @@ inline RosTimeType ros_time_now(RosNodeType* node)
 }
 
 /**
- * \brief Converts nanoseconds to ROS time
- * \param time  The current time in nanoseconds
- * \return ROS time at the specified nanoseconds
+ * \brief Sets the time in seconds and nanoseconds to a ROS time object
+ * \param time The time object to set the time on
+ * \param sec Number of seconds to set on the object
+ * \param nsec Number of nanoseconds to set on the object
  */
-inline RosTimeType to_ros_time(int64_t time)
+inline void setRosTime(RosTimeType* time, int32_t sec, int32_t nsec)
 {
-  return ::rclcpp::Time(time);
+  time->sec = sec;
+  time->nanosec = nsec;
 }
 
 /**

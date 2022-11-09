@@ -92,11 +92,14 @@ bool Publishers::configure()
     registerDataCallback<mip::data_shared::ReferenceTimeDelta, &Publishers::handleSharedReferenceTimeDelta>(descriptor_set);
   }
 
+  registerDataCallback<mip::data_sensor::GpsTimestamp, &Publishers::handleSensorGpsTimestamp>();
+  registerDataCallback<mip::data_gnss::GpsTime, &Publishers::handleGnssGpsTime>();
+  registerDataCallback<mip::data_filter::Timestamp, &Publishers::handleFilterTimestamp>();
+
   registerDataCallback<mip::data_sensor::ScaledAccel, &Publishers::handleSensorScaledAccel>();
   registerDataCallback<mip::data_sensor::ScaledGyro, &Publishers::handleSensorScaledGyro>();
   registerDataCallback<mip::data_sensor::CompQuaternion, &Publishers::handleSensorCompQuaternion>();
   registerDataCallback<mip::data_sensor::ScaledMag, &Publishers::handleSensorScaledMag>();
-  registerDataCallback<mip::data_sensor::GpsTimestamp, &Publishers::handleSensorGpsTimestamp>();
 
   for (const uint8_t gnss_descriptor_set : std::initializer_list<uint8_t>{mip::data_gnss::DESCRIPTOR_SET, mip::data_gnss::MIP_GNSS1_DATA_DESC_SET, mip::data_gnss::MIP_GNSS2_DATA_DESC_SET})
   {
@@ -240,6 +243,23 @@ void Publishers::handleSharedReferenceTimeDelta(const mip::data_shared::Referenc
   reference_time_delta_mapping_[descriptor_set] = reference_time_delta;
 }
 
+void Publishers::handleSensorGpsTimestamp(const mip::data_sensor::GpsTimestamp& gps_timestamp, const uint8_t descriptor_set, mip::Timestamp timestamp)
+{
+  // Convert the old philo timestamp into the new format and store it in the map
+  mip::data_shared::GpsTimestamp stored_timestamp;
+  stored_timestamp.tow = gps_timestamp.tow;
+  stored_timestamp.week_number = gps_timestamp.week_number;
+  stored_timestamp.valid_flags = gps_timestamp.valid_flags;
+  gps_timestamp_mapping_[descriptor_set] = stored_timestamp;
+
+  // Populate the ROS message
+  auto gps_corr_msg = gps_corr_pub_->getMessageToUpdate();
+  updateHeaderTime(&(gps_corr_msg->header), descriptor_set, timestamp);
+  gps_corr_msg->gps_cor.gps_tow = gps_timestamp.tow;
+  gps_corr_msg->gps_cor.gps_week_number = gps_timestamp.week_number;
+  gps_corr_msg->gps_cor.timestamp_flags = gps_timestamp.valid_flags;
+}
+
 void Publishers::handleSensorScaledAccel(const mip::data_sensor::ScaledAccel& scaled_accel, const uint8_t descriptor_set, mip::Timestamp timestamp)
 {
   auto imu_msg = imu_pub_->getMessageToUpdate();
@@ -306,13 +326,14 @@ void Publishers::handleSensorScaledMag(const mip::data_sensor::ScaledMag& scaled
   }
 }
 
-void Publishers::handleSensorGpsTimestamp(const mip::data_sensor::GpsTimestamp& gps_timestamp, const uint8_t descriptor_set, mip::Timestamp timestamp)
+void Publishers::handleGnssGpsTime(const mip::data_gnss::GpsTime& gps_time, const uint8_t descriptor_set, mip::Timestamp timestamp)
 {
-  auto gps_corr_msg = gps_corr_pub_->getMessageToUpdate();
-  updateHeaderTime(&(gps_corr_msg->header), descriptor_set, timestamp);
-  gps_corr_msg->gps_cor.gps_tow = gps_timestamp.tow;
-  gps_corr_msg->gps_cor.gps_week_number = gps_timestamp.week_number;
-  gps_corr_msg->gps_cor.timestamp_flags = gps_timestamp.valid_flags;
+  // Convert the old philo timestamp into the new format and store it in the map
+  mip::data_shared::GpsTimestamp stored_timestamp;
+  stored_timestamp.tow = gps_time.tow;
+  stored_timestamp.week_number = gps_time.week_number;
+  stored_timestamp.valid_flags = gps_time.valid_flags;
+  gps_timestamp_mapping_[descriptor_set] = stored_timestamp;
 }
 
 void Publishers::handleGnssPosLlh(const mip::data_gnss::PosLlh& pos_llh, const uint8_t descriptor_set, mip::Timestamp timestamp)
@@ -429,6 +450,16 @@ void Publishers::handleRtkCorrectionsStatus(const mip::data_gnss::RtkCorrections
       break;
     }
   }
+}
+
+void Publishers::handleFilterTimestamp(const mip::data_filter::Timestamp& filter_timestamp, const uint8_t descriptor_set, mip::Timestamp timestamp)
+{
+  // Convert the old philo timestamp into the new format and store it in the map
+  mip::data_shared::GpsTimestamp stored_timestamp;
+  stored_timestamp.tow = filter_timestamp.tow;
+  stored_timestamp.week_number = filter_timestamp.week_number;
+  stored_timestamp.valid_flags = filter_timestamp.valid_flags;
+  gps_timestamp_mapping_[descriptor_set] = stored_timestamp;
 }
 
 void Publishers::handleFilterStatus(const mip::data_filter::Status& status, const uint8_t descriptor_set, mip::Timestamp timestamp)
@@ -805,8 +836,8 @@ void Publishers::updateHeaderTime(RosHeaderType* header, uint8_t descriptor_set,
       double subseconds = modf(gps_timestamp.tow, &seconds);
 
       // Seconds since start of Unix time = seconds between 1970 and 1980 + number of weeks since 1980 * number of seconds in a week + number of complete seconds past in current week - leap seconds since start of GPS time
-      const uint64_t utc_nanoseconds = static_cast<uint64_t>((315964800 + gps_timestamp.week_number * 604800 + static_cast<uint64_t>(seconds) - 18) * 1000000000L) + static_cast<uint64_t>(std::round(subseconds * 1000000000.0));
-      header->stamp = to_ros_time(utc_nanoseconds);
+      const uint64_t utc_milliseconds = static_cast<uint64_t>((315964800 + gps_timestamp.week_number * 604800 + static_cast<uint64_t>(seconds) - 18) * 1000L) + static_cast<uint64_t>(std::round(subseconds * 1000.0));
+      setRosTime(&header->stamp, utc_milliseconds / 1000, (utc_milliseconds % 1000) * 1000);
     }
   }
   else if (config_->use_ros_time_)
@@ -815,7 +846,7 @@ void Publishers::updateHeaderTime(RosHeaderType* header, uint8_t descriptor_set,
   }
   else
   {
-    header->stamp = to_ros_time(timestamp * 1000000L);
+    setRosTime(&header->stamp, timestamp / 1000, (timestamp % 1000) * 1000);
   }
 }
 

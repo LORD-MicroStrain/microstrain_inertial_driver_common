@@ -152,9 +152,18 @@ class MipPublisherMapping
  private:
   /**
    * \brief Streams the desired descriptor for all descriptor sets that support it at the highest rate of the descriptor sets.
-   * \param field_descriptor  The field descriptor from the share descriptor set to stream
+   * \tparam MipType The type of MIP field to stream for all descriptor sets
    */
-  void streamSharedDescriptor(const uint8_t field_descriptor);
+  template<typename MipType>
+  void streamSharedDescriptor();
+
+  /**
+   * \brief Streams the desired MipType at the same rate as it's descriptor set
+   * \tparam MipType The type of MIP field to stream
+   * \tparam DescriptorSet Optional parameter to specify a different descriptor set from the MipType
+   */
+  template<typename MipType, uint8_t DescriptorSet = MipType::DESCRIPTOR_SET>
+  void streamAtDescriptorSetRate();
 
   RosNodeType* node_;  /// Reference to the node object that initialized this class. Used for logging and extracting ROS information
   std::shared_ptr<RosMipDeviceMain> mip_device_;  /// Reference to the MIP device pointer used to read and write information to the device
@@ -169,6 +178,40 @@ class MipPublisherMapping
   // Static mappings for descriptor sets. Note that this map contains all possible descriptor sets regardless of what the device supports
   static const std::map<uint8_t, std::string> static_descriptor_set_to_data_rate_config_key_mapping_;  /// Mapping between descriptor sets and the keys in the config used to configure their data rates if no more specific topic option was provided
 };
+
+template<typename MipType>
+void MipPublisherMapping::streamSharedDescriptor()
+{
+  for (auto& streamed_descriptor_mapping : streamed_descriptors_mapping_)
+  {
+    // Only stream the descriptor if it is supported within the descriptor set
+    const uint8_t descriptor_set = streamed_descriptor_mapping.first;
+    if (mip_device_->supportsDescriptor(descriptor_set, MipType::FIELD_DESCRIPTOR))
+    {
+      // Stream the field descriptor at the highest rate among the descriptor set
+      const uint16_t hertz = getMaxDataRate(descriptor_set);
+      const uint16_t decimation = mip_device_->getDecimationFromHertz(descriptor_set, hertz);
+      streamed_descriptor_mapping.second.push_back({MipType::FIELD_DESCRIPTOR, decimation});
+    }
+  }
+}
+
+template<typename MipType, uint8_t DescriptorSet>
+void MipPublisherMapping::streamAtDescriptorSetRate()
+{
+  // Only stream the descriptor if is is supported within the descriptor set
+  if (mip_device_->supportsDescriptor(DescriptorSet, MipType::FIELD_DESCRIPTOR))
+  {
+    // No need to stream this descriptor if we are not streaming anything else in the descriptor set
+    if (streamed_descriptors_mapping_.find(DescriptorSet) != streamed_descriptors_mapping_.end())
+    {
+      // Stream the field descriptor at the highest rate among the descriptor set
+      const uint16_t hertz = getMaxDataRate(DescriptorSet);
+      const uint16_t decimation = mip_device_->getDecimationFromHertz(DescriptorSet, hertz);
+      streamed_descriptors_mapping_[DescriptorSet].push_back({MipType::FIELD_DESCRIPTOR, decimation});
+    }
+  }
+}
 
 }  // namespace microstrain
 

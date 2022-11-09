@@ -160,6 +160,11 @@ bool Config::connectDevice(RosNodeType* node)
   else
   {
     MICROSTRAIN_INFO(node_, "Note: Not opening aux port because RTK dongle enable was not set to true.");
+    if (subscribe_rtcm_ || publish_nmea_)
+    {
+      MICROSTRAIN_ERROR(node_, "Invalid configuration. In order to publish NMEA or subscribe to RTCM, 'rtk_dongle_enable' must be set to true");
+      return false;
+    }
   }
   return true;
 }
@@ -200,8 +205,7 @@ bool Config::setupDevice(RosNodeType* node)
         MICROSTRAIN_INFO(node_, "Saving the launch file configuration settings to the device");
         if (!(mip_cmd_result = mip::commands_3dm::saveDeviceSettings(*mip_device_)))
         {
-          MICROSTRAIN_ERROR(node_, "Failed to save device settings");
-          MICROSTRAIN_ERROR(node_, "  Error(%d): %s", mip_cmd_result.value, mip_cmd_result.name());
+          MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to save device settings");
           return false;
         }
       }
@@ -223,8 +227,7 @@ bool Config::setupDevice(RosNodeType* node)
         MICROSTRAIN_INFO(node_, "Resetting the filter after the configuration is complete.");
         if (!(mip_cmd_result = mip::commands_filter::reset(*mip_device_)))
         {
-          MICROSTRAIN_ERROR(node_, "Failed to reset filter");
-          MICROSTRAIN_ERROR(node_, "  Error(%d): %s", mip_cmd_result.value, mip_cmd_result.name());
+          MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to reset filter");
           return false;
         }
       }
@@ -308,8 +311,7 @@ bool Config::configure3DM(RosNodeType* node)
     MICROSTRAIN_INFO(node_, "Setting PPS source to 0x%04x", filter_pps_source);
     if (!(mip_cmd_result = mip::commands_3dm::writePpsSource(*mip_device_, static_cast<mip::commands_3dm::PpsSource::Source>(filter_pps_source))))
     {
-      MICROSTRAIN_ERROR(node_, "Failed to configure PPS source");
-      MICROSTRAIN_ERROR(node_, "  Error(%d): %s", mip_cmd_result.value, mip_cmd_result.name());
+      MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to configure PPS source");
       return false;
     }
   }
@@ -325,8 +327,7 @@ bool Config::configure3DM(RosNodeType* node)
     MICROSTRAIN_INFO(node_, "Setting hardware odometer to: mode = %d, scaling = %f, uncertainty = %f", static_cast<int32_t>(hardware_odometer_mode), hardware_odometer_scaling, hardware_odometer_uncertainty);
     if (!(mip::commands_3dm::writeOdometer(*mip_device_, hardware_odometer_mode, hardware_odometer_scaling, hardware_odometer_uncertainty)))
     {
-      MICROSTRAIN_ERROR(node_, "Failed to configure hardware odometer");
-      MICROSTRAIN_ERROR(node_, "  Error(%d): %s", mip_cmd_result.value, mip_cmd_result.name());
+      MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to configure hardware odometer");
       return false;
     }
   }
@@ -342,8 +343,7 @@ bool Config::configure3DM(RosNodeType* node)
     {
       if (!(mip_cmd_result = mip::commands_3dm::factoryStreaming(*mip_device_, mip::commands_3dm::FactoryStreaming::Action::MERGE, 0)))
       {
-        MICROSTRAIN_ERROR(node_, "Failed to configure factory streaming channels");
-        MICROSTRAIN_ERROR(node_, "  Error(%d): %s", mip_cmd_result.value, mip_cmd_result.name());
+        MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to configure factory streaming channels");
         return false;
       }
     }
@@ -377,8 +377,7 @@ bool Config::configureGNSS(RosNodeType* node)
     MICROSTRAIN_INFO(node_, "Setting RTK dongle enable to %d", rtk_dongle_enable_);
     if (!(mip_cmd_result = mip::commands_gnss::writeRtkDongleConfiguration(*mip_device_, rtk_dongle_enable_, reserved)))
     {
-      MICROSTRAIN_ERROR(node_, "Failed to write RTK dongle configuration");
-      MICROSTRAIN_ERROR(node_, "  Error(%d): %s", mip_cmd_result.value, mip_cmd_result.name());
+      MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to write RTK dongle configuration");
       return false;
     }
   }
@@ -468,8 +467,7 @@ bool Config::configureFilter(RosNodeType* node)
     MICROSTRAIN_INFO(node_, "Setting Declination Source to %d %f", declination_source, declination);
     if (!(mip_cmd_result = mip::commands_filter::writeMagneticDeclinationSource(*mip_device_, declination_source_enum, declination)))
     {
-      MICROSTRAIN_ERROR(node_, "Failed to set declination source");
-      MICROSTRAIN_ERROR(node_, "  Error(%d): %s", mip_cmd_result.value, mip_cmd_result.name());
+      MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to set declination source");
       return false;
     }
   }
@@ -485,8 +483,7 @@ bool Config::configureFilter(RosNodeType* node)
         gnss_antenna_offset_[GNSS1_ID][0], gnss_antenna_offset_[GNSS1_ID][1], gnss_antenna_offset_[GNSS1_ID][2]);
     if (!(mip_cmd_result = mip::commands_filter::writeAntennaOffset(*mip_device_, gnss_antenna_offset_[GNSS1_ID].data())))
     {
-      MICROSTRAIN_ERROR(node_, "Cound not set single antenna offset");
-      MICROSTRAIN_ERROR(node_, "  Error(%d): %s", mip_cmd_result.value, mip_cmd_result.name());
+      MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Cound not set single antenna offset");
       return false;
     }
   }
@@ -496,8 +493,7 @@ bool Config::configureFilter(RosNodeType* node)
         gnss_antenna_offset_[GNSS1_ID][0], gnss_antenna_offset_[GNSS1_ID][1], gnss_antenna_offset_[GNSS1_ID][2]);
     if (!(mip_cmd_result = mip::commands_filter::writeMultiAntennaOffset(*mip_device_, GNSS1_ID + 1, gnss_antenna_offset_[GNSS1_ID].data())))
     {
-      MICROSTRAIN_ERROR(node_, "Could not set multi antenna offset for GNSS1");
-      MICROSTRAIN_ERROR(node_, "  Error(%d): %s", mip_cmd_result.value, mip_cmd_result.name());
+      MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Could not set multi antenna offset for GNSS1");
       return false;
     }
 
@@ -505,8 +501,7 @@ bool Config::configureFilter(RosNodeType* node)
         gnss_antenna_offset_[GNSS2_ID][0], gnss_antenna_offset_[GNSS2_ID][1], gnss_antenna_offset_[GNSS2_ID][2]);
     if (!(mip_cmd_result = mip::commands_filter::writeMultiAntennaOffset(*mip_device_, GNSS2_ID + 1, gnss_antenna_offset_[GNSS2_ID].data())))
     {
-      MICROSTRAIN_ERROR(node_, "Could not set multi antenna offset for GNSS2");
-      MICROSTRAIN_ERROR(node_, "  Error(%d): %s", mip_cmd_result.value, mip_cmd_result.name());
+      MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Could not set multi antenna offset for GNSS2");
       return false;
     }
   }
@@ -521,8 +516,7 @@ bool Config::configureFilter(RosNodeType* node)
     MICROSTRAIN_INFO(node_, "Setting vehicle dynamics mode to 0x%02x", dynamics_mode);
     if (!(mip_cmd_result = mip::commands_filter::writeVehicleDynamicsMode(*mip_device_, static_cast<mip::commands_filter::VehicleDynamicsMode::DynamicsMode>(dynamics_mode))))
     {
-      MICROSTRAIN_ERROR(node_, "Could not set vehicle dynamics mode");
-      MICROSTRAIN_ERROR(node_, "  Error(%d): %s", mip_cmd_result.value, mip_cmd_result.name());
+      MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Could not set vehicle dynamics mode");
       return false;
     }
   }
@@ -546,8 +540,7 @@ bool Config::configureFilter(RosNodeType* node)
         MICROSTRAIN_INFO(node_, "Setting initial heading to %f", initial_heading);
         if (!(mip_cmd_result = mip::commands_filter::setInitialHeading(*mip_device_, initial_heading)))
         {
-          MICROSTRAIN_ERROR(node_, "Could not set initial heading");
-          MICROSTRAIN_ERROR(node_, "  Error(%d): %s", mip_cmd_result.value, mip_cmd_result.name());
+          MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Could not set initial heading");
           return false;
         }
       }
@@ -572,8 +565,7 @@ bool Config::configureFilter(RosNodeType* node)
     MICROSTRAIN_INFO(node_, "Setting autoinitialization to %d", filter_auto_init);
     if (!(mip::commands_filter::writeAutoInitControl(*mip_device_, filter_auto_init)))
     {
-      MICROSTRAIN_ERROR(node_, "Failed to configure filter auto initialization");
-      MICROSTRAIN_ERROR(node_, "  Error(%d): %s", mip_cmd_result.value, mip_cmd_result.name());
+      MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to configure filter auto initialization");
       return false;
     }
   }
@@ -588,8 +580,7 @@ bool Config::configureFilter(RosNodeType* node)
     MICROSTRAIN_INFO(node_, "Setting autoadaptive options to: level = %d, time_limit = %d", filter_adaptive_level, filter_adaptive_time_limit_ms);
     if (!(mip_cmd_result = mip::commands_filter::writeAdaptiveFilterOptions(*mip_device_, filter_adaptive_level, filter_adaptive_time_limit_ms)))
     {
-      MICROSTRAIN_ERROR(node_, "Failed to configure auto adaptive filter settings");
-      MICROSTRAIN_ERROR(node_, "  Error(%d): %s", mip_cmd_result.value, mip_cmd_result.name());
+      MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to configure auto adaptive filter settings");
       return false;
     }
   }
@@ -623,8 +614,7 @@ bool Config::configureFilter(RosNodeType* node)
           filter_relative_position_ref[0], filter_relative_position_ref[1], filter_relative_position_ref[2], filter_relative_position_frame);
       if (!(mip_cmd_result = mip::commands_filter::writeRelPosConfiguration(*mip_device_, 1, static_cast<mip::commands_filter::FilterReferenceFrame>(filter_relative_position_frame), filter_relative_position_ref.data())))
       {
-        MICROSTRAIN_ERROR(node_, "Failed to configure relative position settings");
-        MICROSTRAIN_ERROR(node_, "  Error(%d): %s", mip_cmd_result.value, mip_cmd_result.name());
+        MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to configure relative position settings");
         return false;
       }
     }
@@ -644,8 +634,7 @@ bool Config::configureFilter(RosNodeType* node)
     MICROSTRAIN_INFO(node_, "Setting speed lever arm to: [%f, %f, %f]", filter_speed_lever_arm[0], filter_speed_lever_arm[1], filter_speed_lever_arm[2]);
     if (!(mip_cmd_result = mip::commands_filter::writeSpeedLeverArm(*mip_device_, 1, filter_speed_lever_arm.data())))
     {
-      MICROSTRAIN_ERROR(node_, "Failed to configure speed lever arm");
-      MICROSTRAIN_ERROR(node_, "  Error(%d): %s", mip_cmd_result.value, mip_cmd_result.name());
+      MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to configure speed lever arm");
       return false;
     }
   }
@@ -660,8 +649,7 @@ bool Config::configureFilter(RosNodeType* node)
     MICROSTRAIN_INFO(node_, "Setting wheeled vehicle contraint enable to %d", filter_enable_wheeled_vehicle_constraint_);
     if (!(mip_cmd_result = mip::commands_filter::writeWheeledVehicleConstraintControl(*mip_device_, filter_enable_wheeled_vehicle_constraint_)))
     {
-      MICROSTRAIN_ERROR(node_, "Failed to configure wheeled vehicle constraint");
-      MICROSTRAIN_ERROR(node_, "  Error(%d): %s", mip_cmd_result.value, mip_cmd_result.name());
+      MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to configure wheeled vehicle constraint");
       return false;
     }
   }
@@ -676,8 +664,7 @@ bool Config::configureFilter(RosNodeType* node)
     MICROSTRAIN_INFO(node_, "Setting vertical gyro contraint enable to %d", filter_enable_vertical_gyro_constraint_);
     if (!(mip::commands_filter::writeVerticalGyroConstraintControl(*mip_device_, filter_enable_vertical_gyro_constraint_)))
     {
-      MICROSTRAIN_ERROR(node_, "Failed to configure vertical gyro constraint");
-      MICROSTRAIN_ERROR(node_, "  Error(%d): %s", mip_cmd_result.value, mip_cmd_result.name());
+      MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to configure vertical gyro constraint");
       return false;
     }
   }
@@ -692,8 +679,7 @@ bool Config::configureFilter(RosNodeType* node)
     MICROSTRAIN_INFO(node_, "Setting GNSS antenna calibration control to: enable = %d, offset = %f", filter_enable_gnss_antenna_cal_, filter_gnss_antenna_cal_max_offset);
     if (!(mip_cmd_result = mip::commands_filter::writeGnssAntennaCalControl(*mip_device_, filter_enable_gnss_antenna_cal_, filter_gnss_antenna_cal_max_offset)))
     {
-      MICROSTRAIN_ERROR(node_, "Failed to configure antenna calibration");
-      MICROSTRAIN_ERROR(node_, "  Error(%d): %s", mip_cmd_result.value, mip_cmd_result.name());
+      MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to configure antenna calibration");
       return false;
     }
   }
@@ -720,8 +706,7 @@ bool Config::configureFilter(RosNodeType* node)
         filter_init_position.data(), filter_init_velocity.data(),
         static_cast<mip::commands_filter::FilterReferenceFrame>(filter_init_reference_frame))))
     {
-      MICROSTRAIN_ERROR(node_, "Failed to configure filter initialization");
-      MICROSTRAIN_ERROR(node_, "  Error(%d): %s", mip_cmd_result.value, mip_cmd_result.name());
+      MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to configure filter initialization");
       return false;
     }
   }
@@ -745,8 +730,7 @@ bool Config::configureFilter(RosNodeType* node)
       if (!(mip_cmd_result = mip::commands_filter::writeSensorToVehicleRotationEuler(*mip_device_, -filter_sensor2vehicle_frame_transformation_euler[0],
           -filter_sensor2vehicle_frame_transformation_euler[1], -filter_sensor2vehicle_frame_transformation_euler[2])))
       {
-        MICROSTRAIN_ERROR(node_, "Failed to configure sensor to vehicle rotation euler");
-        MICROSTRAIN_ERROR(node_, "  Error(%d): %s", mip_cmd_result.value, mip_cmd_result.name());
+        MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to configure sensor to vehicle rotation euler");
         return false;
       }
     }
@@ -757,8 +741,7 @@ bool Config::configureFilter(RosNodeType* node)
       if (!(mip_cmd_result = mip::commands_3dm::writeSensor2VehicleTransformEuler(*mip_device_, -filter_sensor2vehicle_frame_transformation_euler[0],
           -filter_sensor2vehicle_frame_transformation_euler[1], -filter_sensor2vehicle_frame_transformation_euler[2])))
       {
-        MICROSTRAIN_ERROR(node_, "Failed to configure sensor to vehicle transformation euler");
-        MICROSTRAIN_ERROR(node_, "  Error(%d): %s", mip_cmd_result.value, mip_cmd_result.name());
+        MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to configure sensor to vehicle transformation euler");
         return false;
       }
     }
@@ -781,8 +764,7 @@ bool Config::configureFilter(RosNodeType* node)
       MICROSTRAIN_INFO(node_, "Setting sensor to vehicle rotation matrix to [ [%f, %f, %f], [%f, %f, %f], [%f, %f, %f] ]", dcm[0], dcm[1], dcm[2], dcm[3], dcm[4], dcm[5], dcm[6], dcm[7], dcm[8]);
       if (!(mip_cmd_result = mip::commands_filter::writeSensorToVehicleRotationDcm(*mip_device_, dcm)))
       {
-        MICROSTRAIN_ERROR(node_, "Failed to configure sensor to vehicle rotation matrix");
-        MICROSTRAIN_ERROR(node_, "  Error(%d): %s", mip_cmd_result.value, mip_cmd_result.name());
+        MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to configure sensor to vehicle rotation matrix");
         return false;
       }
     }
@@ -797,8 +779,7 @@ bool Config::configureFilter(RosNodeType* node)
       MICROSTRAIN_INFO(node_, "Setting sensor to vehicle rotation matrix to [ [%f, %f, %f], [%f, %f, %f], [%f, %f, %f] ]", dcm[0], dcm[1], dcm[2], dcm[3], dcm[4], dcm[5], dcm[6], dcm[7], dcm[8]);
       if (!(mip_cmd_result = mip::commands_3dm::writeSensor2VehicleTransformDcm(*mip_device_, dcm)))
       {
-        MICROSTRAIN_ERROR(node_, "Failed to configure sensor to vehicle transformation matrix");
-        MICROSTRAIN_ERROR(node_, "  Error(%d): %s", mip_cmd_result.value, mip_cmd_result.name());
+        MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to configure sensor to vehicle transformation matrix");
         return false;
       }
     }
@@ -821,8 +802,7 @@ bool Config::configureFilter(RosNodeType* node)
       MICROSTRAIN_INFO(node_, "Setting sensor to vehicle rotation quaternion to [%f, %f, %f, %f]", quaternion[0], quaternion[1], quaternion[2], quaternion[3]);
       if (!(mip_cmd_result = mip::commands_filter::writeSensorToVehicleRotationQuaternion(*mip_device_, quaternion)))
       {
-        MICROSTRAIN_ERROR(node_, "Failed to configure sensor to vehicle rotation quaternion");
-        MICROSTRAIN_ERROR(node_, "  Error(%d): %s", mip_cmd_result.value, mip_cmd_result.name());
+        MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to configure sensor to vehicle rotation quaternion");
         return false;
       }
     }
@@ -838,8 +818,7 @@ bool Config::configureFilter(RosNodeType* node)
       MICROSTRAIN_INFO(node_, "Setting sensor to vehicle transformation quaternion to [%f, %f, %f, %f]", quaternion[0], quaternion[1], quaternion[2], quaternion[3]);
       if (!(mip_cmd_result = mip::commands_3dm::writeSensor2VehicleTransformQuaternion(*mip_device_, quaternion)))
       {
-        MICROSTRAIN_ERROR(node_, "Failed to configure sensor to vehicle transformation quaternion");
-        MICROSTRAIN_ERROR(node_, "  Error(%d): %s", mip_cmd_result.value, mip_cmd_result.name());
+        MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to configure sensor to vehicle transformation quaternion");
         return false;
       }
     }
