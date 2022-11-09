@@ -102,6 +102,7 @@ imu_data_rate : 100
 imu_raw_data_rate      : -1  # Rate of imu/data topic
 imu_mag_data_rate      : -1  # Rate of mag topic
 imu_gps_corr_data_rate : -1  # Rate of gps_corr topic
+                             # Note that for philo devices, this will be published at the highest IMU data rate if "use_device_timestamp" is set to true
 
 # Static IMU message covariance values (the device does not generate these) 
 # Since internally these are std::vector we need to use the rosparam tags 

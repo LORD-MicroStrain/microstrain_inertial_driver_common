@@ -139,13 +139,18 @@ bool MipPublisherMapping::configure(RosNodeType* config_node)
   getParam<bool>(config_node, "use_device_timestamp", use_device_timestamp, false);
   if (use_device_timestamp)
   {
-    // Prospect devices
-    streamSharedDescriptor<mip::data_shared::GpsTimestamp>();
-
-    // Philo devices
-    streamAtDescriptorSetRate<mip::data_sensor::GpsTimestamp>();
-    streamAtDescriptorSetRate<mip::data_gnss::GpsTime>();
-    streamAtDescriptorSetRate<mip::data_filter::Timestamp>();
+    if (mip_device_->supportsDescriptor(mip::data_sensor::DESCRIPTOR_SET, mip::data_shared::DATA_GPS_TIME))
+    {
+      // Prospect devices
+      streamSharedDescriptor<mip::data_shared::GpsTimestamp>();
+    }
+    else
+    {
+      // Philo devices
+      streamAtDescriptorSetRate<mip::data_sensor::GpsTimestamp>();
+      streamAtDescriptorSetRate<mip::data_gnss::GpsTime>();
+      streamAtDescriptorSetRate<mip::data_filter::Timestamp>();
+    }
   }
 
   // Enable each of the descriptor sets and save the message format
