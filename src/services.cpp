@@ -10,6 +10,7 @@
 
 #include <string>
 #include <memory>
+#include <iomanip>
 
 #include "microstrain_inertial_driver_common/services.h"
 

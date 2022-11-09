@@ -13,6 +13,7 @@
 #include <string>
 #include <thread>
 #include <chrono>
+#include <iomanip>
 #include <stdexcept>
 
 #include "mip/mip.hpp"
