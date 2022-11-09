@@ -419,7 +419,7 @@ using SetFilterSpeedLeverArmServiceMsg = ::microstrain_inertial_msgs::SetFilterS
  * \param node  Unused in this function as the ros time function is static
  * \return Current ROS time
  */
-inline RosTimeType ros_time_now(RosNodeType* node)
+inline RosTimeType rosTimeNow(RosNodeType* node)
 {
   return ros::Time::now();
 }
@@ -441,7 +441,7 @@ inline void setRosTime(RosTimeType* time, int32_t sec, int32_t nsec)
  * \param time_ref  The ros Time object to extract the seconds from
  * \return seconds from the ros time object
  */
-inline int64_t get_time_ref_sec(const ros::Time& time_ref)
+inline int64_t getTimeRefSec(const ros::Time& time_ref)
 {
   return time_ref.toSec();
 }
@@ -451,7 +451,7 @@ inline int64_t get_time_ref_sec(const ros::Time& time_ref)
  * \param header  The header to set the sequence number on
  * \param seq  The sequence number to set on the header
  */
-inline void set_seq(RosHeaderType* header, const uint32_t seq)
+inline void setSeq(RosHeaderType* header, const uint32_t seq)
 {
   header->seq = seq;
 }
@@ -465,7 +465,7 @@ inline void set_seq(RosHeaderType* header, const uint32_t seq)
  * \param default_val  The default value to set param_val to if the config can't be found
  */
 template <class ConfigType>
-void get_param(RosNodeType* node, const std::string& param_name, ConfigType& param_val, const ConfigType& default_val)
+void getParam(RosNodeType* node, const std::string& param_name, ConfigType& param_val, const ConfigType& default_val)
 {
   node->param<ConfigType>(param_name, param_val, default_val);
 }
@@ -475,7 +475,7 @@ void get_param(RosNodeType* node, const std::string& param_name, ConfigType& par
  * \param node The ROS node that the broadcaster will be associated with
  * \return Initialized shared pointer containing a transdorm broadcaster
  */
-inline TransformBroadcasterType create_transform_broadcaster(RosNodeType* node)
+inline TransformBroadcasterType createTransformBroadcaster(RosNodeType* node)
 {
   return std::make_shared<tf2_ros::TransformBroadcaster>();
 }
@@ -489,7 +489,7 @@ inline TransformBroadcasterType create_transform_broadcaster(RosNodeType* node)
  * \return Shared Pointer containing the initialized publisher
  */
 template <class MessageType>
-typename RosPubType<MessageType>::SharedPtr create_publisher(RosNodeType* node, const std::string& topic,
+typename RosPubType<MessageType>::SharedPtr createPublisher(RosNodeType* node, const std::string& topic,
                                                    const uint32_t queue_size)
 {
   return std::make_shared<RosPubType<MessageType>>(node->template advertise<MessageType>(topic, queue_size));
@@ -507,7 +507,7 @@ typename RosPubType<MessageType>::SharedPtr create_publisher(RosNodeType* node, 
  * \return Shared Pointer containing the initialized subscriber
  */
 template <class MessageType, class ClassType>
-std::shared_ptr<::ros::Subscriber> create_subscriber(RosNodeType* node, const std::string& topic,
+std::shared_ptr<::ros::Subscriber> createSubscriber(RosNodeType* node, const std::string& topic,
                                                      const uint32_t queue_size,
                                                      void (ClassType::*fp)(const MessageType&), ClassType* obj)
 {
@@ -527,7 +527,7 @@ std::shared_ptr<::ros::Subscriber> create_subscriber(RosNodeType* node, const st
  * \return Shared Pointer containing the initialized service
  */
 template <class MessageType, class ClassType, class RequestType, class ResponseType>
-typename RosServiceType<MessageType>::SharedPtr create_service(RosNodeType* node, const std::string& service,
+typename RosServiceType<MessageType>::SharedPtr createService(RosNodeType* node, const std::string& service,
                                                      bool (ClassType::*srv_func)(RequestType&, ResponseType&),
                                                      ClassType* obj)
 {
@@ -545,7 +545,7 @@ typename RosServiceType<MessageType>::SharedPtr create_service(RosNodeType* node
  * \return Shard pointer containing the initialized and started timer
  */
 template <class ClassType>
-RosTimerType create_timer(RosNodeType* node, double hz, void (ClassType::*fp)(), ClassType* obj)
+RosTimerType createTimer(RosNodeType* node, double hz, void (ClassType::*fp)(), ClassType* obj)
 {
   return std::make_shared<::ros::Timer>(
       node->template createTimer(ros::Duration(1.0 / hz), [=](const ros::TimerEvent& event) { (obj->*fp)(); }));
@@ -555,7 +555,7 @@ RosTimerType create_timer(RosNodeType* node, double hz, void (ClassType::*fp)(),
  * \brief Stops a ROS timer
  * \param timer  The timer to stop
  */
-inline void stop_timer(RosTimerType timer)
+inline void stopTimer(RosTimerType timer)
 {
   timer->stop();
 }
@@ -728,7 +728,7 @@ using SetFilterSpeedLeverArmServiceMsg = microstrain_inertial_msgs::srv::SetFilt
  * \param node  Unused in this function as the ros time function is static
  * \return Current ROS time
  */
-inline RosTimeType ros_time_now(RosNodeType* node)
+inline RosTimeType rosTimeNow(RosNodeType* node)
 {
   return node->get_clock()->now();
 }
@@ -750,7 +750,7 @@ inline void setRosTime(builtin_interfaces::msg::Time* time, int32_t sec, int32_t
  * \param time_ref  The ros Time object to extract the seconds from
  * \return seconds from the ros time object
  */
-inline int64_t get_time_ref_sec(const builtin_interfaces::msg::Time& time_ref)
+inline int64_t getTimeRefSec(const builtin_interfaces::msg::Time& time_ref)
 {
   return time_ref.sec;
 }
@@ -760,7 +760,7 @@ inline int64_t get_time_ref_sec(const builtin_interfaces::msg::Time& time_ref)
  * \param header  The header to set the sequence number on
  * \param seq  The sequence number to set on the header
  */
-inline void set_seq(RosHeaderType* header, const uint32_t seq)
+inline void setSeq(RosHeaderType* header, const uint32_t seq)
 {
   // NOOP because seq was removed in ROS2
 }
@@ -774,7 +774,7 @@ inline void set_seq(RosHeaderType* header, const uint32_t seq)
  * \param default_val  The default value to set param_val to if the config can't be found
  */
 template <class ConfigType>
-void get_param(RosNodeType* node, const std::string& param_name, ConfigType& param_val, const ConfigType& default_val)
+void getParam(RosNodeType* node, const std::string& param_name, ConfigType& param_val, const ConfigType& default_val)
 {
   if (node->has_parameter(param_name))
   {
@@ -791,7 +791,7 @@ void get_param(RosNodeType* node, const std::string& param_name, ConfigType& par
  * \param node The ROS node that the broadcaster will be associated with
  * \return Initialized shared pointer containing a transdorm broadcaster
  */
-inline TransformBroadcasterType create_transform_broadcaster(RosNodeType* node)
+inline TransformBroadcasterType createTransformBroadcaster(RosNodeType* node)
 {
   return std::make_shared<tf2_ros::TransformBroadcaster>(node);
 }
@@ -805,7 +805,7 @@ inline TransformBroadcasterType create_transform_broadcaster(RosNodeType* node)
  * \return Shared Pointer containing the initialized publisher
  */
 template <class MessageType>
-typename ::rclcpp_lifecycle::LifecyclePublisher<MessageType>::SharedPtr create_publisher(RosNodeType* node,
+typename ::rclcpp_lifecycle::LifecyclePublisher<MessageType>::SharedPtr createPublisher(RosNodeType* node,
                                                                                          const std::string& topic,
                                                                                          const uint32_t qos)
 {
@@ -824,7 +824,7 @@ typename ::rclcpp_lifecycle::LifecyclePublisher<MessageType>::SharedPtr create_p
  * \return Shared Pointer containing the initialized subscriber
  */
 template <class MessageType, class ClassType>
-typename ::rclcpp::Subscription<MessageType>::SharedPtr create_subscriber(RosNodeType* node, const std::string& topic,
+typename ::rclcpp::Subscription<MessageType>::SharedPtr createSubscriber(RosNodeType* node, const std::string& topic,
                                                                           const uint32_t qos,
                                                                           void (ClassType::*fp)(const MessageType&),
                                                                           ClassType* obj)
@@ -847,7 +847,7 @@ typename ::rclcpp::Subscription<MessageType>::SharedPtr create_subscriber(RosNod
  */
 template <class MessageType, class ClassType, class RequestType, class ResponseType>
 typename ::rclcpp::Service<MessageType>::SharedPtr
-create_service(RosNodeType* node, const std::string& service, bool (ClassType::*srv_func)(RequestType&, ResponseType&),
+createService(RosNodeType* node, const std::string& service, bool (ClassType::*srv_func)(RequestType&, ResponseType&),
                ClassType* obj)
 {
   return node->template create_service<MessageType>(
@@ -868,7 +868,7 @@ create_service(RosNodeType* node, const std::string& service, bool (ClassType::*
  * \return Shard pointer containing the initialized and started timer
  */
 template <class ClassType>
-RosTimerType create_timer(RosNodeType* node, double hz, void (ClassType::*fp)(), ClassType* obj)
+RosTimerType createTimer(RosNodeType* node, double hz, void (ClassType::*fp)(), ClassType* obj)
 {
   std::chrono::milliseconds timer_interval_ms(static_cast<int>(1.0 / hz * 1000.0));
   return node->template create_wall_timer(timer_interval_ms, [=]() { (obj->*fp)(); });
@@ -878,7 +878,7 @@ RosTimerType create_timer(RosNodeType* node, double hz, void (ClassType::*fp)(),
  * \brief Stops a ROS timer
  * \param timer  The timer to stop
  */
-inline void stop_timer(RosTimerType timer)
+inline void stopTimer(RosTimerType timer)
 {
   timer->cancel();
 }

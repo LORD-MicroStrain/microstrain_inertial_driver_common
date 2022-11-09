@@ -175,7 +175,7 @@ private:
   typename RosServiceType<ServiceType>::SharedPtr configureService(const std::string& name, bool (Services::*callback)(typename ServiceType::Request&, typename ServiceType::Response&))
   {
     MICROSTRAIN_DEBUG(node_, "Configuring service %s", name.c_str());
-    return create_service<ServiceType>(node_, name, callback, this);
+    return createService<ServiceType>(node_, name, callback, this);
   }
 
   /**
@@ -193,7 +193,7 @@ private:
     if (config_->mip_device_->supportsDescriptor(DescriptorSet, MipType::FIELD_DESCRIPTOR))
     {
       MICROSTRAIN_DEBUG(node_, "Configuring service %s to execute MIP command 0x%02x%02x", name.c_str(), DescriptorSet, MipType::FIELD_DESCRIPTOR);
-      return create_service<ServiceType>(node_, name, callback, this);
+      return createService<ServiceType>(node_, name, callback, this);
     }
     else
     {

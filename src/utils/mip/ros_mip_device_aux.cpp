@@ -26,8 +26,8 @@ bool RosMipDeviceAux::configure(RosNodeType* config_node)
   // Initialize and connect the connection
   std::string port;
   int32_t baudrate;
-  get_param<std::string>(config_node, "aux_port", port, "/dev/ttyACM1");
-  get_param<int32_t>(config_node, "baudrate", baudrate, 115200);  // TODO(robbiefish): Change this to be specific to aux
+  getParam<std::string>(config_node, "aux_port", port, "/dev/ttyACM1");
+  getParam<int32_t>(config_node, "baudrate", baudrate, 115200);  // TODO(robbiefish): Change this to be specific to aux
   connection_ = std::unique_ptr<RosConnection>(new RosConnection(node_));
   if (!connection_->connect(config_node, port, baudrate))
     return false;

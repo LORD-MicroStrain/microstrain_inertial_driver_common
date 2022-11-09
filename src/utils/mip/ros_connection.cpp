@@ -36,9 +36,9 @@ bool RosConnection::connect(RosNodeType* config_node, const std::string& port, c
   bool poll_port;
   double poll_rate_hz;
   int32_t poll_max_tries;
-  get_param<bool>(config_node, "poll_port", poll_port, false);
-  get_param<double>(config_node, "poll_rate_hz", poll_rate_hz, 1.0);
-  get_param<int32_t>(config_node, "poll_max_tries", poll_max_tries, 60);
+  getParam<bool>(config_node, "poll_port", poll_port, false);
+  getParam<double>(config_node, "poll_rate_hz", poll_rate_hz, 1.0);
+  getParam<int32_t>(config_node, "poll_max_tries", poll_max_tries, 60);
   if (poll_port)
   {
     int32_t poll_tries = 0;
@@ -69,7 +69,7 @@ bool RosConnection::connect(RosNodeType* config_node, const std::string& port, c
   }
 
   // If the raw file is enabled, use a different connection type
-  get_param<bool>(config_node, "raw_file_enable", should_record_, false);
+  getParam<bool>(config_node, "raw_file_enable", should_record_, false);
   try
   {
     MICROSTRAIN_INFO(node_, "Attempting to open serial port <%s> at <%d>", port.c_str(), baudrate);
@@ -103,7 +103,7 @@ bool RosConnection::configure(RosNodeType* config_node, RosMipDevice* device)
     char curr_time_buffer[100];
 
     std::string raw_file_directory;
-    get_param<std::string>(config_node, "raw_file_directory", raw_file_directory, std::string("."));
+    getParam<std::string>(config_node, "raw_file_directory", raw_file_directory, std::string("."));
 
     // Get the device info
     mip::CmdResult mip_cmd_result;

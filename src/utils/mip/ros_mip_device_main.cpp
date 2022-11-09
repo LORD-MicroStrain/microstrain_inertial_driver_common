@@ -30,9 +30,9 @@ bool RosMipDeviceMain::configure(RosNodeType* config_node)
   std::string port;
   int32_t baudrate;
   bool set_baud;
-  get_param<std::string>(config_node, "port", port, "/dev/ttyACM0");
-  get_param<int32_t>(config_node, "baudrate", baudrate, 115200);
-  get_param<bool>(config_node, "set_baud", set_baud, false);
+  getParam<std::string>(config_node, "port", port, "/dev/ttyACM0");
+  getParam<int32_t>(config_node, "baudrate", baudrate, 115200);
+  getParam<bool>(config_node, "set_baud", set_baud, false);
   connection_ = std::unique_ptr<RosConnection>(new RosConnection(node_));
   if (!connection_->connect(config_node, port, baudrate))
     return false;

@@ -114,7 +114,7 @@ public:
      */
     void configure(RosNodeType* node)
     {
-      publisher_ = create_publisher<MessageType>(node, topic_, 100);
+      publisher_ = createPublisher<MessageType>(node, topic_, 100);
     }
 
     /**

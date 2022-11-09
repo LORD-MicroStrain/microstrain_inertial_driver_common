@@ -120,7 +120,7 @@ void NodeCommon::parseAndPublishAux()
 
       // Looks like it is a valid NMEA sentence. Publish
       auto nmea_sentence_msg = publishers_.nmea_sentence_pub_->getMessageToUpdate();
-      nmea_sentence_msg->header.stamp = ros_time_now(node_);
+      nmea_sentence_msg->header.stamp = rosTimeNow(node_);
       nmea_sentence_msg->header.frame_id = config_.nmea_frame_id_;
       nmea_sentence_msg->sentence = sentence;
       publishers_.nmea_sentence_pub_->publish();
@@ -313,8 +313,8 @@ bool NodeCommon::activate()
 bool NodeCommon::deactivate()
 {
   // Stop the timers.
-  stop_timer(main_parsing_timer_);
-  stop_timer(aux_parsing_timer_);
+  stopTimer(main_parsing_timer_);
+  stopTimer(aux_parsing_timer_);
 
   // Set the device to idle
   mip::CmdResult mip_cmd_result;

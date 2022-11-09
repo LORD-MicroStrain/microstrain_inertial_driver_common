@@ -64,7 +64,7 @@ bool MipPublisherMapping::configure(RosNodeType* config_node)
     // Get the data rate for the topic, and if it is not the default, use it, otherwise use the data class data rate
     if (static_topic_to_data_rate_config_key_mapping_.find(topic) != static_topic_to_data_rate_config_key_mapping_.end())
     {
-      get_param<int32_t>(config_node, static_topic_to_data_rate_config_key_mapping_.at(topic), topic_info.data_rate, FIELD_DATA_RATE_USE_DATA_CLASS);
+      getParam<int32_t>(config_node, static_topic_to_data_rate_config_key_mapping_.at(topic), topic_info.data_rate, FIELD_DATA_RATE_USE_DATA_CLASS);
       if (topic_info.data_rate != FIELD_DATA_RATE_USE_DATA_CLASS)
         continue;
     }
@@ -81,7 +81,7 @@ bool MipPublisherMapping::configure(RosNodeType* config_node)
       if (static_descriptor_set_to_data_rate_config_key_mapping_.find(descriptor_set) != static_descriptor_set_to_data_rate_config_key_mapping_.end())
       {
         int32_t descriptor_set_rate;
-        get_param<int32_t>(config_node, static_descriptor_set_to_data_rate_config_key_mapping_.at(descriptor_set), descriptor_set_rate, DATA_CLASS_DATA_RATE_DO_NOT_STREAM);
+        getParam<int32_t>(config_node, static_descriptor_set_to_data_rate_config_key_mapping_.at(descriptor_set), descriptor_set_rate, DATA_CLASS_DATA_RATE_DO_NOT_STREAM);
         descriptor_set_rates.push_back(descriptor_set_rate);
       }
       else
@@ -136,7 +136,7 @@ bool MipPublisherMapping::configure(RosNodeType* config_node)
 
   // Add shared descriptors if they were requested
   bool use_device_timestamp;
-  get_param<bool>(config_node, "use_device_timestamp", use_device_timestamp, false);
+  getParam<bool>(config_node, "use_device_timestamp", use_device_timestamp, false);
   if (use_device_timestamp)
   {
     // Prospect devices

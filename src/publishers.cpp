@@ -78,7 +78,7 @@ bool Publishers::configure()
   std::copy(config_->imu_orientation_cov_.begin(), config_->imu_orientation_cov_.end(), imu_msg->orientation_covariance.begin());
 
   // Transform broadcaster setup
-  transform_broadcaster_ = create_transform_broadcaster(node_);
+  transform_broadcaster_ = createTransformBroadcaster(node_);
 
   // Register callbacks for each data field we care about. Note that order is preserved here, so if a data field needs to be parsed before another, change it here.
   for (const uint8_t descriptor_set : std::initializer_list<uint8_t>{mip::data_sensor::DESCRIPTOR_SET, mip::data_gnss::DESCRIPTOR_SET, mip::data_gnss::MIP_GNSS1_DATA_DESC_SET, mip::data_gnss::MIP_GNSS2_DATA_DESC_SET, mip::data_gnss::MIP_GNSS3_DATA_DESC_SET, mip::data_filter::DESCRIPTOR_SET})
@@ -842,7 +842,7 @@ void Publishers::updateHeaderTime(RosHeaderType* header, uint8_t descriptor_set,
   }
   else if (config_->use_ros_time_)
   {
-    header->stamp = ros_time_now(node_);
+    header->stamp = rosTimeNow(node_);
   }
   else
   {

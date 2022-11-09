@@ -29,24 +29,24 @@ bool Subscribers::activate()
 
   // Create a topic listener for ZUPTs
   if (config_->velocity_zupt_ && config_->mip_device_->supportsDescriptor(mip::commands_filter::DESCRIPTOR_SET, mip::commands_filter::CMD_COMMANDED_ZUPT))
-    filter_vel_state_sub_ = create_subscriber<>(node_, config_->velocity_zupt_topic_, 1000, &Subscribers::velZuptCallback, this);
+    filter_vel_state_sub_ = createSubscriber<>(node_, config_->velocity_zupt_topic_, 1000, &Subscribers::velZuptCallback, this);
 
   // Create a topic listener for angular ZUPTs
   if (config_->angular_zupt_ && config_->mip_device_->supportsDescriptor(mip::commands_filter::DESCRIPTOR_SET, mip::commands_filter::CMD_COMMANDED_ANGULAR_ZUPT))
-    filter_ang_state_sub_ = create_subscriber<>(node_, config_->angular_zupt_topic_.c_str(), 1000, &Subscribers::angZuptCallback, this);
+    filter_ang_state_sub_ = createSubscriber<>(node_, config_->angular_zupt_topic_.c_str(), 1000, &Subscribers::angZuptCallback, this);
 
   // Create a topic listener for external GNSS updates
   if (config_->filter_enable_external_gps_time_update_ && config_->mip_device_->supportsDescriptor(mip::commands_base::DESCRIPTOR_SET, mip::commands_base::CMD_GPS_TIME_BROADCAST_NEW))
   {
     MICROSTRAIN_INFO(node_, "Subscribed to %s for external GPS time", config_->external_gps_time_topic_.c_str());
-    external_gps_time_sub_ = create_subscriber<>(node_, config_->external_gps_time_topic_.c_str(), 1000, &Subscribers::externalGpsTimeCallback, this);
+    external_gps_time_sub_ = createSubscriber<>(node_, config_->external_gps_time_topic_.c_str(), 1000, &Subscribers::externalGpsTimeCallback, this);
   }
 
   // Create a topic listener for external RTCM updates
   if (config_->subscribe_rtcm_)
   {
     MICROSTRAIN_INFO(node_, "Subscribed to %s for RTCM corrections", config_->rtcm_topic_.c_str());
-    rtcm_sub_ = create_subscriber<>(node_, config_->rtcm_topic_.c_str(), 1000, &Subscribers::rtcmCallback, this);
+    rtcm_sub_ = createSubscriber<>(node_, config_->rtcm_topic_.c_str(), 1000, &Subscribers::rtcmCallback, this);
   }
 
   // Create a topic listener for external speed updates
@@ -54,7 +54,7 @@ bool Subscribers::activate()
   {
     if (!config_->enable_hardware_odometer_)
     {
-      external_speed_sub_ = create_subscriber<>(node_, config_->external_speed_topic_.c_str(), 1000,
+      external_speed_sub_ = createSubscriber<>(node_, config_->external_speed_topic_.c_str(), 1000,
                                                 &Subscribers::externalSpeedCallback, this);
     }
     else
@@ -77,7 +77,7 @@ void Subscribers::velZuptCallback(const BoolMsg& state)
 
     if (vel_still_)
     {
-      vel_zupt_timer_ = create_timer<Subscribers>(node_, 5, &Subscribers::velZupt, this);
+      vel_zupt_timer_ = createTimer<Subscribers>(node_, 5, &Subscribers::velZupt, this);
     }
   }
 }
@@ -91,7 +91,7 @@ void Subscribers::velZupt()
 {
   if (!vel_still_)
   {
-    stop_timer(vel_zupt_timer_);
+    stopTimer(vel_zupt_timer_);
     return;
   }
 
@@ -115,7 +115,7 @@ void Subscribers::angZuptCallback(const BoolMsg& state)
 
     if (ang_still_)
     {
-      ang_zupt_timer_ = create_timer<Subscribers>(node_, 5, &Subscribers::angZupt, this);
+      ang_zupt_timer_ = createTimer<Subscribers>(node_, 5, &Subscribers::angZupt, this);
     }
   }
 }
@@ -129,7 +129,7 @@ void Subscribers::angZupt()
 {
   if (!ang_still_)
   {
-    stop_timer(ang_zupt_timer_);
+    stopTimer(ang_zupt_timer_);
     return;
   }
 
@@ -147,7 +147,7 @@ void Subscribers::angZupt()
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 void Subscribers::externalGpsTimeCallback(const TimeReferenceMsg& time)
 {
-  int64_t utcTime = get_time_ref_sec(time.time_ref) + config_->gps_leap_seconds_ - UTC_GPS_EPOCH_DUR;
+  int64_t utcTime = getTimeRefSec(time.time_ref) + config_->gps_leap_seconds_ - UTC_GPS_EPOCH_DUR;
 
   int64_t secs = utcTime % static_cast<int32_t>(SECS_PER_WEEK);
 
