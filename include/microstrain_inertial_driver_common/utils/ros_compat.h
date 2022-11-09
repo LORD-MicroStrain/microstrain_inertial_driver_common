@@ -1,30 +1,34 @@
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 //
-// Parker-Lord GX5-Series Driver Definition File
+// Parker-Lord Driver Definition File
 //
 // Copyright (c) 2017, Brian Bingham
-// Copyright (c)  2020, Parker Hannifin Corp
+// Copyright (c) 2020, Parker Hannifin Corp
 //
 // This code is licensed under MIT license (see LICENSE file for details)
 //
 /////////////////////////////////////////////////////////////////////////////////////////////////////
-#ifndef MICROSTRAIN_INERTIAL_DRIVER_COMMON_MICROSTRAIN_DEFS_H
-#define MICROSTRAIN_INERTIAL_DRIVER_COMMON_MICROSTRAIN_DEFS_H
+
+#ifndef MICROSTRAIN_INERTIAL_DRIVER_COMMON_UTILS_ROS_COMPAT_H
+#define MICROSTRAIN_INERTIAL_DRIVER_COMMON_UTILS_ROS_COMPAT_H
 
 /**
  * Common Includes
  */
+#include <string>
 #include <memory>
 
 /**
  * Common Defines
  */
-
-
 #ifndef M_PI
 #define M_PI (3.14159265358979323846)
 #endif
 
+// Version of the driver
+#ifndef MICROSTRAIN_DRIVER_VERSION
+#define MICROSTRAIN_DRIVER_VERSION "unknown"
+#endif
 
 namespace microstrain
 {
@@ -242,15 +246,42 @@ namespace microstrain
  * ROS1 Defines
  */
 #if MICROSTRAIN_ROS_VERSION == 1
+
+/**
+ * \brief Wrapper for a ROS1 publisher to make it look similar to a ROS2 publisher
+ */
+template<typename MessageType>
+class RosPubType : public ::ros::Publisher
+{
+ public:
+  using MessageSharedPtr = std::shared_ptr<MessageType>;
+  using SharedPtr = std::shared_ptr<RosPubType<MessageType>>;
+
+  explicit RosPubType(const ::ros::Publisher& rhs) : ::ros::Publisher(rhs) {}
+
+  void on_activate() { (void)0; }
+  void on_deactivate() { (void)0; }
+};
+
+/**
+ * \brief Wrapper for a ROS1 service to make it look similar to a ROS2 service
+ */
+template<typename ServiceType>
+class RosServiceType : public ::ros::ServiceServer
+{
+ public:
+  using SharedPtr = std::shared_ptr<RosServiceType<ServiceType>>;
+
+  explicit RosServiceType(const ::ros::ServiceServer& rhs) : ::ros::ServiceServer(rhs) {}
+};
+
 // ROS1 General Types
 using RosNodeType = ::ros::NodeHandle;
 using RosTimeType = ::ros::Time;
 using RosTimerType = std::shared_ptr<::ros::Timer>;
 using RosRateType = ::ros::Rate;
 using RosHeaderType = ::std_msgs::Header;
-using RosPubType = std::shared_ptr<::ros::Publisher>;
 using RosSubType = std::shared_ptr<::ros::Subscriber>;
-using RosServiceType = std::shared_ptr<::ros::ServiceServer>;
 
 // ROS1 Publisher Message Types
 using OdometryMsg = ::nav_msgs::Odometry;
@@ -272,25 +303,6 @@ using GNSSFixInfoMsg = ::microstrain_inertial_msgs::GNSSFixInfo;
 using FilterHeadingStateMsg = ::microstrain_inertial_msgs::FilterHeadingState;
 using GPSCorrelationTimestampStampedMsg = ::microstrain_inertial_msgs::GPSCorrelationTimestampStamped;
 using TransformStampedMsg = ::geometry_msgs::TransformStamped;
-
-// ROS1 Publisher Types
-using OdometryPubType = RosPubType;
-using ImuPubType = RosPubType;
-using NavSatFixPubType = RosPubType;
-using MagneticFieldPubType = RosPubType;
-using TimeReferencePubType = RosPubType;
-using NMEASentencePubType = RosPubType;
-using StatusPubType = RosPubType;
-using RTKStatusPubType = RosPubType;
-using RTKStatusPubTypeV1 = RosPubType;
-using FilterStatusPubType = RosPubType;
-using FilterHeadingPubType = RosPubType;
-using FilterAidingMeasurementSummaryPubType = RosPubType;
-using GNSSAidingStatusPubType = RosPubType;
-using GNSSDualAntennaStatusPubType = RosPubType;
-using GNSSFixInfoPubType = RosPubType;
-using FilterHeadingStatePubType = RosPubType;
-using GPSCorrelationTimestampStampedPubType = RosPubType;
 
 // ROS1 Transform Broadcaster
 using TransformBroadcasterType = std::shared_ptr<::tf2_ros::TransformBroadcaster>;
@@ -394,93 +406,6 @@ using DeviceSettingsServiceMsg = ::microstrain_inertial_msgs::DeviceSettings;
 
 using SetFilterSpeedLeverArmServiceMsg = ::microstrain_inertial_msgs::SetFilterSpeedLeverArm;
 
-// ROS1 Service Types
-using TriggerServiceType = RosServiceType;
-using EmptyServiceType = RosServiceType;
-
-using SetAccelBiasServiceType = RosServiceType;
-using GetAccelBiasServiceType = RosServiceType;
-
-using SetGyroBiasServiceType = RosServiceType;
-using GetGyroBiasServiceType = RosServiceType;
-
-using SetHardIronValuesServiceType = RosServiceType;
-using GetHardIronValuesServiceType = RosServiceType;
-
-using SetSoftIronMatrixServiceType = RosServiceType;
-using GetSoftIronMatrixServiceType = RosServiceType;
-
-using SetComplementaryFilterServiceType = RosServiceType;
-using GetComplementaryFilterServiceType = RosServiceType;
-
-using SetConingScullingCompServiceType = RosServiceType;
-using GetConingScullingCompServiceType = RosServiceType;
-
-using SetSensor2VehicleRotationServiceType = RosServiceType;
-using GetSensor2VehicleRotationServiceType = RosServiceType;
-
-using SetSensor2VehicleOffsetServiceType = RosServiceType;
-using GetSensor2VehicleOffsetServiceType = RosServiceType;
-
-using GetSensor2VehicleTransformationServiceType = RosServiceType;
-
-using InitFilterEulerServiceType = RosServiceType;
-using InitFilterHeadingServiceType = RosServiceType;
-
-using SetHeadingSourceServiceType = RosServiceType;
-using GetHeadingSourceServiceType = RosServiceType;
-
-using SetReferencePositionServiceType = RosServiceType;
-using GetReferencePositionServiceType = RosServiceType;
-
-using SetEstimationControlFlagsServiceType = RosServiceType;
-using GetEstimationControlFlagsServiceType = RosServiceType;
-
-using SetDynamicsModeServiceType = RosServiceType;
-using GetDynamicsModeServiceType = RosServiceType;
-
-using SetZeroAngleUpdateThresholdServiceType = RosServiceType;
-using GetZeroAngleUpdateThresholdServiceType = RosServiceType;
-
-using SetZeroVelocityUpdateThresholdServiceType = RosServiceType;
-using GetZeroVelocityUpdateThresholdServiceType = RosServiceType;
-
-using SetTareOrientationServiceType = RosServiceType;
-
-using SetAccelNoiseServiceType = RosServiceType;
-using GetAccelNoiseServiceType = RosServiceType;
-
-using SetGyroNoiseServiceType = RosServiceType;
-using GetGyroNoiseServiceType = RosServiceType;
-
-using SetMagNoiseServiceType = RosServiceType;
-using GetMagNoiseServiceType = RosServiceType;
-
-using SetGyroBiasModelServiceType = RosServiceType;
-using GetGyroBiasModelServiceType = RosServiceType;
-
-using SetAccelBiasModelServiceType = RosServiceType;
-using GetAccelBiasModelServiceType = RosServiceType;
-
-using SetGravityAdaptiveValsServiceType = RosServiceType;
-using GetGravityAdaptiveValsServiceType = RosServiceType;
-
-using SetMagAdaptiveValsServiceType = RosServiceType;
-using GetMagAdaptiveValsServiceType = RosServiceType;
-
-using SetMagDipAdaptiveValsServiceType = RosServiceType;
-using GetMagDipAdaptiveValsServiceType = RosServiceType;
-
-using ExternalHeadingUpdateServiceType = RosServiceType;
-
-using SetRelativePositionReferenceServiceType = RosServiceType;
-using GetRelativePositionReferenceServiceType = RosServiceType;
-
-using DeviceReportServiceType = RosServiceType;
-using DeviceSettingsServiceType = RosServiceType;
-
-using SetFilterSpeedLeverArmServiceType = RosServiceType;
-
 // ROS1 Logging
 #define MICROSTRAIN_DEBUG(NODE, ...) ROS_DEBUG(__VA_ARGS__)
 #define MICROSTRAIN_INFO(NODE, ...) ROS_INFO(__VA_ARGS__)
@@ -489,6 +414,155 @@ using SetFilterSpeedLeverArmServiceType = RosServiceType;
 #define MICROSTRAIN_FATAL(NOE, ...) ROS_FATAL(__VA_ARGS__)
 
 #define MICROSTRAIN_DEBUG_THROTTLE(NODE, PERIOD, ...) ROS_DEBUG_THROTTLE(PERIOD, __VA_ARGS__)
+
+// ROS1 functions
+
+/**
+ * \brief Gets the current ROS time
+ * \param node  Unused in this function as the ros time function is static
+ * \return Current ROS time
+ */
+inline RosTimeType rosTimeNow(RosNodeType* node)
+{
+  return ros::Time::now();
+}
+
+/**
+ * \brief Sets the time in seconds and nanoseconds to a ROS time object
+ * \param time The time object to set the time on
+ * \param sec Number of seconds to set on the object
+ * \param nsec Number of nanoseconds to set on the object
+ */
+inline void setRosTime(RosTimeType* time, int32_t sec, int32_t nsec)
+{
+  time->sec = sec;
+  time->nsec = nsec;
+}
+
+/**
+ * \brief Gets the seconds from a ROS time object because the interface changed between ROS1 and ROS2
+ * \param time_ref  The ros Time object to extract the seconds from
+ * \return seconds from the ros time object
+ */
+inline int64_t getTimeRefSec(const ros::Time& time_ref)
+{
+  return time_ref.toSec();
+}
+
+/**
+ * \brief Sets the sequence number on a ROS header. This is only useful in ROS1 as ROS2 removed the seq member
+ * \param header  The header to set the sequence number on
+ * \param seq  The sequence number to set on the header
+ */
+inline void setSeq(RosHeaderType* header, const uint32_t seq)
+{
+  header->seq = seq;
+}
+
+/**
+ * \brief Extracts config from the ROS node.
+ * \tparam ConfigType  The type to extract the config to e.g. int, std::string, double, etc.
+ * \param node  The ROS node to extract the config from
+ * \param param_name  The name of the config value to extract
+ * \param param_val  Variable to store the extracted config value in
+ * \param default_val  The default value to set param_val to if the config can't be found
+ */
+template <class ConfigType>
+void getParam(RosNodeType* node, const std::string& param_name, ConfigType& param_val, const ConfigType& default_val)
+{
+  node->param<ConfigType>(param_name, param_val, default_val);
+}
+
+/**
+ * \brief Creates a transform broadcaster
+ * \param node The ROS node that the broadcaster will be associated with
+ * \return Initialized shared pointer containing a transdorm broadcaster
+ */
+inline TransformBroadcasterType createTransformBroadcaster(RosNodeType* node)
+{
+  return std::make_shared<tf2_ros::TransformBroadcaster>();
+}
+
+/**
+ * \brief Creates a ROS publisher
+ * \tparam MessageType  The type of message that this publisher will publish
+ * \param node  The ROS node to create the publisher on
+ * \param topic  The topic that this publisher will publish on
+ * \param queue_size  The size of the queue to enable in ROS
+ * \return Shared Pointer containing the initialized publisher
+ */
+template <class MessageType>
+typename RosPubType<MessageType>::SharedPtr createPublisher(RosNodeType* node, const std::string& topic,
+                                                   const uint32_t queue_size)
+{
+  return std::make_shared<RosPubType<MessageType>>(node->template advertise<MessageType>(topic, queue_size));
+}
+
+/**
+ * \brief Creates a ROS subscriber
+ * \tparam MessageType  The type of message that this subscriber will listen to
+ * \tparam ClassType  The type of class that the member function passed to this function will be on
+ * \param node  The ROS node to create the publisher on
+ * \param topic  The topic that this publisher will subscribe on
+ * \param queue_size  The size of the queue to enable on ROS
+ * \param fp  Function pointer to call whenever a message is received on the topic
+ * \param obj  Reference to an object of type ClassType that will be passed as the this pointer to fp
+ * \return Shared Pointer containing the initialized subscriber
+ */
+template <class MessageType, class ClassType>
+std::shared_ptr<::ros::Subscriber> createSubscriber(RosNodeType* node, const std::string& topic,
+                                                     const uint32_t queue_size,
+                                                     void (ClassType::*fp)(const MessageType&), ClassType* obj)
+{
+  return std::make_shared<::ros::Subscriber>(node->template subscribe(topic.c_str(), queue_size, fp, obj));
+}
+
+/**
+ * \brief Creates a ROS Service
+ * \tparam MessageType  The type of message that this service will use
+ * \tparam ClassType The type of class that the callback will be registered to
+ * \tparam RequestType  The type of request that this function will receive
+ * \tparam ResponseType  The type of response that this function will respond with
+ * \param node  The ROS node to create the service on
+ * \param service  The name to give the created service
+ * \param srv_func  Function pointer to a function that will be called when the service receives a message
+ * \param obj  Reference to an object of type ClassType that will be used to call the callback
+ * \return Shared Pointer containing the initialized service
+ */
+template <class MessageType, class ClassType, class RequestType, class ResponseType>
+typename RosServiceType<MessageType>::SharedPtr createService(RosNodeType* node, const std::string& service,
+                                                     bool (ClassType::*srv_func)(RequestType&, ResponseType&),
+                                                     ClassType* obj)
+{
+  return std::make_shared<RosServiceType<MessageType>>(
+      node->template advertiseService<ClassType, RequestType, ResponseType>(service, srv_func, obj));
+}
+
+/**
+ * \brief Creates and starts a ROS timer
+ * \tparam ClassType  The type of class that the callback will be registered to
+ * \param node  The ROS node to create the timer on
+ * \param hz  Rate in hertz to execute the callback on
+ * \param fp  Function pointer to execute at the specified rate
+ * \param obj  Reference to an object of type Class Type that will be used to call the callback
+ * \return Shard pointer containing the initialized and started timer
+ */
+template <class ClassType>
+RosTimerType createTimer(RosNodeType* node, double hz, void (ClassType::*fp)(), ClassType* obj)
+{
+  return std::make_shared<::ros::Timer>(
+      node->template createTimer(ros::Duration(1.0 / hz), [=](const ros::TimerEvent& event) { (obj->*fp)(); }));
+}
+
+/**
+ * \brief Stops a ROS timer
+ * \param timer  The timer to stop
+ */
+inline void stopTimer(RosTimerType timer)
+{
+  timer->stop();
+}
+
 /**
  * ROS2 Defines
  */
@@ -499,6 +573,23 @@ using RosTimeType = ::rclcpp::Time;
 using RosTimerType = ::rclcpp::TimerBase::SharedPtr;
 using RosRateType = ::rclcpp::Rate;
 using RosHeaderType = ::std_msgs::msg::Header;
+
+/**
+ * \brief Wrapper to allow the publisher from ROS2 be compatible with ROS1
+ *        This could almost be just "using", but the "MessageSharedPtr" of the base class is constant, and we need it to not be constant
+ */
+template<typename MessageType>
+class RosPubType : public ::rclcpp_lifecycle::LifecyclePublisher<MessageType>
+{
+ public:
+  using MessageSharedPtr = std::shared_ptr<MessageType>;
+
+  explicit RosPubType(const ::rclcpp_lifecycle::LifecyclePublisher<MessageType>& rhs) : ::rclcpp_lifecycle::LifecyclePublisher<MessageType>(rhs) {}
+};
+
+// Alias for the service type so it can be compatible with ROS1
+template<typename ServiceType>
+using RosServiceType = ::rclcpp::Service<ServiceType>;
 
 // ROS2 Publisher Message Types
 using OdometryMsg = ::nav_msgs::msg::Odometry;
@@ -520,26 +611,6 @@ using GNSSFixInfoMsg = ::microstrain_inertial_msgs::msg::GNSSFixInfo;
 using FilterHeadingStateMsg = ::microstrain_inertial_msgs::msg::FilterHeadingState;
 using GPSCorrelationTimestampStampedMsg = ::microstrain_inertial_msgs::msg::GPSCorrelationTimestampStamped;
 using TransformStampedMsg = ::geometry_msgs::msg::TransformStamped;
-
-// ROS2 Publisher Types
-using OdometryPubType = ::rclcpp_lifecycle::LifecyclePublisher<OdometryMsg>::SharedPtr;
-using ImuPubType = ::rclcpp_lifecycle::LifecyclePublisher<ImuMsg>::SharedPtr;
-using NavSatFixPubType = ::rclcpp_lifecycle::LifecyclePublisher<NavSatFixMsg>::SharedPtr;
-using MagneticFieldPubType = ::rclcpp_lifecycle::LifecyclePublisher<MagneticFieldMsg>::SharedPtr;
-using TimeReferencePubType = ::rclcpp_lifecycle::LifecyclePublisher<TimeReferenceMsg>::SharedPtr;
-using NMEASentencePubType = ::rclcpp_lifecycle::LifecyclePublisher<NMEASentenceMsg>::SharedPtr;
-using StatusPubType = ::rclcpp_lifecycle::LifecyclePublisher<StatusMsg>::SharedPtr;
-using RTKStatusPubType = ::rclcpp_lifecycle::LifecyclePublisher<RTKStatusMsg>::SharedPtr;
-using RTKStatusPubTypeV1 = ::rclcpp_lifecycle::LifecyclePublisher<RTKStatusMsgV1>::SharedPtr;
-using FilterStatusPubType = ::rclcpp_lifecycle::LifecyclePublisher<FilterStatusMsg>::SharedPtr;
-using FilterHeadingPubType = ::rclcpp_lifecycle::LifecyclePublisher<FilterHeadingMsg>::SharedPtr;
-using FilterAidingMeasurementSummaryPubType = ::rclcpp_lifecycle::LifecyclePublisher<FilterAidingMeasurementSummaryMsg>::SharedPtr;
-using GNSSAidingStatusPubType = ::rclcpp_lifecycle::LifecyclePublisher<GNSSAidingStatusMsg>::SharedPtr;
-using GNSSDualAntennaStatusPubType = ::rclcpp_lifecycle::LifecyclePublisher<GNSSDualAntennaStatusMsg>::SharedPtr;
-using GNSSFixInfoPubType = ::rclcpp_lifecycle::LifecyclePublisher<GNSSFixInfoMsg>::SharedPtr;
-using FilterHeadingStatePubType = ::rclcpp_lifecycle::LifecyclePublisher<FilterHeadingStateMsg>::SharedPtr;
-using GPSCorrelationTimestampStampedPubType =
-    ::rclcpp_lifecycle::LifecyclePublisher<GPSCorrelationTimestampStampedMsg>::SharedPtr;
 
 // ROS2 Transform Broadcaster
 using TransformBroadcasterType = std::shared_ptr<::tf2_ros::TransformBroadcaster>;
@@ -643,96 +714,6 @@ using DeviceSettingsServiceMsg = microstrain_inertial_msgs::srv::DeviceSettings;
 
 using SetFilterSpeedLeverArmServiceMsg = microstrain_inertial_msgs::srv::SetFilterSpeedLeverArm;
 
-// ROS2 Service Types
-using TriggerServiceType = ::rclcpp::Service<TriggerServiceMsg>::SharedPtr;
-using EmptyServiceType = ::rclcpp::Service<EmptyServiceMsg>::SharedPtr;
-
-using SetAccelBiasServiceType = ::rclcpp::Service<SetAccelBiasServiceMsg>::SharedPtr;
-using GetAccelBiasServiceType = ::rclcpp::Service<GetAccelBiasServiceMsg>::SharedPtr;
-
-using SetGyroBiasServiceType = ::rclcpp::Service<SetGyroBiasServiceMsg>::SharedPtr;
-using GetGyroBiasServiceType = ::rclcpp::Service<GetGyroBiasServiceMsg>::SharedPtr;
-
-using SetHardIronValuesServiceType = ::rclcpp::Service<SetHardIronValuesServiceMsg>::SharedPtr;
-using GetHardIronValuesServiceType = ::rclcpp::Service<GetHardIronValuesServiceMsg>::SharedPtr;
-
-using SetSoftIronMatrixServiceType = ::rclcpp::Service<SetSoftIronMatrixServiceMsg>::SharedPtr;
-using GetSoftIronMatrixServiceType = ::rclcpp::Service<GetSoftIronMatrixServiceMsg>::SharedPtr;
-
-using SetComplementaryFilterServiceType = ::rclcpp::Service<SetComplementaryFilterServiceMsg>::SharedPtr;
-using GetComplementaryFilterServiceType = ::rclcpp::Service<GetComplementaryFilterServiceMsg>::SharedPtr;
-
-using SetConingScullingCompServiceType = ::rclcpp::Service<SetConingScullingCompServiceMsg>::SharedPtr;
-using GetConingScullingCompServiceType = ::rclcpp::Service<GetConingScullingCompServiceMsg>::SharedPtr;
-
-using SetSensor2VehicleRotationServiceType = ::rclcpp::Service<SetSensor2VehicleRotationServiceMsg>::SharedPtr;
-using GetSensor2VehicleRotationServiceType = ::rclcpp::Service<GetSensor2VehicleRotationServiceMsg>::SharedPtr;
-
-using SetSensor2VehicleOffsetServiceType = ::rclcpp::Service<SetSensor2VehicleOffsetServiceMsg>::SharedPtr;
-using GetSensor2VehicleOffsetServiceType = ::rclcpp::Service<GetSensor2VehicleOffsetServiceMsg>::SharedPtr;
-
-using GetSensor2VehicleTransformationServiceType =
-    ::rclcpp::Service<GetSensor2VehicleTransformationServiceMsg>::SharedPtr;
-
-using InitFilterEulerServiceType = ::rclcpp::Service<InitFilterEulerServiceMsg>::SharedPtr;
-using InitFilterHeadingServiceType = ::rclcpp::Service<InitFilterHeadingServiceMsg>::SharedPtr;
-
-using SetHeadingSourceServiceType = ::rclcpp::Service<SetHeadingSourceServiceMsg>::SharedPtr;
-using GetHeadingSourceServiceType = ::rclcpp::Service<GetHeadingSourceServiceMsg>::SharedPtr;
-
-using SetReferencePositionServiceType = ::rclcpp::Service<SetReferencePositionServiceMsg>::SharedPtr;
-using GetReferencePositionServiceType = ::rclcpp::Service<GetReferencePositionServiceMsg>::SharedPtr;
-
-using SetEstimationControlFlagsServiceType = ::rclcpp::Service<SetEstimationControlFlagsServiceMsg>::SharedPtr;
-using GetEstimationControlFlagsServiceType = ::rclcpp::Service<GetEstimationControlFlagsServiceMsg>::SharedPtr;
-
-using SetDynamicsModeServiceType = ::rclcpp::Service<SetDynamicsModeServiceMsg>::SharedPtr;
-using GetDynamicsModeServiceType = ::rclcpp::Service<GetDynamicsModeServiceMsg>::SharedPtr;
-
-using SetZeroAngleUpdateThresholdServiceType = ::rclcpp::Service<SetZeroAngleUpdateThresholdServiceMsg>::SharedPtr;
-using GetZeroAngleUpdateThresholdServiceType = ::rclcpp::Service<GetZeroAngleUpdateThresholdServiceMsg>::SharedPtr;
-
-using SetZeroVelocityUpdateThresholdServiceType =
-    ::rclcpp::Service<SetZeroVelocityUpdateThresholdServiceMsg>::SharedPtr;
-using GetZeroVelocityUpdateThresholdServiceType =
-    ::rclcpp::Service<GetZeroVelocityUpdateThresholdServiceMsg>::SharedPtr;
-
-using SetTareOrientationServiceType = ::rclcpp::Service<SetTareOrientationServiceMsg>::SharedPtr;
-
-using SetAccelNoiseServiceType = ::rclcpp::Service<SetAccelNoiseServiceMsg>::SharedPtr;
-using GetAccelNoiseServiceType = ::rclcpp::Service<GetAccelNoiseServiceMsg>::SharedPtr;
-
-using SetGyroNoiseServiceType = ::rclcpp::Service<SetGyroNoiseServiceMsg>::SharedPtr;
-using GetGyroNoiseServiceType = ::rclcpp::Service<GetGyroNoiseServiceMsg>::SharedPtr;
-
-using SetMagNoiseServiceType = ::rclcpp::Service<SetMagNoiseServiceMsg>::SharedPtr;
-using GetMagNoiseServiceType = ::rclcpp::Service<GetMagNoiseServiceMsg>::SharedPtr;
-
-using SetGyroBiasModelServiceType = ::rclcpp::Service<SetGyroBiasModelServiceMsg>::SharedPtr;
-using GetGyroBiasModelServiceType = ::rclcpp::Service<GetGyroBiasModelServiceMsg>::SharedPtr;
-
-using SetAccelBiasModelServiceType = ::rclcpp::Service<SetAccelBiasModelServiceMsg>::SharedPtr;
-using GetAccelBiasModelServiceType = ::rclcpp::Service<GetAccelBiasModelServiceMsg>::SharedPtr;
-
-using SetGravityAdaptiveValsServiceType = ::rclcpp::Service<SetGravityAdaptiveValsServiceMsg>::SharedPtr;
-using GetGravityAdaptiveValsServiceType = ::rclcpp::Service<GetGravityAdaptiveValsServiceMsg>::SharedPtr;
-
-using SetMagAdaptiveValsServiceType = ::rclcpp::Service<SetMagAdaptiveValsServiceMsg>::SharedPtr;
-using GetMagAdaptiveValsServiceType = ::rclcpp::Service<GetMagAdaptiveValsServiceMsg>::SharedPtr;
-
-using SetMagDipAdaptiveValsServiceType = ::rclcpp::Service<SetMagDipAdaptiveValsServiceMsg>::SharedPtr;
-using GetMagDipAdaptiveValsServiceType = ::rclcpp::Service<GetMagDipAdaptiveValsServiceMsg>::SharedPtr;
-
-using ExternalHeadingUpdateServiceType = ::rclcpp::Service<ExternalHeadingUpdateServiceMsg>::SharedPtr;
-
-using SetRelativePositionReferenceServiceType = ::rclcpp::Service<SetRelativePositionReferenceServiceMsg>::SharedPtr;
-using GetRelativePositionReferenceServiceType = ::rclcpp::Service<GetRelativePositionReferenceServiceMsg>::SharedPtr;
-
-using DeviceReportServiceType = ::rclcpp::Service<DeviceReportServiceMsg>::SharedPtr;
-using DeviceSettingsServiceType = ::rclcpp::Service<DeviceSettingsServiceMsg>::SharedPtr;
-
-using SetFilterSpeedLeverArmServiceType = ::rclcpp::Service<SetFilterSpeedLeverArmServiceMsg>::SharedPtr;
-
 // ROS2 Logging
 #define MICROSTRAIN_DEBUG(NODE, ...) RCLCPP_DEBUG(NODE->get_logger(), __VA_ARGS__)
 #define MICROSTRAIN_INFO(NODE, ...) RCLCPP_INFO(NODE->get_logger(), __VA_ARGS__)
@@ -742,10 +723,173 @@ using SetFilterSpeedLeverArmServiceType = ::rclcpp::Service<SetFilterSpeedLeverA
 
 #define MICROSTRAIN_DEBUG_THROTTLE(NODE, PERIOD, ...)                                                                  \
   RCLCPP_DEBUG_THROTTLE(NODE->get_logger(), *NODE->get_clock(), PERIOD, __VA_ARGS__)
+
+// ROS2 functions
+
+/**
+ * \brief Gets the current ROS time
+ * \param node  Unused in this function as the ros time function is static
+ * \return Current ROS time
+ */
+inline RosTimeType rosTimeNow(RosNodeType* node)
+{
+  return node->get_clock()->now();
+}
+
+/**
+ * \brief Sets the time in seconds and nanoseconds to a ROS time object
+ * \param time The time object to set the time on
+ * \param sec Number of seconds to set on the object
+ * \param nsec Number of nanoseconds to set on the object
+ */
+inline void setRosTime(builtin_interfaces::msg::Time* time, int32_t sec, int32_t nsec)
+{
+  time->sec = sec;
+  time->nanosec = nsec;
+}
+
+/**
+ * \brief Gets the seconds from a ROS time object because the interface changed between ROS1 and ROS2
+ * \param time_ref  The ros Time object to extract the seconds from
+ * \return seconds from the ros time object
+ */
+inline int64_t getTimeRefSec(const builtin_interfaces::msg::Time& time_ref)
+{
+  return time_ref.sec;
+}
+
+/**
+ * \brief Sets the sequence number on a ROS header. This is only useful in ROS1 as ROS2 removed the seq member
+ * \param header  The header to set the sequence number on
+ * \param seq  The sequence number to set on the header
+ */
+inline void setSeq(RosHeaderType* header, const uint32_t seq)
+{
+  // NOOP because seq was removed in ROS2
+}
+
+/**
+ * \brief Extracts config from the ROS node.
+ * \tparam ConfigType  The type to extract the config to e.g. int, std::string, double, etc.
+ * \param node  The ROS node to extract the config from
+ * \param param_name  The name of the config value to extract
+ * \param param_val  Variable to store the extracted config value in
+ * \param default_val  The default value to set param_val to if the config can't be found
+ */
+template <class ConfigType>
+void getParam(RosNodeType* node, const std::string& param_name, ConfigType& param_val, const ConfigType& default_val)
+{
+  if (node->has_parameter(param_name))
+  {
+    node->get_parameter_or<ConfigType>(param_name, param_val, default_val);
+  }
+  else
+  {
+    param_val = node->declare_parameter<ConfigType>(param_name, default_val);
+  }
+}
+
+/**
+ * \brief Creates a transform broadcaster
+ * \param node The ROS node that the broadcaster will be associated with
+ * \return Initialized shared pointer containing a transdorm broadcaster
+ */
+inline TransformBroadcasterType createTransformBroadcaster(RosNodeType* node)
+{
+  return std::make_shared<tf2_ros::TransformBroadcaster>(node);
+}
+
+/**
+ * \brief Creates a ROS publisher
+ * \tparam MessageType  The type of message that this publisher will publish
+ * \param node  The ROS node to create the publisher on
+ * \param topic  The topic that this publisher will publish on
+ * \param queue_size  The size of the queue to enable in ROS
+ * \return Shared Pointer containing the initialized publisher
+ */
+template <class MessageType>
+typename ::rclcpp_lifecycle::LifecyclePublisher<MessageType>::SharedPtr createPublisher(RosNodeType* node,
+                                                                                         const std::string& topic,
+                                                                                         const uint32_t qos)
+{
+  return node->template create_publisher<MessageType>(topic, qos);
+}
+
+/**
+ * \brief Creates a ROS subscriber
+ * \tparam MessageType  The type of message that this subscriber will listen to
+ * \tparam ClassType  The type of class that the member function passed to this function will be on
+ * \param node  The ROS node to create the publisher on
+ * \param topic  The topic that this publisher will subscribe on
+ * \param queue_size  The size of the queue to enable on ROS
+ * \param fp  Function pointer to call whenever a message is received on the topic
+ * \param obj  Reference to an object of type ClassType that will be passed as the this pointer to fp
+ * \return Shared Pointer containing the initialized subscriber
+ */
+template <class MessageType, class ClassType>
+typename ::rclcpp::Subscription<MessageType>::SharedPtr createSubscriber(RosNodeType* node, const std::string& topic,
+                                                                          const uint32_t qos,
+                                                                          void (ClassType::*fp)(const MessageType&),
+                                                                          ClassType* obj)
+{
+  return node->template create_subscription<MessageType>(
+      topic, qos, [obj, fp](const std::shared_ptr<MessageType> req) { (obj->*fp)(*req); });
+}
+
+/**
+ * \brief Creates a ROS Service
+ * \tparam MessageType  The type of message that this service will use
+ * \tparam ClassType The type of class that the callback will be registered to
+ * \tparam RequestType  The type of request that this function will receive
+ * \tparam ResponseType  The type of response that this function will respond with
+ * \param node  The ROS node to create the service on
+ * \param service  The name to give the created service
+ * \param srv_func  Function pointer to a function that will be called when the service receives a message
+ * \param obj  Reference to an object of type ClassType that will be used to call the callback
+ * \return Shared Pointer containing the initialized service
+ */
+template <class MessageType, class ClassType, class RequestType, class ResponseType>
+typename ::rclcpp::Service<MessageType>::SharedPtr
+createService(RosNodeType* node, const std::string& service, bool (ClassType::*srv_func)(RequestType&, ResponseType&),
+               ClassType* obj)
+{
+  return node->template create_service<MessageType>(
+      service, [obj, srv_func](const std::shared_ptr<RequestType> req, std::shared_ptr<ResponseType> res)
+      {
+        (obj->*srv_func)(*req, *res);
+      }
+    );  // NOLINT(whitespace/parens)  No way to avoid this
+}
+
+/**
+ * \brief Creates and starts a ROS timer
+ * \tparam ClassType  The type of class that the callback will be registered to
+ * \param node  The ROS node to create the timer on
+ * \param hz  Rate in hertz to execute the callback on
+ * \param fp  Function pointer to execute at the specified rate
+ * \param obj  Reference to an object of type Class Type that will be used to call the callback
+ * \return Shard pointer containing the initialized and started timer
+ */
+template <class ClassType>
+RosTimerType createTimer(RosNodeType* node, double hz, void (ClassType::*fp)(), ClassType* obj)
+{
+  std::chrono::milliseconds timer_interval_ms(static_cast<int>(1.0 / hz * 1000.0));
+  return node->template create_wall_timer(timer_interval_ms, [=]() { (obj->*fp)(); });
+}
+
+/**
+ * \brief Stops a ROS timer
+ * \param timer  The timer to stop
+ */
+inline void stopTimer(RosTimerType timer)
+{
+  timer->cancel();
+}
+
 #else
 #error "Unsupported ROS version. -DMICROSTRAIN_ROS_VERSION must be set to 1 or 2"
 #endif
 
 }  // namespace microstrain
 
-#endif  // MICROSTRAIN_INERTIAL_DRIVER_COMMON_MICROSTRAIN_DEFS_H
+#endif  // MICROSTRAIN_INERTIAL_DRIVER_COMMON_UTILS_ROS_COMPAT_H

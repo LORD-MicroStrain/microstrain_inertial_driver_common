@@ -1,27 +1,28 @@
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 //
-// Parker-Lord GX5-Series Driver Definition File
+// Parker-Lord Driver Definition File
 //
 // Copyright (c) 2017, Brian Bingham
-// Copyright (c)  2020, Parker Hannifin Corp
+// Copyright (c) 2020, Parker Hannifin Corp
 //
 // This code is licensed under MIT license (see LICENSE file for details)
 //
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
-#ifndef MICROSTRAIN_INERTIAL_DRIVER_COMMON_MICROSTRAIN_NODE_BASE_H
-#define MICROSTRAIN_INERTIAL_DRIVER_COMMON_MICROSTRAIN_NODE_BASE_H
+#ifndef MICROSTRAIN_INERTIAL_DRIVER_COMMON_NODE_COMMON_H
+#define MICROSTRAIN_INERTIAL_DRIVER_COMMON_NODE_COMMON_H
 
 #include <stddef.h>
 #include <string>
 #include <vector>
 #include <fstream>
 
-#include "microstrain_inertial_driver_common/microstrain_config.h"
-#include "microstrain_inertial_driver_common/microstrain_publishers.h"
-#include "microstrain_inertial_driver_common/microstrain_subscribers.h"
-#include "microstrain_inertial_driver_common/microstrain_services.h"
-#include "microstrain_inertial_driver_common/microstrain_parser.h"
+#include "mip/mip_logging.h"
+
+#include "microstrain_inertial_driver_common/config.h"
+#include "microstrain_inertial_driver_common/publishers.h"
+#include "microstrain_inertial_driver_common/subscribers.h"
+#include "microstrain_inertial_driver_common/services.h"
 
 namespace microstrain
 {
@@ -29,7 +30,7 @@ namespace microstrain
 /**
  * Base class for ROS1 and ROS2 nodes. The ROS1 and ROS2 nodes should extend this class
  */
-class MicrostrainNodeBase
+class NodeCommon
 {
 public:
   /**
@@ -42,16 +43,14 @@ public:
    */
   void parseAndPublishAux();
 
-  /**
-   * \brief If debug is enabled, this will be run every second to print debug information about the device
-   */
-  void logDeviceDebugInfo();
+  // Logging callback used by the MIP SDK
+  void logCallback(const mip_log_level level, const std::string& log_str);
 
 protected:
   /**
    * \brief Default constructor
    */
-  MicrostrainNodeBase() = default;
+  NodeCommon() = default;
 
   /**
    * \brief Initializes the node into an idle state. In this state, the device is not connected, or configured and no services, publishers, or subscribers are setup
@@ -84,23 +83,19 @@ protected:
   bool shutdown();
 
   RosNodeType* node_;
-  MicrostrainConfig config_;
-  MicrostrainPublishers publishers_;
-  MicrostrainSubscribers subscribers_;
-  MicrostrainServices services_;
-  MicrostrainParser parser_;
+  Config config_;
+  Publishers publishers_;
+  Subscribers subscribers_;
+  Services services_;
 
   double timer_update_rate_hz_;
 
   RosTimerType main_parsing_timer_;
   RosTimerType aux_parsing_timer_;
-  RosTimerType log_debug_timer_;
-  RosTimerType device_status_timer_;
 
-  size_t bytes_read_ = 0;  /// Number of bytes read this second
-  size_t bytes_written_ = 0;  /// Number of bytes written this second
-};  // MicrostrainNodeBase class
+  std::string aux_string_;
+};  // NodeCommon class
 
 }  // namespace microstrain
 
-#endif  // MICROSTRAIN_INERTIAL_DRIVER_COMMON_MICROSTRAIN_NODE_BASE_H
+#endif  // MICROSTRAIN_INERTIAL_DRIVER_COMMON_NODE_COMMON_H

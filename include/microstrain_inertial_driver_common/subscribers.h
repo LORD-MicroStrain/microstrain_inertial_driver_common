@@ -1,19 +1,18 @@
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 //
-// Parker-Lord GX5-Series Driver Definition File
+// Parker-Lord Driver Definition File
 //
 // Copyright (c) 2017, Brian Bingham
-// Copyright (c)  2020, Parker Hannifin Corp
+// Copyright (c) 2020, Parker Hannifin Corp
 //
 // This code is licensed under MIT license (see LICENSE file for details)
 //
 /////////////////////////////////////////////////////////////////////////////////////////////////////
-#ifndef MICROSTRAIN_INERTIAL_DRIVER_COMMON_MICROSTRAIN_SUBSCRIBERS_H
-#define MICROSTRAIN_INERTIAL_DRIVER_COMMON_MICROSTRAIN_SUBSCRIBERS_H
+#ifndef MICROSTRAIN_INERTIAL_DRIVER_COMMON_SUBSCRIBERS_H
+#define MICROSTRAIN_INERTIAL_DRIVER_COMMON_SUBSCRIBERS_H
 
-#include "microstrain_inertial_driver_common/microstrain_defs.h"
-#include "microstrain_inertial_driver_common/microstrain_ros_funcs.h"
-#include "microstrain_inertial_driver_common/microstrain_config.h"
+#include "microstrain_inertial_driver_common/utils/ros_compat.h"
+#include "microstrain_inertial_driver_common/config.h"
 
 namespace microstrain
 {
@@ -21,20 +20,20 @@ namespace microstrain
 /**
  * Contains subscribers and the functions they call
  */
-class MicrostrainSubscribers
+class Subscribers
 {
 public:
   /**
    * \brief Default Constructor
    */
-  MicrostrainSubscribers() = default;
+  Subscribers() = default;
 
   /**
    * \brief Constructs this class with a reference to the node, and a config object
    * \param node  Reference to a node that will be saved to this class and used to log and interact with ROS
    * \param config Reference to the config object that will be saved to this class and used to determine whether or not to enable the subscriptions
    */
-  MicrostrainSubscribers(RosNodeType* node, MicrostrainConfig* config);
+  Subscribers(RosNodeType* node, Config* config);
 
   /**
    * \brief Activates the subscribers. After this function is called, the subscriptions will be ready to receive messages
@@ -98,15 +97,15 @@ public:
 private:
   // Node Information
   RosNodeType* node_;
-  MicrostrainConfig* config_;
+  Config* config_;
 
   bool vel_still_;
   bool ang_still_;
 
   RosTimerType vel_zupt_timer_;
   RosTimerType ang_zupt_timer_;
-};  // struct MicrostrainPublishers
+};
 
 }  // namespace microstrain
 
-#endif  // MICROSTRAIN_INERTIAL_DRIVER_COMMON_MICROSTRAIN_SUBSCRIBERS_H
+#endif  // MICROSTRAIN_INERTIAL_DRIVER_COMMON_SUBSCRIBERS_H

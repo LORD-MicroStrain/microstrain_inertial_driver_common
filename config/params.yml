@@ -19,8 +19,9 @@ baudrate    : 115200
 debug       : False
 diagnostics : False
 
-# If set to true, this will configure the requested baudrate on the device. Note that this only has an affect when the device is connected via serial
-set_baud : True
+# If set to true, this will configure the requested baudrate on the device.
+# Note that this will be set on both USB and serial, but will only actually affect the baudrate of a serial connection.
+set_baud : False
 
 # Frame IDs used in the different messages. By default these are set to arbitrary strings as not to interfere with other ROS services.
 # For more information on common frame IDs, check out: https://www.ros.org/reps/rep-0105.html
@@ -93,17 +94,15 @@ raw_file_directory : "/home/your_name"
 # ****************************************************************** 
 # IMU Settings 
 # ****************************************************************** 
-
-publish_imu   : True
 imu_data_rate : 100
 
-# The speed at which the individual IMU publishers will publish at. Note that not all data rates are supported. A warning will be logged if you choose an unsupported data rate
+# The speed at which the individual IMU publishers will publish at.
 #      If set to -1, will use imu_data_rate to determine the rate at which to stream and publish
 #      If set to 0, the stream will be turned off and the publisher will not be created
 imu_raw_data_rate      : -1  # Rate of imu/data topic
 imu_mag_data_rate      : -1  # Rate of mag topic
 imu_gps_corr_data_rate : -1  # Rate of gps_corr topic
-                             # Note that this is still dependent on publish_gps_corr being set to True in order to publish
+                             # Note that for philo devices, this will be published at the highest IMU data rate if "use_device_timestamp" is set to true
 
 # Static IMU message covariance values (the device does not generate these) 
 # Since internally these are std::vector we need to use the rosparam tags 
@@ -111,18 +110,12 @@ imu_orientation_cov : [0.01, 0, 0, 0, 0.01, 0, 0, 0, 0.01]
 imu_linear_cov      : [0.01, 0, 0, 0, 0.01, 0, 0, 0, 0.01]
 imu_angular_cov     : [0.01, 0, 0, 0, 0.01, 0, 0, 0, 0.01]
 
-# If enabled, this message can be used to validate time IMU time syncronzation with gps 
-# It is most useful when using an external timesource and external PPS
-# (see: filter_enable_external_gps_time_update) 
-publish_gps_corr : False
-
 # ****************************************************************** 
 # GNSS Settings (only applicable for devices with GNSS) 
 # ****************************************************************** 
-publish_gnss1   : True
 gnss1_data_rate : 2
 
-# The speed at which the individual GNSS1 publishers will publish at. Note that not all data rates are supported. A warning will be logged if you choose an unsupported data rate
+# The speed at which the individual GNSS1 publishers will publish at.
 #      If set to -1, will use gnss1_data_rate to determine the rate at which to stream and publish
 #      If set to 0, the stream will be turned off and the publisher will not be created
 #
@@ -140,10 +133,9 @@ gnss1_fix_info_data_rate       : -1  # Rate of gnss1/fix_info topic
 gnss1_antenna_offset : [0.0, -0.7, -1.0]
 
 # GNSS2 settings are only applicable for multi-GNSS systems (e.g. GQ7) 
-publish_gnss2   : True
 gnss2_data_rate : 2
 
-# The speed at which the individual GNSS2 publishers will publish at. Note that not all data rates are supported. A warning will be logged if you choose an unsupported data rate
+# The speed at which the individual GNSS2 publishers will publish at.
 #      If set to -1, will use gnss2_data_rate to determine the rate at which to stream and publish
 #      If set to 0, the stream will be turned off and the publisher will not be created
 #
@@ -163,11 +155,9 @@ gnss2_antenna_offset : [0.0, 0.7, -1.0]
 #   on the version of the RTK dongle connected to the GQ7
 rtk_dongle_enable : False
 
-# The speed at which the individual RTK publishers will publish at. Note that not all data rates are supported. A warning will be logged if you choose an unsupported data rate
-#      If set to -1, will publish at 1 hz which was the default before allowing users to configure this rate
+# The speed at which the individual RTK publishers will publish at.
 #      If set to 0, the stream will be turned off and the publisher will not be created
-rtk_status_data_rate : -1  # Rate of rtk/status or rtk/status_v1 topics
-                           # Note that this is still reliant on rtk_dongle_enable being set to true to publish
+rtk_status_data_rate : 1  # Rate of rtk/status or rtk/status_v1 topics
 
 # (GQ7 Only) Allow the user to send RTCM messages to this node, and stream those messages to the GQ7
 subscribe_rtcm : False
@@ -179,11 +169,9 @@ publish_nmea   : False
 # ****************************************************************** 
 # Kalman Filter Settings (only applicable for devices with a Kalman Filter) 
 # ****************************************************************** 
-
-publish_filter   : True
 filter_data_rate : 10
 
-# The speed at which the individual Filter publishers will publish at. Note that not all data rates are supported. A warning will be logged if you choose an unsupported data rate
+# The speed at which the individual Filter publishers will publish at.
 #      If set to -1, will use filter_data_rate to determine the rate at which to stream and publish
 #      If set to 0, the stream will be turned off and the publisher will not be created
 #
@@ -195,14 +183,10 @@ filter_heading_state_data_rate              : -1  # Rate of nav/heading_state to
 filter_odom_data_rate                       : -1  # Rate of nav/odom topic
 filter_imu_data_rate                        : -1  # Rate of nav/filtered_imu/data
 filter_relative_odom_data_rate              : -1  # Rate of nav/relative_pos topic and the transform between filter_frame_id and filter_child_frame_id
-                                                  # Note that this is still dependent on publish_relative_position being set to True in order to publish
                                                   # Note that this data rate will also control the rate at which the transform between "filter_frame_id" and "filter_child_frame_id" will be published at
 filter_aiding_status_data_rate              : -1  # Rate of gnss1/aiding_status and gnss2/aiding_status topics
-                                                  # Note that this is still dependent on filter_enable_gnss_pos_vel_aiding being set to True in order to publish
 filter_gnss_dual_antenna_data_rate          : -1  # Rate of nav/dual_antenna_status topic
-                                                  # Note that this is still dependent on filter_enable_gnss_heading_aiding being set to True in order to publish
 filter_aiding_measurement_summary_data_rate : -1  # Rate of nav/aiding_summary topic
-                                                  # Note that this is still dependent on publish_filter_aiding_measurement_summary being set to True in order to publish
 
 # Sensor2vehicle frame transformation selector
 #     0 = None, 1 = Euler Angles, 2 - matrix, 3 - quaternion
@@ -273,7 +257,7 @@ filter_external_speed_topic : "/external_speed"
 # Velocity frame control.
 #      If set to false, the velocity will be reported in the NED/ENU frame
 #      If set to true, the velocity will be reported in the vehicle frame
-filter_vel_in_vehicle_frame : False
+filter_vel_in_vehicle_frame : True
 
 # (GQ7 Only) Hardware Odometer Control
 enable_hardware_odometer : False
@@ -323,6 +307,8 @@ odometer_uncertainty     : 0.0
 #    1 - open drain
 #    2 - pulldown
 #    4 - pullup
+gpio_config    : False
+
 gpio1_feature  : 0
 gpio1_behavior : 0
 gpio1_pin_mode : 0
@@ -339,7 +325,6 @@ gpio4_feature  : 0
 gpio4_behavior : 0
 gpio4_pin_mode : 0
 
-gpio_config    : False
 
 # (GQ7 only) Filter Initialization control
 
@@ -371,9 +356,9 @@ filter_init_attitude : [0.0, 0.0, 0.0]
 #
 #   Reference position - Units provided by reference frame (ECEF - meters, LLH - deg, deg, meters)
 #   Note: prior to firmware version 1.0.06 this command will fail for non-positive heights.  1.0.06 fixes this)
-publish_relative_position      : False
-filter_relative_position_frame : 2
-filter_relative_position_ref   : [0, 0, 0.01]
+filter_relative_position_config : False
+filter_relative_position_frame  : 2
+filter_relative_position_ref    : [0, 0, 0.01]
 
 # (GQ7 only) Speed Lever Arm Configuration
 #   Lever Arm - In vehicle reference frame (meters)
