@@ -263,6 +263,9 @@ class RosPubType : public ::ros::Publisher
   void on_deactivate() { (void)0; }
 };
 
+/**
+ * \brief Wrapper for a ROS1 service to make it look similar to a ROS2 service
+ */
 template<typename ServiceType>
 class RosServiceType : public ::ros::ServiceServer
 {

@@ -180,12 +180,18 @@ private:
   bool configureFilter(RosNodeType* node);
 
   /**
-   * \brief Enables or disables a filter aiding measurement
+   * \brief Enables or disables a filter aiding measurement and handles if the aiding measurement is not supported by this particular device
    * \param aiding_source  The aiding measurement to enable or disable
    * \param enable Whether or not to enable the aiding measurement
+   * \return true if the configuration was successful or unsupported, false if the configuration failed
    */
   bool configureFilterAidingMeasurement(const mip::commands_filter::AidingMeasurementEnable::AidingSource aiding_source, const bool enable);
 
+  /**
+   * \brief Configures the heading source on a device and handles if the heading source is not supported by this particular device
+   * \param heading_source  The heading source to configure
+   * \return true if the configuration was successful or unsupported, false if the configuration failed
+   */
   bool configureHeadingSource(const mip::commands_filter::HeadingSource::Source heading_source);
 
   // Handle to the ROS node

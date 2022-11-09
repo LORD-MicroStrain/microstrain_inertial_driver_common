@@ -104,7 +104,7 @@ private:
 
   RosTimerType vel_zupt_timer_;
   RosTimerType ang_zupt_timer_;
-};  // struct Publishers
+};
 
 }  // namespace microstrain
 

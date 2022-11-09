@@ -172,11 +172,7 @@ private:
    * \return Pointer to an initialized service
    */
   template<typename ServiceType>
-  typename RosServiceType<ServiceType>::SharedPtr configureService(const std::string& name, bool (Services::*callback)(typename ServiceType::Request&, typename ServiceType::Response&))
-  {
-    MICROSTRAIN_DEBUG(node_, "Configuring service %s", name.c_str());
-    return createService<ServiceType>(node_, name, callback, this);
-  }
+  typename RosServiceType<ServiceType>::SharedPtr configureService(const std::string& name, bool (Services::*callback)(typename ServiceType::Request&, typename ServiceType::Response&));
 
   /**
    * \brief Configures a MIP command dependent service. This service will only be configured if the device supports the command
@@ -188,19 +184,7 @@ private:
    * \return Pointer to an initialized service, or nullptr if the device does not support the MipType
    */
   template<typename ServiceType, typename MipType, uint8_t DescriptorSet = MipType::DESCRIPTOR_SET>
-  typename RosServiceType<ServiceType>::SharedPtr configureService(const std::string& name, bool (Services::*callback)(typename ServiceType::Request&, typename ServiceType::Response&))
-  {
-    if (config_->mip_device_->supportsDescriptor(DescriptorSet, MipType::FIELD_DESCRIPTOR))
-    {
-      MICROSTRAIN_DEBUG(node_, "Configuring service %s to execute MIP command 0x%02x%02x", name.c_str(), DescriptorSet, MipType::FIELD_DESCRIPTOR);
-      return createService<ServiceType>(node_, name, callback, this);
-    }
-    else
-    {
-      MICROSTRAIN_DEBUG(node_, "Device does not support the %s service because the device does not support descriptor 0x%02x%02x", name.c_str(), DescriptorSet, MipType::FIELD_DESCRIPTOR);
-      return nullptr;
-    }
-  }
+  typename RosServiceType<ServiceType>::SharedPtr configureService(const std::string& name, bool (Services::*callback)(typename ServiceType::Request&, typename ServiceType::Response&));
 
   // Handles to the ROS node and the config
   RosNodeType* node_;
@@ -268,6 +252,28 @@ private:
   RosServiceType<GetRelativePositionReferenceServiceMsg>::SharedPtr get_relative_position_reference_service_;
   RosServiceType<SetFilterSpeedLeverArmServiceMsg>::SharedPtr set_filter_speed_lever_arm_service_;
 };
+
+template<typename ServiceType>
+typename RosServiceType<ServiceType>::SharedPtr Services::configureService(const std::string& name, bool (Services::*callback)(typename ServiceType::Request&, typename ServiceType::Response&))
+{
+  MICROSTRAIN_DEBUG(node_, "Configuring service %s", name.c_str());
+  return createService<ServiceType>(node_, name, callback, this);
+}
+
+template<typename ServiceType, typename MipType, uint8_t DescriptorSet = MipType::DESCRIPTOR_SET>
+typename RosServiceType<ServiceType>::SharedPtr Services::configureService(const std::string& name, bool (Services::*callback)(typename ServiceType::Request&, typename ServiceType::Response&))
+{
+  if (config_->mip_device_->supportsDescriptor(DescriptorSet, MipType::FIELD_DESCRIPTOR))
+  {
+    MICROSTRAIN_DEBUG(node_, "Configuring service %s to execute MIP command 0x%02x%02x", name.c_str(), DescriptorSet, MipType::FIELD_DESCRIPTOR);
+    return createService<ServiceType>(node_, name, callback, this);
+  }
+  else
+  {
+    MICROSTRAIN_DEBUG(node_, "Device does not support the %s service because the device does not support descriptor 0x%02x%02x", name.c_str(), DescriptorSet, MipType::FIELD_DESCRIPTOR);
+    return nullptr;
+  }
+}
 
 }  // namespace microstrain
 

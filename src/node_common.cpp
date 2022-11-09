@@ -19,8 +19,7 @@ namespace microstrain
 
 constexpr auto NMEA_MAX_LENGTH = 82;
 
-/*
-void logCallbackProxy(const void* context, void* user, mip::LoggerLevel level, const char* fmt, va_list args)
+void logCallbackProxy(void* user, mip_log_level level, const char* fmt, va_list args)
 {
   // Convert the varargs into a string
   std::string log_str;
@@ -41,7 +40,6 @@ void logCallbackProxy(const void* context, void* user, mip::LoggerLevel level, c
     reinterpret_cast<NodeCommon*>(user)->logCallback(level, "MIP SDK: " + log_str);
   }
 }
-*/
 
 void NodeCommon::parseAndPublishMain()
 {
@@ -205,30 +203,27 @@ void NodeCommon::parseAndPublishAux()
   MICROSTRAIN_DEBUG(node_, "Aux string is %lu bytes after trimming", aux_string_.size());
 }
 
-/*
-void NodeCommon::logCallback(const mip::LoggerLevel level, const std::string& log_str)
+void NodeCommon::logCallback(const mip_log_level level, const std::string& log_str)
 {
   switch (level)
   {
-    case mip::LoggerLevel::MIP_LOGGER_LEVEL_FATAL:
+    case MIP_LOG_LEVEL_FATAL:
       MICROSTRAIN_FATAL(node_, "%s", log_str.c_str());
       break;
-    case mip::LoggerLevel::MIP_LOGGER_LEVEL_ERROR:
+    case MIP_LOG_LEVEL_ERROR:
       MICROSTRAIN_ERROR(node_, "%s", log_str.c_str());
       break;
-    case mip::LoggerLevel::MIP_LOGGER_LEVEL_WARN:
+    case MIP_LOG_LEVEL_WARN:
       MICROSTRAIN_WARN(node_, "%s", log_str.c_str());
       break;
-    case mip::LoggerLevel::MIP_LOGGER_LEVEL_INFO:
+    case MIP_LOG_LEVEL_INFO:
       MICROSTRAIN_INFO(node_, "%s", log_str.c_str());
       break;
-    case mip::LoggerLevel::MIP_LOGGER_LEVEL_DEBUG:
-    case mip::LoggerLevel::MIP_LOGGER_LEVEL_TRACE:
+    case MIP_LOG_LEVEL_DEBUG:
       MICROSTRAIN_DEBUG(node_, "%s", log_str.c_str());
       break;
   }
 }
-*/
 
 bool NodeCommon::initialize(RosNodeType* init_node)
 {
@@ -239,7 +234,7 @@ bool NodeCommon::initialize(RosNodeType* init_node)
   services_ = Services(node_, &config_);
 
   // Initialize the MIP SDK logger
-  // mip::initLogging(&logCallbackProxy, mip::LoggerLevel::MIP_LOGGER_LEVEL_DEBUG, this);
+  MIP_LOG_INIT(&logCallbackProxy, MIP_LOG_LEVEL_INFO, this);
 
   return true;
 }
