@@ -739,7 +739,7 @@ inline RosTimeType ros_time_now(RosNodeType* node)
  * \param sec Number of seconds to set on the object
  * \param nsec Number of nanoseconds to set on the object
  */
-inline void setRosTime(RosTimeType* time, int32_t sec, int32_t nsec)
+inline void setRosTime(builtin_interfaces::msg::Time* time, int32_t sec, int32_t nsec)
 {
   time->sec = sec;
   time->nanosec = nsec;
