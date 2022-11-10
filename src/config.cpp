@@ -14,6 +14,8 @@
 #include <memory>
 #include <algorithm>
 
+#include <yaml-cpp/yaml.h>
+
 #include "mip/mip_version.h"
 #include "mip/definitions/commands_base.hpp"
 #include "mip/definitions/commands_3dm.hpp"
@@ -24,6 +26,7 @@
 #include "mip/platform/serial_connection.hpp"
 #include "mip/extras/recording_connection.hpp"
 
+#include "microstrain_inertial_driver_common/utils/mappings/mip_mapping.h"
 #include "microstrain_inertial_driver_common/config.h"
 
 namespace microstrain
@@ -31,6 +34,7 @@ namespace microstrain
 
 Config::Config(RosNodeType* node) : node_(node)
 {
+  nmea_max_rate_hz_ = 0;
 }
 
 bool Config::configure(RosNodeType* node)
@@ -118,6 +122,9 @@ bool Config::configure(RosNodeType* node)
   // Raw data file save
   getParam<bool>(node, "raw_file_enable", raw_file_enable_, false);
   getParam<bool>(node, "raw_file_include_support_data", raw_file_include_support_data_, false);
+
+  // NMEA message config
+  getParam<bool>(node, "nmea_message_config", nmea_message_config_, false);
 
   // ROS2 can only fetch double vectors from config, so convert the doubles to floats for the MIP SDK
   for (int i = 0; i < NUM_GNSS; i++)
@@ -363,6 +370,44 @@ bool Config::configure3DM(RosNodeType* node)
       MICROSTRAIN_ERROR(node_, "Could not configure support data even though it was requested. Exiting...");
       return false;
     }
+  }
+  
+  // NMEA Message format
+  if (mip_device_->supportsDescriptor(descriptor_set, mip::commands_3dm::CMD_NMEA_MESSAGE_FORMAT))
+  {
+    if (nmea_message_config_)
+    {
+      // Get the config for each descriptor set
+      std::string sensor_nmea_formats, gnss1_nmea_formats, gnss2_nmea_formats, filter_nmea_formats;
+      getParam<std::string>(node, "imu_nmea_messages", sensor_nmea_formats, "");
+      getParam<std::string>(node, "gnss1_nmea_messages", gnss1_nmea_formats, "");
+      getParam<std::string>(node, "gnss2_nmea_messages", gnss2_nmea_formats, "");
+      getParam<std::string>(node, "filter_nmea_messages", filter_nmea_formats, "");
+
+      // Populate the NMEA message config options
+      std::vector<mip::commands_3dm::NmeaMessage> formats;
+      if (!populateNmeaMessageFormats(sensor_nmea_formats, mip::data_sensor::DESCRIPTOR_SET, &formats) ||
+          !populateNmeaMessageFormats(gnss1_nmea_formats, mip::data_gnss::MIP_GNSS1_DATA_DESC_SET, &formats) ||
+          !populateNmeaMessageFormats(gnss2_nmea_formats, mip::data_gnss::MIP_GNSS2_DATA_DESC_SET, &formats) ||
+          !populateNmeaMessageFormats(filter_nmea_formats, mip::data_filter::DESCRIPTOR_SET, &formats))
+        return false;
+
+      // Send them to the device
+      MICROSTRAIN_INFO(node_, "Sending %lu NMEA message formats to device", formats.size());
+      if (!(mip_cmd_result = mip::commands_3dm::writeNmeaMessageFormat(*mip_device_, formats.size(), formats.data())))
+      {
+        MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to configure NMEA message format");
+        return false;
+      }
+    }
+    else
+    {
+      MICROSTRAIN_INFO(node_, "Not configuring NMEA message format because 'nmea_message_config' is false");
+    }
+  }
+  else
+  {
+    MICROSTRAIN_INFO(node_, "Note: The device does not support the nmea message format command");
   }
 
   return true;
@@ -900,6 +945,181 @@ bool Config::configureHeadingSource(const mip::commands_filter::HeadingSource::S
   {
     MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to set heading source");
     return false;
+  }
+  return true;
+}
+
+bool Config::populateNmeaMessageFormats(const std::string& nmea_messages_config, uint8_t descriptor_set, std::vector<mip::commands_3dm::NmeaMessage>* formats)
+{
+  // Attempt to parse the config as yml
+  YAML::Node nmea_config_yml;
+  try
+  {
+    nmea_config_yml = YAML::Load(nmea_messages_config);
+  }
+  catch (const YAML::Exception& e)
+  {
+    MICROSTRAIN_ERROR(node_, "Encountered error while parsing NMEA messages config YML");
+    MICROSTRAIN_ERROR(node_, "  Error %s", e.what());
+    return false;
+  }
+
+  // Empty config is valid, we just won't do anything
+  if (nmea_config_yml.IsNull())
+    return true;
+
+  // Do some validation on the overall object
+  if (!nmea_config_yml.IsSequence())
+  {
+    MICROSTRAIN_ERROR(node_, "nmea_messages must contain an array of objects");
+    return false;
+  }
+
+  static constexpr uint8_t MAX_NMEA_MESSAGE_FORMATS = 100;
+  if (nmea_config_yml.size() > MAX_NMEA_MESSAGE_FORMATS)
+  {
+    MICROSTRAIN_ERROR(node_, "Nmea message config array contains %lu objects, but can only contain a maximum of %d", nmea_config_yml.size(), MAX_NMEA_MESSAGE_FORMATS);
+    return false;
+  }
+
+  // Loop through each of the config entries
+  for (size_t i = 0; i < nmea_config_yml.size(); i++)
+  {
+    // Get the element in the array
+    const auto& nmea_config_entry = nmea_config_yml[i];
+
+    // Find the possible entries in the object
+    const auto& message_id_yml = nmea_config_entry["message_id"];
+    const auto& talker_id_yml = nmea_config_entry["talker_id"];
+    const auto& data_rate_yml = nmea_config_entry["data_rate"];
+
+    // Do some validation on types and presence of fields
+    bool valid_entry = true;
+    if (!message_id_yml || !data_rate_yml.IsScalar())
+    {
+      MICROSTRAIN_ERROR(node_, "'message_id' must be present and of type 'string' or 'number'");
+      valid_entry = false;
+    }
+    if (!data_rate_yml.IsScalar())
+    {
+      MICROSTRAIN_ERROR(node_, "'talker_id' must be of type 'string' or 'number'");
+      valid_entry = false;
+    }
+    if (!data_rate_yml || !data_rate_yml.IsScalar())
+    {
+      MICROSTRAIN_ERROR(node_, "'data_rate' must be present and of type 'number'");
+      valid_entry = false;
+    }
+    if (!valid_entry)
+    {
+      YAML::Emitter nmea_config_entry_emitter;
+      nmea_config_entry_emitter << nmea_config_entry;
+      MICROSTRAIN_ERROR(node_, "Invalid NMEA message entry:\n%s", nmea_config_entry_emitter.c_str());
+      return false;
+    }
+
+    // Looks like this is a valid entry yml object, so let's extract the data
+    mip::commands_3dm::NmeaMessage format;
+    format.source_desc_set = descriptor_set;
+
+    // Just in case the type is invalid
+    int32_t data_rate;
+    try
+    {
+      data_rate = data_rate_yml.as<int32_t>();
+      format.decimation = mip_device_->getDecimationFromHertz(descriptor_set, data_rate);
+    }
+    catch (const YAML::TypedBadConversion<int32_t>& t)
+    {
+      MICROSTRAIN_ERROR(node_, "Type exception parsing 'data_rate'");
+      MICROSTRAIN_ERROR(node_, "  Error: %s", t.what());
+      return false;
+    }
+
+    // We accept string or number types for the message and talker IDs, so parse those out
+    // Really annoying how yaml-cpp does this, so we need to try catch to determine the types
+    try
+    {
+      format.message_id = static_cast<mip::commands_3dm::NmeaMessage::MessageID>(message_id_yml.as<uint8_t>());
+    }
+    catch (const YAML::TypedBadConversion<uint8_t>&)  // Bad conversion should mean the type is a string
+    {
+      try
+      {
+        // Lookup what the message id string represents
+        std::string message_id_string = message_id_yml.as<std::string>();
+        std::transform(message_id_string.begin(), message_id_string.end(), message_id_string.begin(), ::toupper);
+        if (MipMapping::nmea_message_string_message_id_mapping_.find(message_id_string) == MipMapping::nmea_message_string_message_id_mapping_.end())
+        {
+          MICROSTRAIN_ERROR(node_, "Invalid 'message_id': %s", message_id_string.c_str());
+          return false;
+        }
+        format.message_id = MipMapping::nmea_message_string_message_id_mapping_.at(message_id_string);
+      }
+      catch (const YAML::TypedBadConversion<std::string>& t)
+      {
+        MICROSTRAIN_ERROR(node_, "Type exception parsing 'message_id'");
+        MICROSTRAIN_ERROR(node_, "  Error: %s", t.what());
+        return false;
+      }
+    }
+
+    // Talker ID is optional
+    if (talker_id_yml)
+    {
+      try
+      {
+        format.talker_id = static_cast<mip::commands_3dm::NmeaMessage::TalkerID>(talker_id_yml.as<uint8_t>());
+      }
+      catch (const YAML::TypedBadConversion<uint8_t>&)  // Bad conversion should mean the type is a string
+      {
+        try
+        {
+          // Lookup what the talker ID string represents
+          std::string talker_id_string = talker_id_yml.as<std::string>();
+          std::transform(talker_id_string.begin(), talker_id_string.end(), talker_id_string.begin(), ::toupper);
+          if (MipMapping::nmea_message_string_talker_id_mapping_.find(talker_id_string) == MipMapping::nmea_message_string_talker_id_mapping_.end())
+          {
+            MICROSTRAIN_ERROR(node_, "Invalid 'talker_id': %s", talker_id_string.c_str());
+            return false;
+          }
+          format.talker_id = MipMapping::nmea_message_string_talker_id_mapping_.at(talker_id_string);
+        }
+        catch (const YAML::TypedBadConversion<std::string>& t)
+        {
+          MICROSTRAIN_ERROR(node_, "Type exception parsing 'message_id'");
+          MICROSTRAIN_ERROR(node_, "  Error: %s", t.what());
+          return false;
+        }
+      }
+    }
+
+    if (talker_id_yml)
+    {
+      MICROSTRAIN_DEBUG(node_, "Streaming NMEA sentence '%s' with talker ID: '%s' from the '%s' descriptor set to stream at %d hz",
+        MipMapping::nmeaFormatMessageIdString(format.message_id).c_str(),
+        MipMapping::nmeaFormatTalkerIdString(format.talker_id).c_str(),
+        MipMapping::descriptorSetString(descriptor_set).c_str(),
+        data_rate);
+    }
+    else
+    {
+      MICROSTRAIN_DEBUG(node_, "Streaming NMEA sentence '%s' with no talker ID from the '%s' descriptor set to stream at %d hz",
+        MipMapping::nmeaFormatMessageIdString(format.message_id).c_str(),
+        MipMapping::descriptorSetString(descriptor_set).c_str(),
+        data_rate);
+    }
+
+    // If the data rate is 0, we can just not add the structure to the vector
+    if (data_rate != 0)
+    {
+      // Save the data rate if it is the highest one
+      if (data_rate > nmea_max_rate_hz_)
+        nmea_max_rate_hz_ = data_rate;
+
+      // Should finally have the fully formed struct, so add it to the vector
+      formats->push_back(format);
+    }
   }
   return true;
 }

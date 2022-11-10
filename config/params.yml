@@ -388,3 +388,80 @@ filter_gnss_antenna_cal_max_offset : 0.1
 #    3 - GPIO (provided by external source if supported). Use the GPIO config above to further configure
 #    4 - Generated from system oscillator
 filter_pps_source : 1
+
+# (GQ7 only) NMEA message format
+# Note: Some of the configurations below do not have a "talker_id" option. This means that the talker_id will be ignored if specified.
+#       For the options that do have a talker_id, the talker_id can be specified as: GNSS, GPS, GALILEO, GLONASS
+nmea_message_config: False
+
+# NMEA messages in the sensor (IMU) descriptor set
+# In order to enable, set nmea_message_config to true, and then change the 'data_rate' of the sentences you want to the desired rate in hertz
+imu_nmea_messages: |  # This | symbol is extremely important. If it is removed, the node will fail to start
+  - message_id: "PRKR"
+    data_rate: 0
+
+# NMEA messages in the GNSS1 descriptor set
+# In order to enable, set nmea_message_config to true, and then change the 'data_rate' of the sentences you want to the desired rate in hertz
+gnss1_nmea_messages: |  # This | symbol is extremely important. If it is removed, the node will fail to start
+  - message_id: "GGA"
+    talker_id: "GNSS"
+    data_rate: 0
+  - message_id: "GLL"
+    talker_id: "GNSS"
+    data_rate: 0
+  - message_id: "GSV"
+    data_rate: 0
+  - message_id: "RMC"
+    talker_id: "GNSS"
+    data_rate: 0
+  - message_id: "VTG"
+    talker_id: "GNSS"
+    data_rate: 0
+  - message_id: "HDT"
+    talker_id: "GNSS"
+    data_rate: 0
+  - message_id: "ZDA"
+    talker_id: "GNSS"
+    data_rate: 0
+
+# NMEA messages in the GNSS2 descriptor set
+# In order to enable, set nmea_message_config to true, and then change the 'data_rate' of the sentences you want to the desired rate in hertz
+gnss2_nmea_messages: |  # This | symbol is extremely important. If it is removed, the node will fail to start
+  - message_id: "GGA"
+    talker_id: "GNSS"
+    data_rate: 0
+  - message_id: "GLL"
+    talker_id: "GNSS"
+    data_rate: 0
+  - message_id: "GSV"
+    data_rate: 0
+  - message_id: "RMC"
+    talker_id: "GNSS"
+    data_rate: 0
+  - message_id: "VTG"
+    talker_id: "GNSS"
+    data_rate: 0
+  - message_id: "HDT"
+    talker_id: "GNSS"
+    data_rate: 0
+  - message_id: "ZDA"
+    talker_id: "GNSS"
+    data_rate: 0
+
+# NMEA messages in the filter descriptor set
+# In order to enable, set nmea_message_config to true, and then change the 'data_rate' of the sentences you want to the desired rate in hertz
+filter_nmea_messages: |  # This | symbol is extremely important. If it is removed, the node will fail to start
+  - message_id: "GGA"
+    talker_id: "GNSS"
+    data_rate: 0
+  - message_id: "GLL"
+    talker_id: "GNSS"
+    data_rate: 0
+  - message_id: "RMC"
+    talker_id: "GNSS"
+    data_rate: 0
+  - message_id: "HDT"
+    talker_id: "GNSS"
+    data_rate: 0
+  - message_id: "PRKA"
+    data_rate: 0

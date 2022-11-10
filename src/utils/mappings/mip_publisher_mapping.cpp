@@ -108,6 +108,13 @@ bool MipPublisherMapping::configure(RosNodeType* config_node)
         streamed_descriptors_mapping_[descriptor_set] = {};
       auto& descriptor_rates = streamed_descriptors_mapping_[descriptor_set];
 
+      // If the data rate is 0, do not stream any data
+      if (topic_info.data_rate == 0)
+      {
+        MICROSTRAIN_DEBUG(node_, "Not configuring descriptor 0x%02x%02x to stream because it's data rate is set to 0", descriptor_set, field_descriptor);
+        continue;
+      }
+
       // If the channel has already been added, just update the rate of the existing entry
       auto existing_descriptor_rate = std::find_if(descriptor_rates.begin(), descriptor_rates.end(), [field_descriptor](const mip::DescriptorRate& d)
       {

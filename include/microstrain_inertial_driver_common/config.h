@@ -136,6 +136,10 @@ public:
   std::ofstream raw_file_;
   std::ofstream raw_file_aux_;
 
+  // NMEA streaming parameters
+  bool nmea_message_config_;
+  int32_t nmea_max_rate_hz_;
+
 private:
   /**
    * \brief Connects to the inertial device and sets up communication
@@ -193,6 +197,11 @@ private:
    * \return true if the configuration was successful or unsupported, false if the configuration failed
    */
   bool configureHeadingSource(const mip::commands_filter::HeadingSource::Source heading_source);
+
+  /**
+   * 
+   */
+  bool populateNmeaMessageFormats(const std::string& nmea_messages_config, uint8_t descriptor_set, std::vector<mip::commands_3dm::NmeaMessage>* formats);
 
   // Handle to the ROS node
   RosNodeType* node_;

@@ -265,7 +265,8 @@ bool NodeCommon::configure(RosNodeType* config_node)
   }
 
   // Determine loop rate as 2*(max update rate), but abs. max of 1kHz
-  timer_update_rate_hz_ = std::min(2 * config_.mip_publisher_mapping_->getMaxDataRate(), 1000);
+  const int max_rate = std::max({config_.nmea_max_rate_hz_, config_.mip_publisher_mapping_->getMaxDataRate()});
+  timer_update_rate_hz_ = std::min(2 * max_rate, 1000);
   if (timer_update_rate_hz_ <= 0)
     timer_update_rate_hz_ = 1.0;
   MICROSTRAIN_INFO(node_, "Setting spin rate to <%f> hz", timer_update_rate_hz_);

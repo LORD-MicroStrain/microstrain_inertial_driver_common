@@ -17,6 +17,8 @@
 #include <memory>
 #include <vector>
 
+#include "mip/mip_all.hpp"
+
 namespace microstrain
 {
 
@@ -80,6 +82,25 @@ class FieldWrapperType : public FieldWrapper
   {
     return std::make_shared<FieldWrapperType<DataType, DescriptorSet>>();
   }
+};
+
+/**
+ * Generic container to hold any mappings related to MIP, the MIP SDK, or anything of that type
+ */
+class MipMapping
+{
+ public:
+  static constexpr auto INVALID_STRING = "Invalid";
+
+  static std::string descriptorSetString(uint8_t descriptor_set);
+
+  static std::string nmeaFormatMessageIdString(mip::commands_3dm::NmeaMessage::MessageID message_id);
+  static std::string nmeaFormatTalkerIdString(mip::commands_3dm::NmeaMessage::TalkerID talker_id);
+
+  static const std::map<uint8_t, std::string> descriptor_set_string_mapping_;  /// Mapping between descriptor sets and their string names
+
+  static const std::map<std::string, mip::commands_3dm::NmeaMessage::MessageID> nmea_message_string_message_id_mapping_;  /// Mapping between the string representation of the NMEA message IDs and their actual enum values
+  static const std::map<std::string, mip::commands_3dm::NmeaMessage::TalkerID> nmea_message_string_talker_id_mapping_;  /// Mapping between the string representation of the NMEA talker IDs and their actual enum values
 };
 
 }  // namespace microstrain

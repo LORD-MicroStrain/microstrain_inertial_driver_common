@@ -290,7 +290,7 @@ uint16_t RosMipDeviceMain::getDecimationFromHertz(const uint8_t descriptor_set, 
     if (!(result = updateBaseRate(descriptor_set)))
       throw std::runtime_error(std::string("MIP Error") + "(" + std::to_string(result.value) + "): " + result.name());
 
-  return base_rates_[descriptor_set] / hertz;
+  return hertz != 0 ? base_rates_[descriptor_set] / hertz : 0;
 }
 
 }  // namespace microstrain
