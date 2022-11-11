@@ -137,7 +137,7 @@ public:
   std::ofstream raw_file_aux_;
 
   // NMEA streaming parameters
-  int32_t nmea_max_rate_hz_;
+  float nmea_max_rate_hz_;
 
 private:
   /**

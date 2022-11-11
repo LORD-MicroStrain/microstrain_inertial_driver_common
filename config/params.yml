@@ -394,7 +394,8 @@ filter_gnss_antenna_cal_max_offset : 0.1
 filter_pps_source : 1
 
 # (GQ7 only) NMEA message format
-# Note: Some of the configurations below do not have a "talker_id" option. This means that the talker_id will be ignored if specified.
+# Note: Some of the configurations below do not have a "talker_id" option.
+#       This means that talker_id should not be speficied for those message_ids. If it is, configuration will fail.
 #       For the options that do have a talker_id, the talker_id can be specified as: GNSS, GPS, GALILEO, GLONASS
 nmea_message_config: False
 

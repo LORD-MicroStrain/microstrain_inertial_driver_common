@@ -282,7 +282,18 @@ bool RosMipDeviceMain::supportsDescriptor(const uint8_t descriptor_set, const ui
   return std::find(supported_descriptors_.begin(), supported_descriptors_.end(), full_descriptor) != supported_descriptors_.end();
 }
 
-uint16_t RosMipDeviceMain::getDecimationFromHertz(const uint8_t descriptor_set, const uint16_t hertz)
+uint16_t RosMipDeviceMain::getDecimationFromHertz(const uint8_t descriptor_set, const int32_t hertz)
+{
+  // Update the base rate if we don't have it yet
+  mip::CmdResult result;
+  if (base_rates_.find(descriptor_set) == base_rates_.end())
+    if (!(result = updateBaseRate(descriptor_set)))
+      throw std::runtime_error(std::string("MIP Error") + "(" + std::to_string(result.value) + "): " + result.name());
+
+  return hertz != 0 ? base_rates_[descriptor_set] / hertz : 0;
+}
+
+uint16_t RosMipDeviceMain::getDecimationFromHertz(const uint8_t descriptor_set, const float hertz)
 {
   // Update the base rate if we don't have it yet
   mip::CmdResult result;

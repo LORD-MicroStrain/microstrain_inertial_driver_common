@@ -282,6 +282,7 @@ bool Config::configure3DM(RosNodeType* node)
   float hardware_odometer_scaling;
   float hardware_odometer_uncertainty;
   getParam<bool>(node, "gpio_config", gpio_config, false);
+  getParam<bool>(node, "nmea_message_config", nmea_message_config, false);
   getParam<int32_t>(node, "filter_pps_source", filter_pps_source, 1);
   getParam<float>(node, "odometer_scaling", hardware_odometer_scaling, 0.0);
   getParam<float>(node, "odometer_uncertainty", hardware_odometer_uncertainty, 0.0);
@@ -1037,13 +1038,13 @@ bool Config::populateNmeaMessageFormats(const std::string& nmea_messages_config,
     format.source_desc_set = descriptor_set;
 
     // Just in case the type is invalid
-    int32_t data_rate;
+    float data_rate;
     try
     {
-      data_rate = data_rate_yml.as<int32_t>();
+      data_rate = data_rate_yml.as<float>();
       format.decimation = mip_device_->getDecimationFromHertz(descriptor_set, data_rate);
     }
-    catch (const YAML::TypedBadConversion<int32_t>& t)
+    catch (const YAML::TypedBadConversion<float>& t)
     {
       MICROSTRAIN_ERROR(node_, "Type exception parsing 'data_rate'");
       MICROSTRAIN_ERROR(node_, "  Error: %s", t.what());
@@ -1110,7 +1111,7 @@ bool Config::populateNmeaMessageFormats(const std::string& nmea_messages_config,
 
     if (talker_id_yml)
     {
-      MICROSTRAIN_DEBUG(node_, "Streaming NMEA sentence '%s' with talker ID: '%s' from the '%s' descriptor set to stream at %d hz",
+      MICROSTRAIN_DEBUG(node_, "Streaming NMEA sentence '%s' with talker ID: '%s' from the '%s' descriptor set to stream at %.04f hz",
         MipMapping::nmeaFormatMessageIdString(format.message_id).c_str(),
         MipMapping::nmeaFormatTalkerIdString(format.talker_id).c_str(),
         MipMapping::descriptorSetString(descriptor_set).c_str(),
@@ -1118,7 +1119,7 @@ bool Config::populateNmeaMessageFormats(const std::string& nmea_messages_config,
     }
     else
     {
-      MICROSTRAIN_DEBUG(node_, "Streaming NMEA sentence '%s' with no talker ID from the '%s' descriptor set to stream at %d hz",
+      MICROSTRAIN_DEBUG(node_, "Streaming NMEA sentence '%s' with no talker ID from the '%s' descriptor set to stream at %.04f hz",
         MipMapping::nmeaFormatMessageIdString(format.message_id).c_str(),
         MipMapping::descriptorSetString(descriptor_set).c_str(),
         data_rate);
