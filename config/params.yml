@@ -163,7 +163,11 @@ rtk_status_data_rate : 1  # Rate of rtk/status or rtk/status_v1 topics
 subscribe_rtcm : False
 rtcm_topic     : "/rtcm"
 
-# (GQ7 Only) Send NMEA sentences from the aux port out on a ROS topic
+# (GQ7 Only) Send NMEA sentences out on a ROS topic
+# Note: Prior to version 3.0.0, this would only publish NMEA sentences from the aux port.
+#       This option may now be used to publish NMEA sentences from the main port as well.
+# Note: If the main port is configured to stream NMEA sentences, and the aux port is also connected,
+#       this will publish NMEA sentences from both the main and aux port on the same topic.
 publish_nmea   : False
 
 # ****************************************************************** 
@@ -395,13 +399,15 @@ filter_pps_source : 1
 nmea_message_config: False
 
 # NMEA messages in the sensor (IMU) descriptor set
-# In order to enable, set nmea_message_config to true, and then change the 'data_rate' of the sentences you want to the desired rate in hertz
+# In order to enable a message, set nmea_message_config to true, and then change the 'data_rate' of the sentences you want to the desired rate in hertz
+# Note: In order to publish, 'publish_nmea' must also be set to True
 imu_nmea_messages: |  # This | symbol is extremely important. If it is removed, the node will fail to start
   - message_id: "PRKR"
     data_rate: 0
 
 # NMEA messages in the GNSS1 descriptor set
-# In order to enable, set nmea_message_config to true, and then change the 'data_rate' of the sentences you want to the desired rate in hertz
+# In order to enable a message, set nmea_message_config to true, and then change the 'data_rate' of the sentences you want to the desired rate in hertz
+# Note: In order to publish, 'publish_nmea' must also be set to True
 gnss1_nmea_messages: |  # This | symbol is extremely important. If it is removed, the node will fail to start
   - message_id: "GGA"
     talker_id: "GNSS"
@@ -425,7 +431,8 @@ gnss1_nmea_messages: |  # This | symbol is extremely important. If it is removed
     data_rate: 0
 
 # NMEA messages in the GNSS2 descriptor set
-# In order to enable, set nmea_message_config to true, and then change the 'data_rate' of the sentences you want to the desired rate in hertz
+# In order to enable a message, set nmea_message_config to true, and then change the 'data_rate' of the sentences you want to the desired rate in hertz
+# Note: In order to publish, 'publish_nmea' must also be set to True
 gnss2_nmea_messages: |  # This | symbol is extremely important. If it is removed, the node will fail to start
   - message_id: "GGA"
     talker_id: "GNSS"
@@ -449,7 +456,8 @@ gnss2_nmea_messages: |  # This | symbol is extremely important. If it is removed
     data_rate: 0
 
 # NMEA messages in the filter descriptor set
-# In order to enable, set nmea_message_config to true, and then change the 'data_rate' of the sentences you want to the desired rate in hertz
+# In order to enable a message, set nmea_message_config to true, and then change the 'data_rate' of the sentences you want to the desired rate in hertz
+# Note: In order to publish, 'publish_nmea' must also be set to True
 filter_nmea_messages: |  # This | symbol is extremely important. If it is removed, the node will fail to start
   - message_id: "GGA"
     talker_id: "GNSS"

@@ -123,9 +123,6 @@ bool Config::configure(RosNodeType* node)
   getParam<bool>(node, "raw_file_enable", raw_file_enable_, false);
   getParam<bool>(node, "raw_file_include_support_data", raw_file_include_support_data_, false);
 
-  // NMEA message config
-  getParam<bool>(node, "nmea_message_config", nmea_message_config_, false);
-
   // ROS2 can only fetch double vectors from config, so convert the doubles to floats for the MIP SDK
   for (int i = 0; i < NUM_GNSS; i++)
     gnss_antenna_offset_[i] = std::vector<float>(gnss_antenna_offset_double[i].begin(), gnss_antenna_offset_double[i].end());
@@ -160,7 +157,19 @@ bool Config::connectDevice(RosNodeType* node)
     {
       aux_device_ = std::make_shared<RosMipDeviceAux>(node_);
       if (!aux_device_->configure(node))
-        return false;
+      {
+        // Only return an error if we were expected to subscribe to RTCM.
+        if (subscribe_rtcm_)
+        {
+          return false;
+        }
+        else
+        {
+          MICROSTRAIN_WARN(node_, "Failed to open aux port, but we were not asked to subscribe to RTCM corrections, so this is not a fatal error");
+          MICROSTRAIN_WARN(node_, "  Note: We will not publish any NMEA sentences from the aux port.");
+          aux_device_ = nullptr;
+        }
+      }
     }
     else
     {
@@ -170,10 +179,14 @@ bool Config::connectDevice(RosNodeType* node)
   else
   {
     MICROSTRAIN_INFO(node_, "Note: Not opening aux port because RTK dongle enable was not set to true.");
-    if (subscribe_rtcm_ || publish_nmea_)
+    if (subscribe_rtcm_)
     {
-      MICROSTRAIN_ERROR(node_, "Invalid configuration. In order to publish NMEA or subscribe to RTCM, 'rtk_dongle_enable' must be set to true");
+      MICROSTRAIN_ERROR(node_, "Invalid configuration. In order to subscribe to RTCM, 'rtk_dongle_enable' must be set to true");
       return false;
+    }
+    else if (publish_nmea_)
+    {
+      MICROSTRAIN_INFO(node_, "Note: Not publishing NMEA from aux port despite 'publish_nmea' being set to true since 'rtk_donble_enable' is false");
     }
   }
   return true;
@@ -264,6 +277,7 @@ bool Config::configure3DM(RosNodeType* node)
 {
   // Read local config
   bool gpio_config;
+  bool nmea_message_config;
   int filter_pps_source;
   float hardware_odometer_scaling;
   float hardware_odometer_uncertainty;
@@ -375,7 +389,7 @@ bool Config::configure3DM(RosNodeType* node)
   // NMEA Message format
   if (mip_device_->supportsDescriptor(descriptor_set, mip::commands_3dm::CMD_NMEA_MESSAGE_FORMAT))
   {
-    if (nmea_message_config_)
+    if (nmea_message_config)
     {
       // Get the config for each descriptor set
       std::string sensor_nmea_formats, gnss1_nmea_formats, gnss2_nmea_formats, filter_nmea_formats;

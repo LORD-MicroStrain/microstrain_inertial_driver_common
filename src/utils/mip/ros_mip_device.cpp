@@ -47,6 +47,10 @@ bool RosMipDevice::recv(uint8_t* data, size_t data_len, size_t* out_len)
   return connection_->recvFromDevice(data, data_len, 0, out_len, &timestamp);
 }
 
+std::vector<NMEASentenceMsg> RosMipDevice::nmeaMsgs()
+{
+  return connection_->nmeaMsgs();
+}
 
 mip::CmdResult RosMipDevice::getDeviceInfo(::mip::commands_base::BaseDeviceInfo* device_info)
 {
