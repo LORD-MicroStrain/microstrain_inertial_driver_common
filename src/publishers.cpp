@@ -150,6 +150,8 @@ bool Publishers::activate()
   filter_relative_odom_pub_->activate();
   filter_imu_pub_->activate();
   gnss_dual_antenna_status_pub_->activate();
+
+  nmea_sentence_pub_->activate();
   return true;
 }
 
