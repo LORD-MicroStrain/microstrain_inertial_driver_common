@@ -386,7 +386,7 @@ bool Config::configure3DM(RosNodeType* node)
       return false;
     }
   }
-  
+
   // NMEA Message format
   if (mip_device_->supportsDescriptor(descriptor_set, mip::commands_3dm::CMD_NMEA_MESSAGE_FORMAT))
   {

@@ -12,10 +12,12 @@
 #ifndef MICROSTRAIN_INERTIAL_DRIVER_COMMON_UTILS_MAPPINGS_MIP_MAPPING_H_
 #define MICROSTRAIN_INERTIAL_DRIVER_COMMON_UTILS_MAPPINGS_MIP_MAPPING_H_
 
-#include <stdint.h>
-
+#include <map>
+#include <string>
 #include <memory>
 #include <vector>
+
+#include <stdint.h>
 
 #include "mip/mip_all.hpp"
 

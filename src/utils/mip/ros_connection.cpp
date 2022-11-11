@@ -10,6 +10,7 @@
 
 #include <sys/stat.h>
 
+#include <vector>
 #include <chrono>
 #include <string>
 #include <memory>

@@ -12,6 +12,7 @@
 #ifndef MICROSTRAIN_INERTIAL_DRIVER_COMMON_UTILS_MIP_ROS_CONNECTION_H
 #define MICROSTRAIN_INERTIAL_DRIVER_COMMON_UTILS_MIP_ROS_CONNECTION_H
 
+#include <vector>
 #include <string>
 #include <memory>
 #include <fstream>
@@ -78,7 +79,6 @@ class RosConnection : public mip::Connection
   bool recvFromDevice(uint8_t* buffer, size_t max_length, mip::Timeout timeout, size_t* count_out, mip::Timestamp* timestamp_out) final;
 
  private:
-
   /**
    * \brief Extracts NMEA data from a byte array
    * \param data  Raw bytes that may contain a NMEA sentence
