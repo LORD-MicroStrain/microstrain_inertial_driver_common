@@ -82,10 +82,23 @@ const std::map<std::string, mip::commands_3dm::NmeaMessage::MessageID> MipMappin
 
 const std::map<std::string, mip::commands_3dm::NmeaMessage::TalkerID> MipMapping::nmea_message_string_talker_id_mapping_ =
 {
-  {"GNSS",    mip::commands_3dm::NmeaMessage::TalkerID::GNSS},
-  {"GPS",     mip::commands_3dm::NmeaMessage::TalkerID::GPS},
-  {"GALILEO", mip::commands_3dm::NmeaMessage::TalkerID::GALILEO},
-  {"GLONASS", mip::commands_3dm::NmeaMessage::TalkerID::GLONASS},
+  {"GN", mip::commands_3dm::NmeaMessage::TalkerID::GNSS},
+  {"GP", mip::commands_3dm::NmeaMessage::TalkerID::GPS},
+  {"GA", mip::commands_3dm::NmeaMessage::TalkerID::GALILEO},
+  {"GL", mip::commands_3dm::NmeaMessage::TalkerID::GLONASS},
+};
+
+const std::map<mip::commands_3dm::NmeaMessage::MessageID, bool> MipMapping::nmea_message_id_requires_talker_id_mapping_ =
+{
+  {mip::commands_3dm::NmeaMessage::MessageID::GGA,  true},
+  {mip::commands_3dm::NmeaMessage::MessageID::GLL,  true},
+  {mip::commands_3dm::NmeaMessage::MessageID::GSV,  false},
+  {mip::commands_3dm::NmeaMessage::MessageID::RMC,  true},
+  {mip::commands_3dm::NmeaMessage::MessageID::VTG,  true},
+  {mip::commands_3dm::NmeaMessage::MessageID::HDT,  true},
+  {mip::commands_3dm::NmeaMessage::MessageID::ZDA,  true},
+  {mip::commands_3dm::NmeaMessage::MessageID::PRKA, false},
+  {mip::commands_3dm::NmeaMessage::MessageID::PRKR, false},
 };
 
 }  // namespace microstrain

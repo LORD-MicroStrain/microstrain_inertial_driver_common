@@ -137,6 +137,7 @@ public:
   std::ofstream raw_file_aux_;
 
   // NMEA streaming parameters
+  bool nmea_message_allow_duplicate_talker_ids_;
   float nmea_max_rate_hz_;
 
 private:
@@ -198,9 +199,16 @@ private:
   bool configureHeadingSource(const mip::commands_filter::HeadingSource::Source heading_source);
 
   /**
-   * 
+   * \brief Populates a NMEA message format object with configuration from ROS
+   * \param config_node  The ROS node that contains configuration information
+   * \param data_rate_key  The key to fetch from the config object for the data rate for this sentence
+   * \param talker_id  String representation of the talker ID to use for this sentence
+   * \param descriptor_set  The descriptor set to stream this NMEA sentence from
+   * \param message_id  The type of NMEA message to stream
+   * \param formats  List of NMEA Message formats to append to
+   * \return true if the object was able to be populated properly, false if the object was not able to be populated
    */
-  bool populateNmeaMessageFormats(const std::string& nmea_messages_config, uint8_t descriptor_set, std::vector<mip::commands_3dm::NmeaMessage>* formats);
+  bool populateNmeaMessageFormat(RosNodeType* config_node, const std::string& data_rate_key, const std::string& talker_id, uint8_t descriptor_set, mip::commands_3dm::NmeaMessage::MessageID message_id, std::vector<mip::commands_3dm::NmeaMessage>* formats);
 
   // Handle to the ROS node
   RosNodeType* node_;

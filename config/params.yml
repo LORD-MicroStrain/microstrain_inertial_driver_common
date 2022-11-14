@@ -393,84 +393,63 @@ filter_gnss_antenna_cal_max_offset : 0.1
 #    4 - Generated from system oscillator
 filter_pps_source : 1
 
-# (GQ7 only) NMEA message format
-# Note: Some of the configurations below do not have a "talker_id" option.
-#       This means that talker_id should not be speficied for those message_ids. If it is, configuration will fail.
-#       For the options that do have a talker_id, the talker_id can be specified as: GNSS, GPS, GALILEO, GLONASS
+# (GQ7 only) NMEA message format. If set to false, all NMEA message configuration will not have any affect
 nmea_message_config: False
+
+# Allow NMEA messages with the same talker IDs on different descriptor sets.
+# In most cases, this should be set to False, as multiple messages of the same type with the same talker ID from a different descriptor set could cause confusion when parsing.
+nmea_message_allow_duplicate_talker_ids: False
 
 # NMEA messages in the sensor (IMU) descriptor set
 # In order to enable a message, set nmea_message_config to true, and then change the 'data_rate' of the sentences you want to the desired rate in hertz
 # Note: In order to publish, 'publish_nmea' must also be set to True
-imu_nmea_messages: |  # This | symbol is extremely important. If it is removed, the node will fail to start
-  - message_id: "PRKR"
-    data_rate: 0
+imu_nmea_prkr_data_rate: 0
 
 # NMEA messages in the GNSS1 descriptor set
 # In order to enable a message, set nmea_message_config to true, and then change the 'data_rate' of the sentences you want to the desired rate in hertz
+#
 # Note: In order to publish, 'publish_nmea' must also be set to True
-gnss1_nmea_messages: |  # This | symbol is extremely important. If it is removed, the node will fail to start
-  - message_id: "GGA"
-    talker_id: "GNSS"
-    data_rate: 0
-  - message_id: "GLL"
-    talker_id: "GNSS"
-    data_rate: 0
-  - message_id: "GSV"
-    data_rate: 0
-  - message_id: "RMC"
-    talker_id: "GNSS"
-    data_rate: 0
-  - message_id: "VTG"
-    talker_id: "GNSS"
-    data_rate: 0
-  - message_id: "HDT"
-    talker_id: "GNSS"
-    data_rate: 0
-  - message_id: "ZDA"
-    talker_id: "GNSS"
-    data_rate: 0
+#
+# Note: gnss1_nmea_talker_id can be any of: GN, GP, GA, or GL.
+#       The purpose of the talker ID is to differentiate when the same message_id comes from different descriptor sets.
+#       The gnss1_nmea_talker_id will be applied to all NMEA messages from the GNSS1 descriptor set
+gnss1_nmea_talker_id: "GN"
+gnss1_nmea_gga_data_rate: 0
+gnss1_nmea_gll_data_rate: 0
+gnss1_nmea_gsv_data_rate: 0  # Note that this message_id will not use the gnss1_talker_id since the talker ID will come from the actual constellation the message originates from
+gnss1_nmea_rmc_data_rate: 0
+gnss1_nmea_vtg_data_rate: 0
+gnss1_nmea_hdt_data_rate: 0
+gnss1_nmea_zda_data_rate: 0
 
 # NMEA messages in the GNSS2 descriptor set
 # In order to enable a message, set nmea_message_config to true, and then change the 'data_rate' of the sentences you want to the desired rate in hertz
+#
 # Note: In order to publish, 'publish_nmea' must also be set to True
-gnss2_nmea_messages: |  # This | symbol is extremely important. If it is removed, the node will fail to start
-  - message_id: "GGA"
-    talker_id: "GNSS"
-    data_rate: 0
-  - message_id: "GLL"
-    talker_id: "GNSS"
-    data_rate: 0
-  - message_id: "GSV"
-    data_rate: 0
-  - message_id: "RMC"
-    talker_id: "GNSS"
-    data_rate: 0
-  - message_id: "VTG"
-    talker_id: "GNSS"
-    data_rate: 0
-  - message_id: "HDT"
-    talker_id: "GNSS"
-    data_rate: 0
-  - message_id: "ZDA"
-    talker_id: "GNSS"
-    data_rate: 0
+#
+# Note: gnss2_nmea_talker_id can be any of: GN, GP, GA, or GL.
+#       The purpose of the talker ID is to differentiate when the same message_id comes from different descriptor sets.
+#       The gnss2_nmea_talker_id will be applied to all NMEA messages from the GNSS2 descriptor set
+gnss2_nmea_talker_id: "GP"
+gnss2_nmea_gga_data_rate: 0
+gnss2_nmea_gll_data_rate: 0
+gnss2_nmea_gsv_data_rate: 0  # Note that this message_id will not use the gnss1_talker_id since the talker ID will come from the actual constellation the message originates from
+gnss2_nmea_rmc_data_rate: 0
+gnss2_nmea_vtg_data_rate: 0
+gnss2_nmea_hdt_data_rate: 0
+gnss2_nmea_zda_data_rate: 0
 
 # NMEA messages in the filter descriptor set
 # In order to enable a message, set nmea_message_config to true, and then change the 'data_rate' of the sentences you want to the desired rate in hertz
+#
 # Note: In order to publish, 'publish_nmea' must also be set to True
-filter_nmea_messages: |  # This | symbol is extremely important. If it is removed, the node will fail to start
-  - message_id: "GGA"
-    talker_id: "GNSS"
-    data_rate: 0
-  - message_id: "GLL"
-    talker_id: "GNSS"
-    data_rate: 0
-  - message_id: "RMC"
-    talker_id: "GNSS"
-    data_rate: 0
-  - message_id: "HDT"
-    talker_id: "GNSS"
-    data_rate: 0
-  - message_id: "PRKA"
-    data_rate: 0
+#
+# Note: filter_nmea_talker_id can be any of: GN, GP, GA, or GL.
+#       The purpose of the talker ID is to differentiate when the same message_id comes from different descriptor sets.
+#       The filter_nmea_talker_id will be applied to all NMEA messages from the filter descriptor set
+filter_nmea_talker_id: "GA"
+filter_nmea_gga_data_rate: 0
+filter_nmea_gll_data_rate: 0
+filter_nmea_rmc_data_rate: 0
+filter_nmea_hdt_data_rate: 0
+filter_nmea_prka_data_rate: 0  # Note that this message_id will not have any talker ID on it since it is proprietary and can only come from the filter descriptor set
