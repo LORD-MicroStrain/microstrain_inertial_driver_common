@@ -259,6 +259,9 @@ filter_external_speed_topic : "/external_speed"
 #      If set to true, the velocity will be reported in the vehicle frame
 filter_vel_in_vehicle_frame : True
 
+# (GQ7 Only) Reference point lever arm offset control.
+filter_lever_arm_offset: [0.0, 0.0, 0.0]
+
 # (GQ7 Only) Hardware Odometer Control
 enable_hardware_odometer : False
 odometer_scaling         : 0.0

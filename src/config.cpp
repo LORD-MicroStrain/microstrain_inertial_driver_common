@@ -421,6 +421,7 @@ bool Config::configureFilter(RosNodeType* node)
   std::vector<double> filter_relative_position_ref_double(3, 0.0);
   std::vector<double> filter_speed_lever_arm_double(3, 0.0);
   double filter_gnss_antenna_cal_max_offset;
+  std::vector<double> filter_lever_arm_offset_double(3, 0.0);
   getParam<int32_t>(node, "filter_adaptive_level", filter_adaptive_level, 2);
   getParam<int32_t>(node, "filter_adaptive_time_limit_ms", filter_adaptive_time_limit_ms, 15000);
   getParam<int32_t>(node, "filter_init_condition_src", filter_init_condition_src, 0);
@@ -433,6 +434,7 @@ bool Config::configureFilter(RosNodeType* node)
   getParam<std::vector<double>>(node, "filter_relative_position_ref", filter_relative_position_ref_double, DEFAULT_VECTOR);
   getParam<std::vector<double>>(node, "filter_speed_lever_arm", filter_speed_lever_arm_double, DEFAULT_VECTOR);
   getParam<double>(node, "filter_gnss_antenna_cal_max_offset", filter_gnss_antenna_cal_max_offset, 0.1);
+  getParam<std::vector<double>>(node, "filter_lever_arm_offset", filter_lever_arm_offset_double, DEFAULT_VECTOR);
 
   // Sensor2vehicle config
   int filter_sensor2vehicle_frame_selector;
@@ -455,6 +457,8 @@ bool Config::configureFilter(RosNodeType* node)
   std::vector<float> filter_sensor2vehicle_frame_transformation_euler(filter_sensor2vehicle_frame_transformation_euler_double.begin(), filter_sensor2vehicle_frame_transformation_euler_double.end());
   std::vector<float> filter_sensor2vehicle_frame_transformation_matrix(filter_sensor2vehicle_frame_transformation_matrix_double.begin(), filter_sensor2vehicle_frame_transformation_matrix_double.end());
   std::vector<float> filter_sensor2vehicle_frame_transformation_quaternion(filter_sensor2vehicle_frame_transformation_quaternion_double.begin(), filter_sensor2vehicle_frame_transformation_quaternion_double.end());
+
+  std::vector<float> filter_lever_arm_offset(filter_lever_arm_offset_double.begin(), filter_lever_arm_offset_double.end());
 
   mip::CmdResult mip_cmd_result;
   const uint8_t descriptor_set = mip::commands_filter::DESCRIPTOR_SET;
@@ -834,6 +838,21 @@ bool Config::configureFilter(RosNodeType* node)
   {
     MICROSTRAIN_ERROR(node_, "Unsupported sensor 2 vechicle frame selector: %d", filter_sensor2vehicle_frame_selector);
     return false;
+  }
+
+  // Filter lever arm offset configuration
+  if (mip_device_->supportsDescriptor(descriptor_set, mip::commands_filter::CMD_REF_POINT_LEVER_ARM))
+  {
+    MICROSTRAIN_INFO(node_, "Setting filter reference point lever arm to [%f, %f, %f]", filter_lever_arm_offset[0], filter_lever_arm_offset[1], filter_lever_arm_offset[2]);
+    if (!(mip_cmd_result = mip::commands_filter::writeRefPointLeverArm(*mip_device_, mip::commands_filter::RefPointLeverArm::ReferencePointSelector::VEH, filter_lever_arm_offset.data())))
+    {
+      MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to configure refernce point lever arm");
+      return false;
+    }
+  }
+  else
+  {
+    MICROSTRAIN_INFO(node_, "Note: The device does not support the reference point lever arm command");
   }
 
   return true;
