@@ -14,6 +14,7 @@
 #include <chrono>
 #include <string>
 #include <memory>
+#include <iomanip>
 
 #include "mip/platform/serial_connection.hpp"
 #include "mip/extras/recording_connection.hpp"
