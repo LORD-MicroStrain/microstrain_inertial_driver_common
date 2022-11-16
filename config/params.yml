@@ -155,6 +155,9 @@ gnss2_antenna_offset : [0.0, 0.7, -1.0]
 #   on the version of the RTK dongle connected to the GQ7
 rtk_dongle_enable : False
 
+# Speed at which RTK data will be published if an individual topic data rate is not specified
+rtk_data_rate: 1
+
 # The speed at which the individual RTK publishers will publish at.
 #      If set to 0, the stream will be turned off and the publisher will not be created
 rtk_status_data_rate : 1  # Rate of rtk/status or rtk/status_v1 topics
