@@ -388,3 +388,12 @@ filter_gnss_antenna_cal_max_offset : 0.1
 #    3 - GPIO (provided by external source if supported). Use the GPIO config above to further configure
 #    4 - Generated from system oscillator
 filter_pps_source : 1
+
+# (GQ7 only) SBAS options
+sbas_enable: True
+sbas_enable_ranging: True
+sbas_enable_corrections: True
+sbas_apply_integrity: True
+
+# (GQ7 only) SBAS included PRNs
+sbas_included_prns: []
