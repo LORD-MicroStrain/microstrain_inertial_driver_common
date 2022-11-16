@@ -394,33 +394,33 @@ bool Config::configure3DM(RosNodeType* node)
     if (nmea_message_config)
     {
       /// Get the talker IDs for the descriptor sets that need them
-      std::string gnss1_nmea_talker_id, gnss2_nmea_talker_id, filter_nmea_talker_id;
-      getParam<std::string>(node, "gnss1_nmea_talker_id", gnss1_nmea_talker_id, "");
-      getParam<std::string>(node, "gnss2_nmea_talker_id", gnss2_nmea_talker_id, "");
-      getParam<std::string>(node, "filter_nmea_talker_id", filter_nmea_talker_id, "");
+      int32_t gnss1_nmea_talker_id, gnss2_nmea_talker_id, filter_nmea_talker_id;
+      getParam<int32_t>(node, "gnss1_nmea_talker_id", gnss1_nmea_talker_id, 0);
+      getParam<int32_t>(node, "gnss2_nmea_talker_id", gnss2_nmea_talker_id, 0);
+      getParam<int32_t>(node, "filter_nmea_talker_id", filter_nmea_talker_id, 0);
 
       // Populate the NMEA message config options
       std::vector<mip::commands_3dm::NmeaMessage> formats;
-      if (!populateNmeaMessageFormat(node, "imu_nmea_prkr_data_rate", "", mip::data_sensor::DESCRIPTOR_SET, mip::commands_3dm::NmeaMessage::MessageID::PRKR, &formats) ||
-          !populateNmeaMessageFormat(node, "gnss1_nmea_gga_data_rate", gnss1_nmea_talker_id, mip::data_gnss::MIP_GNSS1_DATA_DESC_SET, mip::commands_3dm::NmeaMessage::MessageID::GGA, &formats) ||
-          !populateNmeaMessageFormat(node, "gnss1_nmea_gll_data_rate", gnss1_nmea_talker_id, mip::data_gnss::MIP_GNSS1_DATA_DESC_SET, mip::commands_3dm::NmeaMessage::MessageID::GLL, &formats) ||
-          !populateNmeaMessageFormat(node, "gnss1_nmea_gsv_data_rate", gnss1_nmea_talker_id, mip::data_gnss::MIP_GNSS1_DATA_DESC_SET, mip::commands_3dm::NmeaMessage::MessageID::GSV, &formats) ||
-          !populateNmeaMessageFormat(node, "gnss1_nmea_rmc_data_rate", gnss1_nmea_talker_id, mip::data_gnss::MIP_GNSS1_DATA_DESC_SET, mip::commands_3dm::NmeaMessage::MessageID::RMC, &formats) ||
-          !populateNmeaMessageFormat(node, "gnss1_nmea_vtg_data_rate", gnss1_nmea_talker_id, mip::data_gnss::MIP_GNSS1_DATA_DESC_SET, mip::commands_3dm::NmeaMessage::MessageID::VTG, &formats) ||
-          !populateNmeaMessageFormat(node, "gnss1_nmea_hdt_data_rate", gnss1_nmea_talker_id, mip::data_gnss::MIP_GNSS1_DATA_DESC_SET, mip::commands_3dm::NmeaMessage::MessageID::HDT, &formats) ||
-          !populateNmeaMessageFormat(node, "gnss1_nmea_zda_data_rate", gnss1_nmea_talker_id, mip::data_gnss::MIP_GNSS1_DATA_DESC_SET, mip::commands_3dm::NmeaMessage::MessageID::ZDA, &formats) ||
-          !populateNmeaMessageFormat(node, "gnss2_nmea_gga_data_rate", gnss2_nmea_talker_id, mip::data_gnss::MIP_GNSS2_DATA_DESC_SET, mip::commands_3dm::NmeaMessage::MessageID::GGA, &formats) ||
-          !populateNmeaMessageFormat(node, "gnss2_nmea_gll_data_rate", gnss2_nmea_talker_id, mip::data_gnss::MIP_GNSS2_DATA_DESC_SET, mip::commands_3dm::NmeaMessage::MessageID::GLL, &formats) ||
-          !populateNmeaMessageFormat(node, "gnss2_nmea_gsv_data_rate", gnss2_nmea_talker_id, mip::data_gnss::MIP_GNSS2_DATA_DESC_SET, mip::commands_3dm::NmeaMessage::MessageID::GSV, &formats) ||
-          !populateNmeaMessageFormat(node, "gnss2_nmea_rmc_data_rate", gnss2_nmea_talker_id, mip::data_gnss::MIP_GNSS2_DATA_DESC_SET, mip::commands_3dm::NmeaMessage::MessageID::RMC, &formats) ||
-          !populateNmeaMessageFormat(node, "gnss2_nmea_vtg_data_rate", gnss2_nmea_talker_id, mip::data_gnss::MIP_GNSS2_DATA_DESC_SET, mip::commands_3dm::NmeaMessage::MessageID::VTG, &formats) ||
-          !populateNmeaMessageFormat(node, "gnss2_nmea_hdt_data_rate", gnss2_nmea_talker_id, mip::data_gnss::MIP_GNSS2_DATA_DESC_SET, mip::commands_3dm::NmeaMessage::MessageID::HDT, &formats) ||
-          !populateNmeaMessageFormat(node, "gnss2_nmea_zda_data_rate", gnss2_nmea_talker_id, mip::data_gnss::MIP_GNSS2_DATA_DESC_SET, mip::commands_3dm::NmeaMessage::MessageID::ZDA, &formats) ||
-          !populateNmeaMessageFormat(node, "filter_nmea_gga_data_rate", filter_nmea_talker_id, mip::data_filter::DESCRIPTOR_SET, mip::commands_3dm::NmeaMessage::MessageID::GGA, &formats) ||
-          !populateNmeaMessageFormat(node, "filter_nmea_gll_data_rate", filter_nmea_talker_id, mip::data_filter::DESCRIPTOR_SET, mip::commands_3dm::NmeaMessage::MessageID::GLL, &formats) ||
-          !populateNmeaMessageFormat(node, "filter_nmea_rmc_data_rate", filter_nmea_talker_id, mip::data_filter::DESCRIPTOR_SET, mip::commands_3dm::NmeaMessage::MessageID::RMC, &formats) ||
-          !populateNmeaMessageFormat(node, "filter_nmea_hdt_data_rate", filter_nmea_talker_id, mip::data_filter::DESCRIPTOR_SET, mip::commands_3dm::NmeaMessage::MessageID::HDT, &formats) ||
-          !populateNmeaMessageFormat(node, "filter_nmea_prka_data_rate", filter_nmea_talker_id, mip::data_filter::DESCRIPTOR_SET, mip::commands_3dm::NmeaMessage::MessageID::PRKA, &formats))
+      if (!populateNmeaMessageFormat(node, "imu_nmea_prkr_data_rate", mip::commands_3dm::NmeaMessage::TalkerID::RESERVED, mip::data_sensor::DESCRIPTOR_SET, mip::commands_3dm::NmeaMessage::MessageID::PRKR, &formats) ||
+          !populateNmeaMessageFormat(node, "gnss1_nmea_gga_data_rate", static_cast<mip::commands_3dm::NmeaMessage::TalkerID>(gnss1_nmea_talker_id), mip::data_gnss::MIP_GNSS1_DATA_DESC_SET, mip::commands_3dm::NmeaMessage::MessageID::GGA, &formats) ||
+          !populateNmeaMessageFormat(node, "gnss1_nmea_gll_data_rate", static_cast<mip::commands_3dm::NmeaMessage::TalkerID>(gnss1_nmea_talker_id), mip::data_gnss::MIP_GNSS1_DATA_DESC_SET, mip::commands_3dm::NmeaMessage::MessageID::GLL, &formats) ||
+          !populateNmeaMessageFormat(node, "gnss1_nmea_gsv_data_rate", static_cast<mip::commands_3dm::NmeaMessage::TalkerID>(gnss1_nmea_talker_id), mip::data_gnss::MIP_GNSS1_DATA_DESC_SET, mip::commands_3dm::NmeaMessage::MessageID::GSV, &formats) ||
+          !populateNmeaMessageFormat(node, "gnss1_nmea_rmc_data_rate", static_cast<mip::commands_3dm::NmeaMessage::TalkerID>(gnss1_nmea_talker_id), mip::data_gnss::MIP_GNSS1_DATA_DESC_SET, mip::commands_3dm::NmeaMessage::MessageID::RMC, &formats) ||
+          !populateNmeaMessageFormat(node, "gnss1_nmea_vtg_data_rate", static_cast<mip::commands_3dm::NmeaMessage::TalkerID>(gnss1_nmea_talker_id), mip::data_gnss::MIP_GNSS1_DATA_DESC_SET, mip::commands_3dm::NmeaMessage::MessageID::VTG, &formats) ||
+          !populateNmeaMessageFormat(node, "gnss1_nmea_hdt_data_rate", static_cast<mip::commands_3dm::NmeaMessage::TalkerID>(gnss1_nmea_talker_id), mip::data_gnss::MIP_GNSS1_DATA_DESC_SET, mip::commands_3dm::NmeaMessage::MessageID::HDT, &formats) ||
+          !populateNmeaMessageFormat(node, "gnss1_nmea_zda_data_rate", static_cast<mip::commands_3dm::NmeaMessage::TalkerID>(gnss1_nmea_talker_id), mip::data_gnss::MIP_GNSS1_DATA_DESC_SET, mip::commands_3dm::NmeaMessage::MessageID::ZDA, &formats) ||
+          !populateNmeaMessageFormat(node, "gnss2_nmea_gga_data_rate", static_cast<mip::commands_3dm::NmeaMessage::TalkerID>(gnss2_nmea_talker_id), mip::data_gnss::MIP_GNSS2_DATA_DESC_SET, mip::commands_3dm::NmeaMessage::MessageID::GGA, &formats) ||
+          !populateNmeaMessageFormat(node, "gnss2_nmea_gll_data_rate", static_cast<mip::commands_3dm::NmeaMessage::TalkerID>(gnss2_nmea_talker_id), mip::data_gnss::MIP_GNSS2_DATA_DESC_SET, mip::commands_3dm::NmeaMessage::MessageID::GLL, &formats) ||
+          !populateNmeaMessageFormat(node, "gnss2_nmea_gsv_data_rate", static_cast<mip::commands_3dm::NmeaMessage::TalkerID>(gnss2_nmea_talker_id), mip::data_gnss::MIP_GNSS2_DATA_DESC_SET, mip::commands_3dm::NmeaMessage::MessageID::GSV, &formats) ||
+          !populateNmeaMessageFormat(node, "gnss2_nmea_rmc_data_rate", static_cast<mip::commands_3dm::NmeaMessage::TalkerID>(gnss2_nmea_talker_id), mip::data_gnss::MIP_GNSS2_DATA_DESC_SET, mip::commands_3dm::NmeaMessage::MessageID::RMC, &formats) ||
+          !populateNmeaMessageFormat(node, "gnss2_nmea_vtg_data_rate", static_cast<mip::commands_3dm::NmeaMessage::TalkerID>(gnss2_nmea_talker_id), mip::data_gnss::MIP_GNSS2_DATA_DESC_SET, mip::commands_3dm::NmeaMessage::MessageID::VTG, &formats) ||
+          !populateNmeaMessageFormat(node, "gnss2_nmea_hdt_data_rate", static_cast<mip::commands_3dm::NmeaMessage::TalkerID>(gnss2_nmea_talker_id), mip::data_gnss::MIP_GNSS2_DATA_DESC_SET, mip::commands_3dm::NmeaMessage::MessageID::HDT, &formats) ||
+          !populateNmeaMessageFormat(node, "gnss2_nmea_zda_data_rate", static_cast<mip::commands_3dm::NmeaMessage::TalkerID>(gnss2_nmea_talker_id), mip::data_gnss::MIP_GNSS2_DATA_DESC_SET, mip::commands_3dm::NmeaMessage::MessageID::ZDA, &formats) ||
+          !populateNmeaMessageFormat(node, "filter_nmea_gga_data_rate", static_cast<mip::commands_3dm::NmeaMessage::TalkerID>(filter_nmea_talker_id), mip::data_filter::DESCRIPTOR_SET, mip::commands_3dm::NmeaMessage::MessageID::GGA, &formats) ||
+          !populateNmeaMessageFormat(node, "filter_nmea_gll_data_rate", static_cast<mip::commands_3dm::NmeaMessage::TalkerID>(filter_nmea_talker_id), mip::data_filter::DESCRIPTOR_SET, mip::commands_3dm::NmeaMessage::MessageID::GLL, &formats) ||
+          !populateNmeaMessageFormat(node, "filter_nmea_rmc_data_rate", static_cast<mip::commands_3dm::NmeaMessage::TalkerID>(filter_nmea_talker_id), mip::data_filter::DESCRIPTOR_SET, mip::commands_3dm::NmeaMessage::MessageID::RMC, &formats) ||
+          !populateNmeaMessageFormat(node, "filter_nmea_hdt_data_rate", static_cast<mip::commands_3dm::NmeaMessage::TalkerID>(filter_nmea_talker_id), mip::data_filter::DESCRIPTOR_SET, mip::commands_3dm::NmeaMessage::MessageID::HDT, &formats) ||
+          !populateNmeaMessageFormat(node, "filter_nmea_prka_data_rate", static_cast<mip::commands_3dm::NmeaMessage::TalkerID>(filter_nmea_talker_id), mip::data_filter::DESCRIPTOR_SET, mip::commands_3dm::NmeaMessage::MessageID::PRKA, &formats))
         return false;
 
       // Send them to the device
@@ -983,7 +983,7 @@ bool Config::configureHeadingSource(const mip::commands_filter::HeadingSource::S
   return true;
 }
 
-bool Config::populateNmeaMessageFormat(RosNodeType* config_node, const std::string& data_rate_key, const std::string& talker_id, uint8_t descriptor_set, mip::commands_3dm::NmeaMessage::MessageID message_id, std::vector<mip::commands_3dm::NmeaMessage>* formats)
+bool Config::populateNmeaMessageFormat(RosNodeType* config_node, const std::string& data_rate_key, mip::commands_3dm::NmeaMessage::TalkerID talker_id, uint8_t descriptor_set, mip::commands_3dm::NmeaMessage::MessageID message_id, std::vector<mip::commands_3dm::NmeaMessage>* formats)
 {
   // Get the data rate for this message
   float data_rate;
@@ -1000,18 +1000,12 @@ bool Config::populateNmeaMessageFormat(RosNodeType* config_node, const std::stri
   format.message_id = message_id;
   format.source_desc_set = descriptor_set;
   if (talker_id_required)
-  {
-    if (MipMapping::nmea_message_string_talker_id_mapping_.find(talker_id) == MipMapping::nmea_message_string_talker_id_mapping_.end())
-    {
-      MICROSTRAIN_ERROR(node_, "Invalid talker ID: %s", talker_id.c_str());
-      return false;
-    }
-    format.talker_id = MipMapping::nmea_message_string_talker_id_mapping_.at(talker_id);
-  }
+    format.talker_id = talker_id;
 
   // If the data rate is 0, we can just not add the structure to the vector
   const std::string& descriptor_set_string = MipMapping::descriptorSetString(descriptor_set);
   const std::string& message_id_string = MipMapping::nmeaFormatMessageIdString(message_id);
+  const std::string& talker_id_string = MipMapping::nmeaFormatTalkerIdString(talker_id);
   if (data_rate != 0)
   {
     // Save the data rate if it is the highest one
@@ -1028,13 +1022,13 @@ bool Config::populateNmeaMessageFormat(RosNodeType* config_node, const std::stri
         {
           if (!nmea_message_allow_duplicate_talker_ids_)
           {
-            MICROSTRAIN_ERROR(node_, "There is already an existing NMEA message with message ID: %s and talker ID: %s from the '%s' descriptor set.", message_id_string.c_str(), talker_id.c_str(), MipMapping::descriptorSetString(existing_format.source_desc_set).c_str());
+            MICROSTRAIN_ERROR(node_, "There is already an existing NMEA message with message ID: %s and talker ID: %s from the '%s' descriptor set.", message_id_string.c_str(), talker_id_string.c_str(), MipMapping::descriptorSetString(existing_format.source_desc_set).c_str());
             return false;
           }
           else
           {
-            MICROSTRAIN_WARN(node_, "There is already an existing NMEA message with message ID: %s and talker ID: %s from the '%s' descriptor set.", message_id_string.c_str(), talker_id.c_str(), MipMapping::descriptorSetString(existing_format.source_desc_set).c_str());
-            MICROSTRAIN_WARN(node_, "  Configuration will continue, but you will not be able to differentiate between %s%s NMEA sentences from the '%s' descriptor set and the '%s' descriptor set when they are published", talker_id.c_str(), message_id_string.c_str(), descriptor_set_string.c_str(), MipMapping::descriptorSetString(existing_format.source_desc_set).c_str());
+            MICROSTRAIN_WARN(node_, "There is already an existing NMEA message with message ID: %s and talker ID: %s from the '%s' descriptor set.", message_id_string.c_str(), talker_id_string.c_str(), MipMapping::descriptorSetString(existing_format.source_desc_set).c_str());
+            MICROSTRAIN_WARN(node_, "  Configuration will continue, but you will not be able to differentiate between %s%s NMEA sentences from the '%s' descriptor set and the '%s' descriptor set when they are published", talker_id_string.c_str(), message_id_string.c_str(), descriptor_set_string.c_str(), MipMapping::descriptorSetString(existing_format.source_desc_set).c_str());
           }
         }
       }
@@ -1042,14 +1036,14 @@ bool Config::populateNmeaMessageFormat(RosNodeType* config_node, const std::stri
 
     // Should finally have the fully formed struct, so add it to the vector
     if (talker_id_required)
-      MICROSTRAIN_INFO(node_, "Configuring %s%s NMEA sentence from the '%s' descriptor set to stream at %.04f hz", talker_id.c_str(), message_id_string.c_str(), descriptor_set_string.c_str(), data_rate);
+      MICROSTRAIN_INFO(node_, "Configuring %s%s NMEA sentence from the '%s' descriptor set to stream at %.04f hz", talker_id_string.c_str(), message_id_string.c_str(), descriptor_set_string.c_str(), data_rate);
     else
       MICROSTRAIN_INFO(node_, "Configuring %s NMEA sentence from the '%s' descriptor set to stream at %.04f hz", message_id_string.c_str(), descriptor_set_string.c_str(), data_rate);
     formats->push_back(format);
   }
   else
   {
-    MICROSTRAIN_DEBUG(node_, "Disabling %s%s NMEA sentence from the '%s' descriptor set becauese the data rate was 0", talker_id.c_str(), message_id_string.c_str(), descriptor_set_string.c_str());
+    MICROSTRAIN_DEBUG(node_, "Disabling %s%s NMEA sentence from the '%s' descriptor set becauese the data rate was 0", talker_id_string.c_str(), message_id_string.c_str(), descriptor_set_string.c_str());
   }
   return true;
 }

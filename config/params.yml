@@ -396,7 +396,7 @@ filter_pps_source : 1
 # (GQ7 only) NMEA message format. If set to false, all NMEA message configuration will not have any affect
 nmea_message_config: False
 
-# Allow NMEA messages with the same talker IDs on different descriptor sets.
+# Allow NMEA messages with the same talker IDs on different data sources (descriptor sets)
 # In most cases, this should be set to False, as multiple messages of the same type with the same talker ID from a different descriptor set could cause confusion when parsing.
 nmea_message_allow_duplicate_talker_ids: False
 
@@ -410,10 +410,14 @@ imu_nmea_prkr_data_rate: 0
 #
 # Note: In order to publish, 'publish_nmea' must also be set to True
 #
-# Note: gnss1_nmea_talker_id can be any of: GN, GP, GA, or GL.
-#       The purpose of the talker ID is to differentiate when the same message_id comes from different descriptor sets.
+# Note: gnss1_nmea_talker_id can be any of the follwing numeric values:
+#         1 - Sentences will start with GN
+#         2 - Sentences will start with GP
+#         3 - Sentences will start with GA
+#         4 - Sentences will start with GL
+#       The purpose of the talker ID is to differentiate when the same message_id comes from different data sources (descriptor sets)
 #       The gnss1_nmea_talker_id will be applied to all NMEA messages from the GNSS1 descriptor set
-gnss1_nmea_talker_id: "GN"
+gnss1_nmea_talker_id: 1
 gnss1_nmea_gga_data_rate: 0
 gnss1_nmea_gll_data_rate: 0
 gnss1_nmea_gsv_data_rate: 0  # Note that this message_id will not use the gnss1_talker_id since the talker ID will come from the actual constellation the message originates from
@@ -427,10 +431,14 @@ gnss1_nmea_zda_data_rate: 0
 #
 # Note: In order to publish, 'publish_nmea' must also be set to True
 #
-# Note: gnss2_nmea_talker_id can be any of: GN, GP, GA, or GL.
-#       The purpose of the talker ID is to differentiate when the same message_id comes from different descriptor sets.
+# Note: gnss2_nmea_talker_id can be any of the follwing numeric values:
+#         1 - Sentences will start with GN
+#         2 - Sentences will start with GP
+#         3 - Sentences will start with GA
+#         4 - Sentences will start with GL
+#       The purpose of the talker ID is to differentiate when the same message_id comes from different data sources (descriptor sets)
 #       The gnss2_nmea_talker_id will be applied to all NMEA messages from the GNSS2 descriptor set
-gnss2_nmea_talker_id: "GP"
+gnss2_nmea_talker_id: 2
 gnss2_nmea_gga_data_rate: 0
 gnss2_nmea_gll_data_rate: 0
 gnss2_nmea_gsv_data_rate: 0  # Note that this message_id will not use the gnss1_talker_id since the talker ID will come from the actual constellation the message originates from
@@ -444,10 +452,14 @@ gnss2_nmea_zda_data_rate: 0
 #
 # Note: In order to publish, 'publish_nmea' must also be set to True
 #
-# Note: filter_nmea_talker_id can be any of: GN, GP, GA, or GL.
-#       The purpose of the talker ID is to differentiate when the same message_id comes from different descriptor sets.
+# Note: filter_nmea_talker_id can be any of the follwing numeric values:
+#         1 - Sentences will start with GN
+#         2 - Sentences will start with GP
+#         3 - Sentences will start with GA
+#         4 - Sentences will start with GL
+#       The purpose of the talker ID is to differentiate when the same message_id comes from different data sources (descriptor sets)
 #       The filter_nmea_talker_id will be applied to all NMEA messages from the filter descriptor set
-filter_nmea_talker_id: "GA"
+filter_nmea_talker_id: 3
 filter_nmea_gga_data_rate: 0
 filter_nmea_gll_data_rate: 0
 filter_nmea_rmc_data_rate: 0
