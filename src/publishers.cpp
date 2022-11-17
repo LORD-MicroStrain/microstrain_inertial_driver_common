@@ -35,6 +35,7 @@ bool Publishers::configure()
   for (const auto& pub : gnss_time_pub_) pub->configure(node_, config_);
   for (const auto& pub : gnss_aiding_status_pub_) pub->configure(node_, config_);
   for (const auto& pub : gnss_fix_info_pub_) pub->configure(node_, config_);
+  for (const auto& pub : gnss_sbas_info_pub_) pub->configure(node_, config_);
 
   rtk_pub_->configure(node_, config_);
   rtk_pub_v1_->configure(node_, config_);

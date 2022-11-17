@@ -72,6 +72,7 @@ constexpr auto NUM_GNSS = 2;
 #include "microstrain_inertial_msgs/GNSSAidingStatus.h"
 #include "microstrain_inertial_msgs/GNSSDualAntennaStatus.h"
 #include "microstrain_inertial_msgs/GNSSFixInfo.h"
+#include "microstrain_inertial_msgs/SbasInfo.h"
 
 #include "microstrain_inertial_msgs/InputSpeedMeasurement.h"
 
@@ -302,6 +303,8 @@ using GNSSDualAntennaStatusMsg = ::microstrain_inertial_msgs::GNSSDualAntennaSta
 using GNSSFixInfoMsg = ::microstrain_inertial_msgs::GNSSFixInfo;
 using FilterHeadingStateMsg = ::microstrain_inertial_msgs::FilterHeadingState;
 using GPSCorrelationTimestampStampedMsg = ::microstrain_inertial_msgs::GPSCorrelationTimestampStamped;
+using SbasInfoMsg = ::microstrain_inertial_msgs::SbasInfo;
+
 using TransformStampedMsg = ::geometry_msgs::TransformStamped;
 
 // ROS1 Transform Broadcaster

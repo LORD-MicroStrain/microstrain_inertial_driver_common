@@ -125,6 +125,7 @@ gnss1_nav_sat_fix_data_rate    : -1  # Rate of gnss1/fix topic
 gnss1_odom_data_rate           : -1  # Rate of gnss1/odom topic
 gnss1_time_reference_data_rate : -1  # Rate of gnss1/time_ref topic
 gnss1_fix_info_data_rate       : -1  # Rate of gnss1/fix_info topic
+gnss1_sbas_info_data_rate      : -1  # Rate of gnss1/sbas_info topic
 
 # Antenna #1 lever arm offset vector
 #     For GQ7 - in the vehicle frame wrt IMU origin (meters)
@@ -145,6 +146,7 @@ gnss2_nav_sat_fix_data_rate    : -1  # Rate of gnss2/fix topic
 gnss2_odom_data_rate           : -1  # Rate of gnss2/odom topic
 gnss2_time_reference_data_rate : -1  # Rate of gnss2/time_ref topic
 gnss2_fix_info_data_rate       : -1  # Rate of gnss2/fix_info topic
+gnss2_sbas_info_data_rate      : -1  # Rate of gnss2/sbas_info topic
 
 # Antenna #2 lever arm offset vector (In the vehicle frame wrt IMU origin (meters) )
 # Note: Make this as accurate as possible for good performance 
@@ -160,7 +162,8 @@ rtk_data_rate: 1
 
 # The speed at which the individual RTK publishers will publish at.
 #      If set to 0, the stream will be turned off and the publisher will not be created
-rtk_status_data_rate : 1  # Rate of rtk/status or rtk/status_v1 topics
+rtk_status_data_rate    : 1  # Rate of rtk/status or rtk/status_v1 topics
+rtk_sbas_info_data_rate : -1  # Rate of rtk/sbas_info topic
 
 # (GQ7 Only) Allow the user to send RTCM messages to this node, and stream those messages to the GQ7
 subscribe_rtcm : False

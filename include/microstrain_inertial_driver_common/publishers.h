@@ -216,10 +216,12 @@ public:
   Publisher<TimeReferenceMsg>::SharedPtrVec    gnss_time_pub_          = Publisher<TimeReferenceMsg>::initializeVec({GNSS1_TIME_REF_TOPIC, GNSS2_TIME_REF_TOPIC});
   Publisher<GNSSAidingStatusMsg>::SharedPtrVec gnss_aiding_status_pub_ = Publisher<GNSSAidingStatusMsg>::initializeVec({GNSS1_AIDING_STATUS_TOPIC, GNSS2_AIDING_STATUS_TOPIC});
   Publisher<GNSSFixInfoMsg>::SharedPtrVec      gnss_fix_info_pub_      = Publisher<GNSSFixInfoMsg>::initializeVec({GNSS1_FIX_INFO_TOPIC, GNSS2_FIX_INFO_TOPIC});
+  Publisher<SbasInfoMsg>::SharedPtrVec         gnss_sbas_info_pub_     = Publisher<SbasInfoMsg>::initializeVec({GNSS1_SBAS_INFO_TOPIC, GNSS2_SBAS_INFO_TOPIC});
 
   // RTK publishers
-  Publisher<RTKStatusMsg>::SharedPtr   rtk_pub_    = Publisher<RTKStatusMsg>::initialize(RTK_STATUS_TOPIC);
-  Publisher<RTKStatusMsgV1>::SharedPtr rtk_pub_v1_ = Publisher<RTKStatusMsgV1>::initialize(RTK_STATUS_V1_TOPIC);
+  Publisher<RTKStatusMsg>::SharedPtr   rtk_pub_           = Publisher<RTKStatusMsg>::initialize(RTK_STATUS_TOPIC);
+  Publisher<RTKStatusMsgV1>::SharedPtr rtk_pub_v1_        = Publisher<RTKStatusMsgV1>::initialize(RTK_STATUS_V1_TOPIC);
+  Publisher<SbasInfoMsg>::SharedPtr    rtk_sbas_info_pub_ = Publisher<SbasInfoMsg>::initialize(RTK_SBAS_INFO_TOPIC);
 
   // Filter publishers
   Publisher<FilterStatusMsg>::SharedPtr                   filter_status_pub_                     = Publisher<FilterStatusMsg>::initialize(FILTER_STATUS_TOPIC);
