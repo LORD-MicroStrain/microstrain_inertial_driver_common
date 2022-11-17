@@ -37,15 +37,18 @@ static constexpr auto GNSS1_ODOM_TOPIC = "gnss1/odom";
 static constexpr auto GNSS1_TIME_REF_TOPIC = "gnss1/time_ref";
 static constexpr auto GNSS1_FIX_INFO_TOPIC = "gnss1/fix_info";
 static constexpr auto GNSS1_AIDING_STATUS_TOPIC = "gnss1/aiding_status";
+static constexpr auto GNSS1_RF_ERROR_DETECTION_TOPIC = "gnss1/rf_error_detection";
 
 static constexpr auto GNSS2_NAVSATFIX_TOPIC = "gnss2/fix";
 static constexpr auto GNSS2_ODOM_TOPIC = "gnss2/odom";
 static constexpr auto GNSS2_TIME_REF_TOPIC = "gnss2/time_ref";
 static constexpr auto GNSS2_FIX_INFO_TOPIC = "gnss2/fix_info";
 static constexpr auto GNSS2_AIDING_STATUS_TOPIC = "gnss2/aiding_status";
+static constexpr auto GNSS2_RF_ERROR_DETECTION_TOPIC = "gnss2/rf_error_detection";
 
 static constexpr auto RTK_STATUS_TOPIC = "rtk/status";
 static constexpr auto RTK_STATUS_V1_TOPIC = "rtk/status_v1";
+static constexpr auto RTK_RF_ERROR_DETECTION_TOPIC = "rtk/rf_error_detection";
 
 static constexpr auto FILTER_STATUS_TOPIC = "nav/status";
 static constexpr auto FILTER_HEADING_TOPIC = "nav/heading";
