@@ -195,7 +195,7 @@ void RosConnection::extractNmea(const uint8_t* data, size_t data_len)
   // If there is no data, return early
   if (data_len <= 0)
     return;
-  MICROSTRAIN_DEBUG(node_, "Read %lu new bytes from aux port. Parsing a total of %lu bytes including cached data", data_len, nmea_string_.size());
+  MICROSTRAIN_DEBUG(node_, "Read %lu new bytes from port. Parsing a total of %lu bytes including cached data", data_len, nmea_string_.size());
 
   // Iterate until we find a valid packet
   size_t trim_length = 0;
@@ -264,67 +264,6 @@ void RosConnection::extractNmea(const uint8_t* data, size_t data_len)
       // Move the iterator past the end of the sentence, and mark it for deletion
       MICROSTRAIN_DEBUG(node_, "NMEA sentence found starting at index %lu and ending at index %lu: %s", i, nmea_end_index + 1, sentence.c_str());
       trim_length = i = nmea_end_index + 1;
-    }
-
-    // MIP parsing (just to throw away the packets, and log some debug info)
-    else if (i + 1 < nmea_string_.size() && nmea_string_[i] == 0x75 && nmea_string_[i + 1] == 0x65)
-    {
-      MICROSTRAIN_DEBUG(node_, "Found what appears to be a MIP packet starting at %lu", i);
-
-      // Find the descriptor set and length assuming we have enough data
-      if (i + 2 >= nmea_string_.size())
-      {
-        MICROSTRAIN_DEBUG(node_, "Not enough bytes to extract descriptor set of MIP packet");
-        continue;
-      }
-      if (i + 3 >= nmea_string_.size())
-      {
-        MICROSTRAIN_DEBUG(node_, "Not enough bytes to extract length of MIP packet");
-        continue;
-      }
-      const uint8_t descriptor_set = nmea_string_[i + 2];
-      const uint8_t payload_length = nmea_string_[i + 3];
-
-      // Make sure we have enough remaining data to extract the rest of the packet
-      const size_t checksum_start_index = i + 3 + payload_length + 1;
-      const size_t packet_end_index = checksum_start_index + 1;
-      if (packet_end_index >= nmea_string_.size())
-      {
-        MICROSTRAIN_DEBUG(node_, "We only have %lu bytes of data, but the MIP packet supposedly ends at index %lu", nmea_string_.size(), packet_end_index);
-        continue;
-      }
-
-      // Extract the expected checksum
-      const uint16_t expected_checksum = (static_cast<uint8_t>(nmea_string_[checksum_start_index]) << 8) | static_cast<uint8_t>(nmea_string_[packet_end_index]);
-
-      // Calculate the actual checksum
-      uint8_t checksum_msb = 0;
-      uint8_t checksum_lsb = 0;
-      size_t count = 0;
-      for (size_t j = i; j < checksum_start_index; j++)
-      {
-        count++;
-        checksum_msb += static_cast<uint8_t>(nmea_string_[j]);
-        checksum_lsb += checksum_msb;
-      }
-      const uint16_t actual_checksum = (static_cast<uint16_t>(checksum_msb) << 8) | static_cast<uint16_t>(checksum_lsb);
-
-      // If the checksums do not match, log some debug information
-      if (expected_checksum != actual_checksum)
-      {
-        std::stringstream message_ss;
-        for (size_t j = i; j <= packet_end_index; j++)
-          message_ss << std::setfill('0') << std::setw(2) << std::hex << static_cast<uint16_t>(static_cast<uint8_t>(nmea_string_[j]));
-        MICROSTRAIN_DEBUG(node_, "Found what appeared to be a valid MIP message, but the checksums did not match. Skipping");
-        MICROSTRAIN_DEBUG(node_, "  Message:           0x%s", message_ss.str().c_str());
-        MICROSTRAIN_DEBUG(node_, "  Expected Checksum: 0x%02x", expected_checksum);
-        MICROSTRAIN_DEBUG(node_, "  Actual Checksum:   0x%02x", actual_checksum);
-        continue;
-      }
-
-      // Move the iterator past the end of the packet, and mark it for deletion
-      MICROSTRAIN_DEBUG(node_, "Found valid MIP packet in NMEA string starting at index %lu and ending at %lu, skipping...", i, packet_end_index);
-      trim_length = i = packet_end_index + 1;
     }
   }
 

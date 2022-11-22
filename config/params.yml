@@ -152,7 +152,8 @@ gnss2_antenna_offset : [0.0, 0.7, -1.0]
 
 # (GQ7 Only) Enable RTK dongle interface
 # Note: Enabling this will cause the node to publish on one of two topics depending
-#   on the version of the RTK dongle connected to the GQ7
+#       on the version of the RTK dongle connected to the GQ7
+# Note: This is also required to be True in order to publish NMEA from the aux port
 rtk_dongle_enable : False
 
 # The speed at which the individual RTK publishers will publish at.
