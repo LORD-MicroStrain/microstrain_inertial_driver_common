@@ -215,6 +215,14 @@ void RosConnection::extractNmea(const uint8_t* data, size_t data_len)
       }
       MICROSTRAIN_DEBUG(node_, "Found possible end of NMEA sentence at %lu", nmea_end_index + 1);
 
+      // If the sentence is too long, move on
+      const size_t nmea_length = nmea_end_index - i;
+      if (nmea_length > NMEA_MAX_LENGTH)
+      {
+        MICROSTRAIN_DEBUG(node_, "Found what appeared to be a valid NMEA sentence, but it was %lu bytes long, and the max size for a NMEA sentence is %d bytes", nmea_length, NMEA_MAX_LENGTH);
+        continue;
+      }
+
       // Attempt to find the checksum
       const size_t checksum_delimiter_index = nmea_string_.rfind('*', nmea_end_index);
       if (checksum_delimiter_index == std::string::npos)
