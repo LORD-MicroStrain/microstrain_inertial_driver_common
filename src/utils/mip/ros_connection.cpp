@@ -262,7 +262,7 @@ void RosConnection::extractNmea(const uint8_t* data, size_t data_len)
       nmea_msgs_.push_back(msg);
 
       // Move the iterator past the end of the sentence, and mark it for deletion
-      MICROSTRAIN_DEBUG(node_, "Found valid NMEA sentence starting at index %lu and ending at index %lu: %s", i, nmea_end_index + 1, sentence.c_str());
+      MICROSTRAIN_DEBUG(node_, "NMEA sentence found starting at index %lu and ending at index %lu: %s", i, nmea_end_index + 1, sentence.c_str());
       trim_length = i = nmea_end_index + 1;
     }
 
@@ -323,21 +323,21 @@ void RosConnection::extractNmea(const uint8_t* data, size_t data_len)
       }
 
       // Move the iterator past the end of the packet, and mark it for deletion
-      MICROSTRAIN_DEBUG(node_, "Found valid MIP packet on aux port starting at index %lu and ending at %lu, skipping...", i, packet_end_index);
+      MICROSTRAIN_DEBUG(node_, "Found valid MIP packet in NMEA string starting at index %lu and ending at %lu, skipping...", i, packet_end_index);
       trim_length = i = packet_end_index + 1;
     }
   }
 
   // Trim the string
-  MICROSTRAIN_DEBUG(node_, "NMEA string is %lu bytes before trimming", nmea_string_.size());
+  MICROSTRAIN_DEBUG(node_, "Cached NMEA string is %lu bytes before trimming", nmea_string_.size());
   MICROSTRAIN_DEBUG(node_, "Trimming %lu bytes from the beginning of the cached NMEA string", trim_length);
   nmea_string_.erase(0, trim_length);
   if (nmea_string_.size() > NMEA_MAX_LENGTH)
   {
-    MICROSTRAIN_DEBUG(node_, "NMEA buffer has grown to %lu bytes. Trimming down to %d bytes", nmea_string_.size(), NMEA_MAX_LENGTH);
+    MICROSTRAIN_DEBUG(node_, "Cached NMEA buffer has grown to %lu bytes. Trimming down to %d bytes", nmea_string_.size(), NMEA_MAX_LENGTH);
     nmea_string_.erase(0, nmea_string_.size() - NMEA_MAX_LENGTH);
   }
-  MICROSTRAIN_DEBUG(node_, "Aux string is %lu bytes after trimming", nmea_string_.size());
+  MICROSTRAIN_DEBUG(node_, "Cached NMEA string is %lu bytes after trimming", nmea_string_.size());
 }
 
 }  // namespace microstrain
