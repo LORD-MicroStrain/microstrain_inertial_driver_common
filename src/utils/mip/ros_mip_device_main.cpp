@@ -282,17 +282,6 @@ bool RosMipDeviceMain::supportsDescriptor(const uint8_t descriptor_set, const ui
   return std::find(supported_descriptors_.begin(), supported_descriptors_.end(), full_descriptor) != supported_descriptors_.end();
 }
 
-uint16_t RosMipDeviceMain::getDecimationFromHertz(const uint8_t descriptor_set, const int32_t hertz)
-{
-  // Update the base rate if we don't have it yet
-  mip::CmdResult result;
-  if (base_rates_.find(descriptor_set) == base_rates_.end())
-    if (!(result = updateBaseRate(descriptor_set)))
-      throw std::runtime_error(std::string("MIP Error") + "(" + std::to_string(result.value) + "): " + result.name());
-
-  return hertz != 0 ? base_rates_[descriptor_set] / hertz : 0;
-}
-
 uint16_t RosMipDeviceMain::getDecimationFromHertz(const uint8_t descriptor_set, const float hertz)
 {
   // Update the base rate if we don't have it yet
@@ -301,7 +290,20 @@ uint16_t RosMipDeviceMain::getDecimationFromHertz(const uint8_t descriptor_set, 
     if (!(result = updateBaseRate(descriptor_set)))
       throw std::runtime_error(std::string("MIP Error") + "(" + std::to_string(result.value) + "): " + result.name());
 
-  return hertz != 0 ? base_rates_[descriptor_set] / hertz : 0;
+  // Calculate the decimation, and if the number is not evenly divisible, log a warning
+  uint16_t decimation = 0;
+  if (hertz != 0)
+  {
+    const uint16_t base_rate = base_rates_[descriptor_set];
+    decimation = base_rate / hertz;
+    if (std::remainder(base_rate, hertz) != 0)
+    {
+      const double actual_hertz = decimation == 0 ? 0 : static_cast<double>(base_rate) / decimation;
+      MICROSTRAIN_WARN(node_, "Requested data rate for descriptor set 0x%02x is not a valid data rate as the base rate is not evenly divisible by the data rate (%u / %.4f)", descriptor_set, base_rate, hertz);
+      MICROSTRAIN_WARN(node_, "  Streaming will be closer to %.4f hz instead of %.4f hz", actual_hertz, hertz);
+    }
+  }
+  return decimation;
 }
 
 }  // namespace microstrain

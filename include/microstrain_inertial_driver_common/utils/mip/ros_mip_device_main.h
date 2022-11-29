@@ -107,14 +107,6 @@ class RosMipDeviceMain : public RosMipDevice
    * \param hertz The value in hertz to convert to decmiation
    * \return The decimation value for the given descriptor set and hertz
    */
-  uint16_t getDecimationFromHertz(const uint8_t descriptor_set, const int32_t hertz);
-
-  /**
-   * \brief Converts a value in hertz to a decimation value for a descriptor set
-   * \param descriptor_set The descriptor set to use to lookup the base rate value for
-   * \param hertz The value in hertz to convert to decmiation
-   * \return The decimation value for the given descriptor set and hertz
-   */
   uint16_t getDecimationFromHertz(const uint8_t descriptor_set, const float hertz);
 
  private:
