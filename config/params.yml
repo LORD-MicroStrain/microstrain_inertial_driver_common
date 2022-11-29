@@ -265,6 +265,8 @@ filter_external_speed_topic : "/external_speed"
 filter_vel_in_vehicle_frame : True
 
 # (GQ7 Only) Reference point lever arm offset control.
+#   Note: This offset will affect the position and velocity measurements in the following topics: nav/odom, nav/relative_pos/odom
+#   Note: This offset is in the vehicle reference frame.
 filter_lever_arm_offset: [0.0, 0.0, 0.0]
 
 # (GQ7 Only) Hardware Odometer Control
