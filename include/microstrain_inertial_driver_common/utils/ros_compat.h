@@ -890,6 +890,28 @@ inline void stopTimer(RosTimerType timer)
 #error "Unsupported ROS version. -DMICROSTRAIN_ROS_VERSION must be set to 1 or 2"
 #endif
 
+/**
+ * \brief Extention of getParam. Explicitly gets float parameter, even if it was specified as an int
+ * \param node  The ROS node to extract the config from
+ * \param param_name  The name of the config value to extract
+ * \param param_val  Variable to store the extracted config value in
+ * \param default_val  The default value to set param_val to if the config can't be found
+ */
+inline void getParamFloat(RosNodeType* node, const std::string& param_name, float& param_val, const float default_val)
+{
+  // Seems like ROS should be able to figure this out, but for ROS2 at least, we need to cast ints to floats so people don't have to put decimal points
+  try
+  {
+    getParam<float>(node, param_name, param_val, default_val);
+  }
+  catch (const std::exception& e)
+  {
+    int32_t param_val_int;
+    getParam<int32_t>(node, param_name, param_val_int, static_cast<int32_t>(default_val));
+    param_val = static_cast<float>(param_val_int);
+  }
+}
+
 }  // namespace microstrain
 
 #endif  // MICROSTRAIN_INERTIAL_DRIVER_COMMON_UTILS_ROS_COMPAT_H

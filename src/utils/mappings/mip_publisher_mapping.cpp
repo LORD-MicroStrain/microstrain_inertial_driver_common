@@ -64,9 +64,30 @@ bool MipPublisherMapping::configure(RosNodeType* config_node)
     // Get the data rate for the topic, and if it is not the default, use it, otherwise use the data class data rate
     if (static_topic_to_data_rate_config_key_mapping_.find(topic) != static_topic_to_data_rate_config_key_mapping_.end())
     {
-      getParam<int32_t>(config_node, static_topic_to_data_rate_config_key_mapping_.at(topic), topic_info.data_rate, FIELD_DATA_RATE_USE_DATA_CLASS);
-      if (topic_info.data_rate != FIELD_DATA_RATE_USE_DATA_CLASS)
-        continue;
+      getParamFloat(config_node, static_topic_to_data_rate_config_key_mapping_.at(topic), topic_info.data_rate, FIELD_DATA_RATE_USE_DATA_CLASS);
+      if (topic_info.data_rate == FIELD_DATA_RATE_USE_DATA_CLASS)
+      {
+        // Get the maximum data rate for the data classes associated with the topic if no specific field data rate was configured
+        std::vector<float> descriptor_set_rates;
+        for (const uint8_t descriptor_set : topic_info.descriptor_sets)
+        {
+          if (static_descriptor_set_to_data_rate_config_key_mapping_.find(descriptor_set) != static_descriptor_set_to_data_rate_config_key_mapping_.end())
+          {
+            float descriptor_set_rate;
+            getParamFloat(config_node, static_descriptor_set_to_data_rate_config_key_mapping_.at(descriptor_set), descriptor_set_rate, DATA_CLASS_DATA_RATE_DO_NOT_STREAM);
+            descriptor_set_rates.push_back(descriptor_set_rate);
+          }
+          else
+          {
+            MICROSTRAIN_ERROR(node_, "Descriptor sets 0x%02x used by topic %s does not have an associated data rate. This should be added to the 'static_descriptor_set_to_data_rate_config_key_mapping_' map", descriptor_set, topic.c_str());
+            return false;
+          }
+        }
+        if (!descriptor_set_rates.empty())
+          topic_info.data_rate = *std::max_element(descriptor_set_rates.begin(), descriptor_set_rates.end());
+        else
+          topic_info.data_rate = DATA_CLASS_DATA_RATE_DO_NOT_STREAM;
+      }
     }
     else
     {
@@ -74,29 +95,8 @@ bool MipPublisherMapping::configure(RosNodeType* config_node)
       return false;
     }
 
-    // Get the maximum data rate for the data classes associated with the topic if no specific field data rate was configured
-    std::vector<int32_t> descriptor_set_rates;
-    for (const uint8_t descriptor_set : topic_info.descriptor_sets)
-    {
-      if (static_descriptor_set_to_data_rate_config_key_mapping_.find(descriptor_set) != static_descriptor_set_to_data_rate_config_key_mapping_.end())
-      {
-        int32_t descriptor_set_rate;
-        getParam<int32_t>(config_node, static_descriptor_set_to_data_rate_config_key_mapping_.at(descriptor_set), descriptor_set_rate, DATA_CLASS_DATA_RATE_DO_NOT_STREAM);
-        descriptor_set_rates.push_back(descriptor_set_rate);
-      }
-      else
-      {
-        MICROSTRAIN_ERROR(node_, "Descriptor sets 0x%02x used by topic %s does not have an associated data rate. This should be added to the 'static_descriptor_set_to_data_rate_config_key_mapping_' map", descriptor_set, topic.c_str());
-        return false;
-      }
-    }
-    if (!descriptor_set_rates.empty())
-      topic_info.data_rate = *std::max_element(descriptor_set_rates.begin(), descriptor_set_rates.end());
-    else
-      topic_info.data_rate = DATA_CLASS_DATA_RATE_DO_NOT_STREAM;
-
     // Get the decimation for the topic and add it to the map
-    MICROSTRAIN_DEBUG(node_, "Configuring topic %s to stream at %d hz", topic.c_str(), topic_info.data_rate);
+    MICROSTRAIN_DEBUG(node_, "Configuring topic %s to stream at %.04f hz", topic.c_str(), topic_info.data_rate);
     for (const auto& descriptor : topic_info.descriptors)
     {
       const uint8_t descriptor_set = descriptor.descriptor_set;
@@ -108,6 +108,13 @@ bool MipPublisherMapping::configure(RosNodeType* config_node)
         streamed_descriptors_mapping_[descriptor_set] = {};
       auto& descriptor_rates = streamed_descriptors_mapping_[descriptor_set];
 
+      // If the data rate is 0, do not stream any data
+      if (topic_info.data_rate == 0)
+      {
+        MICROSTRAIN_DEBUG(node_, "Not configuring descriptor 0x%02x%02x to stream because it's data rate is set to 0", descriptor_set, field_descriptor);
+        continue;
+      }
+
       // If the channel has already been added, just update the rate of the existing entry
       auto existing_descriptor_rate = std::find_if(descriptor_rates.begin(), descriptor_rates.end(), [field_descriptor](const mip::DescriptorRate& d)
       {
@@ -118,17 +125,17 @@ bool MipPublisherMapping::configure(RosNodeType* config_node)
       {
         if (existing_descriptor_rate->decimation > decimation)  // Lower decimation means faster data
         {
-          MICROSTRAIN_DEBUG(node_, "Updating descriptor 0x%02x%02x to stream at %d hz", descriptor_set, field_descriptor, topic_info.data_rate);
+          MICROSTRAIN_DEBUG(node_, "Updating descriptor 0x%02x%02x to stream at %.04f hz", descriptor_set, field_descriptor, topic_info.data_rate);
           existing_descriptor_rate->decimation = decimation;
         }
         else
         {
-          MICROSTRAIN_DEBUG(node_, "Descriptor 0x%02x%02x is already streaming faster than %d hz, so we are not updating it", descriptor_set, field_descriptor, topic_info.data_rate);
+          MICROSTRAIN_DEBUG(node_, "Descriptor 0x%02x%02x is already streaming faster than %.04f hz, so we are not updating it", descriptor_set, field_descriptor, topic_info.data_rate);
         }
       }
       else
       {
-        MICROSTRAIN_DEBUG(node_, "Streaming descriptor 0x%02x%02x at a rate of %d hz", descriptor_set, field_descriptor, topic_info.data_rate);
+        MICROSTRAIN_DEBUG(node_, "Streaming descriptor 0x%02x%02x at a rate of %.04f hz", descriptor_set, field_descriptor, topic_info.data_rate);
         descriptor_rates.push_back({ field_descriptor, decimation });
       }
     }
@@ -191,7 +198,7 @@ std::vector<MipDescriptor> MipPublisherMapping::getDescriptors(const std::string
     return {};
 }
 
-int32_t MipPublisherMapping::getDataRate(const std::string& topic) const
+float MipPublisherMapping::getDataRate(const std::string& topic) const
 {
   if (topic_info_mapping_.find(topic) != topic_info_mapping_.end())
     return topic_info_mapping_.at(topic).data_rate;
@@ -199,9 +206,9 @@ int32_t MipPublisherMapping::getDataRate(const std::string& topic) const
     return DATA_CLASS_DATA_RATE_DO_NOT_STREAM;
 }
 
-int32_t MipPublisherMapping::getMaxDataRate(uint8_t descriptor_set) const
+float MipPublisherMapping::getMaxDataRate(uint8_t descriptor_set) const
 {
-  std::vector<int32_t> data_rates;
+  std::vector<float> data_rates;
   for (const auto& element : static_topic_to_mip_type_mapping_)
   {
     const std::vector<uint8_t> descriptor_sets = getDescriptorSets(element.first);
