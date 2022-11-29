@@ -60,8 +60,8 @@ static constexpr auto DEVICE_STATUS_TOPIC = "device/status";
 static constexpr auto NMEA_SENTENCE_TOPIC = "nmea/sentence";
 
 // Some other constants
-static constexpr int32_t FIELD_DATA_RATE_USE_DATA_CLASS = -1;
-static constexpr int32_t DATA_CLASS_DATA_RATE_DO_NOT_STREAM = 0;
+static constexpr float FIELD_DATA_RATE_USE_DATA_CLASS = -1;
+static constexpr float DATA_CLASS_DATA_RATE_DO_NOT_STREAM = 0;
 
 /**
  * Container for both a descriptor set and field descriptor
@@ -79,7 +79,7 @@ struct MipPublisherMappingInfo
 {
   std::vector<uint8_t> descriptor_sets = {};  /// Descriptor sets used by this topic
   std::vector<MipDescriptor> descriptors = {};  /// Descriptors streamed by this topic
-  int32_t data_rate = DATA_CLASS_DATA_RATE_DO_NOT_STREAM;  /// Data rate that this topic is streamed at
+  float data_rate = DATA_CLASS_DATA_RATE_DO_NOT_STREAM;  /// Data rate that this topic is streamed at
 };
 
 /**
@@ -126,14 +126,14 @@ class MipPublisherMapping
    * \param topic  Name of the topic to search for
    * \return Data rate in hertz that the data is being streamed at
    */
-  int32_t getDataRate(const std::string& topic) const;
+  float getDataRate(const std::string& topic) const;
 
   /**
    * \brief Gets the maximum data rate among all topics. Will only return a valid number if called after "configure"
    * \param descriptor_set  Descriptor set to search for the max rate of. If set to the shared descriptor set, will return the highest data rate out of all descriptors
    * \return Maximum data rate among all topics in hertz
    */
-  int32_t getMaxDataRate(uint8_t descriptor_set = mip::data_shared::DESCRIPTOR_SET) const;
+  float getMaxDataRate(uint8_t descriptor_set = mip::data_shared::DESCRIPTOR_SET) const;
 
   /**
    * \brief Returns whether a topic is able to be published by a device. This will return true if the device supports the channel fields required by the topic

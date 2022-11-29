@@ -84,6 +84,17 @@ class RosMipDevice
    */
   bool recv(uint8_t* data, size_t data_len, size_t* out_len);
 
+  /**
+   * \brief Returns the NMEA messages collected by the connection, and clears the list of messages on the connection object
+   * \return List of NMEA messages collected by the connection
+   */
+  std::vector<NMEASentenceMsg> nmeaMsgs();
+
+  /**
+   * \brief Gets the device info from the device, and modifies the strings to be usable from C/C++
+   * \param device_info Object to populate wih the device info
+   * \return MIP command result representing the status of the call
+   */
   mip::CmdResult getDeviceInfo(mip::commands_base::BaseDeviceInfo* device_info);
 
   /**

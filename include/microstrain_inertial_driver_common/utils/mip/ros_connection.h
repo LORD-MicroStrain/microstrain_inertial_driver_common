@@ -12,6 +12,7 @@
 #ifndef MICROSTRAIN_INERTIAL_DRIVER_COMMON_UTILS_MIP_ROS_CONNECTION_H
 #define MICROSTRAIN_INERTIAL_DRIVER_COMMON_UTILS_MIP_ROS_CONNECTION_H
 
+#include <vector>
 #include <string>
 #include <memory>
 #include <fstream>
@@ -67,11 +68,24 @@ class RosConnection : public mip::Connection
    */
   mip::Timeout baseReplyTimeout() const;
 
+  /**
+   * \brief Returns the NMEA messages collected by the connection, and clears the list of messages on the connection object
+   * \return List of NMEA messages collected by the connection
+   */
+  std::vector<NMEASentenceMsg> nmeaMsgs();
+
   // Implemented in order to satisfy the requirements for the MIP connection
   bool sendToDevice(const uint8_t* data, size_t length) final;
   bool recvFromDevice(uint8_t* buffer, size_t max_length, mip::Timeout timeout, size_t* count_out, mip::Timestamp* timestamp_out) final;
 
  private:
+  /**
+   * \brief Extracts NMEA data from a byte array
+   * \param data  Raw bytes that may contain a NMEA sentence
+   * \param data_len  Length of the data array in bytes
+   */
+  void extractNmea(const uint8_t* data, size_t data_len);
+
   RosNodeType* node_;  /// Reference to the ROS node that created this connection
 
   std::unique_ptr<mip::Connection> connection_;  /// Connection object used to actually interact with the device
@@ -80,6 +94,10 @@ class RosConnection : public mip::Connection
 
   bool should_record_;  /// Whether or not we should record binary data on this connection
   std::ofstream record_file_;  /// The file that the binary data should be recorded to
+
+  bool should_extract_nmea_;  /// Whether or not we should attempt to parse and extract NMEA sentences on this connection
+  std::string nmea_string_;  /// Cached data read from the port, used to extraxt NMEA messages
+  std::vector<NMEASentenceMsg> nmea_msgs_;  /// List of NMEA messages received by this connection
 };
 
 }  // namespace microstrain
