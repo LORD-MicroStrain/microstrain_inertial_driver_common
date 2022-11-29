@@ -401,9 +401,9 @@ filter_pps_source : 1
 
 # (GQ7 only) SBAS options
 sbas_enable: True
-sbas_enable_ranging: True
+sbas_enable_ranging: False
 sbas_enable_corrections: True
-sbas_apply_integrity: True
+sbas_apply_integrity: False
 
 # (GQ7 only) SBAS included PRNs
 sbas_included_prns: []
