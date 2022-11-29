@@ -283,7 +283,7 @@ bool Config::configure3DM(RosNodeType* node)
   float hardware_odometer_scaling;
   float hardware_odometer_uncertainty;
   bool sbas_enable, sbas_enable_ranging, sbas_enable_corrections, sbas_apply_integrity;
-  std::vector<int32_t> sbas_prns_int;
+  std::vector<double> sbas_prns_double;
   getParam<bool>(node, "gpio_config", gpio_config, false);
   getParam<bool>(node, "nmea_message_config", nmea_message_config, false);
   getParam<int32_t>(node, "filter_pps_source", filter_pps_source, 1);
@@ -293,10 +293,10 @@ bool Config::configure3DM(RosNodeType* node)
   getParam<bool>(node, "sbas_enable_ranging", sbas_enable_ranging, false);
   getParam<bool>(node, "sbas_enable_corrections", sbas_enable_corrections, false);
   getParam<bool>(node, "sbas_apply_integrity", sbas_apply_integrity, false);
-  getParam<std::vector<int32_t>>(node, "sbas_prns", sbas_prns_int, std::vector<int32_t>());
+  getParam<std::vector<double>>(node, "sbas_prns", sbas_prns_double, std::vector<double>());
 
   // Convert the int vector to shorts
-  std::vector<uint16_t> sbas_prns(sbas_prns_int.begin(), sbas_prns_int.end());
+  std::vector<uint16_t> sbas_prns(sbas_prns_double.begin(), sbas_prns_double.end());
 
   mip::CmdResult mip_cmd_result;
   const uint8_t descriptor_set = mip::commands_3dm::DESCRIPTOR_SET;
