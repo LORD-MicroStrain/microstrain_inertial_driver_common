@@ -159,6 +159,16 @@ public:
     }
 
     /**
+     * \brief Publishes a message on the publisher. Will always publish the message as long as the publisher is initialized
+     * \param msg The message to publish
+     */
+    void publish(const MessageType& msg)
+    {
+      if (publisher_ != nullptr)
+        publisher_->publish(msg);
+    }
+
+    /**
      * \brief Gets the topic this publisher will publish to
      * \return The topic this publisher will publish to
      */

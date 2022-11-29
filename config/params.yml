@@ -154,7 +154,8 @@ gnss2_antenna_offset : [0.0, 0.7, -1.0]
 
 # (GQ7 Only) Enable RTK dongle interface
 # Note: Enabling this will cause the node to publish on one of two topics depending
-#   on the version of the RTK dongle connected to the GQ7
+#       on the version of the RTK dongle connected to the GQ7
+# Note: This is also required to be True in order to publish NMEA from the aux port
 rtk_dongle_enable : False
 
 # Speed at which RTK data will be published if an individual topic data rate is not specified
@@ -169,7 +170,11 @@ rtk_sbas_info_data_rate : -1  # Rate of rtk/sbas_info topic
 subscribe_rtcm : False
 rtcm_topic     : "/rtcm"
 
-# (GQ7 Only) Send NMEA sentences from the aux port out on a ROS topic
+# (GQ7 Only) Send NMEA sentences out on a ROS topic
+# Note: Prior to version 3.0.0, this would only publish NMEA sentences from the aux port.
+#       This option may now be used to publish NMEA sentences from the main port as well.
+# Note: If the main port is configured to stream NMEA sentences, and the aux port is also connected,
+#       this will publish NMEA sentences from both the main and aux port on the same topic.
 publish_nmea   : False
 
 # ****************************************************************** 
@@ -264,6 +269,11 @@ filter_external_speed_topic : "/external_speed"
 #      If set to false, the velocity will be reported in the NED/ENU frame
 #      If set to true, the velocity will be reported in the vehicle frame
 filter_vel_in_vehicle_frame : True
+
+# (GQ7 Only) Reference point lever arm offset control.
+#   Note: This offset will affect the position and velocity measurements in the following topics: nav/odom, nav/relative_pos/odom
+#   Note: This offset is in the vehicle reference frame.
+filter_lever_arm_offset: [0.0, 0.0, 0.0]
 
 # (GQ7 Only) Hardware Odometer Control
 enable_hardware_odometer : False
@@ -394,3 +404,76 @@ filter_gnss_antenna_cal_max_offset : 0.1
 #    3 - GPIO (provided by external source if supported). Use the GPIO config above to further configure
 #    4 - Generated from system oscillator
 filter_pps_source : 1
+
+# (GQ7 only) NMEA message format. If set to false, all NMEA message configuration will not have any affect
+nmea_message_config: False
+
+# Allow NMEA messages with the same talker IDs on different data sources (descriptor sets)
+# In most cases, this should be set to False, as multiple messages of the same type with the same talker ID from a different descriptor set could cause confusion when parsing.
+nmea_message_allow_duplicate_talker_ids: False
+
+# NMEA messages in the sensor (IMU) descriptor set
+# In order to enable a message, set nmea_message_config to true, and then change the 'data_rate' of the sentences you want to the desired rate in hertz
+# Note: In order to publish, 'publish_nmea' must also be set to True
+imu_nmea_prkr_data_rate: 0
+
+# NMEA messages in the GNSS1 descriptor set
+# In order to enable a message, set nmea_message_config to true, and then change the 'data_rate' of the sentences you want to the desired rate in hertz
+#
+# Note: In order to publish, 'publish_nmea' must also be set to True
+#
+# Note: gnss1_nmea_talker_id can be any of the follwing numeric values:
+#         1 - Sentences will start with GN
+#         2 - Sentences will start with GP
+#         3 - Sentences will start with GA
+#         4 - Sentences will start with GL
+#       The purpose of the talker ID is to differentiate when the same message_id comes from different data sources (descriptor sets)
+#       The gnss1_nmea_talker_id will be applied to all NMEA messages from the GNSS1 descriptor set
+gnss1_nmea_talker_id: 1
+gnss1_nmea_gga_data_rate: 0
+gnss1_nmea_gll_data_rate: 0
+gnss1_nmea_gsv_data_rate: 0  # Note that this message_id will not use the gnss1_talker_id since the talker ID will come from the actual constellation the message originates from
+gnss1_nmea_rmc_data_rate: 0
+gnss1_nmea_vtg_data_rate: 0
+gnss1_nmea_hdt_data_rate: 0
+gnss1_nmea_zda_data_rate: 0
+
+# NMEA messages in the GNSS2 descriptor set
+# In order to enable a message, set nmea_message_config to true, and then change the 'data_rate' of the sentences you want to the desired rate in hertz
+#
+# Note: In order to publish, 'publish_nmea' must also be set to True
+#
+# Note: gnss2_nmea_talker_id can be any of the follwing numeric values:
+#         1 - Sentences will start with GN
+#         2 - Sentences will start with GP
+#         3 - Sentences will start with GA
+#         4 - Sentences will start with GL
+#       The purpose of the talker ID is to differentiate when the same message_id comes from different data sources (descriptor sets)
+#       The gnss2_nmea_talker_id will be applied to all NMEA messages from the GNSS2 descriptor set
+gnss2_nmea_talker_id: 2
+gnss2_nmea_gga_data_rate: 0
+gnss2_nmea_gll_data_rate: 0
+gnss2_nmea_gsv_data_rate: 0  # Note that this message_id will not use the gnss1_talker_id since the talker ID will come from the actual constellation the message originates from
+gnss2_nmea_rmc_data_rate: 0
+gnss2_nmea_vtg_data_rate: 0
+gnss2_nmea_hdt_data_rate: 0
+gnss2_nmea_zda_data_rate: 0
+
+# NMEA messages in the filter descriptor set
+# In order to enable a message, set nmea_message_config to true, and then change the 'data_rate' of the sentences you want to the desired rate in hertz
+#
+# Note: In order to publish, 'publish_nmea' must also be set to True
+#
+# Note: filter_nmea_talker_id can be any of the follwing numeric values:
+#         1 - Sentences will start with GN
+#         2 - Sentences will start with GP
+#         3 - Sentences will start with GA
+#         4 - Sentences will start with GL
+#       The purpose of the talker ID is to differentiate when the same message_id comes from different data sources (descriptor sets)
+#       The filter_nmea_talker_id will be applied to all NMEA messages from the filter descriptor set
+filter_nmea_talker_id: 3
+filter_nmea_gga_data_rate: 0
+filter_nmea_gll_data_rate: 0
+filter_nmea_rmc_data_rate: 0
+filter_nmea_hdt_data_rate: 0
+filter_nmea_prka_data_rate: 0  # Note that this message_id will not have any talker ID on it since it is proprietary and can only come from the filter descriptor set

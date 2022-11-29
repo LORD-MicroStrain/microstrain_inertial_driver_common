@@ -10,9 +10,11 @@
 
 #include <sys/stat.h>
 
+#include <vector>
 #include <chrono>
 #include <string>
 #include <memory>
+#include <iomanip>
 
 #include "mip/platform/serial_connection.hpp"
 #include "mip/extras/recording_connection.hpp"
@@ -22,6 +24,8 @@
 
 namespace microstrain
 {
+
+constexpr auto NMEA_MAX_LENGTH = 82;
 
 RosConnection::RosConnection(RosNodeType* node) : node_(node)
 {
@@ -137,6 +141,10 @@ bool RosConnection::configure(RosNodeType* config_node, RosMipDevice* device)
       MICROSTRAIN_INFO(node_, "Raw binary datafile opened at %s", filename.c_str());
     }
   }
+
+  // Enable NMEA extraction if publish_nmea is true
+  getParam<bool>(config_node, "publish_nmea", should_extract_nmea_, false);
+
   return true;
 }
 
@@ -148,6 +156,13 @@ mip::Timeout RosConnection::parseTimeout() const
 mip::Timeout RosConnection::baseReplyTimeout() const
 {
   return base_reply_timeout_;
+}
+
+std::vector<NMEASentenceMsg> RosConnection::nmeaMsgs()
+{
+  auto copy = nmea_msgs_;
+  nmea_msgs_.clear();
+  return copy;
 }
 
 bool RosConnection::sendToDevice(const uint8_t* data, size_t length)
@@ -162,8 +177,114 @@ bool RosConnection::recvFromDevice(uint8_t* buffer, size_t max_length, mip::Time
 {
   const bool success = (connection_ != nullptr) ? connection_->recvFromDevice(buffer, max_length, timeout, count_out, timestamp_out) : false;
   if (success)
+  {
     *timestamp_out = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+
+    // Parse NMEA sentences if we were asked to
+    if (should_extract_nmea_)
+      extractNmea(buffer, *count_out);
+  }
   return success;
+}
+
+void RosConnection::extractNmea(const uint8_t* data, size_t data_len)
+{
+  // Convert into a string if there was actually data
+  nmea_string_ += std::string(reinterpret_cast<const char*>(data), data_len);
+
+  // If there is no data, return early
+  if (data_len <= 0)
+    return;
+  MICROSTRAIN_DEBUG(node_, "Read %lu new bytes from port. Parsing a total of %lu bytes including cached data", data_len, nmea_string_.size());
+
+  // Iterate until we find a valid packet
+  size_t trim_length = 0;
+  for (size_t i = 0; i < nmea_string_.size(); i++)
+  {
+    // NMEA parsing logic
+    if (nmea_string_[i] == '$' || nmea_string_[i] == '!')
+    {
+      MICROSTRAIN_DEBUG(node_, "Found possible beginning of NMEA sentence at %lu", i);
+
+      // Attempt to find the end of the sentence (this index will point to the \r in the \r\n, so is technically one less than the end index)
+      const size_t nmea_end_index = nmea_string_.find("\r\n", i + 1);
+      if (nmea_end_index == std::string::npos)
+      {
+        MICROSTRAIN_DEBUG(node_, "Could not find end of NMEA sentence. Continuing...");
+        continue;
+      }
+      MICROSTRAIN_DEBUG(node_, "Found possible end of NMEA sentence at %lu", nmea_end_index + 1);
+
+      // If the sentence is too long, move on
+      const size_t nmea_length = nmea_end_index - i;
+      if (nmea_length > NMEA_MAX_LENGTH)
+      {
+        MICROSTRAIN_DEBUG(node_, "Found what appeared to be a valid NMEA sentence, but it was %lu bytes long, and the max size for a NMEA sentence is %d bytes", nmea_length, NMEA_MAX_LENGTH);
+        continue;
+      }
+
+      // Attempt to find the checksum
+      const size_t checksum_delimiter_index = nmea_string_.rfind('*', nmea_end_index);
+      if (checksum_delimiter_index == std::string::npos)
+      {
+        MICROSTRAIN_DEBUG(node_, "Found beginning and end of NMEA sentence, but could not find the checksum. Skipping");
+        continue;
+      }
+      const size_t checksum_start_index = checksum_delimiter_index + 1;
+
+      // Extract the expected checksum
+      const std::string& expected_checksum_str = nmea_string_.substr(checksum_start_index, nmea_end_index - checksum_start_index);
+      uint16_t expected_checksum;
+      try
+      {
+        expected_checksum = static_cast<uint16_t>(std::stoi(expected_checksum_str, nullptr, 16));
+      }
+      catch (const std::exception& e)
+      {
+        MICROSTRAIN_DEBUG(node_, "Checksum at end of NMEA sentence cannot be parsed into a hex number: %s", expected_checksum_str.c_str());
+        continue;
+      }
+
+      // Calculate the actual checksum
+      uint16_t actual_checksum = 0;
+      for (size_t k = i + 1; k < checksum_start_index - 1; k++)
+        actual_checksum ^= nmea_string_[k];
+
+      // Extract the sentence
+      const std::string& sentence = nmea_string_.substr(i, (nmea_end_index - i) + 2);
+
+      // If the checksum is invalid, move on
+      if (actual_checksum != expected_checksum)
+      {
+        MICROSTRAIN_DEBUG(node_, "Found what appeared to be a valid NMEA sentence, but the checksums did not match. Skipping");
+        MICROSTRAIN_DEBUG(node_, "  Sentence:          %s", sentence.c_str());
+        MICROSTRAIN_DEBUG(node_, "  Expected Checksum: 0x%02x", expected_checksum);
+        MICROSTRAIN_DEBUG(node_, "  Actual Checksum:   0x%02x", actual_checksum);
+        continue;
+      }
+
+      // Looks like it is a valid NMEA sentence. Publish
+      NMEASentenceMsg msg;
+      msg.header.stamp = rosTimeNow(node_);
+      msg.sentence = sentence;
+      nmea_msgs_.push_back(msg);
+
+      // Move the iterator past the end of the sentence, and mark it for deletion
+      MICROSTRAIN_DEBUG(node_, "NMEA sentence found starting at index %lu and ending at index %lu: %s", i, nmea_end_index + 1, sentence.c_str());
+      trim_length = i = nmea_end_index + 1;
+    }
+  }
+
+  // Trim the string
+  MICROSTRAIN_DEBUG(node_, "Cached NMEA string is %lu bytes before trimming", nmea_string_.size());
+  MICROSTRAIN_DEBUG(node_, "Trimming %lu bytes from the beginning of the cached NMEA string", trim_length);
+  nmea_string_.erase(0, trim_length);
+  if (nmea_string_.size() > NMEA_MAX_LENGTH)
+  {
+    MICROSTRAIN_DEBUG(node_, "Cached NMEA buffer has grown to %lu bytes. Trimming down to %d bytes", nmea_string_.size(), NMEA_MAX_LENGTH);
+    nmea_string_.erase(0, nmea_string_.size() - NMEA_MAX_LENGTH);
+  }
+  MICROSTRAIN_DEBUG(node_, "Cached NMEA string is %lu bytes after trimming", nmea_string_.size());
 }
 
 }  // namespace microstrain
