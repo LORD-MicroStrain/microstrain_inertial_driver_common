@@ -17,6 +17,7 @@
  */
 #include <string>
 #include <memory>
+#include <vector>
 
 /**
  * Common Defines
@@ -406,6 +407,9 @@ using DeviceSettingsServiceMsg = ::microstrain_inertial_msgs::DeviceSettings;
 
 using SetFilterSpeedLeverArmServiceMsg = ::microstrain_inertial_msgs::SetFilterSpeedLeverArm;
 
+// ROS1 aliases not intended to be used outside this file
+using ParamIntVector = std::vector<int32_t>;
+
 // ROS1 Logging
 #define MICROSTRAIN_DEBUG(NODE, ...) ROS_DEBUG(__VA_ARGS__)
 #define MICROSTRAIN_INFO(NODE, ...) ROS_INFO(__VA_ARGS__)
@@ -714,6 +718,9 @@ using DeviceSettingsServiceMsg = microstrain_inertial_msgs::srv::DeviceSettings;
 
 using SetFilterSpeedLeverArmServiceMsg = microstrain_inertial_msgs::srv::SetFilterSpeedLeverArm;
 
+// ROS2 aliases not intended to be used outside this file
+using ParamIntVector = std::vector<int64_t>;
+
 // ROS2 Logging
 #define MICROSTRAIN_DEBUG(NODE, ...) RCLCPP_DEBUG(NODE->get_logger(), __VA_ARGS__)
 #define MICROSTRAIN_INFO(NODE, ...) RCLCPP_INFO(NODE->get_logger(), __VA_ARGS__)
@@ -911,6 +918,19 @@ inline void getParamFloat(RosNodeType* node, const std::string& param_name, floa
     param_val = static_cast<float>(param_val_int);
   }
 }
+
+inline void getUint16ArrayParam(RosNodeType* node, const std::string& param_name, std::vector<uint16_t>& param_val, const std::vector<uint16_t>& default_val)
+{
+  // Get the parameter as ints since that is all ROS supports
+  ParamIntVector param_val_int;
+  ParamIntVector default_val_int(default_val.begin(), default_val.end());
+  getParam<ParamIntVector>(node, param_name, param_val_int, default_val_int);
+  MICROSTRAIN_INFO(node, "%lu", param_val_int.size());
+
+  // Convert the type
+  param_val = std::vector<uint16_t>(param_val_int.begin(), param_val_int.end());
+}
+
 
 }  // namespace microstrain
 
