@@ -48,7 +48,6 @@ static constexpr auto GNSS2_SBAS_INFO_TOPIC = "gnss2/sbas_info";
 
 static constexpr auto RTK_STATUS_TOPIC = "rtk/status";
 static constexpr auto RTK_STATUS_V1_TOPIC = "rtk/status_v1";
-static constexpr auto RTK_SBAS_INFO_TOPIC = "rtk/sbas_info";
 
 static constexpr auto FILTER_STATUS_TOPIC = "nav/status";
 static constexpr auto FILTER_HEADING_TOPIC = "nav/heading";

@@ -291,9 +291,6 @@ const std::map<std::string, FieldWrapper::SharedPtrVec> MipPublisherMapping::sta
   {RTK_STATUS_V1_TOPIC, {
     FieldWrapperType<mip::data_gnss::RtkCorrectionsStatus, mip::data_gnss::MIP_GNSS3_DATA_DESC_SET>::initialize(),
   }},
-  {RTK_SBAS_INFO_TOPIC, {
-    FieldWrapperType<mip::data_gnss::SbasInfo, mip::data_gnss::MIP_GNSS3_DATA_DESC_SET>::initialize(),
-  }},
 
   // Filter topic mappings
   {FILTER_STATUS_TOPIC, {
@@ -370,7 +367,6 @@ const std::map<std::string, std::string> MipPublisherMapping::static_topic_to_da
   // RTK data rates
   {RTK_STATUS_TOPIC,    "rtk_status_data_rate"},
   {RTK_STATUS_V1_TOPIC, "rtk_status_data_rate"},
-  {RTK_SBAS_INFO_TOPIC, "rtk_sbas_info_data_rate"},
 
   // Filter data rates
   {FILTER_STATUS_TOPIC,              "filter_status_data_rate"},
