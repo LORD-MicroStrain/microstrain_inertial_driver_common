@@ -99,10 +99,11 @@ imu_data_rate : 100
 # The speed at which the individual IMU publishers will publish at.
 #      If set to -1, will use imu_data_rate to determine the rate at which to stream and publish
 #      If set to 0, the stream will be turned off and the publisher will not be created
-imu_raw_data_rate      : -1  # Rate of imu/data topic
-imu_mag_data_rate      : -1  # Rate of mag topic
-imu_gps_corr_data_rate : -1  # Rate of gps_corr topic
-                             # Note that for philo devices, this will be published at the highest IMU data rate if "use_device_timestamp" is set to true
+imu_raw_data_rate              : -1  # Rate of imu/data topic
+imu_mag_data_rate              : -1  # Rate of mag topic
+imu_gps_corr_data_rate         : -1  # Rate of gps_corr topic
+                                     # Note that for philo devices (GX5, CV5, CX5), this will be published at the highest IMU data rate if "use_device_timestamp" is set to true
+imu_overrange_status_data_rate : -1  # Rate of imu/overrange_status topic
 
 # Static IMU message covariance values (the device does not generate these) 
 # Since internally these are std::vector we need to use the rosparam tags 
