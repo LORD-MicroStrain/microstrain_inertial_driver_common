@@ -74,6 +74,7 @@ constexpr auto NUM_GNSS = 2;
 #include "microstrain_inertial_msgs/GNSSDualAntennaStatus.h"
 #include "microstrain_inertial_msgs/GNSSFixInfo.h"
 #include "microstrain_inertial_msgs/SbasInfo.h"
+#include "microstrain_inertial_msgs/RfErrorDetection.h"
 
 #include "microstrain_inertial_msgs/InputSpeedMeasurement.h"
 
@@ -182,6 +183,7 @@ constexpr auto NUM_GNSS = 2;
 #include "microstrain_inertial_msgs/msg/gnss_dual_antenna_status.hpp"
 #include "microstrain_inertial_msgs/msg/gnss_fix_info.hpp"
 #include "microstrain_inertial_msgs/msg/sbas_info.hpp"
+#include "microstrain_inertial_msgs/msg/rf_error_detection.hpp"
 
 #include "microstrain_inertial_msgs/msg/input_speed_measurement.hpp"
 
@@ -306,6 +308,7 @@ using GNSSFixInfoMsg = ::microstrain_inertial_msgs::GNSSFixInfo;
 using FilterHeadingStateMsg = ::microstrain_inertial_msgs::FilterHeadingState;
 using GPSCorrelationTimestampStampedMsg = ::microstrain_inertial_msgs::GPSCorrelationTimestampStamped;
 using SbasInfoMsg = ::microstrain_inertial_msgs::SbasInfo;
+using RfErrorDetectionMsg = ::microstrain_inertial_msgs::RfErrorDetection;
 
 using TransformStampedMsg = ::geometry_msgs::TransformStamped;
 
@@ -619,6 +622,7 @@ using GNSSFixInfoMsg = ::microstrain_inertial_msgs::msg::GNSSFixInfo;
 using FilterHeadingStateMsg = ::microstrain_inertial_msgs::msg::FilterHeadingState;
 using GPSCorrelationTimestampStampedMsg = ::microstrain_inertial_msgs::msg::GPSCorrelationTimestampStamped;
 using SbasInfoMsg = ::microstrain_inertial_msgs::msg::SbasInfo;
+using RfErrorDetectionMsg = ::microstrain_inertial_msgs::msg::RfErrorDetection;
 
 using TransformStampedMsg = ::geometry_msgs::msg::TransformStamped;
 
