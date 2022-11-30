@@ -262,6 +262,9 @@ const std::map<std::string, FieldWrapper::SharedPtrVec> MipPublisherMapping::sta
     FieldWrapperType<mip::data_gnss::FixInfo, mip::data_gnss::DESCRIPTOR_SET>::initialize(),
     FieldWrapperType<mip::data_gnss::FixInfo, mip::data_gnss::MIP_GNSS1_DATA_DESC_SET>::initialize(),
   }},
+  {GNSS1_SBAS_INFO_TOPIC, {
+    FieldWrapperType<mip::data_gnss::SbasInfo, mip::data_gnss::MIP_GNSS1_DATA_DESC_SET>::initialize(),
+  }},
 
   // GNSS2 topic mappings.
   {GNSS2_NAVSATFIX_TOPIC, {
@@ -276,6 +279,9 @@ const std::map<std::string, FieldWrapper::SharedPtrVec> MipPublisherMapping::sta
   }},
   {GNSS2_FIX_INFO_TOPIC, {
     FieldWrapperType<mip::data_gnss::FixInfo, mip::data_gnss::MIP_GNSS2_DATA_DESC_SET>::initialize(),
+  }},
+  {GNSS2_SBAS_INFO_TOPIC, {
+    FieldWrapperType<mip::data_gnss::SbasInfo, mip::data_gnss::MIP_GNSS2_DATA_DESC_SET>::initialize(),
   }},
 
   // RTK topic mappings
@@ -348,6 +354,7 @@ const std::map<std::string, std::string> MipPublisherMapping::static_topic_to_da
   {GNSS1_TIME_REF_TOPIC,      "gnss1_time_reference_data_rate"},
   {GNSS1_FIX_INFO_TOPIC,      "gnss1_fix_info_data_rate"},
   {GNSS1_AIDING_STATUS_TOPIC, "filter_aiding_status_data_rate"},
+  {GNSS1_SBAS_INFO_TOPIC,     "gnss1_sbas_info_data_rate"},
 
   // GNSS2 data rates
   {GNSS2_NAVSATFIX_TOPIC,     "gnss2_nav_sat_fix_data_rate"},
@@ -355,6 +362,7 @@ const std::map<std::string, std::string> MipPublisherMapping::static_topic_to_da
   {GNSS2_TIME_REF_TOPIC,      "gnss2_time_reference_data_rate"},
   {GNSS2_FIX_INFO_TOPIC,      "gnss2_fix_info_data_rate"},
   {GNSS2_AIDING_STATUS_TOPIC, "filter_aiding_status_data_rate"},
+  {GNSS2_SBAS_INFO_TOPIC,     "gnss2_sbas_info_data_rate"},
 
   // RTK data rates
   {RTK_STATUS_TOPIC,    "rtk_status_data_rate"},
@@ -377,7 +385,7 @@ const std::map<uint8_t, std::string> MipPublisherMapping::static_descriptor_set_
   {mip::data_gnss::DESCRIPTOR_SET,          "gnss1_data_rate"},
   {mip::data_gnss::MIP_GNSS1_DATA_DESC_SET, "gnss1_data_rate"},
   {mip::data_gnss::MIP_GNSS2_DATA_DESC_SET, "gnss2_data_rate"},
-  {mip::data_gnss::MIP_GNSS3_DATA_DESC_SET, "rtk_status_data_rate"},  // Only one RTK field right now, so just use rtk_status_data_rate
+  {mip::data_gnss::MIP_GNSS3_DATA_DESC_SET, "rtk_data_rate"},
   {mip::data_filter::DESCRIPTOR_SET,        "filter_data_rate"},
 };
 
