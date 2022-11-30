@@ -242,6 +242,9 @@ const std::map<std::string, FieldWrapper::SharedPtrVec> MipPublisherMapping::sta
   {IMU_GPS_CORR_TOPIC, {
     FieldWrapperType<mip::data_sensor::GpsTimestamp>::initialize(),
   }},
+  {IMU_OVERRANGE_STATUS_TOPIC, {
+    FieldWrapperType<mip::data_sensor::OverrangeStatus>::initialize(),
+  }},
 
   // GNSS1 topic mappings. Note that each of these topics will contain a field for both the GNSS and GNSS1 descriptor set
   {GNSS1_NAVSATFIX_TOPIC, {
@@ -353,6 +356,7 @@ const std::map<std::string, std::string> MipPublisherMapping::static_topic_to_da
   {IMU_DATA_TOPIC,              "imu_raw_data_rate"},
   {IMU_MAG_TOPIC,               "imu_mag_data_rate"},
   {IMU_GPS_CORR_TOPIC,          "imu_gps_corr_data_rate"},
+  {IMU_OVERRANGE_STATUS_TOPIC,  "imu_overrange_status_data_rate"},
 
   // GNSS/GNSS1 data rates
   {GNSS1_NAVSATFIX_TOPIC,          "gnss1_nav_sat_fix_data_rate"},

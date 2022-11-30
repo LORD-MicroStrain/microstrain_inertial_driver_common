@@ -29,6 +29,7 @@ bool Publishers::configure()
   imu_pub_->configure(node_, config_);
   mag_pub_->configure(node_, config_);
   gps_corr_pub_->configure(node_, config_);
+  imu_overrange_status_pub_->configure(node_, config_);
 
   for (const auto& pub : gnss_pub_) pub->configure(node_, config_);
   for (const auto& pub : gnss_odom_pub_) pub->configure(node_, config_);
@@ -83,6 +84,7 @@ bool Publishers::configure()
   transform_broadcaster_ = createTransformBroadcaster(node_);
 
   // Register callbacks for each data field we care about. Note that order is preserved here, so if a data field needs to be parsed before another, change it here.
+  // Prospect shared field callbacks
   for (const uint8_t descriptor_set : std::initializer_list<uint8_t>{mip::data_sensor::DESCRIPTOR_SET, mip::data_gnss::DESCRIPTOR_SET, mip::data_gnss::MIP_GNSS1_DATA_DESC_SET, mip::data_gnss::MIP_GNSS2_DATA_DESC_SET, mip::data_gnss::MIP_GNSS3_DATA_DESC_SET, mip::data_filter::DESCRIPTOR_SET})
   {
     registerDataCallback<mip::data_shared::EventSource, &Publishers::handleSharedEventSource>(descriptor_set);
@@ -94,16 +96,19 @@ bool Publishers::configure()
     registerDataCallback<mip::data_shared::ReferenceTimeDelta, &Publishers::handleSharedReferenceTimeDelta>(descriptor_set);
   }
 
+  // Philo shared field callbacks
   registerDataCallback<mip::data_sensor::GpsTimestamp, &Publishers::handleSensorGpsTimestamp>();
   registerDataCallback<mip::data_gnss::GpsTime, &Publishers::handleGnssGpsTime>();
   registerDataCallback<mip::data_filter::Timestamp, &Publishers::handleFilterTimestamp>();
 
+  // IMU callbacks
   registerDataCallback<mip::data_sensor::ScaledAccel, &Publishers::handleSensorScaledAccel>();
   registerDataCallback<mip::data_sensor::ScaledGyro, &Publishers::handleSensorScaledGyro>();
   registerDataCallback<mip::data_sensor::CompQuaternion, &Publishers::handleSensorCompQuaternion>();
   registerDataCallback<mip::data_sensor::ScaledMag, &Publishers::handleSensorScaledMag>();
+  registerDataCallback<mip::data_sensor::OverrangeStatus, &Publishers::handleSensorOverrangeStatus>();
 
-  // GNSS1/2 publishers
+  // GNSS1/2 callbacks
   for (const uint8_t gnss_descriptor_set : std::initializer_list<uint8_t>{mip::data_gnss::DESCRIPTOR_SET, mip::data_gnss::MIP_GNSS1_DATA_DESC_SET, mip::data_gnss::MIP_GNSS2_DATA_DESC_SET})
   {
     registerDataCallback<mip::data_gnss::PosLlh, &Publishers::handleGnssPosLlh>(gnss_descriptor_set);
@@ -137,6 +142,7 @@ bool Publishers::activate()
   imu_pub_->activate();
   mag_pub_->activate();
   gps_corr_pub_->activate();
+  imu_overrange_status_pub_->activate();
 
   for (const auto& pub : gnss_pub_) pub->activate();
   for (const auto& pub : gnss_odom_pub_) pub->activate();
@@ -167,6 +173,7 @@ bool Publishers::deactivate()
   imu_pub_->deactivate();
   mag_pub_->deactivate();
   gps_corr_pub_->deactivate();
+  imu_overrange_status_pub_->deactivate();
 
   for (const auto& pub : gnss_pub_) pub->deactivate();
   for (const auto& pub : gnss_odom_pub_) pub->deactivate();
@@ -199,6 +206,7 @@ void Publishers::publish()
   imu_pub_->publish();
   mag_pub_->publish();
   gps_corr_pub_->publish();
+  imu_overrange_status_pub_->publish();
 
   for (const auto& pub : gnss_pub_) pub->publish();
   for (const auto& pub : gnss_odom_pub_) pub->publish();
@@ -337,6 +345,21 @@ void Publishers::handleSensorScaledMag(const mip::data_sensor::ScaledMag& scaled
     mag_msg->magnetic_field.y *= -1.0;
     mag_msg->magnetic_field.z *= -1.0;
   }
+}
+
+void Publishers::handleSensorOverrangeStatus(const mip::data_sensor::OverrangeStatus& overrange_status, const uint8_t descriptor_set, mip::Timestamp timestamp)
+{
+  auto imu_overrange_status_msg = imu_overrange_status_pub_->getMessageToUpdate();
+  imu_overrange_status_msg->status_accel_x = overrange_status.status.accelX();
+  imu_overrange_status_msg->status_accel_y = overrange_status.status.accelY();
+  imu_overrange_status_msg->status_accel_z = overrange_status.status.accelZ();
+  imu_overrange_status_msg->status_gyro_x = overrange_status.status.gyroX();
+  imu_overrange_status_msg->status_gyro_y = overrange_status.status.gyroY();
+  imu_overrange_status_msg->status_gyro_z = overrange_status.status.gyroZ();
+  imu_overrange_status_msg->status_mag_x = overrange_status.status.magX();
+  imu_overrange_status_msg->status_mag_y = overrange_status.status.magY();
+  imu_overrange_status_msg->status_mag_z = overrange_status.status.magZ();
+  imu_overrange_status_msg->status_press = overrange_status.status.press();
 }
 
 void Publishers::handleGnssGpsTime(const mip::data_gnss::GpsTime& gps_time, const uint8_t descriptor_set, mip::Timestamp timestamp)

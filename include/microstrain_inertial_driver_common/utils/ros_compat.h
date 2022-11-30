@@ -63,6 +63,7 @@ constexpr auto NUM_GNSS = 2;
 #include "nmea_msgs/Sentence.h"
 
 #include "microstrain_inertial_msgs/Status.h"
+#include "microstrain_inertial_msgs/ImuOverrangeStatus.h"
 #include "microstrain_inertial_msgs/RTKStatus.h"
 #include "microstrain_inertial_msgs/RTKStatusV1.h"
 #include "microstrain_inertial_msgs/FilterStatus.h"
@@ -73,8 +74,8 @@ constexpr auto NUM_GNSS = 2;
 #include "microstrain_inertial_msgs/GNSSAidingStatus.h"
 #include "microstrain_inertial_msgs/GNSSDualAntennaStatus.h"
 #include "microstrain_inertial_msgs/GNSSFixInfo.h"
-#include "microstrain_inertial_msgs/SbasInfo.h"
-#include "microstrain_inertial_msgs/RfErrorDetection.h"
+#include "microstrain_inertial_msgs/GNSSSbasInfo.h"
+#include "microstrain_inertial_msgs/GNSSRfErrorDetection.h"
 
 #include "microstrain_inertial_msgs/InputSpeedMeasurement.h"
 
@@ -172,6 +173,7 @@ constexpr auto NUM_GNSS = 2;
 #endif
 
 #include "microstrain_inertial_msgs/msg/status.hpp"
+#include "microstrain_inertial_msgs/msg/imu_overrange_status.hpp"
 #include "microstrain_inertial_msgs/msg/rtk_status.hpp"
 #include "microstrain_inertial_msgs/msg/rtk_status_v1.hpp"
 #include "microstrain_inertial_msgs/msg/filter_status.hpp"
@@ -182,8 +184,8 @@ constexpr auto NUM_GNSS = 2;
 #include "microstrain_inertial_msgs/msg/gnss_aiding_status.hpp"
 #include "microstrain_inertial_msgs/msg/gnss_dual_antenna_status.hpp"
 #include "microstrain_inertial_msgs/msg/gnss_fix_info.hpp"
-#include "microstrain_inertial_msgs/msg/sbas_info.hpp"
-#include "microstrain_inertial_msgs/msg/rf_error_detection.hpp"
+#include "microstrain_inertial_msgs/msg/gnss_sbas_info.hpp"
+#include "microstrain_inertial_msgs/msg/gnss_rf_error_detection.hpp"
 
 #include "microstrain_inertial_msgs/msg/input_speed_measurement.hpp"
 
@@ -296,6 +298,7 @@ using MagneticFieldMsg = ::sensor_msgs::MagneticField;
 using TimeReferenceMsg = ::sensor_msgs::TimeReference;
 using NMEASentenceMsg = ::nmea_msgs::Sentence;
 using StatusMsg = ::microstrain_inertial_msgs::Status;
+using ImuOverrangeStatusMsg = ::microstrain_inertial_msgs::ImuOverrangeStatus;
 using RTKStatusMsg = ::microstrain_inertial_msgs::RTKStatus;
 using RTKStatusMsgV1 = ::microstrain_inertial_msgs::RTKStatusV1;
 using FilterStatusMsg = ::microstrain_inertial_msgs::FilterStatus;
@@ -307,8 +310,8 @@ using GNSSDualAntennaStatusMsg = ::microstrain_inertial_msgs::GNSSDualAntennaSta
 using GNSSFixInfoMsg = ::microstrain_inertial_msgs::GNSSFixInfo;
 using FilterHeadingStateMsg = ::microstrain_inertial_msgs::FilterHeadingState;
 using GPSCorrelationTimestampStampedMsg = ::microstrain_inertial_msgs::GPSCorrelationTimestampStamped;
-using SbasInfoMsg = ::microstrain_inertial_msgs::SbasInfo;
-using RfErrorDetectionMsg = ::microstrain_inertial_msgs::RfErrorDetection;
+using GNSSSbasInfoMsg = ::microstrain_inertial_msgs::GNSSSbasInfo;
+using GNSSRfErrorDetectionMsg = ::microstrain_inertial_msgs::GNSSRfErrorDetection;
 
 using TransformStampedMsg = ::geometry_msgs::TransformStamped;
 
@@ -610,6 +613,7 @@ using MagneticFieldMsg = ::sensor_msgs::msg::MagneticField;
 using TimeReferenceMsg = ::sensor_msgs::msg::TimeReference;
 using NMEASentenceMsg = ::nmea_msgs::msg::Sentence;
 using StatusMsg = ::microstrain_inertial_msgs::msg::Status;
+using ImuOverrangeStatusMsg = ::microstrain_inertial_msgs::msg::ImuOverrangeStatus;
 using RTKStatusMsg = ::microstrain_inertial_msgs::msg::RTKStatus;
 using RTKStatusMsgV1 = ::microstrain_inertial_msgs::msg::RTKStatusV1;
 using FilterStatusMsg = ::microstrain_inertial_msgs::msg::FilterStatus;
@@ -621,8 +625,8 @@ using GNSSDualAntennaStatusMsg = ::microstrain_inertial_msgs::msg::GNSSDualAnten
 using GNSSFixInfoMsg = ::microstrain_inertial_msgs::msg::GNSSFixInfo;
 using FilterHeadingStateMsg = ::microstrain_inertial_msgs::msg::FilterHeadingState;
 using GPSCorrelationTimestampStampedMsg = ::microstrain_inertial_msgs::msg::GPSCorrelationTimestampStamped;
-using SbasInfoMsg = ::microstrain_inertial_msgs::msg::SbasInfo;
-using RfErrorDetectionMsg = ::microstrain_inertial_msgs::msg::RfErrorDetection;
+using GNSSSbasInfoMsg = ::microstrain_inertial_msgs::msg::GNSSSbasInfo;
+using GNSSRfErrorDetectionMsg = ::microstrain_inertial_msgs::msg::GNSSRfErrorDetection;
 
 using TransformStampedMsg = ::geometry_msgs::msg::TransformStamped;
 
