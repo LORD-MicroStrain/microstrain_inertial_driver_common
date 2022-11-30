@@ -931,7 +931,6 @@ inline void getUint16ArrayParam(RosNodeType* node, const std::string& param_name
   ParamIntVector param_val_int;
   ParamIntVector default_val_int(default_val.begin(), default_val.end());
   getParam<ParamIntVector>(node, param_name, param_val_int, default_val_int);
-  MICROSTRAIN_INFO(node, "%lu", param_val_int.size());
 
   // Convert the type
   param_val = std::vector<uint16_t>(param_val_int.begin(), param_val_int.end());
