@@ -405,6 +405,16 @@ filter_gnss_antenna_cal_max_offset : 0.1
 #    4 - Generated from system oscillator
 filter_pps_source : 1
 
+# (GQ7 only) SBAS options
+sbas_enable: True
+sbas_enable_ranging: False
+sbas_enable_corrections: True
+sbas_apply_integrity: False
+
+# (GQ7 only) SBAS included PRNs
+#  Note: ROS2 can't handle empty arrays in a yml file, so uncomment this line and fill it in if you want to specify PRNs
+#sbas_included_prns: []
+
 # (GQ7 only) NMEA message format. If set to false, all NMEA message configuration will not have any affect
 nmea_message_config: False
 

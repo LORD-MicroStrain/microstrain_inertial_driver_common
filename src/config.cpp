@@ -282,11 +282,18 @@ bool Config::configure3DM(RosNodeType* node)
   int filter_pps_source;
   float hardware_odometer_scaling;
   float hardware_odometer_uncertainty;
+  bool sbas_enable, sbas_enable_ranging, sbas_enable_corrections, sbas_apply_integrity;
+  std::vector<uint16_t> sbas_prns;
   getParam<bool>(node, "gpio_config", gpio_config, false);
   getParam<bool>(node, "nmea_message_config", nmea_message_config, false);
   getParam<int32_t>(node, "filter_pps_source", filter_pps_source, 1);
   getParam<float>(node, "odometer_scaling", hardware_odometer_scaling, 0.0);
   getParam<float>(node, "odometer_uncertainty", hardware_odometer_uncertainty, 0.0);
+  getParam<bool>(node, "sbas_enable", sbas_enable, false);
+  getParam<bool>(node, "sbas_enable_ranging", sbas_enable_ranging, false);
+  getParam<bool>(node, "sbas_enable_corrections", sbas_enable_corrections, false);
+  getParam<bool>(node, "sbas_apply_integrity", sbas_apply_integrity, false);
+  getUint16ArrayParam(node, "sbas_included_prns", sbas_prns, std::vector<uint16_t>());
 
   mip::CmdResult mip_cmd_result;
   const uint8_t descriptor_set = mip::commands_3dm::DESCRIPTOR_SET;
@@ -386,6 +393,35 @@ bool Config::configure3DM(RosNodeType* node)
       MICROSTRAIN_ERROR(node_, "Could not configure support data even though it was requested. Exiting...");
       return false;
     }
+  }
+
+  // SBAS settings
+  if (mip_device_->supportsDescriptor(descriptor_set, mip::commands_3dm::CMD_GNSS_SBAS_SETTINGS))
+  {
+    std::stringstream prn_ss;
+    prn_ss << "[ ";
+    for (const auto sbas_prn : sbas_prns)
+      prn_ss << sbas_prn << ", ";
+    prn_ss << "]";
+    MICROSTRAIN_INFO(node_, "Configuring SBAS with:");
+    MICROSTRAIN_INFO(node_, "  enable = %d", sbas_enable);
+    MICROSTRAIN_INFO(node_, "  enable ranging = %d", sbas_enable_ranging);
+    MICROSTRAIN_INFO(node_, "  enable corrections = %d", sbas_enable_corrections);
+    MICROSTRAIN_INFO(node_, "  apply integrity = %d", sbas_apply_integrity);
+    MICROSTRAIN_INFO(node_, "  prns: %s", prn_ss.str().c_str());
+    mip::commands_3dm::GnssSbasSettings::SBASOptions sbas_options;
+    sbas_options.enableRanging(sbas_enable_ranging);
+    sbas_options.enableCorrections(sbas_enable_corrections);
+    sbas_options.applyIntegrity(sbas_apply_integrity);
+    if (!(mip_cmd_result = mip::commands_3dm::writeGnssSbasSettings(*mip_device_, sbas_enable, sbas_options, sbas_prns.size(), sbas_prns.data())))
+    {
+      MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to configure SBAS settings");
+      return false;
+    }
+  }
+  else
+  {
+    MICROSTRAIN_INFO(node_, "Note: The device does not support the SBAS settings command");
   }
 
   // NMEA Message format
