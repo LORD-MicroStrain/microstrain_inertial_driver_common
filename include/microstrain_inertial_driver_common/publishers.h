@@ -159,6 +159,16 @@ public:
     }
 
     /**
+     * \brief Publishes a message on the publisher. Will always publish the message as long as the publisher is initialized
+     * \param msg The message to publish
+     */
+    void publish(const MessageType& msg)
+    {
+      if (publisher_ != nullptr)
+        publisher_->publish(msg);
+    }
+
+    /**
      * \brief Gets the topic this publisher will publish to
      * \return The topic this publisher will publish to
      */
@@ -210,19 +220,18 @@ public:
   Publisher<MagneticFieldMsg>::SharedPtr                  mag_pub_      = Publisher<MagneticFieldMsg>::initialize(IMU_MAG_TOPIC);
   Publisher<GPSCorrelationTimestampStampedMsg>::SharedPtr gps_corr_pub_ = Publisher<GPSCorrelationTimestampStampedMsg>::initialize(IMU_GPS_CORR_TOPIC);
 
-  // GNSS 1/2 publishers
+  // GNSS publishers
   Publisher<NavSatFixMsg>::SharedPtrVec        gnss_pub_                    = Publisher<NavSatFixMsg>::initializeVec({GNSS1_NAVSATFIX_TOPIC, GNSS2_NAVSATFIX_TOPIC});
   Publisher<OdometryMsg>::SharedPtrVec         gnss_odom_pub_               = Publisher<OdometryMsg>::initializeVec({GNSS1_ODOM_TOPIC, GNSS2_ODOM_TOPIC});
   Publisher<TimeReferenceMsg>::SharedPtrVec    gnss_time_pub_               = Publisher<TimeReferenceMsg>::initializeVec({GNSS1_TIME_REF_TOPIC, GNSS2_TIME_REF_TOPIC});
   Publisher<GNSSAidingStatusMsg>::SharedPtrVec gnss_aiding_status_pub_      = Publisher<GNSSAidingStatusMsg>::initializeVec({GNSS1_AIDING_STATUS_TOPIC, GNSS2_AIDING_STATUS_TOPIC});
   Publisher<GNSSFixInfoMsg>::SharedPtrVec      gnss_fix_info_pub_           = Publisher<GNSSFixInfoMsg>::initializeVec({GNSS1_FIX_INFO_TOPIC, GNSS2_FIX_INFO_TOPIC});
-
-  // GNSS 1/2/3 publishers
-  Publisher<RfErrorDetectionMsg>::SharedPtrVec gnss_rf_error_detection_pub_ = Publisher<RfErrorDetectionMsg>::initializeVec({GNSS1_RF_ERROR_DETECTION_TOPIC, GNSS2_RF_ERROR_DETECTION_TOPIC, RTK_RF_ERROR_DETECTION_TOPIC});
+  Publisher<SbasInfoMsg>::SharedPtrVec         gnss_sbas_info_pub_          = Publisher<SbasInfoMsg>::initializeVec({GNSS1_SBAS_INFO_TOPIC, GNSS2_SBAS_INFO_TOPIC});
+  Publisher<RfErrorDetectionMsg>::SharedPtrVec gnss_rf_error_detection_pub_ = Publisher<RfErrorDetectionMsg>::initializeVec({GNSS1_RF_ERROR_DETECTION_TOPIC, GNSS2_RF_ERROR_DETECTION_TOPIC});
 
   // RTK publishers
-  Publisher<RTKStatusMsg>::SharedPtr        rtk_pub_    = Publisher<RTKStatusMsg>::initialize(RTK_STATUS_TOPIC);
-  Publisher<RTKStatusMsgV1>::SharedPtr      rtk_pub_v1_ = Publisher<RTKStatusMsgV1>::initialize(RTK_STATUS_V1_TOPIC);
+  Publisher<RTKStatusMsg>::SharedPtr   rtk_pub_    = Publisher<RTKStatusMsg>::initialize(RTK_STATUS_TOPIC);
+  Publisher<RTKStatusMsgV1>::SharedPtr rtk_pub_v1_ = Publisher<RTKStatusMsgV1>::initialize(RTK_STATUS_V1_TOPIC);
 
   // Filter publishers
   Publisher<FilterStatusMsg>::SharedPtr                   filter_status_pub_                     = Publisher<FilterStatusMsg>::initialize(FILTER_STATUS_TOPIC);
@@ -277,8 +286,7 @@ private:
   void handleGnssPosLlh(const mip::data_gnss::PosLlh& pos_llh, const uint8_t descriptor_set, mip::Timestamp timestamp);
   void handleGnssVelNed(const mip::data_gnss::VelNed& vel_ned, const uint8_t descriptor_set, mip::Timestamp timestamp);
   void handleGnssFixInfo(const mip::data_gnss::FixInfo& fix_info, const uint8_t descriptor_set, mip::Timestamp timestamp);
-
-  // Callbacks to handle GNSS1/2/3 data from the device
+  void handleGnssSbasInfo(const mip::data_gnss::SbasInfo& sbas_info, const uint8_t descriptor_set, mip::Timestamp timestamp);
   void handleGnssRfErrorDetection(const mip::data_gnss::RfErrorDetection& rf_error_detection, const uint8_t descriptor_set, mip::Timestamp timestamp);
 
   // Callbacks to handle RTK data from the device

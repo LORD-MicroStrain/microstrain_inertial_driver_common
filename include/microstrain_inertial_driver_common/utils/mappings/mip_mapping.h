@@ -12,10 +12,14 @@
 #ifndef MICROSTRAIN_INERTIAL_DRIVER_COMMON_UTILS_MAPPINGS_MIP_MAPPING_H_
 #define MICROSTRAIN_INERTIAL_DRIVER_COMMON_UTILS_MAPPINGS_MIP_MAPPING_H_
 
-#include <stdint.h>
-
+#include <map>
+#include <string>
 #include <memory>
 #include <vector>
+
+#include <stdint.h>
+
+#include "mip/mip_all.hpp"
 
 namespace microstrain
 {
@@ -80,6 +84,43 @@ class FieldWrapperType : public FieldWrapper
   {
     return std::make_shared<FieldWrapperType<DataType, DescriptorSet>>();
   }
+};
+
+/**
+ * Generic container to hold any mappings related to MIP, the MIP SDK, or anything of that type
+ */
+class MipMapping
+{
+ public:
+  static constexpr auto INVALID_STRING = "Invalid";
+
+  /**
+   * \brief Looks up the string representation of a descriptor set
+   * \param descriptor_set  The descriptor set to lookup
+   * \return The string representation of the descriptor set, or Invalid if it can't be found
+   */
+  static std::string descriptorSetString(uint8_t descriptor_set);
+
+  /**
+   * \brief Looks up the NMEA format string interpertation given a message ID
+   * \param message_id  The message ID to lookup
+   * \return The string representation of the message ID
+   */
+  static std::string nmeaFormatMessageIdString(mip::commands_3dm::NmeaMessage::MessageID message_id);
+
+  /**
+   * \brief Looks up the NMEA format string interpertation given a talker ID
+   * \param talker_id  The talker ID to lookup
+   * \return The string representation of the talker ID
+   */
+  static std::string nmeaFormatTalkerIdString(mip::commands_3dm::NmeaMessage::TalkerID talker_id);
+
+  static const std::map<uint8_t, std::string> descriptor_set_string_mapping_;  /// Mapping between descriptor sets and their string names
+
+  static const std::map<std::string, mip::commands_3dm::NmeaMessage::MessageID> nmea_message_string_message_id_mapping_;  /// Mapping between the string representation of the NMEA message IDs and their actual enum values
+  static const std::map<std::string, mip::commands_3dm::NmeaMessage::TalkerID> nmea_message_string_talker_id_mapping_;  /// Mapping between the string representation of the NMEA talker IDs and their actual enum values
+
+  static const std::map<mip::commands_3dm::NmeaMessage::MessageID, bool> nmea_message_id_requires_talker_id_mapping_;  /// Mapping between message IDs and whether they require a talker ID
 };
 
 }  // namespace microstrain

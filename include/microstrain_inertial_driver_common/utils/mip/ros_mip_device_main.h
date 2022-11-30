@@ -107,7 +107,7 @@ class RosMipDeviceMain : public RosMipDevice
    * \param hertz The value in hertz to convert to decmiation
    * \return The decimation value for the given descriptor set and hertz
    */
-  uint16_t getDecimationFromHertz(const uint8_t descriptor_set, const uint16_t hertz);
+  uint16_t getDecimationFromHertz(const uint8_t descriptor_set, const float hertz);
 
  private:
   std::vector<uint8_t> supported_descriptor_sets_;  // Supported descriptor sets of the node

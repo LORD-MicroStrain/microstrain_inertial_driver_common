@@ -17,6 +17,7 @@
  */
 #include <string>
 #include <memory>
+#include <vector>
 
 /**
  * Common Defines
@@ -72,6 +73,7 @@ constexpr auto NUM_GNSS = 2;
 #include "microstrain_inertial_msgs/GNSSAidingStatus.h"
 #include "microstrain_inertial_msgs/GNSSDualAntennaStatus.h"
 #include "microstrain_inertial_msgs/GNSSFixInfo.h"
+#include "microstrain_inertial_msgs/SbasInfo.h"
 #include "microstrain_inertial_msgs/RfErrorDetection.h"
 
 #include "microstrain_inertial_msgs/InputSpeedMeasurement.h"
@@ -180,6 +182,7 @@ constexpr auto NUM_GNSS = 2;
 #include "microstrain_inertial_msgs/msg/gnss_aiding_status.hpp"
 #include "microstrain_inertial_msgs/msg/gnss_dual_antenna_status.hpp"
 #include "microstrain_inertial_msgs/msg/gnss_fix_info.hpp"
+#include "microstrain_inertial_msgs/msg/sbas_info.hpp"
 
 #include "microstrain_inertial_msgs/msg/input_speed_measurement.hpp"
 
@@ -303,7 +306,9 @@ using GNSSDualAntennaStatusMsg = ::microstrain_inertial_msgs::GNSSDualAntennaSta
 using GNSSFixInfoMsg = ::microstrain_inertial_msgs::GNSSFixInfo;
 using FilterHeadingStateMsg = ::microstrain_inertial_msgs::FilterHeadingState;
 using GPSCorrelationTimestampStampedMsg = ::microstrain_inertial_msgs::GPSCorrelationTimestampStamped;
+using SbasInfoMsg = ::microstrain_inertial_msgs::SbasInfo;
 using RfErrorDetectionMsg = ::microstrain_inertial_msgs::RfErrorDetection;
+
 using TransformStampedMsg = ::geometry_msgs::TransformStamped;
 
 // ROS1 Transform Broadcaster
@@ -407,6 +412,9 @@ using DeviceReportServiceMsg = ::microstrain_inertial_msgs::DeviceReport;
 using DeviceSettingsServiceMsg = ::microstrain_inertial_msgs::DeviceSettings;
 
 using SetFilterSpeedLeverArmServiceMsg = ::microstrain_inertial_msgs::SetFilterSpeedLeverArm;
+
+// ROS1 aliases not intended to be used outside this file
+using ParamIntVector = std::vector<int32_t>;
 
 // ROS1 Logging
 #define MICROSTRAIN_DEBUG(NODE, ...) ROS_DEBUG(__VA_ARGS__)
@@ -612,6 +620,8 @@ using GNSSDualAntennaStatusMsg = ::microstrain_inertial_msgs::msg::GNSSDualAnten
 using GNSSFixInfoMsg = ::microstrain_inertial_msgs::msg::GNSSFixInfo;
 using FilterHeadingStateMsg = ::microstrain_inertial_msgs::msg::FilterHeadingState;
 using GPSCorrelationTimestampStampedMsg = ::microstrain_inertial_msgs::msg::GPSCorrelationTimestampStamped;
+using SbasInfoMsg = ::microstrain_inertial_msgs::msg::SbasInfo;
+
 using TransformStampedMsg = ::geometry_msgs::msg::TransformStamped;
 
 // ROS2 Transform Broadcaster
@@ -715,6 +725,9 @@ using DeviceReportServiceMsg = microstrain_inertial_msgs::srv::DeviceReport;
 using DeviceSettingsServiceMsg = microstrain_inertial_msgs::srv::DeviceSettings;
 
 using SetFilterSpeedLeverArmServiceMsg = microstrain_inertial_msgs::srv::SetFilterSpeedLeverArm;
+
+// ROS2 aliases not intended to be used outside this file
+using ParamIntVector = std::vector<int64_t>;
 
 // ROS2 Logging
 #define MICROSTRAIN_DEBUG(NODE, ...) RCLCPP_DEBUG(NODE->get_logger(), __VA_ARGS__)
@@ -891,6 +904,40 @@ inline void stopTimer(RosTimerType timer)
 #else
 #error "Unsupported ROS version. -DMICROSTRAIN_ROS_VERSION must be set to 1 or 2"
 #endif
+
+/**
+ * \brief Extention of getParam. Explicitly gets float parameter, even if it was specified as an int
+ * \param node  The ROS node to extract the config from
+ * \param param_name  The name of the config value to extract
+ * \param param_val  Variable to store the extracted config value in
+ * \param default_val  The default value to set param_val to if the config can't be found
+ */
+inline void getParamFloat(RosNodeType* node, const std::string& param_name, float& param_val, const float default_val)
+{
+  // Seems like ROS should be able to figure this out, but for ROS2 at least, we need to cast ints to floats so people don't have to put decimal points
+  try
+  {
+    getParam<float>(node, param_name, param_val, default_val);
+  }
+  catch (const std::exception& e)
+  {
+    int32_t param_val_int;
+    getParam<int32_t>(node, param_name, param_val_int, static_cast<int32_t>(default_val));
+    param_val = static_cast<float>(param_val_int);
+  }
+}
+
+inline void getUint16ArrayParam(RosNodeType* node, const std::string& param_name, std::vector<uint16_t>& param_val, const std::vector<uint16_t>& default_val)
+{
+  // Get the parameter as ints since that is all ROS supports
+  ParamIntVector param_val_int;
+  ParamIntVector default_val_int(default_val.begin(), default_val.end());
+  getParam<ParamIntVector>(node, param_name, param_val_int, default_val_int);
+
+  // Convert the type
+  param_val = std::vector<uint16_t>(param_val_int.begin(), param_val_int.end());
+}
+
 
 }  // namespace microstrain
 

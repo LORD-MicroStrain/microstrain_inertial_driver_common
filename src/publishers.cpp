@@ -35,6 +35,7 @@ bool Publishers::configure()
   for (const auto& pub : gnss_time_pub_) pub->configure(node_, config_);
   for (const auto& pub : gnss_aiding_status_pub_) pub->configure(node_, config_);
   for (const auto& pub : gnss_fix_info_pub_) pub->configure(node_, config_);
+  for (const auto& pub : gnss_sbas_info_pub_) pub->configure(node_, config_);
   for (const auto& pub : gnss_rf_error_detection_pub_) pub->configure(node_, config_);
 
   rtk_pub_->configure(node_, config_);
@@ -102,17 +103,13 @@ bool Publishers::configure()
   registerDataCallback<mip::data_sensor::CompQuaternion, &Publishers::handleSensorCompQuaternion>();
   registerDataCallback<mip::data_sensor::ScaledMag, &Publishers::handleSensorScaledMag>();
 
-  // Backwards compatible GNSS fields
+  // GNSS1/2 publishers
   for (const uint8_t gnss_descriptor_set : std::initializer_list<uint8_t>{mip::data_gnss::DESCRIPTOR_SET, mip::data_gnss::MIP_GNSS1_DATA_DESC_SET, mip::data_gnss::MIP_GNSS2_DATA_DESC_SET})
   {
     registerDataCallback<mip::data_gnss::PosLlh, &Publishers::handleGnssPosLlh>(gnss_descriptor_set);
     registerDataCallback<mip::data_gnss::VelNed, &Publishers::handleGnssVelNed>(gnss_descriptor_set);
     registerDataCallback<mip::data_gnss::FixInfo, &Publishers::handleGnssFixInfo>(gnss_descriptor_set);
-  }
-
-  // GNSS 1/2/3 fields
-  for (const uint8_t gnss_descriptor_set : std::initializer_list<uint8_t>{mip::data_gnss::MIP_GNSS1_DATA_DESC_SET, mip::data_gnss::MIP_GNSS2_DATA_DESC_SET, mip::data_gnss::MIP_GNSS3_DATA_DESC_SET})
-  {
+    registerDataCallback<mip::data_gnss::SbasInfo, &Publishers::handleGnssSbasInfo>(gnss_descriptor_set);
     registerDataCallback<mip::data_gnss::RfErrorDetection, &Publishers::handleGnssRfErrorDetection>(gnss_descriptor_set);
   }
 
@@ -146,6 +143,7 @@ bool Publishers::activate()
   for (const auto& pub : gnss_time_pub_) pub->activate();
   for (const auto& pub : gnss_aiding_status_pub_) pub->activate();
   for (const auto& pub : gnss_fix_info_pub_) pub->activate();
+  for (const auto& pub : gnss_sbas_info_pub_) pub->activate();
   for (const auto& pub : gnss_rf_error_detection_pub_) pub->activate();
 
   rtk_pub_->activate();
@@ -159,6 +157,8 @@ bool Publishers::activate()
   filter_relative_odom_pub_->activate();
   filter_imu_pub_->activate();
   gnss_dual_antenna_status_pub_->activate();
+
+  nmea_sentence_pub_->activate();
   return true;
 }
 
@@ -173,6 +173,7 @@ bool Publishers::deactivate()
   for (const auto& pub : gnss_time_pub_) pub->deactivate();
   for (const auto& pub : gnss_aiding_status_pub_) pub->deactivate();
   for (const auto& pub : gnss_fix_info_pub_) pub->deactivate();
+  for (const auto& pub : gnss_sbas_info_pub_) pub->deactivate();
   for (const auto& pub : gnss_rf_error_detection_pub_) pub->deactivate();
 
   rtk_pub_->deactivate();
@@ -204,6 +205,7 @@ void Publishers::publish()
   for (const auto& pub : gnss_time_pub_) pub->publish();
   for (const auto& pub : gnss_aiding_status_pub_) pub->publish();
   for (const auto& pub : gnss_fix_info_pub_) pub->publish();
+  for (const auto& pub : gnss_sbas_info_pub_) pub->publish();
   for (const auto& pub : gnss_rf_error_detection_pub_) pub->publish();
 
   rtk_pub_->publish();
@@ -429,9 +431,6 @@ void Publishers::handleGnssRfErrorDetection(const mip::data_gnss::RfErrorDetecti
     case mip::data_gnss::MIP_GNSS2_DATA_DESC_SET:
       gnss_index = 1;
       break;
-    case mip::data_gnss::MIP_GNSS3_DATA_DESC_SET:
-      gnss_index = 2;
-      break;
     default:
       return;  // Nothing to do if the descriptor set is not something we recognize
   }
@@ -442,6 +441,38 @@ void Publishers::handleGnssRfErrorDetection(const mip::data_gnss::RfErrorDetecti
   rf_error_detection_msg->jamming_state = static_cast<uint8_t>(rf_error_detection.jamming_state);
   rf_error_detection_msg->spoofing_state = static_cast<uint8_t>(rf_error_detection.spoofing_state);
   rf_error_detection_msg->valid_flags = rf_error_detection.valid_flags;
+}
+
+void Publishers::handleGnssSbasInfo(const mip::data_gnss::SbasInfo& sbas_info, const uint8_t descriptor_set, mip::Timestamp timestamp)
+{
+  // Find the right index for the message
+  uint8_t gnss_index;
+  switch (descriptor_set)
+  {
+    case mip::data_gnss::MIP_GNSS1_DATA_DESC_SET:
+      gnss_index = 0;
+      break;
+    case mip::data_gnss::MIP_GNSS2_DATA_DESC_SET:
+      gnss_index = 1;
+      break;
+    default:
+      return;  // Nothing to do if the descriptor set is not something we recognize
+  }
+
+  // Different message depending on descriptor
+  auto sbas_info_msg = gnss_sbas_info_pub_[gnss_index]->getMessageToUpdate();
+  sbas_info_msg->gps_tow = sbas_info.time_of_week;
+  sbas_info_msg->gps_week_number = sbas_info.week_number;
+  sbas_info_msg->sbas_system = static_cast<uint8_t>(sbas_info.sbas_system);
+  sbas_info_msg->sbas_id = sbas_info.sbas_id;
+  sbas_info_msg->count = sbas_info.count;
+
+  sbas_info_msg->status_range_available = sbas_info.sbas_status.rangeAvailable();
+  sbas_info_msg->status_corrections_available = sbas_info.sbas_status.correctionsAvailable();
+  sbas_info_msg->status_integrity_available = sbas_info.sbas_status.integrityAvailable();
+  sbas_info_msg->status_test_mode = sbas_info.sbas_status.testMode();
+
+  sbas_info_msg->valid_flags = sbas_info.valid_flags;
 }
 
 void Publishers::handleRtkCorrectionsStatus(const mip::data_gnss::RtkCorrectionsStatus& rtk_corrections_status, const uint8_t descriptor_set, mip::Timestamp timestamp)

@@ -24,6 +24,7 @@
 #include "mip/platform/serial_connection.hpp"
 #include "mip/extras/recording_connection.hpp"
 
+#include "microstrain_inertial_driver_common/utils/mappings/mip_mapping.h"
 #include "microstrain_inertial_driver_common/config.h"
 
 namespace microstrain
@@ -31,6 +32,7 @@ namespace microstrain
 
 Config::Config(RosNodeType* node) : node_(node)
 {
+  nmea_max_rate_hz_ = 0;
 }
 
 bool Config::configure(RosNodeType* node)
@@ -115,6 +117,9 @@ bool Config::configure(RosNodeType* node)
   getParam<std::string>(node, "filter_external_speed_topic", external_speed_topic_, "/external_speed");
   getParam<bool>(node, "filter_use_compensated_accel", filter_use_compensated_accel_, true);
 
+  // NMEA streaming
+  getParam<bool>(node, "nmea_message_allow_duplicate_talker_ids", nmea_message_allow_duplicate_talker_ids_, false);
+
   // Raw data file save
   getParam<bool>(node, "raw_file_enable", raw_file_enable_, false);
   getParam<bool>(node, "raw_file_include_support_data", raw_file_include_support_data_, false);
@@ -153,7 +158,19 @@ bool Config::connectDevice(RosNodeType* node)
     {
       aux_device_ = std::make_shared<RosMipDeviceAux>(node_);
       if (!aux_device_->configure(node))
-        return false;
+      {
+        // Only return an error if we were expected to subscribe to RTCM.
+        if (subscribe_rtcm_)
+        {
+          return false;
+        }
+        else
+        {
+          MICROSTRAIN_WARN(node_, "Failed to open aux port, but we were not asked to subscribe to RTCM corrections, so this is not a fatal error");
+          MICROSTRAIN_WARN(node_, "  Note: We will not publish any NMEA sentences from the aux port.");
+          aux_device_ = nullptr;
+        }
+      }
     }
     else
     {
@@ -163,10 +180,14 @@ bool Config::connectDevice(RosNodeType* node)
   else
   {
     MICROSTRAIN_INFO(node_, "Note: Not opening aux port because RTK dongle enable was not set to true.");
-    if (subscribe_rtcm_ || publish_nmea_)
+    if (subscribe_rtcm_)
     {
-      MICROSTRAIN_ERROR(node_, "Invalid configuration. In order to publish NMEA or subscribe to RTCM, 'rtk_dongle_enable' must be set to true");
+      MICROSTRAIN_ERROR(node_, "Invalid configuration. In order to subscribe to RTCM, 'rtk_dongle_enable' must be set to true");
       return false;
+    }
+    else if (publish_nmea_)
+    {
+      MICROSTRAIN_INFO(node_, "Note: Not publishing NMEA from aux port despite 'publish_nmea' being set to true since 'rtk_donble_enable' is false");
     }
   }
   return true;
@@ -257,13 +278,22 @@ bool Config::configure3DM(RosNodeType* node)
 {
   // Read local config
   bool gpio_config;
+  bool nmea_message_config;
   int filter_pps_source;
   float hardware_odometer_scaling;
   float hardware_odometer_uncertainty;
+  bool sbas_enable, sbas_enable_ranging, sbas_enable_corrections, sbas_apply_integrity;
+  std::vector<uint16_t> sbas_prns;
   getParam<bool>(node, "gpio_config", gpio_config, false);
+  getParam<bool>(node, "nmea_message_config", nmea_message_config, false);
   getParam<int32_t>(node, "filter_pps_source", filter_pps_source, 1);
   getParam<float>(node, "odometer_scaling", hardware_odometer_scaling, 0.0);
   getParam<float>(node, "odometer_uncertainty", hardware_odometer_uncertainty, 0.0);
+  getParam<bool>(node, "sbas_enable", sbas_enable, false);
+  getParam<bool>(node, "sbas_enable_ranging", sbas_enable_ranging, false);
+  getParam<bool>(node, "sbas_enable_corrections", sbas_enable_corrections, false);
+  getParam<bool>(node, "sbas_apply_integrity", sbas_apply_integrity, false);
+  getUint16ArrayParam(node, "sbas_included_prns", sbas_prns, std::vector<uint16_t>());
 
   mip::CmdResult mip_cmd_result;
   const uint8_t descriptor_set = mip::commands_3dm::DESCRIPTOR_SET;
@@ -365,6 +395,91 @@ bool Config::configure3DM(RosNodeType* node)
     }
   }
 
+  // SBAS settings
+  if (mip_device_->supportsDescriptor(descriptor_set, mip::commands_3dm::CMD_GNSS_SBAS_SETTINGS))
+  {
+    std::stringstream prn_ss;
+    prn_ss << "[ ";
+    for (const auto sbas_prn : sbas_prns)
+      prn_ss << sbas_prn << ", ";
+    prn_ss << "]";
+    MICROSTRAIN_INFO(node_, "Configuring SBAS with:");
+    MICROSTRAIN_INFO(node_, "  enable = %d", sbas_enable);
+    MICROSTRAIN_INFO(node_, "  enable ranging = %d", sbas_enable_ranging);
+    MICROSTRAIN_INFO(node_, "  enable corrections = %d", sbas_enable_corrections);
+    MICROSTRAIN_INFO(node_, "  apply integrity = %d", sbas_apply_integrity);
+    MICROSTRAIN_INFO(node_, "  prns: %s", prn_ss.str().c_str());
+    mip::commands_3dm::GnssSbasSettings::SBASOptions sbas_options;
+    sbas_options.enableRanging(sbas_enable_ranging);
+    sbas_options.enableCorrections(sbas_enable_corrections);
+    sbas_options.applyIntegrity(sbas_apply_integrity);
+    if (!(mip_cmd_result = mip::commands_3dm::writeGnssSbasSettings(*mip_device_, sbas_enable, sbas_options, sbas_prns.size(), sbas_prns.data())))
+    {
+      MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to configure SBAS settings");
+      return false;
+    }
+  }
+  else
+  {
+    MICROSTRAIN_INFO(node_, "Note: The device does not support the SBAS settings command");
+  }
+
+  // NMEA Message format
+  if (mip_device_->supportsDescriptor(descriptor_set, mip::commands_3dm::CMD_NMEA_MESSAGE_FORMAT))
+  {
+    if (nmea_message_config)
+    {
+      /// Get the talker IDs for the descriptor sets that need them
+      int32_t gnss1_nmea_talker_id, gnss2_nmea_talker_id, filter_nmea_talker_id;
+      getParam<int32_t>(node, "gnss1_nmea_talker_id", gnss1_nmea_talker_id, 0);
+      getParam<int32_t>(node, "gnss2_nmea_talker_id", gnss2_nmea_talker_id, 0);
+      getParam<int32_t>(node, "filter_nmea_talker_id", filter_nmea_talker_id, 0);
+
+      // Populate the NMEA message config options
+      std::vector<mip::commands_3dm::NmeaMessage> formats;
+      if (!populateNmeaMessageFormat(node, "imu_nmea_prkr_data_rate", mip::commands_3dm::NmeaMessage::TalkerID::RESERVED, mip::data_sensor::DESCRIPTOR_SET, mip::commands_3dm::NmeaMessage::MessageID::PRKR, &formats) ||
+          !populateNmeaMessageFormat(node, "gnss1_nmea_gga_data_rate", static_cast<mip::commands_3dm::NmeaMessage::TalkerID>(gnss1_nmea_talker_id), mip::data_gnss::MIP_GNSS1_DATA_DESC_SET, mip::commands_3dm::NmeaMessage::MessageID::GGA, &formats) ||
+          !populateNmeaMessageFormat(node, "gnss1_nmea_gll_data_rate", static_cast<mip::commands_3dm::NmeaMessage::TalkerID>(gnss1_nmea_talker_id), mip::data_gnss::MIP_GNSS1_DATA_DESC_SET, mip::commands_3dm::NmeaMessage::MessageID::GLL, &formats) ||
+          !populateNmeaMessageFormat(node, "gnss1_nmea_gsv_data_rate", static_cast<mip::commands_3dm::NmeaMessage::TalkerID>(gnss1_nmea_talker_id), mip::data_gnss::MIP_GNSS1_DATA_DESC_SET, mip::commands_3dm::NmeaMessage::MessageID::GSV, &formats) ||
+          !populateNmeaMessageFormat(node, "gnss1_nmea_rmc_data_rate", static_cast<mip::commands_3dm::NmeaMessage::TalkerID>(gnss1_nmea_talker_id), mip::data_gnss::MIP_GNSS1_DATA_DESC_SET, mip::commands_3dm::NmeaMessage::MessageID::RMC, &formats) ||
+          !populateNmeaMessageFormat(node, "gnss1_nmea_vtg_data_rate", static_cast<mip::commands_3dm::NmeaMessage::TalkerID>(gnss1_nmea_talker_id), mip::data_gnss::MIP_GNSS1_DATA_DESC_SET, mip::commands_3dm::NmeaMessage::MessageID::VTG, &formats) ||
+          !populateNmeaMessageFormat(node, "gnss1_nmea_hdt_data_rate", static_cast<mip::commands_3dm::NmeaMessage::TalkerID>(gnss1_nmea_talker_id), mip::data_gnss::MIP_GNSS1_DATA_DESC_SET, mip::commands_3dm::NmeaMessage::MessageID::HDT, &formats) ||
+          !populateNmeaMessageFormat(node, "gnss1_nmea_zda_data_rate", static_cast<mip::commands_3dm::NmeaMessage::TalkerID>(gnss1_nmea_talker_id), mip::data_gnss::MIP_GNSS1_DATA_DESC_SET, mip::commands_3dm::NmeaMessage::MessageID::ZDA, &formats) ||
+          !populateNmeaMessageFormat(node, "gnss2_nmea_gga_data_rate", static_cast<mip::commands_3dm::NmeaMessage::TalkerID>(gnss2_nmea_talker_id), mip::data_gnss::MIP_GNSS2_DATA_DESC_SET, mip::commands_3dm::NmeaMessage::MessageID::GGA, &formats) ||
+          !populateNmeaMessageFormat(node, "gnss2_nmea_gll_data_rate", static_cast<mip::commands_3dm::NmeaMessage::TalkerID>(gnss2_nmea_talker_id), mip::data_gnss::MIP_GNSS2_DATA_DESC_SET, mip::commands_3dm::NmeaMessage::MessageID::GLL, &formats) ||
+          !populateNmeaMessageFormat(node, "gnss2_nmea_gsv_data_rate", static_cast<mip::commands_3dm::NmeaMessage::TalkerID>(gnss2_nmea_talker_id), mip::data_gnss::MIP_GNSS2_DATA_DESC_SET, mip::commands_3dm::NmeaMessage::MessageID::GSV, &formats) ||
+          !populateNmeaMessageFormat(node, "gnss2_nmea_rmc_data_rate", static_cast<mip::commands_3dm::NmeaMessage::TalkerID>(gnss2_nmea_talker_id), mip::data_gnss::MIP_GNSS2_DATA_DESC_SET, mip::commands_3dm::NmeaMessage::MessageID::RMC, &formats) ||
+          !populateNmeaMessageFormat(node, "gnss2_nmea_vtg_data_rate", static_cast<mip::commands_3dm::NmeaMessage::TalkerID>(gnss2_nmea_talker_id), mip::data_gnss::MIP_GNSS2_DATA_DESC_SET, mip::commands_3dm::NmeaMessage::MessageID::VTG, &formats) ||
+          !populateNmeaMessageFormat(node, "gnss2_nmea_hdt_data_rate", static_cast<mip::commands_3dm::NmeaMessage::TalkerID>(gnss2_nmea_talker_id), mip::data_gnss::MIP_GNSS2_DATA_DESC_SET, mip::commands_3dm::NmeaMessage::MessageID::HDT, &formats) ||
+          !populateNmeaMessageFormat(node, "gnss2_nmea_zda_data_rate", static_cast<mip::commands_3dm::NmeaMessage::TalkerID>(gnss2_nmea_talker_id), mip::data_gnss::MIP_GNSS2_DATA_DESC_SET, mip::commands_3dm::NmeaMessage::MessageID::ZDA, &formats) ||
+          !populateNmeaMessageFormat(node, "filter_nmea_gga_data_rate", static_cast<mip::commands_3dm::NmeaMessage::TalkerID>(filter_nmea_talker_id), mip::data_filter::DESCRIPTOR_SET, mip::commands_3dm::NmeaMessage::MessageID::GGA, &formats) ||
+          !populateNmeaMessageFormat(node, "filter_nmea_gll_data_rate", static_cast<mip::commands_3dm::NmeaMessage::TalkerID>(filter_nmea_talker_id), mip::data_filter::DESCRIPTOR_SET, mip::commands_3dm::NmeaMessage::MessageID::GLL, &formats) ||
+          !populateNmeaMessageFormat(node, "filter_nmea_rmc_data_rate", static_cast<mip::commands_3dm::NmeaMessage::TalkerID>(filter_nmea_talker_id), mip::data_filter::DESCRIPTOR_SET, mip::commands_3dm::NmeaMessage::MessageID::RMC, &formats) ||
+          !populateNmeaMessageFormat(node, "filter_nmea_hdt_data_rate", static_cast<mip::commands_3dm::NmeaMessage::TalkerID>(filter_nmea_talker_id), mip::data_filter::DESCRIPTOR_SET, mip::commands_3dm::NmeaMessage::MessageID::HDT, &formats) ||
+          !populateNmeaMessageFormat(node, "filter_nmea_prka_data_rate", static_cast<mip::commands_3dm::NmeaMessage::TalkerID>(filter_nmea_talker_id), mip::data_filter::DESCRIPTOR_SET, mip::commands_3dm::NmeaMessage::MessageID::PRKA, &formats))
+        return false;
+
+      // Send them to the device
+      if (formats.size() <= 0)
+        MICROSTRAIN_INFO(node_, "Disabling NMEA message streaming from main port");
+      else
+        MICROSTRAIN_INFO(node_, "Sending %lu NMEA message formats to device", formats.size());
+      if (!(mip_cmd_result = mip::commands_3dm::writeNmeaMessageFormat(*mip_device_, formats.size(), formats.data())))
+      {
+        MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to configure NMEA message format");
+        return false;
+      }
+    }
+    else
+    {
+      MICROSTRAIN_INFO(node_, "Not configuring NMEA message format because 'nmea_message_config' is false");
+    }
+  }
+  else
+  {
+    MICROSTRAIN_INFO(node_, "Note: The device does not support the nmea message format command");
+  }
+
   return true;
 }
 
@@ -421,6 +536,7 @@ bool Config::configureFilter(RosNodeType* node)
   std::vector<double> filter_relative_position_ref_double(3, 0.0);
   std::vector<double> filter_speed_lever_arm_double(3, 0.0);
   double filter_gnss_antenna_cal_max_offset;
+  std::vector<double> filter_lever_arm_offset_double(3, 0.0);
   getParam<int32_t>(node, "filter_adaptive_level", filter_adaptive_level, 2);
   getParam<int32_t>(node, "filter_adaptive_time_limit_ms", filter_adaptive_time_limit_ms, 15000);
   getParam<int32_t>(node, "filter_init_condition_src", filter_init_condition_src, 0);
@@ -433,6 +549,7 @@ bool Config::configureFilter(RosNodeType* node)
   getParam<std::vector<double>>(node, "filter_relative_position_ref", filter_relative_position_ref_double, DEFAULT_VECTOR);
   getParam<std::vector<double>>(node, "filter_speed_lever_arm", filter_speed_lever_arm_double, DEFAULT_VECTOR);
   getParam<double>(node, "filter_gnss_antenna_cal_max_offset", filter_gnss_antenna_cal_max_offset, 0.1);
+  getParam<std::vector<double>>(node, "filter_lever_arm_offset", filter_lever_arm_offset_double, DEFAULT_VECTOR);
 
   // Sensor2vehicle config
   int filter_sensor2vehicle_frame_selector;
@@ -455,6 +572,8 @@ bool Config::configureFilter(RosNodeType* node)
   std::vector<float> filter_sensor2vehicle_frame_transformation_euler(filter_sensor2vehicle_frame_transformation_euler_double.begin(), filter_sensor2vehicle_frame_transformation_euler_double.end());
   std::vector<float> filter_sensor2vehicle_frame_transformation_matrix(filter_sensor2vehicle_frame_transformation_matrix_double.begin(), filter_sensor2vehicle_frame_transformation_matrix_double.end());
   std::vector<float> filter_sensor2vehicle_frame_transformation_quaternion(filter_sensor2vehicle_frame_transformation_quaternion_double.begin(), filter_sensor2vehicle_frame_transformation_quaternion_double.end());
+
+  std::vector<float> filter_lever_arm_offset(filter_lever_arm_offset_double.begin(), filter_lever_arm_offset_double.end());
 
   mip::CmdResult mip_cmd_result;
   const uint8_t descriptor_set = mip::commands_filter::DESCRIPTOR_SET;
@@ -836,6 +955,21 @@ bool Config::configureFilter(RosNodeType* node)
     return false;
   }
 
+  // Filter lever arm offset configuration
+  if (mip_device_->supportsDescriptor(descriptor_set, mip::commands_filter::CMD_REF_POINT_LEVER_ARM))
+  {
+    MICROSTRAIN_INFO(node_, "Setting filter reference point lever arm to [%f, %f, %f]", filter_lever_arm_offset[0], filter_lever_arm_offset[1], filter_lever_arm_offset[2]);
+    if (!(mip_cmd_result = mip::commands_filter::writeRefPointLeverArm(*mip_device_, mip::commands_filter::RefPointLeverArm::ReferencePointSelector::VEH, filter_lever_arm_offset.data())))
+    {
+      MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to configure refernce point lever arm");
+      return false;
+    }
+  }
+  else
+  {
+    MICROSTRAIN_INFO(node_, "Note: The device does not support the reference point lever arm command");
+  }
+
   return true;
 }
 
@@ -900,6 +1034,71 @@ bool Config::configureHeadingSource(const mip::commands_filter::HeadingSource::S
   {
     MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to set heading source");
     return false;
+  }
+  return true;
+}
+
+bool Config::populateNmeaMessageFormat(RosNodeType* config_node, const std::string& data_rate_key, mip::commands_3dm::NmeaMessage::TalkerID talker_id, uint8_t descriptor_set, mip::commands_3dm::NmeaMessage::MessageID message_id, std::vector<mip::commands_3dm::NmeaMessage>* formats)
+{
+  // Get the data rate for this message
+  float data_rate;
+  getParamFloat(config_node, data_rate_key, data_rate, 0);
+
+  // Determine if we need a talker ID for this sentence
+  bool talker_id_required = false;
+  if (MipMapping::nmea_message_id_requires_talker_id_mapping_.find(message_id) != MipMapping::nmea_message_id_requires_talker_id_mapping_.end())
+    talker_id_required = MipMapping::nmea_message_id_requires_talker_id_mapping_.at(message_id);
+
+  // Populate the format object
+  mip::commands_3dm::NmeaMessage format;
+  format.decimation = mip_device_->getDecimationFromHertz(descriptor_set, data_rate);
+  format.message_id = message_id;
+  format.source_desc_set = descriptor_set;
+  if (talker_id_required)
+    format.talker_id = talker_id;
+
+  // If the data rate is 0, we can just not add the structure to the vector
+  const std::string& descriptor_set_string = MipMapping::descriptorSetString(descriptor_set);
+  const std::string& message_id_string = MipMapping::nmeaFormatMessageIdString(message_id);
+  const std::string& talker_id_string = MipMapping::nmeaFormatTalkerIdString(talker_id);
+  if (data_rate != 0)
+  {
+    // Save the data rate if it is the highest one
+    if (data_rate > nmea_max_rate_hz_)
+      nmea_max_rate_hz_ = data_rate;
+
+    // If we already have a message format with this talker ID, error or warn depending on config
+    // Note that it is TECHNICALLY valid to have multiple configurations for the same NMEA sentence, but I can think of no reason why it would be useful, so we will also error on that
+    if (format.talker_id != mip::commands_3dm::NmeaMessage::TalkerID::RESERVED)
+    {
+      for (const auto& existing_format : *formats)
+      {
+        if (existing_format.message_id == format.message_id && existing_format.talker_id == format.talker_id)
+        {
+          if (!nmea_message_allow_duplicate_talker_ids_)
+          {
+            MICROSTRAIN_ERROR(node_, "There is already an existing NMEA message with message ID: %s and talker ID: %s from the '%s' descriptor set.", message_id_string.c_str(), talker_id_string.c_str(), MipMapping::descriptorSetString(existing_format.source_desc_set).c_str());
+            return false;
+          }
+          else
+          {
+            MICROSTRAIN_WARN(node_, "There is already an existing NMEA message with message ID: %s and talker ID: %s from the '%s' descriptor set.", message_id_string.c_str(), talker_id_string.c_str(), MipMapping::descriptorSetString(existing_format.source_desc_set).c_str());
+            MICROSTRAIN_WARN(node_, "  Configuration will continue, but you will not be able to differentiate between %s%s NMEA sentences from the '%s' descriptor set and the '%s' descriptor set when they are published", talker_id_string.c_str(), message_id_string.c_str(), descriptor_set_string.c_str(), MipMapping::descriptorSetString(existing_format.source_desc_set).c_str());
+          }
+        }
+      }
+    }
+
+    // Should finally have the fully formed struct, so add it to the vector
+    if (talker_id_required)
+      MICROSTRAIN_INFO(node_, "Configuring %s%s NMEA sentence from the '%s' descriptor set to stream at %.04f hz", talker_id_string.c_str(), message_id_string.c_str(), descriptor_set_string.c_str(), data_rate);
+    else
+      MICROSTRAIN_INFO(node_, "Configuring %s NMEA sentence from the '%s' descriptor set to stream at %.04f hz", message_id_string.c_str(), descriptor_set_string.c_str(), data_rate);
+    formats->push_back(format);
+  }
+  else
+  {
+    MICROSTRAIN_DEBUG(node_, "Disabling %s%s NMEA sentence from the '%s' descriptor set becauese the data rate was 0", talker_id_string.c_str(), message_id_string.c_str(), descriptor_set_string.c_str());
   }
   return true;
 }
