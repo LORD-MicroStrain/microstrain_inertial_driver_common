@@ -425,9 +425,6 @@ void Publishers::handleGnssSbasInfo(const mip::data_gnss::SbasInfo& sbas_info, c
     case mip::data_gnss::MIP_GNSS2_DATA_DESC_SET:
       gnss_index = 1;
       break;
-    case mip::data_gnss::MIP_GNSS3_DATA_DESC_SET:
-      gnss_index = 2;
-      break;
     default:
       return;  // Can't do anything if we don't recognize the descriptor
   }
