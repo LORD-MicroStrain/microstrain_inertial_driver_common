@@ -583,7 +583,7 @@ inline void stopTimer(RosTimerType timer)
 #elif MICROSTRAIN_ROS_VERSION == 2
 // ROS2 Generic Types
 using RosNodeType = ::rclcpp_lifecycle::LifecycleNode;
-using RosTimeType = ::rclcpp::Time;
+using RosTimeType = ::builtin_interfaces::msg::Time;
 using RosTimerType = ::rclcpp::TimerBase::SharedPtr;
 using RosRateType = ::rclcpp::Rate;
 using RosHeaderType = ::std_msgs::msg::Header;

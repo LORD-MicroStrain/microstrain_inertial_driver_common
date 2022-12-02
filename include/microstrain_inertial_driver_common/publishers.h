@@ -244,9 +244,6 @@ public:
   Publisher<ImuMsg>::SharedPtr                            filter_imu_pub_                        = Publisher<ImuMsg>::initialize(FILTER_IMU_DATA_TOPIC);
   Publisher<GNSSDualAntennaStatusMsg>::SharedPtr          gnss_dual_antenna_status_pub_          = Publisher<GNSSDualAntennaStatusMsg>::initialize(FILTER_DUAL_ANTENNA_STATUS_TOPIC);
 
-  // Device Status publishser
-  Publisher<StatusMsg>::SharedPtr device_status_pub_ = Publisher<StatusMsg>::initialize(DEVICE_STATUS_TOPIC);
-
   // NMEA sentence publisher
   Publisher<NMEASentenceMsg>::SharedPtr nmea_sentence_pub_ = Publisher<NMEASentenceMsg>::initialize(NMEA_SENTENCE_TOPIC);
 
@@ -320,6 +317,13 @@ private:
    * \param timestamp The timestamp provided by the MIP SDK for when the packet was received
    */
   void updateHeaderTime(RosHeaderType* header, uint8_t descriptor_set, mip::Timestamp timestamp);
+
+  /**
+   * \brief Updates the header's timestamp to the UTC representation of the GPS timestamp
+   * \param header The time object to set the time on
+   * \param timestamp The GPS timestamp to use to update the header
+   */
+  static void setGpsTime(RosTimeType* time, const mip::data_shared::GpsTimestamp& timestamp);
 
   // List of MIP dispatch handlers used to subscribe to data from the MIP SDK
   std::vector<std::shared_ptr<mip::C::mip_dispatch_handler>> mip_dispatch_handlers_;

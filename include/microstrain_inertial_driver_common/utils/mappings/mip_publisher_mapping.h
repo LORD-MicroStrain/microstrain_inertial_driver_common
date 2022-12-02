@@ -28,7 +28,6 @@ namespace microstrain
 
 // Topic names
 static constexpr auto IMU_DATA_TOPIC = "imu/data";
-static constexpr auto IMU_INTERNAL_TIME_REF_TOPIC = "imu/internal_time_ref";
 static constexpr auto IMU_MAG_TOPIC = "mag";
 static constexpr auto IMU_GPS_CORR_TOPIC = "gps_corr";
 static constexpr auto IMU_OVERRANGE_STATUS_TOPIC = "imu/overrange_status";
@@ -61,7 +60,6 @@ static constexpr auto FILTER_RELATIVE_ODOM_TOPIC = "nav/relative_pos/odom";
 static constexpr auto FILTER_DUAL_ANTENNA_STATUS_TOPIC = "nav/dual_antenna_status";
 static constexpr auto FILTER_AIDING_SUMMARY_TOPIC = "nav/aiding_summary";
 
-static constexpr auto DEVICE_STATUS_TOPIC = "device/status";
 static constexpr auto NMEA_SENTENCE_TOPIC = "nmea/sentence";
 
 // Some other constants

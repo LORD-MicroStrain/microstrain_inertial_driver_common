@@ -118,6 +118,14 @@ bool Publishers::configure()
     registerDataCallback<mip::data_gnss::RfErrorDetection, &Publishers::handleGnssRfErrorDetection>(gnss_descriptor_set);
   }
 
+  // Also register callbacks for GNSS1/2 for the GPS time message
+  // Note: It is important to make sure this is after the GNSS1/2 callbacks
+  for (const uint8_t gnss_descriptor_set : std::initializer_list<uint8_t>{mip::data_gnss::MIP_GNSS1_DATA_DESC_SET, mip::data_gnss::MIP_GNSS2_DATA_DESC_SET})
+  {
+    registerDataCallback<mip::data_gnss::GpsTime, &Publishers::handleGnssGpsTime>(gnss_descriptor_set);
+  }
+
+  // Filter callbacks
   registerDataCallback<mip::data_filter::Status, &Publishers::handleFilterStatus>();
   registerDataCallback<mip::data_filter::EulerAngles, &Publishers::handleFilterEulerAngles>();
   registerDataCallback<mip::data_filter::HeadingUpdateState, &Publishers::handleFilterHeadingUpdateState>();
@@ -370,6 +378,23 @@ void Publishers::handleGnssGpsTime(const mip::data_gnss::GpsTime& gps_time, cons
   stored_timestamp.week_number = gps_time.week_number;
   stored_timestamp.valid_flags = gps_time.valid_flags;
   gps_timestamp_mapping_[descriptor_set] = stored_timestamp;
+
+  // Also update the time ref messages
+  uint8_t gnss_index;
+  switch (descriptor_set)
+  {
+    case mip::data_gnss::MIP_GNSS1_DATA_DESC_SET:
+      gnss_index = 0;
+      break;
+    case mip::data_gnss::MIP_GNSS2_DATA_DESC_SET:
+      gnss_index = 1;
+      break;
+    default:
+      return;
+  }
+  auto gps_time_msg = gnss_time_pub_[gnss_index]->getMessageToUpdate();
+  gps_time_msg->header.stamp = rosTimeNow(node_);
+  setGpsTime(&gps_time_msg->time_ref, stored_timestamp);
 }
 
 void Publishers::handleGnssPosLlh(const mip::data_gnss::PosLlh& pos_llh, const uint8_t descriptor_set, mip::Timestamp timestamp)
@@ -921,15 +946,7 @@ void Publishers::updateHeaderTime(RosHeaderType* header, uint8_t descriptor_set,
     if (gps_timestamp_mapping_.find(descriptor_set) != gps_timestamp_mapping_.end())
     {
       // Convert the GPS time to UTC
-      const mip::data_shared::GpsTimestamp& gps_timestamp = gps_timestamp_mapping_[descriptor_set];
-
-      // Split the seconds and subseconds out to get around the double resolution issue
-      double seconds;
-      double subseconds = modf(gps_timestamp.tow, &seconds);
-
-      // Seconds since start of Unix time = seconds between 1970 and 1980 + number of weeks since 1980 * number of seconds in a week + number of complete seconds past in current week - leap seconds since start of GPS time
-      const uint64_t utc_milliseconds = static_cast<uint64_t>((315964800 + gps_timestamp.week_number * 604800 + static_cast<uint64_t>(seconds) - 18) * 1000L) + static_cast<uint64_t>(std::round(subseconds * 1000.0));
-      setRosTime(&header->stamp, utc_milliseconds / 1000, (utc_milliseconds % 1000) * 1000);
+      setGpsTime(&header->stamp, gps_timestamp_mapping_[descriptor_set]);
     }
   }
   else if (config_->use_ros_time_)
@@ -940,6 +957,17 @@ void Publishers::updateHeaderTime(RosHeaderType* header, uint8_t descriptor_set,
   {
     setRosTime(&header->stamp, timestamp / 1000, (timestamp % 1000) * 1000);
   }
+}
+
+void Publishers::setGpsTime(RosTimeType* time, const mip::data_shared::GpsTimestamp& timestamp)
+{
+  // Split the seconds and subseconds out to get around the double resolution issue
+  double seconds;
+  double subseconds = modf(timestamp.tow, &seconds);
+
+  // Seconds since start of Unix time = seconds between 1970 and 1980 + number of weeks since 1980 * number of seconds in a week + number of complete seconds past in current week - leap seconds since start of GPS time
+  const uint64_t utc_milliseconds = static_cast<uint64_t>((315964800 + timestamp.week_number * 604800 + static_cast<uint64_t>(seconds) - 18) * 1000L) + static_cast<uint64_t>(std::round(subseconds * 1000.0));
+  setRosTime(time, utc_milliseconds / 1000, (utc_milliseconds % 1000) * 1000);
 }
 
 }  // namespace microstrain
