@@ -247,6 +247,23 @@ void Publishers::handleSharedDeltaTicks(const mip::data_shared::DeltaTicks& delt
 void Publishers::handleSharedGpsTimestamp(const mip::data_shared::GpsTimestamp& gps_timestamp, const uint8_t descriptor_set, mip::Timestamp timestamp)
 {
   gps_timestamp_mapping_[descriptor_set] = gps_timestamp;
+
+  // Also update the time ref messages
+  uint8_t gnss_index;
+  switch (descriptor_set)
+  {
+    case mip::data_gnss::MIP_GNSS1_DATA_DESC_SET:
+      gnss_index = 0;
+      break;
+    case mip::data_gnss::MIP_GNSS2_DATA_DESC_SET:
+      gnss_index = 1;
+      break;
+    default:
+      return;
+  }
+  auto gps_time_msg = gnss_time_pub_[gnss_index]->getMessageToUpdate();
+  gps_time_msg->header.stamp = rosTimeNow(node_);
+  // TODO: Convert the GPS time into ROS UTC time
 }
 
 void Publishers::handleSharedDeltaTime(const mip::data_shared::DeltaTime& delta_time, const uint8_t descriptor_set, mip::Timestamp timestamp)
