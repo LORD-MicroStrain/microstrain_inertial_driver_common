@@ -1,4 +1,3 @@
-<<PackageHeader(microstrain_inertial_driver)>>
 <<TOC(4)>>
 
 == Overview ==
@@ -115,18 +114,36 @@ The following topics contain standard ROS messages often used by other nodes. Se
      * The default behavior is to report these measurements in the [[https://s3.amazonaws.com/files.microstrain.com/GQ7+User+Manual/user_manual_content/coordinate_frames/NED%20Frame.htm?Highlight=ned%20frame|NED frame]], but if {{{use_enu_frame}}} is true, this will be reported in the [[https://www.ros.org/reps/rep-0103.html#id21|ENU frame]]
    * Remaining fields are an exact copy of the {{{nav/odom}}} topic
 
-=== Custom Messages ===
+=== MIP Messages ===
 The following topics contain messages that are more or less an exact pass through to a MIP data field that does not fit into a standard ROS message
  * '''gps_corr''' [[http://docs.ros.org/en/api/microstrain_inertial_msgs/html/msg/GPSCorrelationTimestampStamped.html|microstrain_inertial_msgs/GPSCorrelationTimestampStamped]] -> [[https://s3.amazonaws.com/files.microstrain.com/GQ7+User+Manual/external_content/dcp/Data/sensor_data/data/mip_field_sensor_gps_timestamp.htm?Highlight=gps%20timestamp|GPS Timestamp (0x80, 0x12)]]
+ * '''imu/overrange_status''' [[http://docs.ros.org/en/api/microstrain_inertial_msgs/html/msg/ImuOverrangeStatus.html|microstrain_inertial_msgs/ImuOverrangeStatus]] -> [[https://s3.amazonaws.com/files.microstrain.com/GQ7+User+Manual/external_content/dcp/Data/sensor_data/data/mip_field_sensor_overrange_status.htm|Overrange Status (0x80, 0x18)]]
  * '''gnss1/aiding_status''' [[http://docs.ros.org/en/api/microstrain_inertial_msgs/html/msg/GNSSAidingStatus.html|microstrain_inertial_msgs/GNSSAidingStatus]] -> [[https://s3.amazonaws.com/files.microstrain.com/GQ7+User+Manual/external_content/dcp/Data/filter_data/data/mip_field_filter_gnss_pos_aid_status.htm?Highlight=aiding%20status|GNSS Position Aiding Status (0x82, 0x43)]]
- * '''gnss2/aiding_status''' [[http://docs.ros.org/en/api/microstrain_inertial_msgs/html/msg/GNSSAidingStatus.html|microstrain_inertial_msgs/GNSSAidingStatus]] -> [[https://s3.amazonaws.com/files.microstrain.com/GQ7+User+Manual/external_content/dcp/Data/filter_data/data/mip_field_filter_gnss_pos_aid_status.htm?Highlight=aiding%20status|GNSS Position Aiding Status (0x82, 0x43)]]
  * '''gnss1/fix_info''' [[http://docs.ros.org/en/api/microstrain_inertial_msgs/html/msg/GNSSFixInfo.html|microstrain_inertial_msgs/GNSSFixInfo]] -> [[https://s3.amazonaws.com/files.microstrain.com/GQ7+User+Manual/external_content/dcp/Data/gnss_recv_1/data/mip_field_gnss_fix_info.htm?Highlight=fix%20info|Fix Info (0x91, 0x0B)]]
+ * '''gnss1/sbas_info''' [[http://docs.ros.org/en/api/microstrain_inertial_msgs/html/msg/GNSSSbasInfo.html|microstrain_inertial_msgs/GNSSSbasInfo]] -> [[https://s3.amazonaws.com/files.microstrain.com/GQ7+User+Manual/external_content/dcp/Data/gnss_recv_1/data/mip_field_gnss_sbas_info.htm|SBAS Info (0x91, 0x12)]]
+ * '''gnss1/rf_error_detection''' [[http://docs.ros.org/en/api/microstrain_inertial_msgs/html/msg/GNSSRfErrorDetection.html|microstrain_inertial_msgs/GNSSRfErrorDetection]] -> [[https://s3.amazonaws.com/files.microstrain.com/GQ7+User+Manual/external_content/dcp/Data/gnss_recv_1/data/mip_field_gnss_rf_error_detection.htm|RF Error Detection (0x91, 0x14)]]
+ * '''gnss2/aiding_status''' [[http://docs.ros.org/en/api/microstrain_inertial_msgs/html/msg/GNSSAidingStatus.html|microstrain_inertial_msgs/GNSSAidingStatus]] -> [[https://s3.amazonaws.com/files.microstrain.com/GQ7+User+Manual/external_content/dcp/Data/filter_data/data/mip_field_filter_gnss_pos_aid_status.htm?Highlight=aiding%20status|GNSS Position Aiding Status (0x82, 0x43)]]
  * '''gnss2/fix_info''' [[http://docs.ros.org/en/api/microstrain_inertial_msgs/html/msg/GNSSFixInfo.html|microstrain_inertial_msgs/GNSSFixInfo]] -> [[https://s3.amazonaws.com/files.microstrain.com/GQ7+User+Manual/external_content/dcp/Data/gnss_recv_1/data/mip_field_gnss_fix_info.htm?Highlight=fix%20info|Fix Info (0x92, 0x0B)]]
- * '''rtk/status''' [[http://docs.ros.org/en/api/microstrain_inertial_msgs/html/msg/RTKStatus.html|microstrain_inertial_msgs/RTKStatus]] -> [[https://s3.amazonaws.com/files.microstrain.com/GQ7+User+Manual/external_content/dcp/Data/gnss_corrections/data/mip_field_gnss_rtk_corrections_status.htm?Highlight=rtk|RTK Correction Status (0x93, 0x31)]]
+ * '''gnss2/sbas_info''' [[http://docs.ros.org/en/api/microstrain_inertial_msgs/html/msg/GNSSSbasInfo.html|microstrain_inertial_msgs/GNSSSbasInfo]] -> [[https://s3.amazonaws.com/files.microstrain.com/GQ7+User+Manual/external_content/dcp/Data/gnss_recv_2/data/mip_field_gnss_sbas_info.htm|SBAS Info (0x92, 0x12)]]
+ * '''gnss2/rf_error_detection''' [[http://docs.ros.org/en/api/microstrain_inertial_msgs/html/msg/GNSSRfErrorDetection.html|microstrain_inertial_msgs/GNSSRfErrorDetection]] -> [[https://s3.amazonaws.com/files.microstrain.com/GQ7+User+Manual/external_content/dcp/Data/gnss_recv_2/data/mip_field_gnss_rf_error_detection.htm|RF Error Detection (0x92, 0x14)]]
+ * '''rtk/status''' [[http://docs.ros.org/en/api/microstrain_inertial_msgs/html/msg/RTKStatus.html|microstrain_inertial_msgs/RTKStatus]] -> [[https://s3.amazonaws.com/files.microstrain.com/GQ7+User+Manual/external_content/dcp/Data/gnss_corrections/data/mip_field_gnss_rtk_corrections_status.htm?Highlight=rtk|RTK Correction Status (0x93, 0x31)]] (for old RTK dongles)
+ * '''rtk/status_v1''' [[http://docs.ros.org/en/api/microstrain_inertial_msgs/html/msg/RTKStatusV1.html|microstrain_inertial_msgs/RTKStatusV1]] -> [[https://s3.amazonaws.com/files.microstrain.com/GQ7+User+Manual/external_content/dcp/Data/gnss_corrections/data/mip_field_gnss_rtk_corrections_status.htm?Highlight=rtk|RTK Correction Status (0x93, 0x31)]]
  * '''nav/status''' [[http://docs.ros.org/en/api/microstrain_inertial_msgs/html/msg/FilterStatus.html|microstrain_inertial_msgs/FilterStatus]] -> [[https://s3.amazonaws.com/files.microstrain.com/GQ7+User+Manual/external_content/dcp/Data/filter_data/data/mip_field_filter_status.htm?Highlight=status|Status (0x82, 0x10)]]
  * '''nav/heading''' [[http://docs.ros.org/en/api/microstrain_inertial_msgs/html/msg/FilterHeading.html|microstrain_inertial_msgs/FilterHeading]] -> [[https://s3.amazonaws.com/files.microstrain.com/GQ7+User+Manual/external_content/dcp/Data/filter_data/data/mip_field_filter_euler_angles.htm?Highlight=euler|Euler Angles (0x82, 0x05]]
  * '''nav/heading_state''' [[http://docs.ros.org/en/api/microstrain_inertial_msgs/html/msg/FilterHeadingState.html|microstrain_inertial_msgs/FilterHeadingState]] -> Filter Heading Update State (0x82, 0x14)
  * '''nav/dual_antenna_status''' [[http://docs.ros.org/en/api/microstrain_inertial_msgs/html/msg/GNSSDualAntennaStatus.html|microstrain_inertial_msgs/GNSSDualAntennaStatus]] -> [[https://s3.amazonaws.com/files.microstrain.com/GQ7+User+Manual/external_content/dcp/Data/filter_data/data/mip_field_filter_gnss_dual_antenna_status.htm?Highlight=dual%20antenna|GNSS Dual Antenna Status (0x82, 0x49)]]
+ * '''nav/aiding_summary''' [[https://docs.ros.org/en/api/microstrain_inertial_msgs/html/msg/FilterAidingMeasurementSummary.html|microstrain_inertial_msgs/FilterAidingMeasurementSummary]] -> [[https://s3.amazonaws.com/files.microstrain.com/GQ7+User+Manual/external_content/dcp/Data/filter_data/data/mip_field_filter_aiding_measurement_summary.htm?Highlight=aiding%20measurement%20summary|Aiding Measurement Summary (0x82, 0x46)]]
+
+=== Other Messages ===
+The following topics do not fall into any of the above categories and are likely addons to the device not specifically from the MIP protocol
+ * '''nmea/sentence''' [[https://docs.ros.org/en/api/nmea_msgs/html/msg/Sentence.html|nmea_msgs/Sentence]]
+   * GGA NMEA sentences may be published from the aux port of a GQ7 if it is connected and the following configuration is set:
+   {{{
+   aux_port: '/dev/ttyACM1'  # The serial port that the aux port is connected on
+   rtk_dongle_enable: True  # Enable the handshake on the aux port to enable NMEA streaming
+   publish_nmea: True  # Enable the publishing of NMEA messages
+   }}}
+   * Several types of NMEA sentences may be published from the main port of the GQ7 if {{{publish_nmea}}} is true, and [[https://github.com/LORD-MicroStrain/microstrain_inertial_driver_common/blob/main/config/params.yml#L420-L491|this section]] of config is configured to stream NMEA.
 
 == Services ==
  * '''get_basic_status''' [[http://docs.ros.org/en/api/std_srvs/html/srv/Trigger.html|std_srvs/Trigger]]
