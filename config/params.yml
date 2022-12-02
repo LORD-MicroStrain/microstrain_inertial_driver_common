@@ -125,6 +125,7 @@ gnss1_data_rate : 2
 gnss1_nav_sat_fix_data_rate        : -1  # Rate of gnss1/fix topic
 gnss1_odom_data_rate               : -1  # Rate of gnss1/odom topic
 gnss1_time_reference_data_rate     : -1  # Rate of gnss1/time_ref topic
+                                         # Note that on philo devices, if use_device_timestamp is set to true, this will be streamed at the highest GNSS rate
 gnss1_fix_info_data_rate           : -1  # Rate of gnss1/fix_info topic
 gnss1_sbas_info_data_rate          : -1  # Rate of gnss1/sbas_info topic
 gnss1_rf_error_detection_data_rate : -1  # Rate of gnss1/rf_error_detection topic
