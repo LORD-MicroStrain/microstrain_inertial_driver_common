@@ -160,9 +160,11 @@ mip::CmdResult RosMipDeviceMain::updateDeviceDescriptors()
   mip::CmdResult result_extended =  mip::commands_base::getExtendedDescriptors(*device_, &(descriptors[descriptors_count]), descriptors_max_size - descriptors_count, &extended_descriptors_count);
   const uint16_t total_descriptors = descriptors_count + extended_descriptors_count;
 
-  // All devices should support both commands, so if either fail, this command failed
-  if (!result || !result_extended)
+  // Not all devices support both commands, so only error if the first fails. Just log if the second fails
+  if (!result)
     return result;
+  if (!result_extended)
+    MICROSTRAIN_DEBUG(node_, "Device does not appear to support the extended descriptors command.");
 
   // Shoule be a continuous list, so just iterate and save the descriptor sets to a seperate list
   for (uint16_t i = 0; i < total_descriptors; i++)
