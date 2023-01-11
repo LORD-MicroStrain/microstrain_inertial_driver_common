@@ -905,9 +905,9 @@ void Publishers::handleFilterAidingMeasurementSummary(const mip::data_filter::Ai
   switch (aiding_measurement_summary.type)
   {
     case mip::data_filter::FilterAidingMeasurementType::GNSS:
-      if (aiding_measurement_summary.source == GNSS1_ID)
+      if (aiding_measurement_summary.source == GNSS1_ID + 1)
         indicator = &(filter_aiding_measurement_summary_msg->gnss1);
-      else if (aiding_measurement_summary.source == GNSS2_ID)
+      else if (aiding_measurement_summary.source == GNSS2_ID + 1)
         indicator = &(filter_aiding_measurement_summary_msg->gnss2);
       break;
     case mip::data_filter::FilterAidingMeasurementType::DUAL_ANTENNA:
