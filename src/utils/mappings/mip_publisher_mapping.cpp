@@ -384,7 +384,7 @@ const std::map<std::string, std::string> MipPublisherMapping::static_topic_to_da
   {FILTER_STATUS_TOPIC,              "filter_status_data_rate"},
   {FILTER_HEADING_TOPIC,             "filter_heading_data_rate"},
   {FILTER_HEADING_STATE_TOPIC,       "filter_heading_state_data_rate"},
-  {FILTER_ODOM_TOPIC,                "filter_heading_state_data_rate"},
+  {FILTER_ODOM_TOPIC,                "filter_odom_data_rate"},
   {FILTER_IMU_DATA_TOPIC,            "filter_imu_data_rate"},
   {FILTER_RELATIVE_ODOM_TOPIC,       "filter_relative_odom_data_rate"},
   {FILTER_DUAL_ANTENNA_STATUS_TOPIC, "filter_gnss_dual_antenna_data_rate"},
