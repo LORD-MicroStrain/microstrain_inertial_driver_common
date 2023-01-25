@@ -51,7 +51,7 @@ bool Publishers::configure()
   gnss_dual_antenna_status_pub_->configure(node_, config_);
 
   // Only publish relative odom if we support the relative position descriptor set
-  if (config_->mip_device_->supportsDescriptor(mip::data_filter::DESCRIPTOR_SET, mip::data_filter::RelPosNed::DESCRIPTOR_SET))
+  if (config_->mip_device_->supportsDescriptor(mip::data_filter::DESCRIPTOR_SET, mip::data_filter::RelPosNed::FIELD_DESCRIPTOR))
     filter_relative_odom_pub_->configure(node_, config_);
 
   if (config_->publish_nmea_)
