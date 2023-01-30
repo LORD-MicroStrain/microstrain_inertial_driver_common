@@ -862,8 +862,8 @@ bool Config::configureFilter(RosNodeType* node)
     {
       MICROSTRAIN_INFO(node_, "Setting sensor to vehicle transformation euler to [%f, %f, %f]", filter_sensor2vehicle_frame_transformation_euler[0],
           filter_sensor2vehicle_frame_transformation_euler[1], filter_sensor2vehicle_frame_transformation_euler[2]);
-      if (!(mip_cmd_result = mip::commands_3dm::writeSensor2VehicleTransformEuler(*mip_device_, -filter_sensor2vehicle_frame_transformation_euler[0],
-          -filter_sensor2vehicle_frame_transformation_euler[1], -filter_sensor2vehicle_frame_transformation_euler[2])))
+      if (!(mip_cmd_result = mip::commands_3dm::writeSensor2VehicleTransformEuler(*mip_device_, filter_sensor2vehicle_frame_transformation_euler[0],
+          filter_sensor2vehicle_frame_transformation_euler[1], filter_sensor2vehicle_frame_transformation_euler[2])))
       {
         MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to configure sensor to vehicle transformation euler");
         return false;
@@ -934,10 +934,10 @@ bool Config::configureFilter(RosNodeType* node)
     {
       float quaternion[4]
       {
+        filter_sensor2vehicle_frame_transformation_quaternion[3],
         filter_sensor2vehicle_frame_transformation_quaternion[0],
         filter_sensor2vehicle_frame_transformation_quaternion[1],
-        filter_sensor2vehicle_frame_transformation_quaternion[2],
-        filter_sensor2vehicle_frame_transformation_quaternion[3]
+        filter_sensor2vehicle_frame_transformation_quaternion[2]
       };
       MICROSTRAIN_INFO(node_, "Setting sensor to vehicle transformation quaternion to [%f, %f, %f, %f]", quaternion[0], quaternion[1], quaternion[2], quaternion[3]);
       if (!(mip_cmd_result = mip::commands_3dm::writeSensor2VehicleTransformQuaternion(*mip_device_, quaternion)))
