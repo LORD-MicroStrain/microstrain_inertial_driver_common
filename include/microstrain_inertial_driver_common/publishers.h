@@ -254,6 +254,16 @@ public:
   TransformStampedMsg filter_relative_transform_msg_;
 
 private:
+
+  /**
+   * \brief Helper function to register a packet callback on this class
+   * \tparam Callback The Callback function on this class to call when the data is received
+   * \param descriptor_set The descriptor set to register the packet callback for
+   * \param after_fields Whether this callback should be triggered before or after the field callbacks
+   */
+  template<void (Publishers::*Callback)(const mip::Packet&, mip::Timestamp)>
+  void registerPacketCallback(const uint8_t descriptor_set = mip::C::MIP_DISPATCH_ANY_DESCRIPTOR, bool after_fields = true);
+
   /**
    * \brief Helper function to register a data callback on this class
    * \tparam DataField The type of data to listen for
@@ -311,6 +321,13 @@ private:
   void handleFilterAidingMeasurementSummary(const mip::data_filter::AidingMeasurementSummary& aiding_measurement_summary, const uint8_t descriptor_set, mip::Timestamp timestamp);
 
   /**
+   * \brief Called after a packet has been processed.
+   * \param packet The packet that was processed
+   * \param timestamp The timestamp of when the packet was received
+  */
+  void handleAfterPacket(const mip::Packet& packet, mip::Timestamp timestamp);
+
+  /**
    * \brief Updates the header's timestamp to the type of timestamp based on the node's configuration
    * \param header The header to update the timestamp of
    * \param descriptor_set The descriptor set that should be used to lookup the timestamp if we want to use the device timestamp
@@ -344,6 +361,16 @@ private:
   // Save the orientation information, as it is used by some other data to transform based on orientation
   tf2::Quaternion filter_attitude_quaternion_ = tf2::Quaternion(0, 0, 0, 1);
 };
+
+template<void (Publishers::*Callback)(const mip::Packet&, mip::Timestamp)>
+void Publishers::registerPacketCallback(const uint8_t descriptor_set, bool after_fields)
+{
+  // Regsiter a handler for the callback
+  mip_dispatch_handlers_.push_back(std::make_shared<mip::C::mip_dispatch_handler>());
+
+  // Pass to the MIP SDK
+  config_->mip_device_->device().registerPacketCallback<Publishers, Callback>(*(mip_dispatch_handlers_.back()), descriptor_set, after_fields, this);
+}
 
 template<class DataField, void (Publishers::*Callback)(const DataField&, uint8_t, mip::Timestamp)>
 void Publishers::registerDataCallback(const uint8_t descriptor_set)

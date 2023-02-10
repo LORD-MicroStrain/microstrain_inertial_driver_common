@@ -105,9 +105,10 @@ class RosMipDeviceMain : public RosMipDevice
    * \brief Converts a value in hertz to a decimation value for a descriptor set
    * \param descriptor_set The descriptor set to use to lookup the base rate value for
    * \param hertz The value in hertz to convert to decmiation
+   * \param actual_hertz Optional pointer to store the actual hertz that we can stream the data at
    * \return The decimation value for the given descriptor set and hertz
    */
-  uint16_t getDecimationFromHertz(const uint8_t descriptor_set, const float hertz);
+  uint16_t getDecimationFromHertz(const uint8_t descriptor_set, const float hertz, double* actual_hertz = nullptr);
 
  private:
   std::vector<uint8_t> supported_descriptor_sets_;  // Supported descriptor sets of the node
