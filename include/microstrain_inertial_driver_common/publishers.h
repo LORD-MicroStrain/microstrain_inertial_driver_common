@@ -254,7 +254,6 @@ public:
   TransformStampedMsg filter_relative_transform_msg_;
 
 private:
-
   /**
    * \brief Helper function to register a packet callback on this class
    * \tparam Callback The Callback function on this class to call when the data is received
