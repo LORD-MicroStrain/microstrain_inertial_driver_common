@@ -43,11 +43,8 @@ void logCallbackProxy(void* user, mip_log_level level, const char* fmt, va_list 
 
 void NodeCommon::parseAndPublishMain()
 {
-  // This should receive all packets and populate published message buffers
+  // This should receive all packets, populate ROS messages and publish them as well
   config_.mip_device_->device().update();
-
-  // Publish the populated messages
-  publishers_.publish();
 
   // Publish the NMEA messages
   if (config_.publish_nmea_)

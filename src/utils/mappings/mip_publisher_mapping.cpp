@@ -99,9 +99,13 @@ bool MipPublisherMapping::configure(RosNodeType* config_node)
     MICROSTRAIN_DEBUG(node_, "Configuring topic %s to stream at %.04f hz", topic.c_str(), topic_info.data_rate);
     for (const auto& descriptor : topic_info.descriptors)
     {
+      double real_data_rate;
       const uint8_t descriptor_set = descriptor.descriptor_set;
       const uint8_t field_descriptor = descriptor.field_descriptor;
-      const uint16_t decimation = mip_device_->getDecimationFromHertz(descriptor_set, topic_info.data_rate);
+      const uint16_t decimation = mip_device_->getDecimationFromHertz(descriptor_set, topic_info.data_rate, &real_data_rate);
+
+      // Update the data rate with the real data rate
+      topic_info.data_rate = real_data_rate;
 
       // Append the channel to the proper entry for it's descriptor set
       if (streamed_descriptors_mapping_.find(descriptor_set) == streamed_descriptors_mapping_.end())
