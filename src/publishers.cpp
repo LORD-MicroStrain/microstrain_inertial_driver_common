@@ -142,6 +142,9 @@ bool Publishers::configure()
   registerDataCallback<mip::data_filter::GnssPosAidStatus, &Publishers::handleFilterGnssPosAidStatus>();
   registerDataCallback<mip::data_filter::GnssDualAntennaStatus, &Publishers::handleFilterGnssDualAntennaStatus>();
   registerDataCallback<mip::data_filter::AidingMeasurementSummary, &Publishers::handleFilterAidingMeasurementSummary>();
+
+  // After packet callback
+  registerPacketCallback<&Publishers::handleAfterPacket>();
   return true;
 }
 
@@ -936,6 +939,12 @@ void Publishers::handleFilterAidingMeasurementSummary(const mip::data_filter::Ai
     indicator->configuration_error = aiding_measurement_summary.indicator & mip::data_filter::FilterMeasurementIndicator::CONFIGURATION_ERROR;
     indicator->max_num_meas_exceeded = aiding_measurement_summary.indicator & mip::data_filter::FilterMeasurementIndicator::MAX_NUM_MEAS_EXCEEDED;
   }
+}
+
+void Publishers::handleAfterPacket(const mip::Packet& packet, mip::Timestamp timestamp)
+{
+  // Right now, we don't have to do much, just publish everything
+  publish();
 }
 
 void Publishers::updateHeaderTime(RosHeaderType* header, uint8_t descriptor_set, mip::Timestamp timestamp)

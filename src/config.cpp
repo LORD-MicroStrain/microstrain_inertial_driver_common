@@ -1044,6 +1044,7 @@ bool Config::populateNmeaMessageFormat(RosNodeType* config_node, const std::stri
 {
   // Get the data rate for this message
   float data_rate;
+  double real_data_rate;
   getParamFloat(config_node, data_rate_key, data_rate, 0);
 
   // Determine if we need a talker ID for this sentence
@@ -1053,7 +1054,7 @@ bool Config::populateNmeaMessageFormat(RosNodeType* config_node, const std::stri
 
   // Populate the format object
   mip::commands_3dm::NmeaMessage format;
-  format.decimation = mip_device_->getDecimationFromHertz(descriptor_set, data_rate);
+  format.decimation = mip_device_->getDecimationFromHertz(descriptor_set, data_rate, &real_data_rate);
   format.message_id = message_id;
   format.source_desc_set = descriptor_set;
   if (talker_id_required)
@@ -1066,8 +1067,8 @@ bool Config::populateNmeaMessageFormat(RosNodeType* config_node, const std::stri
   if (data_rate != 0)
   {
     // Save the data rate if it is the highest one
-    if (data_rate > nmea_max_rate_hz_)
-      nmea_max_rate_hz_ = data_rate;
+    if (real_data_rate > nmea_max_rate_hz_)
+      nmea_max_rate_hz_ = real_data_rate;
 
     // If we already have a message format with this talker ID, error or warn depending on config
     // Note that it is TECHNICALLY valid to have multiple configurations for the same NMEA sentence, but I can think of no reason why it would be useful, so we will also error on that

@@ -99,9 +99,13 @@ bool MipPublisherMapping::configure(RosNodeType* config_node)
     MICROSTRAIN_DEBUG(node_, "Configuring topic %s to stream at %.04f hz", topic.c_str(), topic_info.data_rate);
     for (const auto& descriptor : topic_info.descriptors)
     {
+      double real_data_rate;
       const uint8_t descriptor_set = descriptor.descriptor_set;
       const uint8_t field_descriptor = descriptor.field_descriptor;
-      const uint16_t decimation = mip_device_->getDecimationFromHertz(descriptor_set, topic_info.data_rate);
+      const uint16_t decimation = mip_device_->getDecimationFromHertz(descriptor_set, topic_info.data_rate, &real_data_rate);
+
+      // Update the data rate with the real data rate
+      topic_info.data_rate = real_data_rate;
 
       // Append the channel to the proper entry for it's descriptor set
       if (streamed_descriptors_mapping_.find(descriptor_set) == streamed_descriptors_mapping_.end())
@@ -384,7 +388,7 @@ const std::map<std::string, std::string> MipPublisherMapping::static_topic_to_da
   {FILTER_STATUS_TOPIC,              "filter_status_data_rate"},
   {FILTER_HEADING_TOPIC,             "filter_heading_data_rate"},
   {FILTER_HEADING_STATE_TOPIC,       "filter_heading_state_data_rate"},
-  {FILTER_ODOM_TOPIC,                "filter_heading_state_data_rate"},
+  {FILTER_ODOM_TOPIC,                "filter_odom_data_rate"},
   {FILTER_IMU_DATA_TOPIC,            "filter_imu_data_rate"},
   {FILTER_RELATIVE_ODOM_TOPIC,       "filter_relative_odom_data_rate"},
   {FILTER_DUAL_ANTENNA_STATUS_TOPIC, "filter_gnss_dual_antenna_data_rate"},
