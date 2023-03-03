@@ -33,6 +33,9 @@
 
 namespace microstrain
 {
+
+constexpr auto GPS_LEAP_SECONDS = 18;
+
 constexpr auto GNSS1_ID = 0;
 constexpr auto GNSS2_ID = 1;
 constexpr auto NUM_GNSS = 2;

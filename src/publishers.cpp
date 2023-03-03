@@ -51,7 +51,7 @@ bool Publishers::configure()
   gnss_dual_antenna_status_pub_->configure(node_, config_);
 
   // Only publish relative odom if we support the relative position descriptor set
-  if (config_->mip_device_->supportsDescriptor(mip::data_filter::DESCRIPTOR_SET, mip::data_filter::RelPosNed::DESCRIPTOR_SET))
+  if (config_->mip_device_->supportsDescriptor(mip::data_filter::DESCRIPTOR_SET, mip::data_filter::RelPosNed::FIELD_DESCRIPTOR))
     filter_relative_odom_pub_->configure(node_, config_);
 
   if (config_->publish_nmea_)
@@ -975,7 +975,7 @@ void Publishers::setGpsTime(RosTimeType* time, const mip::data_shared::GpsTimest
   double subseconds = modf(timestamp.tow, &seconds);
 
   // Seconds since start of Unix time = seconds between 1970 and 1980 + number of weeks since 1980 * number of seconds in a week + number of complete seconds past in current week - leap seconds since start of GPS time
-  const uint64_t utc_milliseconds = static_cast<uint64_t>((315964800 + timestamp.week_number * 604800 + static_cast<uint64_t>(seconds) - 18) * 1000L) + static_cast<uint64_t>(std::round(subseconds * 1000.0));
+  const uint64_t utc_milliseconds = static_cast<uint64_t>((315964800 + timestamp.week_number * 604800 + static_cast<uint64_t>(seconds) - GPS_LEAP_SECONDS) * 1000L) + static_cast<uint64_t>(std::round(subseconds * 1000.0));
   setRosTime(time, utc_milliseconds / 1000, (utc_milliseconds % 1000) * 1000000);
 }
 

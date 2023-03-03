@@ -533,6 +533,7 @@ bool Config::configureFilter(RosNodeType* node)
   std::vector<double> filter_init_velocity_double(3, 0.0);
   std::vector<double> filter_init_attitude_double(3, 0.0);
   int filter_relative_position_frame;
+  int filter_relative_position_source;
   std::vector<double> filter_relative_position_ref_double(3, 0.0);
   std::vector<double> filter_speed_lever_arm_double(3, 0.0);
   double filter_gnss_antenna_cal_max_offset;
@@ -546,6 +547,7 @@ bool Config::configureFilter(RosNodeType* node)
   getParam<std::vector<double>>(node, "filter_init_velocity", filter_init_velocity_double, DEFAULT_VECTOR);
   getParam<std::vector<double>>(node, "filter_init_attitude", filter_init_attitude_double, DEFAULT_VECTOR);
   getParam<int32_t>(node, "filter_relative_position_frame", filter_relative_position_frame, 2);
+  getParam<int32_t>(node, "filter_relative_position_source", filter_relative_position_source, 1);
   getParam<std::vector<double>>(node, "filter_relative_position_ref", filter_relative_position_ref_double, DEFAULT_VECTOR);
   getParam<std::vector<double>>(node, "filter_speed_lever_arm", filter_speed_lever_arm_double, DEFAULT_VECTOR);
   getParam<double>(node, "filter_gnss_antenna_cal_max_offset", filter_gnss_antenna_cal_max_offset, 0.1);
@@ -734,7 +736,7 @@ bool Config::configureFilter(RosNodeType* node)
     {
       MICROSTRAIN_INFO(node_, "Setting relative position to: [%f, %f, %f], ref frame = %d",
           filter_relative_position_ref[0], filter_relative_position_ref[1], filter_relative_position_ref[2], filter_relative_position_frame);
-      if (!(mip_cmd_result = mip::commands_filter::writeRelPosConfiguration(*mip_device_, 1, static_cast<mip::commands_filter::FilterReferenceFrame>(filter_relative_position_frame), filter_relative_position_ref.data())))
+      if (!(mip_cmd_result = mip::commands_filter::writeRelPosConfiguration(*mip_device_, filter_relative_position_source, static_cast<mip::commands_filter::FilterReferenceFrame>(filter_relative_position_frame), filter_relative_position_ref.data())))
       {
         MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to configure relative position settings");
         return false;
@@ -860,8 +862,8 @@ bool Config::configureFilter(RosNodeType* node)
     {
       MICROSTRAIN_INFO(node_, "Setting sensor to vehicle transformation euler to [%f, %f, %f]", filter_sensor2vehicle_frame_transformation_euler[0],
           filter_sensor2vehicle_frame_transformation_euler[1], filter_sensor2vehicle_frame_transformation_euler[2]);
-      if (!(mip_cmd_result = mip::commands_3dm::writeSensor2VehicleTransformEuler(*mip_device_, -filter_sensor2vehicle_frame_transformation_euler[0],
-          -filter_sensor2vehicle_frame_transformation_euler[1], -filter_sensor2vehicle_frame_transformation_euler[2])))
+      if (!(mip_cmd_result = mip::commands_3dm::writeSensor2VehicleTransformEuler(*mip_device_, filter_sensor2vehicle_frame_transformation_euler[0],
+          filter_sensor2vehicle_frame_transformation_euler[1], filter_sensor2vehicle_frame_transformation_euler[2])))
       {
         MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to configure sensor to vehicle transformation euler");
         return false;
@@ -932,10 +934,10 @@ bool Config::configureFilter(RosNodeType* node)
     {
       float quaternion[4]
       {
+        filter_sensor2vehicle_frame_transformation_quaternion[3],
         filter_sensor2vehicle_frame_transformation_quaternion[0],
         filter_sensor2vehicle_frame_transformation_quaternion[1],
-        filter_sensor2vehicle_frame_transformation_quaternion[2],
-        filter_sensor2vehicle_frame_transformation_quaternion[3]
+        filter_sensor2vehicle_frame_transformation_quaternion[2]
       };
       MICROSTRAIN_INFO(node_, "Setting sensor to vehicle transformation quaternion to [%f, %f, %f, %f]", quaternion[0], quaternion[1], quaternion[2], quaternion[3]);
       if (!(mip_cmd_result = mip::commands_3dm::writeSensor2VehicleTransformQuaternion(*mip_device_, quaternion)))

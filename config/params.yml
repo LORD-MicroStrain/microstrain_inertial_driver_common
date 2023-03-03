@@ -373,10 +373,15 @@ filter_init_attitude : [0.0, 0.0, 0.0]
 #   1 - Relative ECEF position
 #   2 - Relative LLH position
 #
+#   Source =
+#   0 - Position will be reported relative to the base station. filter_relative_position_ref will be ignored
+#   1 - Position will be reported relative to filter_relative_position_ref
+#
 #   Reference position - Units provided by reference frame (ECEF - meters, LLH - deg, deg, meters)
 #   Note: prior to firmware version 1.0.06 this command will fail for non-positive heights.  1.0.06 fixes this)
 filter_relative_position_config : False
 filter_relative_position_frame  : 2
+filter_relative_position_source : 1
 filter_relative_position_ref    : [0, 0, 0.01]
 
 # (GQ7 only) Speed Lever Arm Configuration
