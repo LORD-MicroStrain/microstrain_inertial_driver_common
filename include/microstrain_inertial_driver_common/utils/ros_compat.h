@@ -627,6 +627,7 @@ using FilterHeadingMsg = ::microstrain_inertial_msgs::msg::FilterHeading;
 using FilterAidingMeasurementSummaryMsg = ::microstrain_inertial_msgs::msg::FilterAidingMeasurementSummary;
 using FilterAidingMeasurementSummaryIndicatorMsg = ::microstrain_inertial_msgs::msg::FilterAidingMeasurementSummaryIndicator;
 using GNSSAidingStatusMsg = ::microstrain_inertial_msgs::msg::GNSSAidingStatus;
+using GNSSAntennaOffsetCorrectionMsg = ::microstrain_inertial_msgs::msg::GNSSAntennaOffsetCorrection;
 using GNSSDualAntennaStatusMsg = ::microstrain_inertial_msgs::msg::GNSSDualAntennaStatus;
 using GNSSFixInfoMsg = ::microstrain_inertial_msgs::msg::GNSSFixInfo;
 using FilterHeadingStateMsg = ::microstrain_inertial_msgs::msg::FilterHeadingState;
