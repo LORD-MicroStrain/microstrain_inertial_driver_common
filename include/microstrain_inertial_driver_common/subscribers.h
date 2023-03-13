@@ -70,6 +70,18 @@ public:
   void externalGpsTimeCallback(const TimeReferenceMsg& time);
 
   /**
+   * \brief Accepts external GPS position to set position on the device
+   * \param position  Message containing external GPS position
+   */
+  void externalGpsPositionCallback(const NavSatFixMsg& position);
+
+  /**
+   * \brief Accepts external GPS speed to set velocity on the device
+   * \param speed  Message containing external GPS velocity
+   */
+  void externalGpsSpeedCallback(const TwistWithCovarianceStampedMsg& speed);
+
+  /**
    * \brief Accepts RTCM corrections from a ROS topic
    * \param rtcm Message containing 
    */
@@ -85,8 +97,10 @@ public:
   BoolSubType filter_vel_state_sub_;
   BoolSubType filter_ang_state_sub_;
 
-  // External GNSS subscriber
+  // External GNSS subscribers
   TimeReferenceSubType external_gps_time_sub_;
+  NavSatFixSubType external_gps_position_sub_;
+  TwistWithCovarianceStampedSubType external_gps_speed_sub_;
 
   // External speed subscriber
   InputSpeedMeasurementSubType external_speed_sub_;

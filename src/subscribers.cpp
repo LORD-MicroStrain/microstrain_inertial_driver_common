@@ -41,6 +41,19 @@ bool Subscribers::activate()
     MICROSTRAIN_INFO(node_, "Subscribed to %s for external GPS time", config_->external_gps_time_topic_.c_str());
     external_gps_time_sub_ = createSubscriber<>(node_, config_->external_gps_time_topic_.c_str(), 1000, &Subscribers::externalGpsTimeCallback, this);
   }
+  if (config_->mip_device_->supportsDescriptor(mip::commands_filter::DESCRIPTOR_SET, mip::commands_filter::CMD_EXTERNAL_GNSS_UPDATE))
+  {
+    if (config_->filter_enable_external_gps_position_update_)
+    {
+      MICROSTRAIN_INFO(node_, "Subscribed to %s for external GPS position", config_->external_gps_position_topic_.c_str());
+      external_gps_position_sub_ = createSubscriber<>(node_, config_->external_gps_position_topic_.c_str(), 1000, &Subscribers::externalGpsPositionCallback, this);
+    }
+    if (config_->filter_enable_external_gps_speed_update_)
+    {
+      MICROSTRAIN_INFO(node_, "Subscribed to %s for external GPS velocity", config_->external_gps_speed_topic_.c_str());
+      external_gps_speed_sub_ = createSubscriber<>(node_, config_->external_gps_speed_topic_.c_str(), 1000, &Subscribers::externalGpsSpeedCallback, this);
+    }
+  }
 
   // Create a topic listener for external RTCM updates
   if (config_->subscribe_rtcm_)
@@ -165,6 +178,50 @@ void Subscribers::externalGpsTimeCallback(const TimeReferenceMsg& time)
     MICROSTRAIN_ERROR(node_, "Failed to send GPS time update for time of week");
     MICROSTRAIN_ERROR(node_, "Error(%d): %s", mip_cmd_result.value, mip_cmd_result.name());
   }
+}
+
+void Subscribers::externalGpsPositionCallback(const NavSatFixMsg& position)
+{
+  const double utc_time = position.header.stamp.sec + (position.header.stamp.nanosec / 1000000000);
+  const double gps_time = utc_time + GPS_LEAP_SECONDS - 315964800;
+
+  // Fill in the information we know
+  mip::commands_filter::ExternalGnssUpdate external_gnss_update;
+  external_gnss_update.gps_week = floor(gps_time / 604800);
+  external_gnss_update.gps_time = std::fmod(gps_time, 604800);
+  external_gnss_update.latitude = position.latitude;
+  external_gnss_update.longitude = position.longitude;
+  external_gnss_update.height = position.altitude;
+  external_gnss_update.pos_uncertainty[0] = std::sqrt(position.position_covariance[0]);
+  external_gnss_update.pos_uncertainty[1] = std::sqrt(position.position_covariance[4]);
+  external_gnss_update.pos_uncertainty[2] = std::sqrt(position.position_covariance[8]);
+
+  // Set the uncertainty for the values we don't know very high so they will be ignored
+  external_gnss_update.vel_uncertainty[0] = std::numeric_limits<float>::max();
+  external_gnss_update.vel_uncertainty[1] = std::numeric_limits<float>::max();
+  external_gnss_update.vel_uncertainty[2] = std::numeric_limits<float>::max();
+}
+
+void Subscribers::externalGpsSpeedCallback(const TwistWithCovarianceStampedMsg& speed)
+{
+  const double utc_time = speed.header.stamp.sec + (speed.header.stamp.nanosec / 1000000000);
+  const double gps_time = utc_time + GPS_LEAP_SECONDS - 315964800;
+
+  // Fill in the information we know
+  mip::commands_filter::ExternalGnssUpdate external_gnss_update;
+  external_gnss_update.gps_week = floor(gps_time / 604800);
+  external_gnss_update.gps_time = std::fmod(gps_time, 604800);
+  external_gnss_update.velocity[0] = speed.twist.twist.linear.x;
+  external_gnss_update.velocity[1] = speed.twist.twist.linear.y;
+  external_gnss_update.velocity[2] = speed.twist.twist.linear.z;
+  external_gnss_update.vel_uncertainty[0] = std::sqrt(speed.twist.covariance[0]);
+  external_gnss_update.vel_uncertainty[1] = std::sqrt(speed.twist.covariance[7]);
+  external_gnss_update.vel_uncertainty[2] = std::sqrt(speed.twist.covariance[14]);
+
+  // Set the uncertainty for the values we don't know very high so they will be ignored
+  external_gnss_update.pos_uncertainty[0] = std::numeric_limits<float>::max();
+  external_gnss_update.pos_uncertainty[1] = std::numeric_limits<float>::max();
+  external_gnss_update.pos_uncertainty[2] = std::numeric_limits<float>::max();
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////

@@ -90,12 +90,16 @@ public:
   bool filter_enable_odometer_aiding_;
   bool filter_enable_magnetometer_aiding_;
   bool filter_enable_external_heading_aiding_;
-  bool filter_enable_external_gps_time_update_;
   bool filter_enable_wheeled_vehicle_constraint_;
   bool filter_enable_vertical_gyro_constraint_;
   bool filter_enable_gnss_antenna_cal_;
   bool filter_use_compensated_accel_;
   bool filter_relative_pos_config_;
+
+  // Subscription enable for GNSS
+  bool filter_enable_external_gps_time_update_;
+  bool filter_enable_external_gps_position_update_;
+  bool filter_enable_external_gps_speed_update_;
 
   // Frame ids
   std::string imu_frame_id_;
@@ -108,6 +112,8 @@ public:
   std::string velocity_zupt_topic_;
   std::string angular_zupt_topic_;
   std::string external_gps_time_topic_;
+  std::string external_gps_position_topic_;
+  std::string external_gps_speed_topic_;
   std::string external_speed_topic_;
 
   // RTK config
@@ -129,6 +135,7 @@ public:
 
   // Gnss antenna offsets
   std::vector<float> gnss_antenna_offset_[NUM_GNSS];
+  std::vector<float> external_gnss_antenna_offset_;
 
   // Raw data file parameters
   bool raw_file_enable_;

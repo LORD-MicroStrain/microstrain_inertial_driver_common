@@ -256,13 +256,20 @@ filter_enable_odometer_aiding         : False
 filter_enable_magnetometer_aiding     : False
 filter_enable_external_heading_aiding : False
 
-#  External GPS Time Update Control
+# External GPS Time Update Control
 #      Notes:    filter_external_gps_time_topic should publish at no more than 1 Hz.
 #                gps_leap_seconds should be updated to reflect the current number
 #                of leap seconds.
 filter_enable_external_gps_time_update : False
 filter_external_gps_time_topic         : "/external_gps_time"
 gps_leap_seconds                       : 18.0
+
+# External GPS position and velocity update control
+#      Notes: TODO
+filter_enable_external_gps_position_update : False
+filter_external_gps_position_topic         : "/external_gps_position"
+filter_enable_external_gps_speed_update    : False
+filter_external_gps_speed_topic            : "/external_gps_speed"
 
 # External Speed Control. This node will subscribe on this topic only if filter_enable_odometer_aiding is set to true
 #      Notes: This subscription will be disabled if enable_hardware_odometer is set to true

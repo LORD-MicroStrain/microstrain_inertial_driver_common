@@ -75,8 +75,10 @@ bool Config::configure(RosNodeType* node)
 
   // GNSS 1/2
   std::vector<double> gnss_antenna_offset_double[NUM_GNSS];
+  std::vector<double> external_gnss_antenna_offset_double;
   getParam<std::vector<double>>(node, "gnss1_antenna_offset", gnss_antenna_offset_double[GNSS1_ID], DEFAULT_VECTOR);
   getParam<std::vector<double>>(node, "gnss2_antenna_offset", gnss_antenna_offset_double[GNSS2_ID], DEFAULT_VECTOR);
+  getParam<std::vector<double>>(node, "external_gnss_antenna_offset", external_gnss_antenna_offset_double, DEFAULT_VECTOR);
   getParam<std::string>(node, "gnss1_frame_id", gnss_frame_id_[GNSS1_ID], gnss_frame_id_[GNSS1_ID]);
   getParam<std::string>(node, "gnss2_frame_id", gnss_frame_id_[GNSS2_ID], gnss_frame_id_[GNSS2_ID]);
 
@@ -107,13 +109,16 @@ bool Config::configure(RosNodeType* node)
   getParam<bool>(node, "filter_enable_magnetometer_aiding", filter_enable_magnetometer_aiding_, false);
   getParam<bool>(node, "filter_enable_external_heading_aiding", filter_enable_external_heading_aiding_, false);
   getParam<bool>(node, "filter_enable_external_gps_time_update", filter_enable_external_gps_time_update_, false);
+  getParam<bool>(node, "filter_enable_external_gps_position_update", filter_enable_external_gps_position_update_, false);
+  getParam<bool>(node, "filter_enable_external_gps_speed_update", filter_enable_external_gps_speed_update_, false);
   getParam<bool>(node, "filter_enable_wheeled_vehicle_constraint", filter_enable_wheeled_vehicle_constraint_, false);
   getParam<bool>(node, "filter_enable_vertical_gyro_constraint", filter_enable_vertical_gyro_constraint_, false);
   getParam<bool>(node, "filter_enable_gnss_antenna_cal", filter_enable_gnss_antenna_cal_, false);
   getParam<std::string>(node, "filter_velocity_zupt_topic", velocity_zupt_topic_, std::string("/moving_vel"));
   getParam<std::string>(node, "filter_angular_zupt_topic", angular_zupt_topic_, std::string("/moving_ang"));
-  getParam<std::string>(node, "filter_external_gps_time_topic", external_gps_time_topic_,
-                         std::string("/external_gps_time"));
+  getParam<std::string>(node, "filter_external_gps_time_topic", external_gps_time_topic_, std::string("/external_gps_time"));
+  getParam<std::string>(node, "filter_external_gps_position_topic", external_gps_position_topic_, std::string("/external_gps_position"));
+  getParam<std::string>(node, "filter_external_gps_speed_topic", external_gps_speed_topic_, std::string("/external_gps_speed"));
   getParam<std::string>(node, "filter_external_speed_topic", external_speed_topic_, "/external_speed");
   getParam<bool>(node, "filter_use_compensated_accel", filter_use_compensated_accel_, true);
 
@@ -127,6 +132,7 @@ bool Config::configure(RosNodeType* node)
   // ROS2 can only fetch double vectors from config, so convert the doubles to floats for the MIP SDK
   for (int i = 0; i < NUM_GNSS; i++)
     gnss_antenna_offset_[i] = std::vector<float>(gnss_antenna_offset_double[i].begin(), gnss_antenna_offset_double[i].end());
+  external_gnss_antenna_offset_ = std::vector<float>(external_gnss_antenna_offset_double.begin(), external_gnss_antenna_offset_double.end());
 
   // Log the driver version if it was built properly
   MICROSTRAIN_INFO(node_, "Running microstrain_inertial_driver version: %s", MICROSTRAIN_DRIVER_VERSION);
@@ -626,6 +632,13 @@ bool Config::configureFilter(RosNodeType* node)
     if (!(mip_cmd_result = mip::commands_filter::writeMultiAntennaOffset(*mip_device_, GNSS2_ID + 1, gnss_antenna_offset_[GNSS2_ID].data())))
     {
       MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Could not set multi antenna offset for GNSS2");
+      return false;
+    }
+    MICROSTRAIN_INFO(node_, "Setting external antenna offset to [%f, %f, %f]",
+        external_gnss_antenna_offset_[0], external_gnss_antenna_offset_[1], external_gnss_antenna_offset_[2]);
+    if (!(mip_cmd_result = mip::commands_filter::writeMultiAntennaOffset(*mip_device_, 4, external_gnss_antenna_offset_.data())))
+    {
+      MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Could not set multi antenna offset for EXTERNAL");
       return false;
     }
   }

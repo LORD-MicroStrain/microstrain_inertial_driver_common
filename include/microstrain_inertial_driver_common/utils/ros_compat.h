@@ -52,6 +52,7 @@ constexpr auto NUM_GNSS = 2;
 #include "sensor_msgs/Imu.h"
 #include "sensor_msgs/TimeReference.h"
 #include "geometry_msgs/PoseWithCovarianceStamped.h"
+#include "geometry_msgs/TwistWithCovarianceStamped.h"
 #include "geometry_msgs/Vector3.h"
 #include "geometry_msgs/TransformStamped.h"
 #include "sensor_msgs/MagneticField.h"
@@ -154,6 +155,7 @@ constexpr auto NUM_GNSS = 2;
 #include "sensor_msgs/msg/imu.hpp"
 #include "sensor_msgs/msg/time_reference.hpp"
 #include "geometry_msgs/msg/pose_with_covariance_stamped.hpp"
+#include "geometry_msgs/msg/twist_with_covariance_stamped.hpp"
 #include "geometry_msgs/msg/vector3.hpp"
 #include "geometry_msgs/msg/transform_stamped.h"
 #include "sensor_msgs/msg/magnetic_field.hpp"
@@ -299,6 +301,7 @@ using ImuMsg = ::sensor_msgs::Imu;
 using NavSatFixMsg = ::sensor_msgs::NavSatFix;
 using MagneticFieldMsg = ::sensor_msgs::MagneticField;
 using TimeReferenceMsg = ::sensor_msgs::TimeReference;
+using TwistWithCovarianceStampedMsg = ::geometry_msgs::TwistWithCovarianceStamped;
 using NMEASentenceMsg = ::nmea_msgs::Sentence;
 using StatusMsg = ::microstrain_inertial_msgs::Status;
 using ImuOverrangeStatusMsg = ::microstrain_inertial_msgs::ImuOverrangeStatus;
@@ -330,6 +333,8 @@ using RTCMMsg = ::mavros_msgs::RTCM;
 // ROS1 Subscriber Types
 using BoolSubType = RosSubType;
 using TimeReferenceSubType = RosSubType;
+using NavSatFixSubType = RosSubType;
+using TwistWithCovarianceStampedSubType = RosSubType;
 using InputSpeedMeasurementSubType = RosSubType;
 using RTCMSubType = RosSubType;
 
@@ -614,6 +619,7 @@ using ImuMsg = ::sensor_msgs::msg::Imu;
 using NavSatFixMsg = ::sensor_msgs::msg::NavSatFix;
 using MagneticFieldMsg = ::sensor_msgs::msg::MagneticField;
 using TimeReferenceMsg = ::sensor_msgs::msg::TimeReference;
+using TwistWithCovarianceStampedMsg = ::geometry_msgs::msg::TwistWithCovarianceStamped;
 using NMEASentenceMsg = ::nmea_msgs::msg::Sentence;
 using StatusMsg = ::microstrain_inertial_msgs::msg::Status;
 using ImuOverrangeStatusMsg = ::microstrain_inertial_msgs::msg::ImuOverrangeStatus;
@@ -646,6 +652,8 @@ using RTCMMsg = ::mavros_msgs::msg::RTCM;
 using BoolSubType = ::rclcpp::Subscription<BoolMsg>::SharedPtr;
 using TimeReferenceSubType = ::rclcpp::Subscription<TimeReferenceMsg>::SharedPtr;
 using InputSpeedMeasurementSubType = ::rclcpp::Subscription<InputSpeedMeasurementMsg>::SharedPtr;
+using NavSatFixSubType = ::rclcpp::Subscription<NavSatFixMsg>::SharedPtr;
+using TwistWithCovarianceStampedSubType = ::rclcpp::Subscription<TwistWithCovarianceStampedMsg>::SharedPtr;
 using RTCMSubType = rclcpp::Subscription<RTCMMsg>::SharedPtr;
 
 // ROS2 Service Message Types
