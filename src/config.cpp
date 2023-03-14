@@ -985,6 +985,33 @@ bool Config::configureFilter(RosNodeType* node)
     MICROSTRAIN_INFO(node_, "Note: The device does not support the reference point lever arm command");
   }
 
+  // GNSS Aiding source control configuration
+  if (mip_device_->supportsDescriptor(descriptor_set, mip::commands_filter::CMD_GNSS_SOURCE_CONTROL))
+  {
+    if (filter_enable_external_gps_position_update_ || filter_enable_external_gps_speed_update_)
+    {
+      MICROSTRAIN_INFO(node_, "Setting GNSS source control to EXTERNAL");
+      if (!(mip_cmd_result = mip::commands_filter::writeGnssSource(*mip_device_, mip::commands_filter::GnssSource::Source::EXT)))
+      {
+        MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to configure GNSS source control to EXTERNAL");
+        return false;
+      }
+    }
+    else
+    {
+      MICROSTRAIN_INFO(node_, "Setting GNSS source control to all internal receivers");
+      if (!(mip_cmd_result = mip::commands_filter::writeGnssSource(*mip_device_, mip::commands_filter::GnssSource::Source::ALL_INT)))
+      {
+        MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to configure GNSS source control to all internal receivers");
+        return false;
+      }
+    }
+  }
+  else
+  {
+    MICROSTRAIN_INFO(node_, "Note: The device does not support the GNSS aiding source control command");
+  }
+
   return true;
 }
 

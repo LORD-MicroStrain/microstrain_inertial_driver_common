@@ -200,6 +200,14 @@ void Subscribers::externalGpsPositionCallback(const NavSatFixMsg& position)
   external_gnss_update.vel_uncertainty[0] = std::numeric_limits<float>::max();
   external_gnss_update.vel_uncertainty[1] = std::numeric_limits<float>::max();
   external_gnss_update.vel_uncertainty[2] = std::numeric_limits<float>::max();
+
+  MICROSTRAIN_DEBUG(node_, "Sending external GPS position update");
+  mip::CmdResult mip_cmd_result = config_->mip_device_->device().runCommand<mip::commands_filter::ExternalGnssUpdate>(external_gnss_update);
+  if (!mip_cmd_result.isAck())
+  {
+    MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to send external GNSS position update");
+    return;
+  }
 }
 
 void Subscribers::externalGpsSpeedCallback(const TwistWithCovarianceStampedMsg& speed)
@@ -222,6 +230,14 @@ void Subscribers::externalGpsSpeedCallback(const TwistWithCovarianceStampedMsg& 
   external_gnss_update.pos_uncertainty[0] = std::numeric_limits<float>::max();
   external_gnss_update.pos_uncertainty[1] = std::numeric_limits<float>::max();
   external_gnss_update.pos_uncertainty[2] = std::numeric_limits<float>::max();
+
+  MICROSTRAIN_DEBUG(node_, "Sending external GPS speed update");
+  mip::CmdResult mip_cmd_result = config_->mip_device_->device().runCommand<mip::commands_filter::ExternalGnssUpdate>(external_gnss_update);
+  if (!mip_cmd_result.isAck())
+  {
+    MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to send external GNSS speed update");
+    return;
+  }
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
