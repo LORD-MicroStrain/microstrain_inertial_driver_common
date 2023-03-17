@@ -250,10 +250,10 @@ filter_adaptive_time_limit_ms : 15000
 
 # (GQ7/CV7 only) Aiding measurement control 
 filter_enable_gnss_pos_vel_aiding     : True
-filter_enable_gnss_heading_aiding     : True
+filter_enable_gnss_heading_aiding     : False
 filter_enable_altimeter_aiding        : False
 filter_enable_odometer_aiding         : False
-filter_enable_magnetometer_aiding     : False
+filter_enable_magnetometer_aiding     : True
 filter_enable_external_heading_aiding : False
 
 # External GPS Time Update Control
@@ -266,9 +266,9 @@ gps_leap_seconds                       : 18.0
 
 # External GPS position and velocity update control
 #      Notes: TODO
-filter_enable_external_gps_position_update : False
+filter_enable_external_gps_position_update : True
 filter_external_gps_position_topic         : "/external_gps_position"
-filter_enable_external_gps_speed_update    : False
+filter_enable_external_gps_speed_update    : True
 filter_external_gps_speed_topic            : "/external_gps_speed"
 
 # External Speed Control. This node will subscribe on this topic only if filter_enable_odometer_aiding is set to true
@@ -368,7 +368,7 @@ gpio4_pin_mode : 0
 #   Reference frame =
 #   1 - WGS84 Earth-fixed, earth centered (ECEF) position, velocity, attitude
 #   2 - WGS84 Latitude, Longitude, height above ellipsoid position, NED velocity and attitude
-filter_init_condition_src              : 0
+filter_init_condition_src              : 1
 filter_auto_heading_alignment_selector : 1
 filter_init_reference_frame            : 2
 filter_init_position : [0.0, 0.0, 0.0]
@@ -418,7 +418,7 @@ filter_gnss_antenna_cal_max_offset : 0.1
 #    2 - Reciever 2
 #    3 - GPIO (provided by external source if supported). Use the GPIO config above to further configure
 #    4 - Generated from system oscillator
-filter_pps_source : 1
+filter_pps_source : 4
 
 # (GQ7 only) SBAS options
 sbas_enable: True
