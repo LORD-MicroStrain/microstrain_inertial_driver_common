@@ -194,7 +194,7 @@ filter_data_rate : 10
 filter_status_data_rate                     : -1  # Rate of nav/status topic
 filter_heading_data_rate                    : -1  # Rate of nav/heading topic
 filter_heading_state_data_rate              : -1  # Rate of nav/heading_state topic
-filter_navsatfix_data_rate                : -1  # Rate of nav/fix topic
+filter_navsatfix_data_rate                  : -1  # Rate of nav/fix topic
 filter_odom_data_rate                       : -1  # Rate of nav/odom topic
 filter_imu_data_rate                        : -1  # Rate of nav/filtered_imu/data
 filter_relative_odom_data_rate              : -1  # Rate of nav/relative_pos topic and the transform between filter_frame_id and filter_child_frame_id
