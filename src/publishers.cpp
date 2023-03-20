@@ -46,7 +46,7 @@ bool Publishers::configure()
   filter_heading_pub_->configure(node_, config_);
   filter_heading_state_pub_->configure(node_, config_);
   filter_aiding_mesaurement_summary_pub_->configure(node_, config_);
-  filter_navsatfix_pub_->getMessage()->header.frame_id = config_->filter_frame_id_;
+  filter_navsatfix_pub_->configure(node_, config_);
   filter_odom_pub_->configure(node_, config_);
   filter_imu_pub_->configure(node_, config_);
   gnss_dual_antenna_status_pub_->configure(node_, config_);
@@ -66,7 +66,8 @@ bool Publishers::configure()
   for (int i = 0; i < gnss_pub_.size(); i++) gnss_pub_[i]->getMessage()->header.frame_id = config_->gnss_frame_id_[i];
   for (int i = 0; i < gnss_odom_pub_.size(); i++) gnss_odom_pub_[i]->getMessage()->header.frame_id = config_->gnss_frame_id_[i];
   for (int i = 0; i < gnss_time_pub_.size(); i++) gnss_time_pub_[i]->getMessage()->header.frame_id = config_->gnss_frame_id_[i];
-
+   
+  filter_navsatfix_pub_->getMessage()->header.frame_id = config_->filter_frame_id_;
   filter_odom_pub_->getMessage()->header.frame_id = config_->filter_frame_id_;
   filter_odom_pub_->getMessage()->child_frame_id = config_->filter_child_frame_id_;
   filter_imu_pub_->getMessage()->header.frame_id = config_->filter_frame_id_;
