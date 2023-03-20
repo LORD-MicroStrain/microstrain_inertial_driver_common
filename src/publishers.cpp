@@ -46,6 +46,7 @@ bool Publishers::configure()
   filter_heading_pub_->configure(node_, config_);
   filter_heading_state_pub_->configure(node_, config_);
   filter_aiding_mesaurement_summary_pub_->configure(node_, config_);
+  filter_navsatfix_pub_->getMessage()->header.frame_id = config_->filter_frame_id_;
   filter_odom_pub_->configure(node_, config_);
   filter_imu_pub_->configure(node_, config_);
   gnss_dual_antenna_status_pub_->configure(node_, config_);
@@ -170,6 +171,7 @@ bool Publishers::activate()
   filter_heading_pub_->activate();
   filter_heading_state_pub_->activate();
   filter_aiding_mesaurement_summary_pub_->activate();
+  filter_navsatfix_pub_->activate();
   filter_odom_pub_->activate();
   filter_relative_odom_pub_->activate();
   filter_imu_pub_->activate();
@@ -201,6 +203,7 @@ bool Publishers::deactivate()
   filter_heading_pub_->deactivate();
   filter_heading_state_pub_->deactivate();
   filter_aiding_mesaurement_summary_pub_->deactivate();
+  filter_navsatfix_pub_->deactivate();
   filter_odom_pub_->deactivate();
   filter_relative_odom_pub_->deactivate();
   filter_imu_pub_->deactivate();
@@ -234,6 +237,7 @@ void Publishers::publish()
   filter_heading_pub_->publish();
   filter_heading_state_pub_->publish();
   filter_aiding_mesaurement_summary_pub_->publish();
+  filter_navsatfix_pub_->publish();
   filter_odom_pub_->publish();
   filter_relative_odom_pub_->publish();
   filter_imu_pub_->publish();
@@ -625,6 +629,14 @@ void Publishers::handleFilterHeadingUpdateState(const mip::data_filter::HeadingU
 
 void Publishers::handleFilterPositionLlh(const mip::data_filter::PositionLlh& position_llh, const uint8_t descriptor_set, mip::Timestamp timestamp)
 {
+  // Filter navsatfix message
+  auto filter_navsatfix_msg = filter_navsatfix_pub_->getMessageToUpdate();
+  updateHeaderTime(&(filter_navsatfix_msg->header), descriptor_set, timestamp);
+  filter_navsatfix_msg->longitude = position_llh.longitude;
+  filter_navsatfix_msg->latitude = position_llh.latitude;
+  filter_navsatfix_msg->altitude = position_llh.ellipsoid_height;
+
+  // Filter odometry message
   auto filter_odom_msg = filter_odom_pub_->getMessageToUpdate();
   updateHeaderTime(&(filter_odom_msg->header), descriptor_set, timestamp);
   if (config_->use_enu_frame_)
@@ -642,6 +654,13 @@ void Publishers::handleFilterPositionLlh(const mip::data_filter::PositionLlh& po
 
 void Publishers::handleFilterPositionLlhUncertainty(const mip::data_filter::PositionLlhUncertainty& position_llh_uncertainty, const uint8_t descriptor_set, mip::Timestamp timestamp)
 {
+  // Filter navsatfix message
+  auto filter_navsatfix_msg = filter_navsatfix_pub_->getMessageToUpdate();
+  updateHeaderTime(&(filter_navsatfix_msg->header), descriptor_set, timestamp);
+  filter_navsatfix_msg->position_covariance[0] = pow(position_llh_uncertainty.east, 2);
+  filter_navsatfix_msg->position_covariance[4] = pow(position_llh_uncertainty.north, 2);
+  filter_navsatfix_msg->position_covariance[8] = pow(position_llh_uncertainty.down, 2);
+    
   // Filter odometry message
   auto filter_odom_msg = filter_odom_pub_->getMessageToUpdate();
   updateHeaderTime(&(filter_odom_msg->header), descriptor_set, timestamp);
