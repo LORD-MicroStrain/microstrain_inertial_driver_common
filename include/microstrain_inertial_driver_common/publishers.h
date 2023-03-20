@@ -239,7 +239,7 @@ public:
   Publisher<FilterHeadingMsg>::SharedPtr                  filter_heading_pub_                    = Publisher<FilterHeadingMsg>::initialize(FILTER_HEADING_TOPIC);
   Publisher<FilterHeadingStateMsg>::SharedPtr             filter_heading_state_pub_              = Publisher<FilterHeadingStateMsg>::initialize(FILTER_HEADING_STATE_TOPIC);
   Publisher<FilterAidingMeasurementSummaryMsg>::SharedPtr filter_aiding_mesaurement_summary_pub_ = Publisher<FilterAidingMeasurementSummaryMsg>::initialize(FILTER_AIDING_SUMMARY_TOPIC);
-  Publisher<NavSatFixMsg>::SharedPtr                      filter_navsatfix_pub_                = Publisher<NavSatFixMsg>::initialize(FILTER_NAVSATFIX_TOPIC);
+  Publisher<NavSatFixMsg>::SharedPtr                      filter_navsatfix_pub_                  = Publisher<NavSatFixMsg>::initialize(FILTER_NAVSATFIX_TOPIC);
   Publisher<OdometryMsg>::SharedPtr                       filter_odom_pub_                       = Publisher<OdometryMsg>::initialize(FILTER_ODOM_TOPIC);
   Publisher<OdometryMsg>::SharedPtr                       filter_relative_odom_pub_              = Publisher<OdometryMsg>::initialize(FILTER_RELATIVE_ODOM_TOPIC);
   Publisher<ImuMsg>::SharedPtr                            filter_imu_pub_                        = Publisher<ImuMsg>::initialize(FILTER_IMU_DATA_TOPIC);
