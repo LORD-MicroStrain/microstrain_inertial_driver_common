@@ -315,6 +315,11 @@ const std::map<std::string, FieldWrapper::SharedPtrVec> MipPublisherMapping::sta
   {FILTER_HEADING_STATE_TOPIC, {
     FieldWrapperType<mip::data_filter::HeadingUpdateState>::initialize(),
   }},
+  { FILTER_NAVSATFIX_TOPIC,
+   {
+      FieldWrapperType<mip::data_filter::PositionLlh>::initialize(),
+      FieldWrapperType<mip::data_filter::PositionLlhUncertainty>::initialize(),
+  }},
   {FILTER_ODOM_TOPIC, {
     FieldWrapperType<mip::data_filter::PositionLlh>::initialize(),
     FieldWrapperType<mip::data_filter::PositionLlhUncertainty>::initialize(),
@@ -388,6 +393,7 @@ const std::map<std::string, std::string> MipPublisherMapping::static_topic_to_da
   {FILTER_STATUS_TOPIC,              "filter_status_data_rate"},
   {FILTER_HEADING_TOPIC,             "filter_heading_data_rate"},
   {FILTER_HEADING_STATE_TOPIC,       "filter_heading_state_data_rate"},
+  {FILTER_NAVSATFIX_TOPIC,           "filter_navsatfix_data_rate" },
   {FILTER_ODOM_TOPIC,                "filter_odom_data_rate"},
   {FILTER_IMU_DATA_TOPIC,            "filter_imu_data_rate"},
   {FILTER_RELATIVE_ODOM_TOPIC,       "filter_relative_odom_data_rate"},
