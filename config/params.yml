@@ -202,6 +202,7 @@ filter_imu_data_rate                        : -1  # Rate of nav/filtered_imu/dat
 filter_relative_odom_data_rate              : -1  # Rate of nav/relative_pos topic and the transform between filter_frame_id and filter_child_frame_id
                                                   # Note that this data rate will also control the rate at which the transform between "filter_frame_id" and "filter_child_frame_id" will be published at
 filter_aiding_status_data_rate              : -1  # Rate of gnss1/aiding_status and gnss2/aiding_status topics
+filter_antenna_offset_correction_data_rate  : -1  # Rate of gnss1/antenna_offset_corection and gnss2/antenna_offset_correction topics
 filter_gnss_dual_antenna_data_rate          : -1  # Rate of nav/dual_antenna_status topic
 filter_aiding_measurement_summary_data_rate : -1  # Rate of nav/aiding_summary topic
 
@@ -404,7 +405,7 @@ filter_enable_vertical_gyro_constraint : False
 
 # (GQ7 only) GNSS Antenna Calibration Control
 # Note: When enabled, the filter will enable lever arm error tracking, up to the maximum offset specified in meters.
-filter_enable_gnss_antenna_cal     : False
+filter_enable_gnss_antenna_cal     : True
 filter_gnss_antenna_cal_max_offset : 0.1
 
 # (GQ7/CV7 only) PPS Source

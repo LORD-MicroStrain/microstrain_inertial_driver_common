@@ -222,13 +222,14 @@ public:
   Publisher<ImuOverrangeStatusMsg>::SharedPtr             imu_overrange_status_pub_ = Publisher<ImuOverrangeStatusMsg>::initialize(IMU_OVERRANGE_STATUS_TOPIC);
 
   // GNSS publishers
-  Publisher<NavSatFixMsg>::SharedPtrVec            gnss_pub_                    = Publisher<NavSatFixMsg>::initializeVec({GNSS1_NAVSATFIX_TOPIC, GNSS2_NAVSATFIX_TOPIC});
-  Publisher<OdometryMsg>::SharedPtrVec             gnss_odom_pub_               = Publisher<OdometryMsg>::initializeVec({GNSS1_ODOM_TOPIC, GNSS2_ODOM_TOPIC});
-  Publisher<TimeReferenceMsg>::SharedPtrVec        gnss_time_pub_               = Publisher<TimeReferenceMsg>::initializeVec({GNSS1_TIME_REF_TOPIC, GNSS2_TIME_REF_TOPIC});
-  Publisher<GNSSAidingStatusMsg>::SharedPtrVec     gnss_aiding_status_pub_      = Publisher<GNSSAidingStatusMsg>::initializeVec({GNSS1_AIDING_STATUS_TOPIC, GNSS2_AIDING_STATUS_TOPIC});
-  Publisher<GNSSFixInfoMsg>::SharedPtrVec          gnss_fix_info_pub_           = Publisher<GNSSFixInfoMsg>::initializeVec({GNSS1_FIX_INFO_TOPIC, GNSS2_FIX_INFO_TOPIC});
-  Publisher<GNSSSbasInfoMsg>::SharedPtrVec         gnss_sbas_info_pub_          = Publisher<GNSSSbasInfoMsg>::initializeVec({GNSS1_SBAS_INFO_TOPIC, GNSS2_SBAS_INFO_TOPIC});
-  Publisher<GNSSRfErrorDetectionMsg>::SharedPtrVec gnss_rf_error_detection_pub_ = Publisher<GNSSRfErrorDetectionMsg>::initializeVec({GNSS1_RF_ERROR_DETECTION_TOPIC, GNSS2_RF_ERROR_DETECTION_TOPIC});
+  Publisher<NavSatFixMsg>::SharedPtrVec                   gnss_pub_                           = Publisher<NavSatFixMsg>::initializeVec({GNSS1_NAVSATFIX_TOPIC, GNSS2_NAVSATFIX_TOPIC});
+  Publisher<OdometryMsg>::SharedPtrVec                    gnss_odom_pub_                      = Publisher<OdometryMsg>::initializeVec({GNSS1_ODOM_TOPIC, GNSS2_ODOM_TOPIC});
+  Publisher<TimeReferenceMsg>::SharedPtrVec               gnss_time_pub_                      = Publisher<TimeReferenceMsg>::initializeVec({GNSS1_TIME_REF_TOPIC, GNSS2_TIME_REF_TOPIC});
+  Publisher<GNSSAidingStatusMsg>::SharedPtrVec            gnss_aiding_status_pub_             = Publisher<GNSSAidingStatusMsg>::initializeVec({GNSS1_AIDING_STATUS_TOPIC, GNSS2_AIDING_STATUS_TOPIC});
+  Publisher<GNSSAntennaOffsetCorrectionMsg>::SharedPtrVec gnss_antenna_offset_correction_pub_ = Publisher<GNSSAntennaOffsetCorrectionMsg>::initializeVec({GNSS1_ANTENNA_OFFSET_CORRECTION_TOPIC, GNSS2_ANTENNA_OFFSET_CORRECTION_TOPIC});
+  Publisher<GNSSFixInfoMsg>::SharedPtrVec                 gnss_fix_info_pub_                  = Publisher<GNSSFixInfoMsg>::initializeVec({GNSS1_FIX_INFO_TOPIC, GNSS2_FIX_INFO_TOPIC});
+  Publisher<GNSSSbasInfoMsg>::SharedPtrVec                gnss_sbas_info_pub_                 = Publisher<GNSSSbasInfoMsg>::initializeVec({GNSS1_SBAS_INFO_TOPIC, GNSS2_SBAS_INFO_TOPIC});
+  Publisher<GNSSRfErrorDetectionMsg>::SharedPtrVec        gnss_rf_error_detection_pub_        = Publisher<GNSSRfErrorDetectionMsg>::initializeVec({GNSS1_RF_ERROR_DETECTION_TOPIC, GNSS2_RF_ERROR_DETECTION_TOPIC});
 
   // RTK publishers
   Publisher<RTKStatusMsg>::SharedPtr   rtk_pub_    = Publisher<RTKStatusMsg>::initialize(RTK_STATUS_TOPIC);
@@ -317,6 +318,7 @@ private:
   void handleFilterLinearAccel(const mip::data_filter::LinearAccel& linear_accel, const uint8_t descriptor_set, mip::Timestamp timestamp);
   void handleFilterRelPosNed(const mip::data_filter::RelPosNed& rel_pos_ned, const uint8_t descriptor_set, mip::Timestamp timestamp);
   void handleFilterGnssPosAidStatus(const mip::data_filter::GnssPosAidStatus& gnss_pos_aid_status, const uint8_t descriptor_set, mip::Timestamp timestamp);
+  void handleFilterMultiAntennaOffsetCorrection(const mip::data_filter::MultiAntennaOffsetCorrection& multi_antenna_offset_correction, const uint8_t descriptor_set, mip::Timestamp timestamp);
   void handleFilterGnssDualAntennaStatus(const mip::data_filter::GnssDualAntennaStatus& gnss_dual_antenna_status, const uint8_t descriptor_set, mip::Timestamp timestamp);
   void handleFilterAidingMeasurementSummary(const mip::data_filter::AidingMeasurementSummary& aiding_measurement_summary, const uint8_t descriptor_set, mip::Timestamp timestamp);
 
