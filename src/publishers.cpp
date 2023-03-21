@@ -35,6 +35,7 @@ bool Publishers::configure()
   for (const auto& pub : gnss_odom_pub_) pub->configure(node_, config_);
   for (const auto& pub : gnss_time_pub_) pub->configure(node_, config_);
   for (const auto& pub : gnss_aiding_status_pub_) pub->configure(node_, config_);
+  for (const auto& pub : gnss_antenna_offset_correction_pub_) pub->configure(node_, config_);
   for (const auto& pub : gnss_fix_info_pub_) pub->configure(node_, config_);
   for (const auto& pub : gnss_sbas_info_pub_) pub->configure(node_, config_);
   for (const auto& pub : gnss_rf_error_detection_pub_) pub->configure(node_, config_);
@@ -140,6 +141,7 @@ bool Publishers::configure()
   registerDataCallback<mip::data_filter::LinearAccel, &Publishers::handleFilterLinearAccel>();
   registerDataCallback<mip::data_filter::RelPosNed, &Publishers::handleFilterRelPosNed>();
   registerDataCallback<mip::data_filter::GnssPosAidStatus, &Publishers::handleFilterGnssPosAidStatus>();
+  registerDataCallback<mip::data_filter::MultiAntennaOffsetCorrection, &Publishers::handleFilterMultiAntennaOffsetCorrection>();
   registerDataCallback<mip::data_filter::GnssDualAntennaStatus, &Publishers::handleFilterGnssDualAntennaStatus>();
   registerDataCallback<mip::data_filter::AidingMeasurementSummary, &Publishers::handleFilterAidingMeasurementSummary>();
 
@@ -159,6 +161,7 @@ bool Publishers::activate()
   for (const auto& pub : gnss_odom_pub_) pub->activate();
   for (const auto& pub : gnss_time_pub_) pub->activate();
   for (const auto& pub : gnss_aiding_status_pub_) pub->activate();
+  for (const auto& pub : gnss_antenna_offset_correction_pub_) pub->activate();
   for (const auto& pub : gnss_fix_info_pub_) pub->activate();
   for (const auto& pub : gnss_sbas_info_pub_) pub->activate();
   for (const auto& pub : gnss_rf_error_detection_pub_) pub->activate();
@@ -190,6 +193,7 @@ bool Publishers::deactivate()
   for (const auto& pub : gnss_odom_pub_) pub->deactivate();
   for (const auto& pub : gnss_time_pub_) pub->deactivate();
   for (const auto& pub : gnss_aiding_status_pub_) pub->deactivate();
+  for (const auto& pub : gnss_antenna_offset_correction_pub_) pub->deactivate();
   for (const auto& pub : gnss_fix_info_pub_) pub->deactivate();
   for (const auto& pub : gnss_sbas_info_pub_) pub->deactivate();
   for (const auto& pub : gnss_rf_error_detection_pub_) pub->deactivate();
@@ -223,6 +227,7 @@ void Publishers::publish()
   for (const auto& pub : gnss_odom_pub_) pub->publish();
   for (const auto& pub : gnss_time_pub_) pub->publish();
   for (const auto& pub : gnss_aiding_status_pub_) pub->publish();
+  for (const auto& pub : gnss_antenna_offset_correction_pub_) pub->publish();
   for (const auto& pub : gnss_fix_info_pub_) pub->publish();
   for (const auto& pub : gnss_sbas_info_pub_) pub->publish();
   for (const auto& pub : gnss_rf_error_detection_pub_) pub->publish();
@@ -869,6 +874,9 @@ void Publishers::handleFilterRelPosNed(const mip::data_filter::RelPosNed& rel_po
 
 void Publishers::handleFilterGnssPosAidStatus(const mip::data_filter::GnssPosAidStatus& gnss_pos_aid_status, const uint8_t descriptor_set, mip::Timestamp timestamp)
 {
+  if (gnss_aiding_status_pub_.size() < gnss_pos_aid_status.receiver_id)
+    return;
+
   const uint8_t gnss_index = gnss_pos_aid_status.receiver_id - 1;
   auto gnss_aiding_status_msg = gnss_aiding_status_pub_[gnss_index]->getMessageToUpdate();
   gnss_aiding_status_msg->gps_tow = gnss_pos_aid_status.time_of_week;
@@ -887,6 +895,18 @@ void Publishers::handleFilterGnssPosAidStatus(const mip::data_filter::GnssPosAid
   gnss_aiding_status_msg->using_beidou = gnss_pos_aid_status.status & mip::data_filter::GnssAidStatusFlags::BEI_B1
                                       || gnss_pos_aid_status.status & mip::data_filter::GnssAidStatusFlags::BEI_B2
                                       || gnss_pos_aid_status.status & mip::data_filter::GnssAidStatusFlags::BEI_B3;
+}
+
+void Publishers::handleFilterMultiAntennaOffsetCorrection(const mip::data_filter::MultiAntennaOffsetCorrection& multi_antenna_offset_correction, const uint8_t descriptor_set, mip::Timestamp timestamp)
+{
+  if (gnss_antenna_offset_correction_pub_.size() < multi_antenna_offset_correction.receiver_id)
+    return;
+
+  const uint8_t gnss_index = multi_antenna_offset_correction.receiver_id - 1;
+  auto gnss_antenna_offset_correction_msg = gnss_antenna_offset_correction_pub_[gnss_index]->getMessageToUpdate();
+  gnss_antenna_offset_correction_msg->offset[0] = multi_antenna_offset_correction.offset[0];
+  gnss_antenna_offset_correction_msg->offset[1] = multi_antenna_offset_correction.offset[1];
+  gnss_antenna_offset_correction_msg->offset[2] = multi_antenna_offset_correction.offset[2];
 }
 
 void Publishers::handleFilterGnssDualAntennaStatus(const mip::data_filter::GnssDualAntennaStatus& gnss_dual_antenna_status, const uint8_t descriptor_set, mip::Timestamp timestamp)
