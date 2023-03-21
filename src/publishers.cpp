@@ -66,7 +66,7 @@ bool Publishers::configure()
   for (int i = 0; i < gnss_pub_.size(); i++) gnss_pub_[i]->getMessage()->header.frame_id = config_->gnss_frame_id_[i];
   for (int i = 0; i < gnss_odom_pub_.size(); i++) gnss_odom_pub_[i]->getMessage()->header.frame_id = config_->gnss_frame_id_[i];
   for (int i = 0; i < gnss_time_pub_.size(); i++) gnss_time_pub_[i]->getMessage()->header.frame_id = config_->gnss_frame_id_[i];
-   
+
   filter_navsatfix_pub_->getMessage()->header.frame_id = config_->filter_frame_id_;
   filter_odom_pub_->getMessage()->header.frame_id = config_->filter_frame_id_;
   filter_odom_pub_->getMessage()->child_frame_id = config_->filter_child_frame_id_;
@@ -81,6 +81,9 @@ bool Publishers::configure()
   std::copy(config_->imu_linear_cov_.begin(), config_->imu_linear_cov_.end(), imu_msg->linear_acceleration_covariance.begin());
   std::copy(config_->imu_angular_cov_.begin(), config_->imu_angular_cov_.end(), imu_msg->angular_velocity_covariance.begin());
   std::copy(config_->imu_orientation_cov_.begin(), config_->imu_orientation_cov_.end(), imu_msg->orientation_covariance.begin());
+
+  auto filter_navstafix_msg = filter_navsatfix_pub_->getMessage();
+  filter_navstafix_msg->position_covariance_type = NavSatFixMsg::COVARIANCE_TYPE_DIAGONAL_KNOWN;
 
   // Transform broadcaster setup
   transform_broadcaster_ = createTransformBroadcaster(node_);
@@ -661,7 +664,7 @@ void Publishers::handleFilterPositionLlhUncertainty(const mip::data_filter::Posi
   filter_navsatfix_msg->position_covariance[0] = pow(position_llh_uncertainty.east, 2);
   filter_navsatfix_msg->position_covariance[4] = pow(position_llh_uncertainty.north, 2);
   filter_navsatfix_msg->position_covariance[8] = pow(position_llh_uncertainty.down, 2);
-    
+
   // Filter odometry message
   auto filter_odom_msg = filter_odom_pub_->getMessageToUpdate();
   updateHeaderTime(&(filter_odom_msg->header), descriptor_set, timestamp);
@@ -889,6 +892,7 @@ void Publishers::handleFilterRelPosNed(const mip::data_filter::RelPosNed& rel_po
 
 void Publishers::handleFilterGnssPosAidStatus(const mip::data_filter::GnssPosAidStatus& gnss_pos_aid_status, const uint8_t descriptor_set, mip::Timestamp timestamp)
 {
+  // GNSS position aiding status message
   const uint8_t gnss_index = gnss_pos_aid_status.receiver_id - 1;
   auto gnss_aiding_status_msg = gnss_aiding_status_pub_[gnss_index]->getMessageToUpdate();
   gnss_aiding_status_msg->gps_tow = gnss_pos_aid_status.time_of_week;
@@ -907,6 +911,27 @@ void Publishers::handleFilterGnssPosAidStatus(const mip::data_filter::GnssPosAid
   gnss_aiding_status_msg->using_beidou = gnss_pos_aid_status.status & mip::data_filter::GnssAidStatusFlags::BEI_B1
                                       || gnss_pos_aid_status.status & mip::data_filter::GnssAidStatusFlags::BEI_B2
                                       || gnss_pos_aid_status.status & mip::data_filter::GnssAidStatusFlags::BEI_B3;
+
+  // Filter NavSatFix message
+  auto filter_navsatfix_msg = filter_navsatfix_pub_->getMessageToUpdate();
+  bool status_set = false;
+  if (filter_navsatfix_msg->status.status <= NavSatFixMsg::_status_type::STATUS_GBAS_FIX && gnss_aiding_status_msg->differential_corrections)
+  {
+    status_set = true;
+    filter_navsatfix_msg->status.status = NavSatFixMsg::_status_type::STATUS_GBAS_FIX;
+  }
+  else if (filter_navsatfix_msg->status.status <= NavSatFixMsg::_status_type::STATUS_SBAS_FIX && gnss_fix_info_pub_[gnss_index]->getMessage()->sbas_used)
+  {
+    status_set = true;
+    filter_navsatfix_msg->status.status = NavSatFixMsg::_status_type::STATUS_SBAS_FIX;
+  }
+  else if (filter_navsatfix_msg->status.status <= NavSatFixMsg::_status_type::STATUS_FIX && gnss_aiding_status_msg->has_position_fix)
+  {
+    status_set = true;
+    filter_navsatfix_msg->status.status = NavSatFixMsg::_status_type::STATUS_FIX;
+  }
+  if (!status_set)
+    filter_navsatfix_msg->status.status = NavSatFixMsg::_status_type::STATUS_NO_FIX;
 }
 
 void Publishers::handleFilterGnssDualAntennaStatus(const mip::data_filter::GnssDualAntennaStatus& gnss_dual_antenna_status, const uint8_t descriptor_set, mip::Timestamp timestamp)

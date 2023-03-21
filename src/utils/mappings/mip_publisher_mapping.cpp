@@ -315,10 +315,10 @@ const std::map<std::string, FieldWrapper::SharedPtrVec> MipPublisherMapping::sta
   {FILTER_HEADING_STATE_TOPIC, {
     FieldWrapperType<mip::data_filter::HeadingUpdateState>::initialize(),
   }},
-  {FILTER_NAVSATFIX_TOPIC,
-   {
-     FieldWrapperType<mip::data_filter::PositionLlh>::initialize(),
-     FieldWrapperType<mip::data_filter::PositionLlhUncertainty>::initialize(),
+  {FILTER_NAVSATFIX_TOPIC, {
+    FieldWrapperType<mip::data_filter::PositionLlh>::initialize(),
+    FieldWrapperType<mip::data_filter::PositionLlhUncertainty>::initialize(),
+    FieldWrapperType<mip::data_filter::GnssPosAidStatus>::initialize(),
   }},
   {FILTER_ODOM_TOPIC, {
     FieldWrapperType<mip::data_filter::PositionLlh>::initialize(),

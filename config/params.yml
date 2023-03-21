@@ -191,6 +191,8 @@ filter_data_rate : 10
 #
 #      Note: The parameters' "filter_odom_data_rate", "filter_imu_data_rate", "filter_relative_odom_data_rate" associated ROS messages share several MIP fields,
 #            so if more than one is set to stream, and they are set to stream at different rates, messages will be published on both topics, at the higher rate
+#      Note: The parameters' "filter_navsatfix_data_rate", and "filter_aiding_status_data_rate" associated ROS messages share several MIP fields,
+#            so if more than one is set to stream, and they are set to stream at different rates, messages will be published on both topics, at the higher rate
 filter_status_data_rate                     : -1  # Rate of nav/status topic
 filter_heading_data_rate                    : -1  # Rate of nav/heading topic
 filter_heading_state_data_rate              : -1  # Rate of nav/heading_state topic
