@@ -17,13 +17,6 @@
 namespace microstrain
 {
 
-struct CachedExternalGnssUpdate
-{
-  bool position_received = false;
-  bool velocity_received = false;
-  mip::commands_filter::ExternalGnssUpdate external_gnss_update;
-};
-
 /**
  * Contains subscribers and the functions they call
  */
@@ -126,9 +119,8 @@ private:
   RosTimerType vel_zupt_timer_;
   RosTimerType ang_zupt_timer_;
 
-  // Cache for external GNSS position messages
-  std::unique_ptr<std::mutex> external_gnss_update_lock_;
-  std::vector<CachedExternalGnssUpdate> external_gnss_updates_;
+  // Second of the last GPS timestamp sent
+  uint32_t last_sent_gps_sec_;
 };
 
 }  // namespace microstrain

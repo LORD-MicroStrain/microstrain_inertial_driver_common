@@ -21,7 +21,6 @@ constexpr auto SECS_PER_WEEK = (60L * 60 * 24 * 7);
 Subscribers::Subscribers(RosNodeType* node, Config* config)
   : node_(node), config_(config)
 {
-  external_gnss_update_lock_ = std::make_unique<std::mutex>();
 }
 
 bool Subscribers::activate()
@@ -199,113 +198,59 @@ void Subscribers::externalGpsPositionCallback(const NavSatFixMsg& position)
   external_gnss_update.pos_uncertainty[1] = std::sqrt(position.position_covariance[4]);
   external_gnss_update.pos_uncertainty[2] = std::sqrt(position.position_covariance[8]);
 
-  // TODO: constants or config
-  constexpr double threshold = 0.5;
-  constexpr size_t max_cache_size = 10;
+  // Set the uncertainty for the values we don't know very high so they will be ignored
+  external_gnss_update.vel_uncertainty[0] = 0;
+  external_gnss_update.vel_uncertainty[1] = 0;
+  external_gnss_update.vel_uncertainty[2] = 0;
 
-  // Lock so we can access the vector and try to find an existing entry
-  CachedExternalGnssUpdate cached_external_gnss_update;
+  // Send the command
+  MICROSTRAIN_DEBUG(node_, "Sending external GNSS Position Update:");
+  MICROSTRAIN_DEBUG(node_, "  gps week = %d", external_gnss_update.gps_week);
+  MICROSTRAIN_DEBUG(node_, "  gps time = %f", external_gnss_update.gps_time);
+  MICROSTRAIN_DEBUG(node_, "  latitude = %f", external_gnss_update.latitude);
+  MICROSTRAIN_DEBUG(node_, "  longitude = %f", external_gnss_update.longitude);
+  MICROSTRAIN_DEBUG(node_, "  height = %f", external_gnss_update.height);
+  MICROSTRAIN_DEBUG(node_, "  velocity = [%f, %f, %f]", external_gnss_update.velocity[0], external_gnss_update.velocity[1], external_gnss_update.velocity[2]);
+  MICROSTRAIN_DEBUG(node_, "  position uncertainty = [%f, %f, %f]", external_gnss_update.pos_uncertainty[0], external_gnss_update.pos_uncertainty[1], external_gnss_update.pos_uncertainty[2]);
+  MICROSTRAIN_DEBUG(node_, "  velocity uncertainty = [%f, %f, %f]", external_gnss_update.vel_uncertainty[0], external_gnss_update.vel_uncertainty[1], external_gnss_update.vel_uncertainty[2]);
+  mip::CmdResult mip_cmd_result = config_->mip_device_->device().runCommand<mip::commands_filter::ExternalGnssUpdate>(external_gnss_update);
+  if (!mip_cmd_result.isAck())
   {
-    std::lock_guard<std::mutex> lock(*external_gnss_update_lock_);
-
-    // Try to find a cached message with the closest timestamp
-    double lowest_diff = threshold;
-    std::vector<CachedExternalGnssUpdate>::iterator last_iter, iter = external_gnss_updates_.begin();
-    do
-    {
-      last_iter = iter;
-      iter = std::find_if(last_iter + 1, external_gnss_updates_.end(), [&gps_time, &lowest_diff](CachedExternalGnssUpdate& c)
-      {
-        const double diff = std::fabs(gps_time - (c.external_gnss_update.gps_week * SECS_PER_WEEK + c.external_gnss_update.gps_time));
-        if (diff < lowest_diff && !c.position_received)
-        {
-          lowest_diff = diff;
-          return true;
-        }
-        else
-        {
-          return false;
-        }
-      });
-    } while (iter != external_gnss_updates_.end());
-
-    // If we found an existing entry, update it
-    if (last_iter != external_gnss_updates_.begin())
-    {
-      last_iter->position_received = true;
-      last_iter->external_gnss_update.gps_week = external_gnss_update.gps_week;
-      last_iter->external_gnss_update.gps_time = external_gnss_update.gps_time;
-      last_iter->external_gnss_update.latitude = external_gnss_update.latitude;
-      last_iter->external_gnss_update.longitude = external_gnss_update.longitude;
-      last_iter->external_gnss_update.height = external_gnss_update.height;
-      memcpy(last_iter->external_gnss_update.pos_uncertainty, external_gnss_update.pos_uncertainty, sizeof(last_iter->external_gnss_update.pos_uncertainty));
-
-      // If the found entry has both position and velocity, grab it so we can send it, and remove it from the vector
-      if (last_iter->position_received && last_iter->velocity_received)
-      {
-        cached_external_gnss_update = *last_iter;
-        external_gnss_updates_.erase(last_iter);
-      }
-    }
-    else
-    {
-      MICROSTRAIN_DEBUG(node_, "Cound not find velocity message within %f seconds of the GPS time %f, caching message", threshold, gps_time);
-      external_gnss_updates_.push_back({true, false, external_gnss_update});
-    }
-
-    // Remove the oldest elements from the vector
-    if (external_gnss_updates_.size() > max_cache_size)
-    {
-      external_gnss_updates_.erase(external_gnss_updates_.begin(), external_gnss_updates_.begin() + (external_gnss_updates_.size() - max_cache_size));
-    }
+    MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to send external GNSS position update");
+    return;
   }
 
-  // If we have a fully formed message, send it
-  if (cached_external_gnss_update.position_received && cached_external_gnss_update.velocity_received)
+  // If the timestamp is within the first quarter of a second, also send a time update command
+  if (position.header.stamp.sec > last_sent_gps_sec_ && (position.header.stamp.nsec > 0.0 && position.header.stamp.nsec < 0.000000250))
   {
-    MICROSTRAIN_DEBUG(node_, "Sending external GNSS Update:");
-    MICROSTRAIN_DEBUG(node_, "  gps week = %d", cached_external_gnss_update.external_gnss_update.gps_week);
-    MICROSTRAIN_DEBUG(node_, "  gps time = %f", cached_external_gnss_update.external_gnss_update.gps_time);
-    MICROSTRAIN_DEBUG(node_, "  latitude = %f", cached_external_gnss_update.external_gnss_update.latitude);
-    MICROSTRAIN_DEBUG(node_, "  longitude = %f", cached_external_gnss_update.external_gnss_update.longitude);
-    MICROSTRAIN_DEBUG(node_, "  height = %f", cached_external_gnss_update.external_gnss_update.height);
-    MICROSTRAIN_DEBUG(node_, "  velocity = [%f, %f, %f]", cached_external_gnss_update.external_gnss_update.velocity[0], cached_external_gnss_update.external_gnss_update.velocity[1], cached_external_gnss_update.external_gnss_update.velocity[2]);
-    MICROSTRAIN_DEBUG(node_, "  position uncertainty = [%f, %f, %f]", cached_external_gnss_update.external_gnss_update.pos_uncertainty[0], cached_external_gnss_update.external_gnss_update.pos_uncertainty[1], cached_external_gnss_update.external_gnss_update.pos_uncertainty[2]);
-    MICROSTRAIN_DEBUG(node_, "  velocity uncertainty = [%f, %f, %f]", cached_external_gnss_update.external_gnss_update.vel_uncertainty[0], cached_external_gnss_update.external_gnss_update.vel_uncertainty[1], cached_external_gnss_update.external_gnss_update.vel_uncertainty[2]);
-    const mip::CmdResult mip_cmd_result = config_->mip_device_->device().runCommand<mip::commands_filter::ExternalGnssUpdate>(cached_external_gnss_update.external_gnss_update);
-    if (!mip_cmd_result)
+    MICROSTRAIN_DEBUG(node_, "Sending GPS time update:");
+    MICROSTRAIN_DEBUG(node_, "  week number = %d", external_gnss_update.gps_week);
+    MICROSTRAIN_DEBUG(node_, "  time of week = %d", static_cast<uint32_t>(external_gnss_update.gps_time));
+    if (!(mip_cmd_result = mip::commands_base::writeGpsTimeUpdate(*(config_->mip_device_), mip::commands_base::GpsTimeUpdate::FieldId::WEEK_NUMBER, external_gnss_update.gps_week)))
     {
-      MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to send external GNSS position update");
+      MICROSTRAIN_ERROR(node_, "Failed to send GPS time update for week number");
+      MICROSTRAIN_ERROR(node_, "Error(%d): %s", mip_cmd_result.value, mip_cmd_result.name());
       return;
     }
+    if (!(mip_cmd_result = mip::commands_base::writeGpsTimeUpdate(*(config_->mip_device_), mip::commands_base::GpsTimeUpdate::FieldId::TIME_OF_WEEK, static_cast<uint32_t>(external_gnss_update.gps_time))))
+    {
+      MICROSTRAIN_ERROR(node_, "Failed to send GPS time update for time of week");
+      MICROSTRAIN_ERROR(node_, "Error(%d): %s", mip_cmd_result.value, mip_cmd_result.name());
+      return;
+    }
+    last_sent_gps_sec_ = position.header.stamp.sec;
   }
-
-  /*
-  MICROSTRAIN_DEBUG(node_, "Sending GPS time - Week: %d - Sec: %f", external_gnss_update.gps_week, external_gnss_update.gps_time);
-  if (!(mip_cmd_result = mip::commands_base::writeGpsTimeUpdate(*(config_->mip_device_), mip::commands_base::GpsTimeUpdate::FieldId::WEEK_NUMBER, external_gnss_update.gps_week)))
-  {
-    MICROSTRAIN_ERROR(node_, "Failed to send GPS time update for week number");
-    MICROSTRAIN_ERROR(node_, "Error(%d): %s", mip_cmd_result.value, mip_cmd_result.name());
-    return;
-  }
-  if (!(mip_cmd_result = mip::commands_base::writeGpsTimeUpdate(*(config_->mip_device_), mip::commands_base::GpsTimeUpdate::FieldId::TIME_OF_WEEK, external_gnss_update.gps_time)))
-  {
-    MICROSTRAIN_ERROR(node_, "Failed to send GPS time update for time of week");
-    MICROSTRAIN_ERROR(node_, "Error(%d): %s", mip_cmd_result.value, mip_cmd_result.name());
-    return;
-  }
-  */
 }
 
 void Subscribers::externalGpsSpeedCallback(const TwistWithCovarianceStampedMsg& speed)
 {
-  const double utc_time = speed.header.stamp.sec + (speed.header.stamp.nsec / 1000000000);
+  const double utc_time = speed.header.stamp.sec + (static_cast<double>(speed.header.stamp.nsec) / 1000000000.0);
   const double gps_time = utc_time + config_->gps_leap_seconds_ - UTC_GPS_EPOCH_DUR;
 
   // Fill in the information we know
   mip::commands_filter::ExternalGnssUpdate external_gnss_update;
-  external_gnss_update.gps_week = floor(gps_time / 604800);
-  external_gnss_update.gps_time = std::fmod(gps_time, 604800);
+  external_gnss_update.gps_week = floor(gps_time / SECS_PER_WEEK);
+  external_gnss_update.gps_time = std::fmod(gps_time, SECS_PER_WEEK);
   external_gnss_update.velocity[0] = speed.twist.twist.linear.x;
   external_gnss_update.velocity[1] = speed.twist.twist.linear.y;
   external_gnss_update.velocity[2] = speed.twist.twist.linear.z;
@@ -314,19 +259,24 @@ void Subscribers::externalGpsSpeedCallback(const TwistWithCovarianceStampedMsg& 
   external_gnss_update.vel_uncertainty[2] = std::sqrt(speed.twist.covariance[14]);
 
   // Set the uncertainty for the values we don't know very high so they will be ignored
-  external_gnss_update.pos_uncertainty[0] = 10000;
-  external_gnss_update.pos_uncertainty[1] = 10000;
-  external_gnss_update.pos_uncertainty[2] = 10000;
+  external_gnss_update.pos_uncertainty[0] = 0;
+  external_gnss_update.pos_uncertainty[1] = 0;
+  external_gnss_update.pos_uncertainty[2] = 0;
 
-  //external_gnss_update.pos_uncertainty[0] = std::numeric_limits<float>::max();
-  //external_gnss_update.pos_uncertainty[1] = std::numeric_limits<float>::max();
-  //external_gnss_update.pos_uncertainty[2] = std::numeric_limits<float>::max();
-
-  MICROSTRAIN_DEBUG(node_, "Sending external GPS speed update");
+  // Send the command
+  MICROSTRAIN_DEBUG(node_, "Sending external GNSS Velocity Update:");
+  MICROSTRAIN_DEBUG(node_, "  gps week = %d", external_gnss_update.gps_week);
+  MICROSTRAIN_DEBUG(node_, "  gps time = %f", external_gnss_update.gps_time);
+  MICROSTRAIN_DEBUG(node_, "  latitude = %f", external_gnss_update.latitude);
+  MICROSTRAIN_DEBUG(node_, "  longitude = %f", external_gnss_update.longitude);
+  MICROSTRAIN_DEBUG(node_, "  height = %f", external_gnss_update.height);
+  MICROSTRAIN_DEBUG(node_, "  velocity = [%f, %f, %f]", external_gnss_update.velocity[0], external_gnss_update.velocity[1], external_gnss_update.velocity[2]);
+  MICROSTRAIN_DEBUG(node_, "  position uncertainty = [%f, %f, %f]", external_gnss_update.pos_uncertainty[0], external_gnss_update.pos_uncertainty[1], external_gnss_update.pos_uncertainty[2]);
+  MICROSTRAIN_DEBUG(node_, "  velocity uncertainty = [%f, %f, %f]", external_gnss_update.vel_uncertainty[0], external_gnss_update.vel_uncertainty[1], external_gnss_update.vel_uncertainty[2]);
   mip::CmdResult mip_cmd_result = config_->mip_device_->device().runCommand<mip::commands_filter::ExternalGnssUpdate>(external_gnss_update);
   if (!mip_cmd_result.isAck())
   {
-    MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to send external GNSS speed update");
+    MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to send external GNSS position update");
     return;
   }
 }
