@@ -184,7 +184,7 @@ void Subscribers::externalGpsTimeCallback(const TimeReferenceMsg& time)
 
 void Subscribers::externalGpsPositionCallback(const NavSatFixMsg& position)
 {
-  const double utc_time = position.header.stamp.sec + (static_cast<double>(position.header.stamp.nsec) / 1000000000.0);
+  const double utc_time = position.header.stamp.sec + (static_cast<double>(position.header.stamp.nanosec) / 1000000000.0);
   const double gps_time = utc_time + config_->gps_leap_seconds_ - UTC_GPS_EPOCH_DUR;
 
   // Fill in the information we know
@@ -221,7 +221,7 @@ void Subscribers::externalGpsPositionCallback(const NavSatFixMsg& position)
   }
 
   // If the timestamp is within the first quarter of a second, also send a time update command
-  if (position.header.stamp.sec > last_sent_gps_sec_ && (position.header.stamp.nsec > 0.0 && position.header.stamp.nsec < 0.000000250))
+  if (position.header.stamp.sec > last_sent_gps_sec_ && (position.header.stamp.nanosec > 0.0 && position.header.stamp.nanosec < 0.000000250))
   {
     MICROSTRAIN_DEBUG(node_, "Sending GPS time update:");
     MICROSTRAIN_DEBUG(node_, "  week number = %d", external_gnss_update.gps_week);
@@ -244,7 +244,7 @@ void Subscribers::externalGpsPositionCallback(const NavSatFixMsg& position)
 
 void Subscribers::externalGpsSpeedCallback(const TwistWithCovarianceStampedMsg& speed)
 {
-  const double utc_time = speed.header.stamp.sec + (static_cast<double>(speed.header.stamp.nsec) / 1000000000.0);
+  const double utc_time = speed.header.stamp.sec + (static_cast<double>(speed.header.stamp.nanosec) / 1000000000.0);
   const double gps_time = utc_time + config_->gps_leap_seconds_ - UTC_GPS_EPOCH_DUR;
 
   // Fill in the information we know
