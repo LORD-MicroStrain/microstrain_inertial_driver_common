@@ -253,6 +253,7 @@ public:
 
   // Published transforms
   TransformStampedMsg filter_relative_transform_msg_;
+  bool filter_relative_odom_supported_;
 
 private:
   /**

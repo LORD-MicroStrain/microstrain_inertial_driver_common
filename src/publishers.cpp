@@ -53,7 +53,14 @@ bool Publishers::configure()
 
   // Only publish relative odom if we support the relative position descriptor set
   if (config_->mip_device_->supportsDescriptor(mip::data_filter::DESCRIPTOR_SET, mip::data_filter::RelPosNed::FIELD_DESCRIPTOR))
+  {
     filter_relative_odom_pub_->configure(node_, config_);
+    filter_relative_odom_supported_ = true;
+  }
+  else
+  {
+    filter_relative_odom_supported_ = false;
+  }
 
   if (config_->publish_nmea_)
     nmea_sentence_pub_->configure(node_);
@@ -215,7 +222,7 @@ bool Publishers::deactivate()
 void Publishers::publish()
 {
   // If the corresponding messages were updated, publish the transforms
-  if (filter_relative_odom_pub_ && filter_relative_odom_pub_->updated())
+  if (filter_relative_odom_supported_ && filter_relative_odom_pub_ && filter_relative_odom_pub_->updated())
     transform_broadcaster_->sendTransform(filter_relative_transform_msg_);
 
   imu_pub_->publish();
