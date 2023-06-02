@@ -208,7 +208,7 @@ public:
 
    private:
     const std::string topic_;  /// The topic that this class will publish to
-    bool updated_;  /// Whether or not the message has been updated since the last iteration
+    bool updated_ = false;  /// Whether or not the message has been updated since the last iteration
 
     typename RosPubType<MessageType>::MessageSharedPtr message_;  /// Pointer to a message that can be updated and published by this class
     typename RosPubType<MessageType>::SharedPtr publisher_;  /// Pointer to the ROS publisher that will do the actual publishing for this class
@@ -252,6 +252,8 @@ public:
   TransformBroadcasterType transform_broadcaster_ = nullptr;
 
   // Published transforms
+  bool filter_relative_transform_msg_translation_updated_ = false;
+  bool filter_relative_transform_msg_rotation_updated_ = false;
   TransformStampedMsg filter_relative_transform_msg_;
 
 private:
