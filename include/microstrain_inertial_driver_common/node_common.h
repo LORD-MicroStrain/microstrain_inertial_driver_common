@@ -83,6 +83,7 @@ protected:
   bool shutdown();
 
   RosNodeType* node_;
+  RosNodeType* config_node_;
   Config config_;
   Publishers publishers_;
   Subscribers subscribers_;

@@ -54,6 +54,10 @@ bool Config::configure(RosNodeType* node)
   // General
   getParam<bool>(node, "debug", debug_, false);
 
+  // Reconnect
+  getParam<int>(node, "reconnect_attempts", reconnect_attempts_, 0);
+  getParam<bool>(node, "configure_after_reconnect", configure_after_reconnect_, true);
+
   // Device
   getParam<bool>(node, "use_device_timestamp", use_device_timestamp_, false);
   getParam<bool>(node, "use_ros_time", use_ros_time_, false);
@@ -437,7 +441,7 @@ bool Config::configure3DM(RosNodeType* node)
 
       // Populate the NMEA message config options
       std::vector<mip::commands_3dm::NmeaMessage> formats;
-      if (!populateNmeaMessageFormat(node, "imu_nmea_prkr_data_rate", mip::commands_3dm::NmeaMessage::TalkerID::RESERVED, mip::data_sensor::DESCRIPTOR_SET, mip::commands_3dm::NmeaMessage::MessageID::PRKR, &formats) ||
+      if (!populateNmeaMessageFormat(node, "imu_nmea_prkr_data_rate", mip::commands_3dm::NmeaMessage::TalkerID::IGNORED, mip::data_sensor::DESCRIPTOR_SET, mip::commands_3dm::NmeaMessage::MessageID::PKRR, &formats) ||
           !populateNmeaMessageFormat(node, "gnss1_nmea_gga_data_rate", static_cast<mip::commands_3dm::NmeaMessage::TalkerID>(gnss1_nmea_talker_id), mip::data_gnss::MIP_GNSS1_DATA_DESC_SET, mip::commands_3dm::NmeaMessage::MessageID::GGA, &formats) ||
           !populateNmeaMessageFormat(node, "gnss1_nmea_gll_data_rate", static_cast<mip::commands_3dm::NmeaMessage::TalkerID>(gnss1_nmea_talker_id), mip::data_gnss::MIP_GNSS1_DATA_DESC_SET, mip::commands_3dm::NmeaMessage::MessageID::GLL, &formats) ||
           !populateNmeaMessageFormat(node, "gnss1_nmea_gsv_data_rate", static_cast<mip::commands_3dm::NmeaMessage::TalkerID>(gnss1_nmea_talker_id), mip::data_gnss::MIP_GNSS1_DATA_DESC_SET, mip::commands_3dm::NmeaMessage::MessageID::GSV, &formats) ||
@@ -456,7 +460,7 @@ bool Config::configure3DM(RosNodeType* node)
           !populateNmeaMessageFormat(node, "filter_nmea_gll_data_rate", static_cast<mip::commands_3dm::NmeaMessage::TalkerID>(filter_nmea_talker_id), mip::data_filter::DESCRIPTOR_SET, mip::commands_3dm::NmeaMessage::MessageID::GLL, &formats) ||
           !populateNmeaMessageFormat(node, "filter_nmea_rmc_data_rate", static_cast<mip::commands_3dm::NmeaMessage::TalkerID>(filter_nmea_talker_id), mip::data_filter::DESCRIPTOR_SET, mip::commands_3dm::NmeaMessage::MessageID::RMC, &formats) ||
           !populateNmeaMessageFormat(node, "filter_nmea_hdt_data_rate", static_cast<mip::commands_3dm::NmeaMessage::TalkerID>(filter_nmea_talker_id), mip::data_filter::DESCRIPTOR_SET, mip::commands_3dm::NmeaMessage::MessageID::HDT, &formats) ||
-          !populateNmeaMessageFormat(node, "filter_nmea_prka_data_rate", static_cast<mip::commands_3dm::NmeaMessage::TalkerID>(filter_nmea_talker_id), mip::data_filter::DESCRIPTOR_SET, mip::commands_3dm::NmeaMessage::MessageID::PRKA, &formats))
+          !populateNmeaMessageFormat(node, "filter_nmea_prka_data_rate", static_cast<mip::commands_3dm::NmeaMessage::TalkerID>(filter_nmea_talker_id), mip::data_filter::DESCRIPTOR_SET, mip::commands_3dm::NmeaMessage::MessageID::PKRA, &formats))
         return false;
 
       // Send them to the device
@@ -1072,7 +1076,7 @@ bool Config::populateNmeaMessageFormat(RosNodeType* config_node, const std::stri
 
     // If we already have a message format with this talker ID, error or warn depending on config
     // Note that it is TECHNICALLY valid to have multiple configurations for the same NMEA sentence, but I can think of no reason why it would be useful, so we will also error on that
-    if (format.talker_id != mip::commands_3dm::NmeaMessage::TalkerID::RESERVED)
+    if (format.talker_id != mip::commands_3dm::NmeaMessage::TalkerID::IGNORED)
     {
       for (const auto& existing_format : *formats)
       {

@@ -48,6 +48,27 @@ bool RosMipDevice::recv(uint8_t* data, size_t data_len, size_t* out_len)
   return connection_->recvFromDevice(data, data_len, 0, out_len, &timestamp);
 }
 
+bool RosMipDevice::connect()
+{
+  if (connection_ != nullptr)
+    return connection_->connect();
+  else
+    return false;
+}
+
+bool RosMipDevice::disconnect()
+{
+  if (connection_ != nullptr)
+    return connection_->disconnect();
+  else
+    return false;
+}
+
+bool RosMipDevice::reconnect()
+{
+  return disconnect() && connect();
+}
+
 std::vector<NMEASentenceMsg> RosMipDevice::nmeaMsgs()
 {
   return connection_->nmeaMsgs();
