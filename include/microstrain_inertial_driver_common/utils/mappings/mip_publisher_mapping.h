@@ -62,7 +62,7 @@ static constexpr auto FILTER_RELATIVE_ODOM_TOPIC = "nav/relative_pos/odom";
 static constexpr auto FILTER_DUAL_ANTENNA_STATUS_TOPIC = "nav/dual_antenna_status";
 static constexpr auto FILTER_AIDING_SUMMARY_TOPIC = "nav/aiding_summary";
 
-static constexpr auto NMEA_SENTENCE_TOPIC = "nmea/sentence";
+static constexpr auto NMEA_SENTENCE_TOPIC = "nmea";
 
 // Some other constants
 static constexpr float FIELD_DATA_RATE_USE_DATA_CLASS = -1;

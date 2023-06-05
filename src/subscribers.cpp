@@ -185,13 +185,13 @@ void Subscribers::externalSpeedCallback(const InputSpeedMeasurementMsg& speed)
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 void Subscribers::rtcmCallback(const RTCMMsg& rtcm)
 {
-  MICROSTRAIN_DEBUG(node_, "Received RTCM message of size %lu", rtcm.data.size());
+  MICROSTRAIN_DEBUG(node_, "Received RTCM message of size %lu", rtcm.message.size());
   if (config_->aux_device_)
   {
-    if (!config_->aux_device_->send(rtcm.data.data(), rtcm.data.size()))
+    if (!config_->aux_device_->send(rtcm.message.data(), rtcm.message.size()))
       MICROSTRAIN_ERROR(node_, "Failed to write RTCM to device");
     else
-      MICROSTRAIN_DEBUG(node_, "Successfully wrote RTCM message of size %lu to aux port", rtcm.data.size());
+      MICROSTRAIN_DEBUG(node_, "Successfully wrote RTCM message of size %lu to aux port", rtcm.message.size());
   }
   else
   {

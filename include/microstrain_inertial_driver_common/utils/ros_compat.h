@@ -62,7 +62,7 @@ constexpr auto NUM_GNSS = 2;
 #include "std_msgs/Bool.h"
 #include "std_msgs/String.h"
 #include "tf2_geometry_msgs/tf2_geometry_msgs.h"
-#include "mavros_msgs/RTCM.h"
+#include "rtcm_msgs/Message.h"
 #include "nmea_msgs/Sentence.h"
 
 #include "microstrain_inertial_msgs/Status.h"
@@ -166,7 +166,7 @@ constexpr auto NUM_GNSS = 2;
 #include "std_srvs/srv/trigger.hpp"
 #include "std_msgs/msg/bool.hpp"
 #include "std_msgs/msg/string.hpp"
-#include "mavros_msgs/msg/rtcm.hpp"
+#include "rtcm_msgs/msg/message.hpp"
 #include "nmea_msgs/msg/sentence.hpp"
 
 // .h header was deprecated in rolling and will likely be removed in future releases.
@@ -328,7 +328,7 @@ using TransformBroadcasterType = std::shared_ptr<::tf2_ros::TransformBroadcaster
 using BoolMsg = ::std_msgs::Bool;
 using TimeReferenceMsg = ::sensor_msgs::TimeReference;
 using InputSpeedMeasurementMsg = ::microstrain_inertial_msgs::InputSpeedMeasurement;
-using RTCMMsg = ::mavros_msgs::RTCM;
+using RTCMMsg = ::rtcm_msgs::Message;
 
 // ROS1 Subscriber Types
 using BoolSubType = RosSubType;
