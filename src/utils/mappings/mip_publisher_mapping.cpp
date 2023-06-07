@@ -230,30 +230,38 @@ bool MipPublisherMapping::shouldPublish(const std::string& topic) const
 
 const std::map<std::string, FieldWrapper::SharedPtrVec> MipPublisherMapping::static_topic_to_mip_type_mapping_ =
 {
-  // IMU topic mappings
-  {IMU_DATA_TOPIC, {
+  // /imu* topic mappings
+  {IMU_RAW_DATA_TOPIC, {
     FieldWrapperType<mip::data_sensor::ScaledAccel>::initialize(),
     FieldWrapperType<mip::data_sensor::ScaledGyro>::initialize(),
     FieldWrapperType<mip::data_sensor::CompQuaternion>::initialize(),
   }},
-  {IMU_MAG_TOPIC, {
+  {IMU_RAW_MAG_TOPIC, {
     FieldWrapperType<mip::data_sensor::ScaledMag>::initialize(),
   }},
-  {IMU_GPS_CORR_TOPIC, {
-    FieldWrapperType<mip::data_sensor::GpsTimestamp>::initialize(),
-  }},
-  {IMU_OVERRANGE_STATUS_TOPIC, {
-    FieldWrapperType<mip::data_sensor::OverrangeStatus>::initialize(),
+  {IMU_DATA_TOPIC, {
+    FieldWrapperType<mip::data_filter::AttitudeQuaternion>::initialize(),
+    FieldWrapperType<mip::data_filter::CompAngularRate>::initialize(),
+    FieldWrapperType<mip::data_filter::CompAccel>::initialize(),
+    FieldWrapperType<mip::data_filter::EulerAnglesUncertainty>::initialize(),
   }},
 
   // GNSS1 topic mappings. Note that each of these topics will contain a field for both the GNSS and GNSS1 descriptor set
-  {GNSS1_NAVSATFIX_TOPIC, {
+  {GNSS1_FIX_TOPIC, {
     FieldWrapperType<mip::data_gnss::PosLlh, mip::data_gnss::DESCRIPTOR_SET>::initialize(),
     FieldWrapperType<mip::data_gnss::PosLlh, mip::data_gnss::MIP_GNSS1_DATA_DESC_SET>::initialize(),
   }},
+  {GNSS1_VEL_TOPIC, {
+    FieldWrapperType<mip::data_gnss::VelNed, mip::data_gnss::DESCRIPTOR_SET>::initialize(),
+    FieldWrapperType<mip::data_gnss::VelNed, mip::data_gnss::MIP_GNSS1_DATA_DESC_SET>::initialize(),
+  }},
+  {GNSS1_VEL_ECEF_TOPIC, {
+    FieldWrapperType<mip::data_gnss::VelEcef, mip::data_gnss::DESCRIPTOR_SET>::initialize(),
+    FieldWrapperType<mip::data_gnss::VelEcef, mip::data_gnss::MIP_GNSS1_DATA_DESC_SET>::initialize(),
+  }},
   {GNSS1_ODOM_TOPIC, {
-    FieldWrapperType<mip::data_gnss::PosLlh, mip::data_gnss::DESCRIPTOR_SET>::initialize(),
-    FieldWrapperType<mip::data_gnss::PosLlh, mip::data_gnss::MIP_GNSS1_DATA_DESC_SET>::initialize(),
+    FieldWrapperType<mip::data_gnss::PosEcef, mip::data_gnss::DESCRIPTOR_SET>::initialize(),
+    FieldWrapperType<mip::data_gnss::PosEcef, mip::data_gnss::MIP_GNSS1_DATA_DESC_SET>::initialize(),
     FieldWrapperType<mip::data_gnss::VelNed, mip::data_gnss::DESCRIPTOR_SET>::initialize(),
     FieldWrapperType<mip::data_gnss::VelNed, mip::data_gnss::MIP_GNSS1_DATA_DESC_SET>::initialize(),
   }},
@@ -261,6 +269,7 @@ const std::map<std::string, FieldWrapper::SharedPtrVec> MipPublisherMapping::sta
     FieldWrapperType<mip::data_gnss::GpsTime, mip::data_gnss::DESCRIPTOR_SET>::initialize(),
     FieldWrapperType<mip::data_gnss::GpsTime, mip::data_gnss::MIP_GNSS1_DATA_DESC_SET>::initialize(),
   }},
+
   {GNSS1_FIX_INFO_TOPIC, {
     FieldWrapperType<mip::data_gnss::FixInfo, mip::data_gnss::DESCRIPTOR_SET>::initialize(),
     FieldWrapperType<mip::data_gnss::FixInfo, mip::data_gnss::MIP_GNSS1_DATA_DESC_SET>::initialize(),
@@ -273,16 +282,23 @@ const std::map<std::string, FieldWrapper::SharedPtrVec> MipPublisherMapping::sta
   }},
 
   // GNSS2 topic mappings.
-  {GNSS2_NAVSATFIX_TOPIC, {
+  {GNSS2_FIX_TOPIC, {
     FieldWrapperType<mip::data_gnss::PosLlh, mip::data_gnss::MIP_GNSS2_DATA_DESC_SET>::initialize(),
   }},
+  {GNSS2_VEL_TOPIC, {
+    FieldWrapperType<mip::data_gnss::VelNed, mip::data_gnss::MIP_GNSS2_DATA_DESC_SET>::initialize(),
+  }},
+  {GNSS2_VEL_ECEF_TOPIC, {
+    FieldWrapperType<mip::data_gnss::VelEcef, mip::data_gnss::MIP_GNSS2_DATA_DESC_SET>::initialize(),
+  }},
   {GNSS2_ODOM_TOPIC, {
-    FieldWrapperType<mip::data_gnss::PosLlh, mip::data_gnss::MIP_GNSS2_DATA_DESC_SET>::initialize(),
+    FieldWrapperType<mip::data_gnss::PosEcef, mip::data_gnss::MIP_GNSS2_DATA_DESC_SET>::initialize(),
     FieldWrapperType<mip::data_gnss::VelNed, mip::data_gnss::MIP_GNSS2_DATA_DESC_SET>::initialize(),
   }},
   {GNSS2_TIME_REF_TOPIC, {
     FieldWrapperType<mip::data_gnss::GpsTime, mip::data_gnss::MIP_GNSS2_DATA_DESC_SET>::initialize(),
   }},
+
   {GNSS2_FIX_INFO_TOPIC, {
     FieldWrapperType<mip::data_gnss::FixInfo, mip::data_gnss::MIP_GNSS2_DATA_DESC_SET>::initialize(),
   }},
@@ -302,30 +318,27 @@ const std::map<std::string, FieldWrapper::SharedPtrVec> MipPublisherMapping::sta
   }},
 
   // Filter topic mappings
-  {FILTER_STATUS_TOPIC, {
-    FieldWrapperType<mip::data_filter::Status>::initialize(),
-  }},
-  {FILTER_HEADING_TOPIC, {
-    FieldWrapperType<mip::data_filter::EulerAngles>::initialize(),
-  }},
-  {FILTER_HEADING_STATE_TOPIC, {
-    FieldWrapperType<mip::data_filter::HeadingUpdateState>::initialize(),
-  }},
-  {FILTER_ODOM_TOPIC, {
+  {FILTER_FIX_TOPIC, {
     FieldWrapperType<mip::data_filter::PositionLlh>::initialize(),
     FieldWrapperType<mip::data_filter::PositionLlhUncertainty>::initialize(),
+    FieldWrapperType<mip::data_filter::GnssPosAidStatus>::initialize(),
+  }},
+  {FILTER_VEL_TOPIC, {
+    FieldWrapperType<mip::data_filter::VelocityNed>::initialize(),
+    FieldWrapperType<mip::data_filter::VelocityNedUncertainty>::initialize(),
+  }},
+  {FILTER_VEL_ECEF_TOPIC, {
+    FieldWrapperType<mip::data_filter::EcefVel>::initialize(),
+    FieldWrapperType<mip::data_filter::EcefVelUncertainty>::initialize(),
+  }},
+  {FILTER_ODOM_TOPIC, {
+    FieldWrapperType<mip::data_filter::EcefPos>::initialize(),
+    FieldWrapperType<mip::data_filter::EcefPosUncertainty>::initialize(),
     FieldWrapperType<mip::data_filter::AttitudeQuaternion>::initialize(),
     FieldWrapperType<mip::data_filter::EulerAnglesUncertainty>::initialize(),
     FieldWrapperType<mip::data_filter::VelocityNed>::initialize(),
     FieldWrapperType<mip::data_filter::VelocityNedUncertainty>::initialize(),
     FieldWrapperType<mip::data_filter::CompAngularRate>::initialize(),
-  }},
-  {FILTER_IMU_DATA_TOPIC, {
-    FieldWrapperType<mip::data_filter::AttitudeQuaternion>::initialize(),
-    FieldWrapperType<mip::data_filter::CompAngularRate>::initialize(),
-    FieldWrapperType<mip::data_filter::CompAccel>::initialize(),
-    FieldWrapperType<mip::data_filter::LinearAccel>::initialize(),
-    FieldWrapperType<mip::data_filter::EulerAnglesUncertainty>::initialize(),
   }},
   {FILTER_RELATIVE_ODOM_TOPIC, {
     FieldWrapperType<mip::data_filter::RelPosNed>::initialize(),
@@ -335,6 +348,23 @@ const std::map<std::string, FieldWrapper::SharedPtrVec> MipPublisherMapping::sta
     FieldWrapperType<mip::data_filter::VelocityNed>::initialize(),
     FieldWrapperType<mip::data_filter::VelocityNedUncertainty>::initialize(),
     FieldWrapperType<mip::data_filter::CompAngularRate>::initialize(),
+  }},
+
+  {FILTER_STATUS_TOPIC, {
+    FieldWrapperType<mip::data_filter::Status>::initialize(),
+  }},
+  {FILTER_HEADING_TOPIC, {
+    FieldWrapperType<mip::data_filter::EulerAngles>::initialize(),
+  }},
+  {FILTER_HEADING_STATE_TOPIC, {
+    FieldWrapperType<mip::data_filter::HeadingUpdateState>::initialize(),
+  }},
+  {FILTER_IMU_DATA_TOPIC, {
+    FieldWrapperType<mip::data_filter::AttitudeQuaternion>::initialize(),
+    FieldWrapperType<mip::data_filter::CompAngularRate>::initialize(),
+    FieldWrapperType<mip::data_filter::CompAccel>::initialize(),
+    FieldWrapperType<mip::data_filter::LinearAccel>::initialize(),
+    FieldWrapperType<mip::data_filter::EulerAnglesUncertainty>::initialize(),
   }},
   {GNSS1_AIDING_STATUS_TOPIC, {
     FieldWrapperType<mip::data_filter::GnssPosAidStatus>::initialize(),
@@ -352,25 +382,36 @@ const std::map<std::string, FieldWrapper::SharedPtrVec> MipPublisherMapping::sta
 
 const std::map<std::string, std::string> MipPublisherMapping::static_topic_to_data_rate_config_key_mapping_ =
 {
-  // IMU data rates
+  // /imu* data rates
+  {IMU_RAW_DATA_TOPIC, "imu_raw_data_rate"},
+  {IMU_RAW_MAG_TOPIC,  "imu_raw_mag_data_rate"},
+  {IMU_DATA_TOPIC,     "imu_data_rate"},
+  /*
   {IMU_DATA_TOPIC,              "imu_raw_data_rate"},
   {IMU_MAG_TOPIC,               "imu_mag_data_rate"},
   {IMU_GPS_CORR_TOPIC,          "imu_gps_corr_data_rate"},
   {IMU_OVERRANGE_STATUS_TOPIC,  "imu_overrange_status_data_rate"},
+  */
 
   // GNSS/GNSS1 data rates
-  {GNSS1_NAVSATFIX_TOPIC,          "gnss1_nav_sat_fix_data_rate"},
-  {GNSS1_ODOM_TOPIC,               "gnss1_odom_data_rate"},
-  {GNSS1_TIME_REF_TOPIC,           "gnss1_time_reference_data_rate"},
+  {GNSS1_FIX_TOPIC,      "gnss1_fix_data_rate"},
+  {GNSS1_VEL_TOPIC,      "gnss1_vel_data_rate"},
+  {GNSS1_VEL_ECEF_TOPIC, "gnss1_vel_ecef_data_rate"},
+  {GNSS1_ODOM_TOPIC,     "gnss1_odom_earth_data_rate"},
+  {GNSS1_TIME_REF_TOPIC, "gnss1_time_data_rate"},
+
   {GNSS1_FIX_INFO_TOPIC,           "gnss1_fix_info_data_rate"},
   {GNSS1_AIDING_STATUS_TOPIC,      "filter_aiding_status_data_rate"},
   {GNSS1_SBAS_INFO_TOPIC,          "gnss1_sbas_info_data_rate"},
   {GNSS1_RF_ERROR_DETECTION_TOPIC, "gnss1_rf_error_detection_data_rate"},
 
   // GNSS2 data rates
-  {GNSS2_NAVSATFIX_TOPIC,          "gnss2_nav_sat_fix_data_rate"},
-  {GNSS2_ODOM_TOPIC,               "gnss2_odom_data_rate"},
-  {GNSS2_TIME_REF_TOPIC,           "gnss2_time_reference_data_rate"},
+  {GNSS2_FIX_TOPIC,      "gnss2_fix_data_rate"},
+  {GNSS2_VEL_TOPIC,      "gnss2_vel_data_rate"},
+  {GNSS2_VEL_ECEF_TOPIC, "gnss2_vel_ecef_data_rate"},
+  {GNSS2_ODOM_TOPIC,     "gnss2_odom_earth_data_rate"},
+  {GNSS2_TIME_REF_TOPIC, "gnss2_time_data_rate"},
+
   {GNSS2_FIX_INFO_TOPIC,           "gnss2_fix_info_data_rate"},
   {GNSS2_AIDING_STATUS_TOPIC,      "filter_aiding_status_data_rate"},
   {GNSS2_SBAS_INFO_TOPIC,          "gnss2_sbas_info_data_rate"},
@@ -381,12 +422,16 @@ const std::map<std::string, std::string> MipPublisherMapping::static_topic_to_da
   {RTK_STATUS_V1_TOPIC, "rtk_status_data_rate"},
 
   // Filter data rates
+  {FILTER_FIX_TOPIC,                 "filter_fix_data_rate"},
+  {FILTER_VEL_TOPIC,                 "filter_vel_data_rate"},
+  {FILTER_VEL_ECEF_TOPIC,            "filter_vel_ecef_data_rate"},
+  {FILTER_ODOM_TOPIC,                "filter_odom_earth_data_rate"},
+  {FILTER_RELATIVE_ODOM_TOPIC,       "filter_odom_map_data_rate"},
+
   {FILTER_STATUS_TOPIC,              "filter_status_data_rate"},
   {FILTER_HEADING_TOPIC,             "filter_heading_data_rate"},
   {FILTER_HEADING_STATE_TOPIC,       "filter_heading_state_data_rate"},
-  {FILTER_ODOM_TOPIC,                "filter_odom_data_rate"},
   {FILTER_IMU_DATA_TOPIC,            "filter_imu_data_rate"},
-  {FILTER_RELATIVE_ODOM_TOPIC,       "filter_relative_odom_data_rate"},
   {FILTER_DUAL_ANTENNA_STATUS_TOPIC, "filter_gnss_dual_antenna_data_rate"},
   {FILTER_AIDING_SUMMARY_TOPIC,      "filter_aiding_measurement_summary_data_rate"},
 };

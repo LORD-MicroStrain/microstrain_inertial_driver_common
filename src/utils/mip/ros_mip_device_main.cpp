@@ -214,6 +214,28 @@ mip::CmdResult RosMipDeviceMain::writeBaudRate(uint32_t baudrate, uint8_t port)
     return mip::commands_3dm::writeUartBaudrate(*device_, baudrate);
 }
 
+mip::CmdResult RosMipDeviceMain::readMessageFormat(uint8_t descriptor_set, uint8_t* num_descriptors, uint8_t num_descriptors_max, mip::DescriptorRate* descriptors)
+{
+  if (supportsDescriptor(mip::commands_3dm::DESCRIPTOR_SET, mip::commands_3dm::CMD_MESSAGE_FORMAT))
+  {
+    return mip::commands_3dm::readMessageFormat(*device_, descriptor_set, num_descriptors, num_descriptors_max, descriptors);
+  }
+  else
+  {
+    switch (descriptor_set)
+    {
+      case mip::data_sensor::DESCRIPTOR_SET:
+        return mip::commands_3dm::readImuMessageFormat(*device_, num_descriptors, num_descriptors_max, descriptors);
+      case mip::data_gnss::DESCRIPTOR_SET:
+        return mip::commands_3dm::readGpsMessageFormat(*device_, num_descriptors, num_descriptors_max, descriptors);
+      case mip::data_filter::DESCRIPTOR_SET:
+        return mip::commands_3dm::readFilterMessageFormat(*device_, num_descriptors, num_descriptors_max, descriptors);
+      default:
+        return mip::CmdResult::fromAckNack(mip::CmdResult::NACK_INVALID_PARAM);
+    }
+  }
+}
+
 mip::CmdResult RosMipDeviceMain::writeMessageFormat(uint8_t descriptor_set, uint8_t num_descriptors, const mip::DescriptorRate* descriptors)
 {
   // If the device supports the generic message format command use that, otherwise use the specific function
@@ -282,6 +304,35 @@ bool RosMipDeviceMain::supportsDescriptor(const uint8_t descriptor_set, const ui
   // If we have the field descriptor in our list of descriptors it is supported
   const uint16_t full_descriptor = (descriptor_set << 8) | field_descriptor;
   return std::find(supported_descriptors_.begin(), supported_descriptors_.end(), full_descriptor) != supported_descriptors_.end();
+}
+
+mip::CmdResult RosMipDeviceMain::streamDescriptor(const uint8_t descriptor_set, uint8_t field_descriptor, float hertz)
+{
+  // Get the existing message format
+  mip::CmdResult mip_cmd_result;
+  const uint8_t max_descriptor_rates = 255;
+  uint8_t num_descriptor_rates;
+  mip::DescriptorRate descriptor_rates[max_descriptor_rates];
+  memset(descriptor_rates, 0, sizeof(mip::DescriptorRate) * max_descriptor_rates);
+  if (!(mip_cmd_result = readMessageFormat(descriptor_set, &num_descriptor_rates, max_descriptor_rates, descriptor_rates)))
+    return mip_cmd_result;
+  if (num_descriptor_rates >= max_descriptor_rates)
+    return mip::CmdResult::fromAckNack(mip::CmdResult::NACK_COMMAND_FAILED);
+
+  // Check if the field is already being streamed, if not append it to the end
+  mip::DescriptorRate* rate = std::find_if(std::begin(descriptor_rates), std::begin(descriptor_rates) + num_descriptor_rates, [field_descriptor](const mip::DescriptorRate& d)
+  {
+    return d.descriptor == field_descriptor;
+  });
+  if (rate == std::end(descriptor_rates))
+  {
+    rate = &(descriptor_rates[num_descriptor_rates++]);
+  }
+
+  // Update the decimation, and write the message format back
+  rate->descriptor = field_descriptor;
+  rate->decimation = getDecimationFromHertz(descriptor_set, hertz);
+  return writeMessageFormat(descriptor_set, num_descriptor_rates, descriptor_rates);
 }
 
 uint16_t RosMipDeviceMain::getDecimationFromHertz(const uint8_t descriptor_set, const float hertz)

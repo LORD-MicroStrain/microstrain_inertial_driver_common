@@ -59,13 +59,53 @@ bool Config::configure(RosNodeType* node)
   getParam<bool>(node, "use_ros_time", use_ros_time_, false);
   getParam<bool>(node, "use_enu_frame", use_enu_frame_, false);
 
-  // If using ENU frame, reflect in the device frame id
-  if (use_enu_frame_)
+  // Frame ID config
+  getParam<std::string>(node, "frame_id", frame_id_, "imu_link");
+  getParam<std::string>(node, "target_frame_id", target_frame_id_, "base_link");
+  getParam<std::string>(node, "base_link_frame_id", base_link_frame_id_, "base_link");
+  getParam<std::string>(node, "map_frame_id", map_frame_id_, "map");
+  getParam<std::string>(node, "earth_frame_id", earth_frame_id_, "earth");
+  getParam<std::string>(node, "gnss1_frame_id", gnss_frame_id_[GNSS1_ID], "gnss1_link");
+  getParam<std::string>(node, "gnss2_frame_id", gnss_frame_id_[GNSS2_ID], "gnss2_link");
+
+  // tf config
+  getParam<int32_t>(node, "tf_mode", tf_mode_, 2);
+  getParam<bool>(node, "publish_base_link_imu_link_transform", publish_base_link_imu_link_transform_, true);
+
+  // If using the NED frame, append that to the frame IDs
+  if (!use_enu_frame_)
   {
-    gnss_frame_id_[GNSS1_ID] = "gnss1_antenna_wgs84_enu";
-    gnss_frame_id_[GNSS2_ID] = "gnss2_antenna_wgs84_enu";
-    filter_frame_id_ = "sensor_wgs84_enu";
+    constexpr auto ned_suffix = "_ned";
+    frame_id_ += ned_suffix;
+    target_frame_id_ += ned_suffix;
+    base_link_frame_id_ += ned_suffix;
+    map_frame_id_ += ned_suffix;
+    for (int i = 0; i < NUM_GNSS; i++)
+      gnss_frame_id_[i] += ned_suffix;
   }
+
+  // Configure the static transforms
+  std::vector<double> base_link_imu_link_transform_vec;
+  getParam<std::vector<double>>(node, "base_link_imu_link_transform", base_link_imu_link_transform_vec, {0, 0, 0, 0, 0, 0, 1});
+
+  if (base_link_imu_link_transform_vec.size() != 7)
+  {
+    MICROSTRAIN_ERROR(node, "base_link_imu_link_transform is invalid. Should have 7 elements, but has %lu", base_link_imu_link_transform_vec.size());
+    return false;
+  }
+
+  const RosTimeType static_transform_now = rosTimeNow(node);
+  base_link_imu_link_transform_.header.stamp = static_transform_now;
+
+  base_link_imu_link_transform_.header.frame_id = base_link_frame_id_;
+  base_link_imu_link_transform_.child_frame_id = frame_id_;
+  base_link_imu_link_transform_.transform.translation.x = base_link_imu_link_transform_vec[0];
+  base_link_imu_link_transform_.transform.translation.y = base_link_imu_link_transform_vec[1];
+  base_link_imu_link_transform_.transform.translation.z = base_link_imu_link_transform_vec[2];
+  base_link_imu_link_transform_.transform.rotation.x = base_link_imu_link_transform_vec[3];
+  base_link_imu_link_transform_.transform.rotation.y = base_link_imu_link_transform_vec[4];
+  base_link_imu_link_transform_.transform.rotation.z = base_link_imu_link_transform_vec[5];
+  base_link_imu_link_transform_.transform.rotation.w = base_link_imu_link_transform_vec[6];
 
   // IMU
   getParam<std::vector<double>>(node, "imu_orientation_cov", imu_orientation_cov_, DEFAULT_MATRIX);
@@ -77,8 +117,6 @@ bool Config::configure(RosNodeType* node)
   std::vector<double> gnss_antenna_offset_double[NUM_GNSS];
   getParam<std::vector<double>>(node, "gnss1_antenna_offset", gnss_antenna_offset_double[GNSS1_ID], DEFAULT_VECTOR);
   getParam<std::vector<double>>(node, "gnss2_antenna_offset", gnss_antenna_offset_double[GNSS2_ID], DEFAULT_VECTOR);
-  getParam<std::string>(node, "gnss1_frame_id", gnss_frame_id_[GNSS1_ID], gnss_frame_id_[GNSS1_ID]);
-  getParam<std::string>(node, "gnss2_frame_id", gnss_frame_id_[GNSS2_ID], gnss_frame_id_[GNSS2_ID]);
 
   // HARDWARE ODOM
   getParam<bool>(node, "enable_hardware_odometer", enable_hardware_odometer_, false);

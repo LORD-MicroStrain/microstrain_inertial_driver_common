@@ -28,6 +28,10 @@
 namespace microstrain
 {
 
+static constexpr auto TF_MODE_OFF = 0;
+static constexpr auto TF_MODE_GLOBAL = 1;
+static constexpr auto TF_MODE_RELATIVE = 2;
+
 const std::vector<double> DEFAULT_MATRIX = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
 const std::vector<double> DEFAULT_VECTOR = { 0.0, 0.0, 0.0 };
 const std::vector<double> DEFAULT_QUATERNION = { 0.0, 0.0, 0.0, 0.0 };
@@ -97,9 +101,24 @@ public:
   bool filter_use_compensated_accel_;
   bool filter_relative_pos_config_;
 
-  // Frame ids
-  std::string imu_frame_id_;
+  // Frame id configuration
+  std::string frame_id_;
+  std::string target_frame_id_;
+  std::string base_link_frame_id_;
+  std::string map_frame_id_;
+  std::string earth_frame_id_;
   std::string gnss_frame_id_[NUM_GNSS];
+
+  // TF mode and transform configuration
+  int32_t tf_mode_;
+
+  // IMU frame offset configuration
+  bool publish_base_link_imu_link_transform_;
+
+  // Configured static transforms
+  TransformStampedMsg base_link_imu_link_transform_;
+
+  std::string imu_frame_id_;
   std::string filter_frame_id_;
   std::string filter_child_frame_id_;
   std::string nmea_frame_id_;

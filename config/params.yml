@@ -17,23 +17,10 @@ port        : "/dev/ttyACM0"
 aux_port    : "/dev/ttyACM1"
 baudrate    : 115200
 debug       : False
-diagnostics : False
 
 # If set to true, this will configure the requested baudrate on the device.
 # Note that this will be set on both USB and serial, but will only actually affect the baudrate of a serial connection.
 set_baud : False
-
-# Frame IDs used in the different messages. By default these are set to arbitrary strings as not to interfere with other ROS services.
-# For more information on common frame IDs, check out: https://www.ros.org/reps/rep-0105.html
-#
-# filter_frame_id and filter_child_frame_id are specifically useful as the node will also publish a transform to the /tf topic
-# that contains the transform between these two frames. Many ROS tools such as RViz will use the /tf topic to display things like robot position.
-imu_frame_id          : "sensor"
-gnss1_frame_id        : "gnss1_antenna_wgs84"
-gnss2_frame_id        : "gnss2_antenna_wgs84"
-filter_frame_id       : "sensor_wgs84"
-filter_child_frame_id : "sensor"
-nmea_frame_id         : "nmea"
 
 # Waits for a configurable amount of time until the device exists
 # If poll_max_tries is set to -1 we will poll forever until the device exists
@@ -41,10 +28,41 @@ poll_port      : False
 poll_rate_hz   : 1.0
 poll_max_tries : 60
 
+# Frame ID that most header.frame_id fields will be populated with.
+frame_id: "imu_link"
+
+# Frame IDs determining the transforms published by this node to aid in navigation. See https://www.ros.org/reps/rep-0105.html
+#      NOTE: If use_enu_frame is false, these frames (with the exception of earth_frame_id) will automatically have "_ned" appended to them.
+base_link_frame_id : "base_link"
+map_frame_id       : "map"
+earth_frame_id     : "earth"
+gnss1_frame_id     : "gnss1_link"
+gnss2_frame_id     : "gnss2_link"
+
+# Target frame ID to publish transform to. Note that there needs to be some path of transforms between this and frame_id
+target_frame_id : "base_link"
+
+# The mode in which we will publish transforms to the above frame IDs
+#      0 - No transforms will be published between any of the above frames
+#      1 - Global mode:
+#              Transform will be published from earth_frame_id to target_frame_id containing global position
+#      2 - Relative mode:
+#              Transform will be published from earth_frame_id to map_frame_id using relative position configuration
+#              Transform between earth_frame_id and map_frame_id will also be published using rel_pos_configuration
+tf_mode : 1
+
+# Static transform between base_link_frame_id and frame_id.
+#      NOTE: It is strongly recommended to define this in a urdf file if you are building a robot, or are able to modify the robot's description.
+publish_base_link_imu_link_transform : True
+base_link_imu_link_transform         : [0, 0, 0, 0, 0, 0, 1] # [ x, y, z, qi, qj, qk, qw ]
+
 # Controls if the driver outputs data with-respect-to ENU frame
 #      false - position, velocity, and orientation are WRT the NED frame (native device frame)
 #      true  - position, velocity, and orientation are WRT the ENU frame
-use_enu_frame : False
+#
+#      NOTE: It is strongly recommended to leave this as True if you plan to integrate with other ROS tools
+#      NOTE: If this is set to false, all "*_frame_id" variables will have "_ned" appended to them by the driver.
+use_enu_frame : True
 
 # Controls if the driver-defined setup is sent to the device
 #      false - The driver will ignore the settings below and use the device's current settings
@@ -99,8 +117,10 @@ imu_data_rate : 100
 # The speed at which the individual IMU publishers will publish at.
 #      If set to -1, will use imu_data_rate to determine the rate at which to stream and publish
 #      If set to 0, the stream will be turned off and the publisher will not be created
-imu_raw_data_rate              : -1  # Rate of imu/data topic
-imu_mag_data_rate              : -1  # Rate of mag topic
+imu_data_rate          : 100  # Rate of imu/data topic
+imu_raw_data_rate      : 0    # Rate of imu_raw/data topic
+imu_raw_mag_data_rate  : 0    # Rate of imu_raw/mag topic
+
 imu_gps_corr_data_rate         : -1  # Rate of gps_corr topic
                                      # Note that for philo devices (GX5, CV5, CX5), this will be published at the highest IMU data rate if "use_device_timestamp" is set to true
 imu_overrange_status_data_rate : -1  # Rate of imu/overrange_status topic
@@ -122,9 +142,15 @@ gnss1_data_rate : 2
 #
 #      Note: The parameters' "gnss1_nav_sat_fix_data_rate", "gnss1_odom_data_rate" associated ROS messages share several MIP fields,
 #            so if more than one is set to stream, and they are set to stream at different rates, messages will be published on both topics, at the higher rate
-gnss1_nav_sat_fix_data_rate        : -1  # Rate of gnss1/fix topic
-gnss1_odom_data_rate               : -1  # Rate of gnss1/odom topic
-gnss1_time_reference_data_rate     : -1  # Rate of gnss1/time_ref topic
+gnss1_fix_data_rate        : 2  # Rate of gnss1/fix topic
+gnss1_vel_data_rate        : 0  # Rate of gnss1/vel topic
+gnss1_vel_ecef_data_rate   : 0  # Rate of gnss1/vel/ecef topic
+gnss1_odom_earth_data_rate : 2  # Rate of gnss1/odom/earth topic
+gnss1_time_data_rate       : 2  # Rate of gnss1/time topic
+
+#gnss1_nav_sat_fix_data_rate        : -1  # Rate of gnss1/fix topic
+#gnss1_odom_data_rate               : -1  # Rate of gnss1/odom topic
+#gnss1_time_reference_data_rate     : -1  # Rate of gnss1/time_ref topic
                                          # Note that on philo devices, if use_device_timestamp is set to true, this will be streamed at the highest GNSS rate
 gnss1_fix_info_data_rate           : -1  # Rate of gnss1/fix_info topic
 gnss1_sbas_info_data_rate          : -1  # Rate of gnss1/sbas_info topic
@@ -145,9 +171,15 @@ gnss2_data_rate : 2
 #
 #      Note: The parameters' "gnss2_nav_sat_fix_data_rate", "gnss2_odom_data_rate" associated ROS messages share several MIP fields,
 #            so if more than one is set to stream, and they are set to stream at different rates, messages will be published on both topics, at the higher rate
-gnss2_nav_sat_fix_data_rate        : -1  # Rate of gnss2/fix topic
-gnss2_odom_data_rate               : -1  # Rate of gnss2/odom topic
-gnss2_time_reference_data_rate     : -1  # Rate of gnss2/time_ref topic
+gnss2_fix_data_rate        : 2  # Rate of gnss2/fix topic
+gnss2_vel_data_rate        : 0  # Rate of gnss2/vel topic
+gnss2_vel_ecef_data_rate   : 0  # Rate of gnss2/vel/ecef topic
+gnss2_odom_earth_data_rate : 2  # Rate of gnss2/odom/earth topic
+gnss2_time_data_rate       : 2  # Rate of gnss2/time topic
+
+#gnss2_nav_sat_fix_data_rate        : -1  # Rate of gnss2/fix topic
+#gnss2_odom_data_rate               : -1  # Rate of gnss2/odom topic
+#gnss2_time_reference_data_rate     : -1  # Rate of gnss2/time_ref topic
 gnss2_fix_info_data_rate           : -1  # Rate of gnss2/fix_info topic
 gnss2_sbas_info_data_rate          : -1  # Rate of gnss2/sbas_info topic
 gnss2_rf_error_detection_data_rate : -1  # Rate of gnss1/rf_error_detection topic
@@ -191,12 +223,18 @@ filter_data_rate : 10
 #
 #      Note: The parameters' "filter_odom_data_rate", "filter_imu_data_rate", "filter_relative_odom_data_rate" associated ROS messages share several MIP fields,
 #            so if more than one is set to stream, and they are set to stream at different rates, messages will be published on both topics, at the higher rate
+filter_fix_data_rate        : 10  # Rate of /fix topic
+filter_vel_data_rate        : 0   # Rate of /vel topic
+filter_vel_ecef_data_rate   : 0   # Rate of /vel/ecef topic
+filter_odom_earth_data_rate : 10  # Rate of /odom/earth topic
+filter_odom_map_data_rate   : 10  # Rate pf /odom/map topic
+
 filter_status_data_rate                     : -1  # Rate of nav/status topic
 filter_heading_data_rate                    : -1  # Rate of nav/heading topic
 filter_heading_state_data_rate              : -1  # Rate of nav/heading_state topic
-filter_odom_data_rate                       : -1  # Rate of nav/odom topic
+#filter_odom_data_rate                       : -1  # Rate of nav/odom topic
 filter_imu_data_rate                        : -1  # Rate of nav/filtered_imu/data
-filter_relative_odom_data_rate              : -1  # Rate of nav/relative_pos topic and the transform between filter_frame_id and filter_child_frame_id
+#filter_relative_odom_data_rate              : -1  # Rate of nav/relative_pos topic and the transform between filter_frame_id and filter_child_frame_id
                                                   # Note that this data rate will also control the rate at which the transform between "filter_frame_id" and "filter_child_frame_id" will be published at
 filter_aiding_status_data_rate              : -1  # Rate of gnss1/aiding_status and gnss2/aiding_status topics
 filter_gnss_dual_antenna_data_rate          : -1  # Rate of nav/dual_antenna_status topic

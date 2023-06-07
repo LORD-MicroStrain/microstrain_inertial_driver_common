@@ -216,15 +216,20 @@ public:
 
 
   // IMU Publishers
+  Publisher<ImuMsg>::SharedPtr                            raw_imu_pub_              = Publisher<ImuMsg>::initialize(IMU_RAW_DATA_TOPIC);
+  Publisher<MagneticFieldMsg>::SharedPtr                  mag_pub_                  = Publisher<MagneticFieldMsg>::initialize(IMU_RAW_MAG_TOPIC);
   Publisher<ImuMsg>::SharedPtr                            imu_pub_                  = Publisher<ImuMsg>::initialize(IMU_DATA_TOPIC);
-  Publisher<MagneticFieldMsg>::SharedPtr                  mag_pub_                  = Publisher<MagneticFieldMsg>::initialize(IMU_MAG_TOPIC);
+
   Publisher<GPSCorrelationTimestampStampedMsg>::SharedPtr gps_corr_pub_             = Publisher<GPSCorrelationTimestampStampedMsg>::initialize(IMU_GPS_CORR_TOPIC);
   Publisher<ImuOverrangeStatusMsg>::SharedPtr             imu_overrange_status_pub_ = Publisher<ImuOverrangeStatusMsg>::initialize(IMU_OVERRANGE_STATUS_TOPIC);
 
   // GNSS publishers
-  Publisher<NavSatFixMsg>::SharedPtrVec            gnss_pub_                    = Publisher<NavSatFixMsg>::initializeVec({GNSS1_NAVSATFIX_TOPIC, GNSS2_NAVSATFIX_TOPIC});
-  Publisher<OdometryMsg>::SharedPtrVec             gnss_odom_pub_               = Publisher<OdometryMsg>::initializeVec({GNSS1_ODOM_TOPIC, GNSS2_ODOM_TOPIC});
-  Publisher<TimeReferenceMsg>::SharedPtrVec        gnss_time_pub_               = Publisher<TimeReferenceMsg>::initializeVec({GNSS1_TIME_REF_TOPIC, GNSS2_TIME_REF_TOPIC});
+  Publisher<NavSatFixMsg>::SharedPtrVec                  gnss_fix_pub_          = Publisher<NavSatFixMsg>::initializeVec({GNSS1_FIX_TOPIC, GNSS2_FIX_TOPIC});
+  Publisher<TwistWithCovarianceStampedMsg>::SharedPtrVec gnss_vel_pub_          = Publisher<TwistWithCovarianceStampedMsg>::initializeVec({GNSS1_VEL_TOPIC, GNSS2_VEL_TOPIC});
+  Publisher<TwistWithCovarianceStampedMsg>::SharedPtrVec gnss_vel_ecef_pub_     = Publisher<TwistWithCovarianceStampedMsg>::initializeVec({GNSS1_VEL_ECEF_TOPIC, GNSS2_VEL_ECEF_TOPIC});
+  Publisher<OdometryMsg>::SharedPtrVec                   gnss_odom_pub_         = Publisher<OdometryMsg>::initializeVec({GNSS1_ODOM_TOPIC, GNSS2_ODOM_TOPIC});
+  Publisher<TimeReferenceMsg>::SharedPtrVec              gnss_time_pub_         = Publisher<TimeReferenceMsg>::initializeVec({GNSS1_TIME_REF_TOPIC, GNSS2_TIME_REF_TOPIC});
+
   Publisher<GNSSAidingStatusMsg>::SharedPtrVec     gnss_aiding_status_pub_      = Publisher<GNSSAidingStatusMsg>::initializeVec({GNSS1_AIDING_STATUS_TOPIC, GNSS2_AIDING_STATUS_TOPIC});
   Publisher<GNSSFixInfoMsg>::SharedPtrVec          gnss_fix_info_pub_           = Publisher<GNSSFixInfoMsg>::initializeVec({GNSS1_FIX_INFO_TOPIC, GNSS2_FIX_INFO_TOPIC});
   Publisher<GNSSSbasInfoMsg>::SharedPtrVec         gnss_sbas_info_pub_          = Publisher<GNSSSbasInfoMsg>::initializeVec({GNSS1_SBAS_INFO_TOPIC, GNSS2_SBAS_INFO_TOPIC});
@@ -235,22 +240,38 @@ public:
   Publisher<RTKStatusMsgV1>::SharedPtr rtk_pub_v1_ = Publisher<RTKStatusMsgV1>::initialize(RTK_STATUS_V1_TOPIC);
 
   // Filter publishers
+  Publisher<ImuMsg>::SharedPtr                            filter_imu_pub_                        = Publisher<ImuMsg>::initialize(FILTER_IMU_DATA_TOPIC);
+  Publisher<NavSatFixMsg>::SharedPtr                      filter_fix_pub_                        = Publisher<NavSatFixMsg>::initialize(FILTER_FIX_TOPIC);
+  Publisher<OdometryMsg>::SharedPtr                       filter_odom_pub_                       = Publisher<OdometryMsg>::initialize(FILTER_ODOM_TOPIC);
+  Publisher<OdometryMsg>::SharedPtr                       filter_relative_odom_pub_              = Publisher<OdometryMsg>::initialize(FILTER_RELATIVE_ODOM_TOPIC);
+  Publisher<TwistWithCovarianceStampedMsg>::SharedPtr     filter_vel_pub_                        = Publisher<TwistWithCovarianceStampedMsg>::initialize(FILTER_VEL_TOPIC);
+  Publisher<TwistWithCovarianceStampedMsg>::SharedPtr     filter_vel_ecef_pub_                   = Publisher<TwistWithCovarianceStampedMsg>::initialize(FILTER_VEL_ECEF_TOPIC);
+
   Publisher<FilterStatusMsg>::SharedPtr                   filter_status_pub_                     = Publisher<FilterStatusMsg>::initialize(FILTER_STATUS_TOPIC);
   Publisher<FilterHeadingMsg>::SharedPtr                  filter_heading_pub_                    = Publisher<FilterHeadingMsg>::initialize(FILTER_HEADING_TOPIC);
   Publisher<FilterHeadingStateMsg>::SharedPtr             filter_heading_state_pub_              = Publisher<FilterHeadingStateMsg>::initialize(FILTER_HEADING_STATE_TOPIC);
   Publisher<FilterAidingMeasurementSummaryMsg>::SharedPtr filter_aiding_mesaurement_summary_pub_ = Publisher<FilterAidingMeasurementSummaryMsg>::initialize(FILTER_AIDING_SUMMARY_TOPIC);
-  Publisher<OdometryMsg>::SharedPtr                       filter_odom_pub_                       = Publisher<OdometryMsg>::initialize(FILTER_ODOM_TOPIC);
-  Publisher<OdometryMsg>::SharedPtr                       filter_relative_odom_pub_              = Publisher<OdometryMsg>::initialize(FILTER_RELATIVE_ODOM_TOPIC);
-  Publisher<ImuMsg>::SharedPtr                            filter_imu_pub_                        = Publisher<ImuMsg>::initialize(FILTER_IMU_DATA_TOPIC);
   Publisher<GNSSDualAntennaStatusMsg>::SharedPtr          gnss_dual_antenna_status_pub_          = Publisher<GNSSDualAntennaStatusMsg>::initialize(FILTER_DUAL_ANTENNA_STATUS_TOPIC);
 
   // NMEA sentence publisher
   Publisher<NMEASentenceMsg>::SharedPtr nmea_sentence_pub_ = Publisher<NMEASentenceMsg>::initialize(NMEA_SENTENCE_TOPIC);
 
-  // Transform Broadcaster
+  // Transform Broadcasters
+  StaticTransformBroadcasterType static_transform_broadcaster_ = nullptr;
   TransformBroadcasterType transform_broadcaster_ = nullptr;
 
+  // Will be set to true when pose information is updated, and reset to false when the transform is published
+  bool ecef_transform_position_updated_ = false;
+  bool ecef_transform_attitude_updated_ = false;
+  bool relative_transform_position_updated_ = false;
+  bool relative_transform_attitude_updated_ = false;
+  bool earth_map_transform_updated_ = false;
+
+  // Whether or not the earth to map transform will be static, or updated every iteration
+  bool static_earth_map_transform_;
+
   // Published transforms
+  TransformStampedMsg earth_map_transform_msg_;
   TransformStampedMsg filter_relative_transform_msg_;
 
 private:
@@ -284,24 +305,31 @@ private:
   void handleGnssGpsTime(const mip::data_gnss::GpsTime& gps_time, const uint8_t descriptor_set, mip::Timestamp timestamp);
   void handleGnssPosLlh(const mip::data_gnss::PosLlh& pos_llh, const uint8_t descriptor_set, mip::Timestamp timestamp);
   void handleGnssVelNed(const mip::data_gnss::VelNed& vel_ned, const uint8_t descriptor_set, mip::Timestamp timestamp);
+  void handleGnssPosEcef(const mip::data_gnss::PosEcef& pos_ecef, const uint8_t descriptor_set, mip::Timestamp timestamp);
+  void handleGnssVelEcef(const mip::data_gnss::VelEcef& vel_ecef, const uint8_t descriptor_set, mip::Timestamp timestamp);
   void handleGnssFixInfo(const mip::data_gnss::FixInfo& fix_info, const uint8_t descriptor_set, mip::Timestamp timestamp);
   void handleGnssSbasInfo(const mip::data_gnss::SbasInfo& sbas_info, const uint8_t descriptor_set, mip::Timestamp timestamp);
   void handleGnssRfErrorDetection(const mip::data_gnss::RfErrorDetection& rf_error_detection, const uint8_t descriptor_set, mip::Timestamp timestamp);
 
   // Callbacks to handle RTK data from the device
   void handleRtkCorrectionsStatus(const mip::data_gnss::RtkCorrectionsStatus& rtk_corrections_status, const uint8_t descriptor_set, mip::Timestamp timestamp);
+  void handleRtkBaseStationInfo(const mip::data_gnss::BaseStationInfo& base_station_info, const uint8_t descriptor_set, mip::Timestamp timestamp);
 
   // Callbacks to handle filter datat from the device
   void handleFilterTimestamp(const mip::data_filter::Timestamp& filter_timestamp, const uint8_t descriptor_set, mip::Timestamp timestamp);
   void handleFilterStatus(const mip::data_filter::Status& status, const uint8_t descriptor_set, mip::Timestamp timestamp);
   void handleFilterEulerAngles(const mip::data_filter::EulerAngles& euler_angles, const uint8_t descriptor_set, mip::Timestamp timestamp);
   void handleFilterHeadingUpdateState(const mip::data_filter::HeadingUpdateState& heading_update_state, const uint8_t descriptor_set, mip::Timestamp timestamp);
+  void handleFilterEcefPos(const mip::data_filter::EcefPos& ecef_pos, const uint8_t descriptor_set, mip::Timestamp timestamp);
+  void handleFilterEcefPosUncertainty(const mip::data_filter::EcefPosUncertainty& ecef_pos_uncertainty, const uint8_t descriptor_set, mip::Timestamp timestamp);
   void handleFilterPositionLlh(const mip::data_filter::PositionLlh& position_llh, const uint8_t descriptor_set, mip::Timestamp timestamp);
   void handleFilterPositionLlhUncertainty(const mip::data_filter::PositionLlhUncertainty& position_llh_uncertainty, const uint8_t descriptor_set, mip::Timestamp timestamp);
   void handleFilterAttitudeQuaternion(const mip::data_filter::AttitudeQuaternion& attitude_quaternion, const uint8_t descriptor_set, mip::Timestamp timestamp);
   void handleFilterEulerAnglesUncertainty(const mip::data_filter::EulerAnglesUncertainty& euler_angles_uncertainty, const uint8_t descriptor_set, mip::Timestamp timestamp);
   void handleFilterVelocityNed(const mip::data_filter::VelocityNed& velocity_ned, const uint8_t descriptor_set, mip::Timestamp timestamp);
   void handleFilterVelocityNedUncertainty(const mip::data_filter::VelocityNedUncertainty& velocity_ned_uncertainty, const uint8_t descriptor_set, mip::Timestamp timestamp);
+  void handleFilterEcefVelocity(const mip::data_filter::EcefVel& ecef_vel, const uint8_t descriptor_set, mip::Timestamp timestamp);
+  void handleFilterEcefVelocityUncertainty(const mip::data_filter::EcefVelUncertainty& ecef_vel_uncertainty, const uint8_t descriptor_set, mip::Timestamp timestamp);
   void handleFilterCompAngularRate(const mip::data_filter::CompAngularRate& comp_angular_rate, const uint8_t descriptor_set, mip::Timestamp timestamp);
   void handleFilterCompAccel(const mip::data_filter::CompAccel& comp_accel, const uint8_t descriptor_set, mip::Timestamp timestamp);
   void handleFilterLinearAccel(const mip::data_filter::LinearAccel& linear_accel, const uint8_t descriptor_set, mip::Timestamp timestamp);
@@ -343,6 +371,10 @@ private:
 
   // Save the orientation information, as it is used by some other data to transform based on orientation
   tf2::Quaternion filter_attitude_quaternion_ = tf2::Quaternion(0, 0, 0, 1);
+
+  // TF2 buffer lookup class
+  TransformBufferType transform_buffer_;
+  TransformListenerType transform_listener_;
 };
 
 template<class DataField, void (Publishers::*Callback)(const DataField&, uint8_t, mip::Timestamp)>
