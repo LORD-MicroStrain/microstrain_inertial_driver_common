@@ -99,9 +99,13 @@ bool MipPublisherMapping::configure(RosNodeType* config_node)
     MICROSTRAIN_DEBUG(node_, "Configuring topic %s to stream at %.04f hz", topic.c_str(), topic_info.data_rate);
     for (const auto& descriptor : topic_info.descriptors)
     {
+      double real_data_rate;
       const uint8_t descriptor_set = descriptor.descriptor_set;
       const uint8_t field_descriptor = descriptor.field_descriptor;
-      const uint16_t decimation = mip_device_->getDecimationFromHertz(descriptor_set, topic_info.data_rate);
+      const uint16_t decimation = mip_device_->getDecimationFromHertz(descriptor_set, topic_info.data_rate, &real_data_rate);
+
+      // Update the data rate with the real data rate
+      topic_info.data_rate = real_data_rate;
 
       // Append the channel to the proper entry for it's descriptor set
       if (streamed_descriptors_mapping_.find(descriptor_set) == streamed_descriptors_mapping_.end())
@@ -372,6 +376,12 @@ const std::map<std::string, FieldWrapper::SharedPtrVec> MipPublisherMapping::sta
   {GNSS2_AIDING_STATUS_TOPIC, {
     FieldWrapperType<mip::data_filter::GnssPosAidStatus>::initialize(),
   }},
+  {GNSS1_ANTENNA_OFFSET_CORRECTION_TOPIC, {
+    FieldWrapperType<mip::data_filter::MultiAntennaOffsetCorrection>::initialize(),
+  }},
+  {GNSS2_ANTENNA_OFFSET_CORRECTION_TOPIC, {
+    FieldWrapperType<mip::data_filter::MultiAntennaOffsetCorrection>::initialize(),
+  }},
   {FILTER_DUAL_ANTENNA_STATUS_TOPIC, {
     FieldWrapperType<mip::data_filter::GnssDualAntennaStatus>::initialize(),
   }},
@@ -400,10 +410,11 @@ const std::map<std::string, std::string> MipPublisherMapping::static_topic_to_da
   {GNSS1_ODOM_TOPIC,     "gnss1_odom_earth_data_rate"},
   {GNSS1_TIME_REF_TOPIC, "gnss1_time_data_rate"},
 
-  {GNSS1_FIX_INFO_TOPIC,           "gnss1_fix_info_data_rate"},
-  {GNSS1_AIDING_STATUS_TOPIC,      "filter_aiding_status_data_rate"},
-  {GNSS1_SBAS_INFO_TOPIC,          "gnss1_sbas_info_data_rate"},
-  {GNSS1_RF_ERROR_DETECTION_TOPIC, "gnss1_rf_error_detection_data_rate"},
+  {GNSS1_FIX_INFO_TOPIC,                  "gnss1_fix_info_data_rate"},
+  {GNSS1_AIDING_STATUS_TOPIC,             "filter_aiding_status_data_rate"},
+  {GNSS1_ANTENNA_OFFSET_CORRECTION_TOPIC, "filter_antenna_offset_correction_data_rate"},
+  {GNSS1_SBAS_INFO_TOPIC,                 "gnss1_sbas_info_data_rate"},
+  {GNSS1_RF_ERROR_DETECTION_TOPIC,        "gnss1_rf_error_detection_data_rate"},
 
   // GNSS2 data rates
   {GNSS2_FIX_TOPIC,      "gnss2_fix_data_rate"},
@@ -412,10 +423,11 @@ const std::map<std::string, std::string> MipPublisherMapping::static_topic_to_da
   {GNSS2_ODOM_TOPIC,     "gnss2_odom_earth_data_rate"},
   {GNSS2_TIME_REF_TOPIC, "gnss2_time_data_rate"},
 
-  {GNSS2_FIX_INFO_TOPIC,           "gnss2_fix_info_data_rate"},
-  {GNSS2_AIDING_STATUS_TOPIC,      "filter_aiding_status_data_rate"},
-  {GNSS2_SBAS_INFO_TOPIC,          "gnss2_sbas_info_data_rate"},
-  {GNSS2_RF_ERROR_DETECTION_TOPIC, "gnss2_rf_error_detection_data_rate"},
+  {GNSS2_FIX_INFO_TOPIC,                  "gnss2_fix_info_data_rate"},
+  {GNSS2_AIDING_STATUS_TOPIC,             "filter_aiding_status_data_rate"},
+  {GNSS2_ANTENNA_OFFSET_CORRECTION_TOPIC, "filter_antenna_offset_correction_data_rate"},
+  {GNSS2_SBAS_INFO_TOPIC,                 "gnss2_sbas_info_data_rate"},
+  {GNSS2_RF_ERROR_DETECTION_TOPIC,        "gnss2_rf_error_detection_data_rate"},
 
   // RTK data rates
   {RTK_STATUS_TOPIC,    "rtk_status_data_rate"},

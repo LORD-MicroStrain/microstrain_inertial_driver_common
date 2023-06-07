@@ -42,6 +42,7 @@ static constexpr auto GNSS1_TIME_REF_TOPIC = "gnss1/time";
 
 static constexpr auto GNSS1_FIX_INFO_TOPIC = "gnss1/fix_info";
 static constexpr auto GNSS1_AIDING_STATUS_TOPIC = "gnss1/aiding_status";
+static constexpr auto GNSS1_ANTENNA_OFFSET_CORRECTION_TOPIC = "gnss1/antenna_offset_correction";
 static constexpr auto GNSS1_SBAS_INFO_TOPIC = "gnss1/sbas_info";
 static constexpr auto GNSS1_RF_ERROR_DETECTION_TOPIC = "gnss1/rf_error_detection";
 
@@ -53,6 +54,7 @@ static constexpr auto GNSS2_TIME_REF_TOPIC = "gnss2/time";
 
 static constexpr auto GNSS2_FIX_INFO_TOPIC = "gnss2/fix_info";
 static constexpr auto GNSS2_AIDING_STATUS_TOPIC = "gnss2/aiding_status";
+static constexpr auto GNSS2_ANTENNA_OFFSET_CORRECTION_TOPIC = "gnss2/antenna_offset_correction";
 static constexpr auto GNSS2_SBAS_INFO_TOPIC = "gnss2/sbas_info";
 static constexpr auto GNSS2_RF_ERROR_DETECTION_TOPIC = "gnss2/rf_error_detection";
 

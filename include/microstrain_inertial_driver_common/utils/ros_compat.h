@@ -33,6 +33,9 @@
 
 namespace microstrain
 {
+
+constexpr auto GPS_LEAP_SECONDS = 18;
+
 constexpr auto GNSS1_ID = 0;
 constexpr auto GNSS2_ID = 1;
 constexpr auto NUM_GNSS = 2;
@@ -78,6 +81,7 @@ constexpr auto NUM_GNSS = 2;
 #include "microstrain_inertial_msgs/FilterAidingMeasurementSummary.h"
 #include "microstrain_inertial_msgs/GPSCorrelationTimestampStamped.h"
 #include "microstrain_inertial_msgs/GNSSAidingStatus.h"
+#include "microstrain_inertial_msgs/GNSSAntennaOffsetCorrection.h"
 #include "microstrain_inertial_msgs/GNSSDualAntennaStatus.h"
 #include "microstrain_inertial_msgs/GNSSFixInfo.h"
 #include "microstrain_inertial_msgs/GNSSSbasInfo.h"
@@ -194,6 +198,7 @@ constexpr auto NUM_GNSS = 2;
 #include "microstrain_inertial_msgs/msg/filter_aiding_measurement_summary.hpp"
 #include "microstrain_inertial_msgs/msg/gps_correlation_timestamp_stamped.hpp"
 #include "microstrain_inertial_msgs/msg/gnss_aiding_status.hpp"
+#include "microstrain_inertial_msgs/msg/gnss_antenna_offset_correction.hpp"
 #include "microstrain_inertial_msgs/msg/gnss_dual_antenna_status.hpp"
 #include "microstrain_inertial_msgs/msg/gnss_fix_info.hpp"
 #include "microstrain_inertial_msgs/msg/gnss_sbas_info.hpp"
@@ -320,6 +325,7 @@ using FilterHeadingMsg = ::microstrain_inertial_msgs::FilterHeading;
 using FilterAidingMeasurementSummaryMsg = ::microstrain_inertial_msgs::FilterAidingMeasurementSummary;
 using FilterAidingMeasurementSummaryIndicatorMsg = ::microstrain_inertial_msgs::FilterAidingMeasurementSummaryIndicator;
 using GNSSAidingStatusMsg = ::microstrain_inertial_msgs::GNSSAidingStatus;
+using GNSSAntennaOffsetCorrectionMsg = ::microstrain_inertial_msgs::GNSSAntennaOffsetCorrection;
 using GNSSDualAntennaStatusMsg = ::microstrain_inertial_msgs::GNSSDualAntennaStatus;
 using GNSSFixInfoMsg = ::microstrain_inertial_msgs::GNSSFixInfo;
 using FilterHeadingStateMsg = ::microstrain_inertial_msgs::FilterHeadingState;
@@ -661,6 +667,7 @@ using FilterHeadingMsg = ::microstrain_inertial_msgs::msg::FilterHeading;
 using FilterAidingMeasurementSummaryMsg = ::microstrain_inertial_msgs::msg::FilterAidingMeasurementSummary;
 using FilterAidingMeasurementSummaryIndicatorMsg = ::microstrain_inertial_msgs::msg::FilterAidingMeasurementSummaryIndicator;
 using GNSSAidingStatusMsg = ::microstrain_inertial_msgs::msg::GNSSAidingStatus;
+using GNSSAntennaOffsetCorrectionMsg = ::microstrain_inertial_msgs::msg::GNSSAntennaOffsetCorrection;
 using GNSSDualAntennaStatusMsg = ::microstrain_inertial_msgs::msg::GNSSDualAntennaStatus;
 using GNSSFixInfoMsg = ::microstrain_inertial_msgs::msg::GNSSFixInfo;
 using FilterHeadingStateMsg = ::microstrain_inertial_msgs::msg::FilterHeadingState;

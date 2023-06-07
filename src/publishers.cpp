@@ -72,6 +72,7 @@ bool Publishers::configure()
   imu_overrange_status_pub_->configure(node_, config_);
 
   for (const auto& pub : gnss_aiding_status_pub_) pub->configure(node_, config_);
+  for (const auto& pub : gnss_antenna_offset_correction_pub_) pub->configure(node_, config_);
   for (const auto& pub : gnss_fix_info_pub_) pub->configure(node_, config_);
   for (const auto& pub : gnss_sbas_info_pub_) pub->configure(node_, config_);
   for (const auto& pub : gnss_rf_error_detection_pub_) pub->configure(node_, config_);
@@ -88,7 +89,7 @@ bool Publishers::configure()
   gnss_dual_antenna_status_pub_->configure(node_, config_);
 
   // Only publish relative odom if we support the relative position descriptor set
-  if (config_->mip_device_->supportsDescriptor(mip::data_filter::DESCRIPTOR_SET, mip::data_filter::RelPosNed::DESCRIPTOR_SET))
+  if (config_->mip_device_->supportsDescriptor(mip::data_filter::DESCRIPTOR_SET, mip::data_filter::RelPosNed::FIELD_DESCRIPTOR))
     filter_relative_odom_pub_->configure(node_, config_);
 
   if (config_->publish_nmea_)
@@ -268,8 +269,12 @@ bool Publishers::configure()
   registerDataCallback<mip::data_filter::LinearAccel, &Publishers::handleFilterLinearAccel>();
   registerDataCallback<mip::data_filter::RelPosNed, &Publishers::handleFilterRelPosNed>();
   registerDataCallback<mip::data_filter::GnssPosAidStatus, &Publishers::handleFilterGnssPosAidStatus>();
+  registerDataCallback<mip::data_filter::MultiAntennaOffsetCorrection, &Publishers::handleFilterMultiAntennaOffsetCorrection>();
   registerDataCallback<mip::data_filter::GnssDualAntennaStatus, &Publishers::handleFilterGnssDualAntennaStatus>();
   registerDataCallback<mip::data_filter::AidingMeasurementSummary, &Publishers::handleFilterAidingMeasurementSummary>();
+
+  // After packet callback
+  registerPacketCallback<&Publishers::handleAfterPacket>();
   return true;
 }
 
@@ -298,6 +303,7 @@ bool Publishers::activate()
   for (const auto& pub : gnss_odom_pub_) pub->activate();
   for (const auto& pub : gnss_time_pub_) pub->activate();
   for (const auto& pub : gnss_aiding_status_pub_) pub->activate();
+  for (const auto& pub : gnss_antenna_offset_correction_pub_) pub->activate();
   for (const auto& pub : gnss_fix_info_pub_) pub->activate();
   for (const auto& pub : gnss_sbas_info_pub_) pub->activate();
   for (const auto& pub : gnss_rf_error_detection_pub_) pub->activate();
@@ -384,6 +390,7 @@ bool Publishers::deactivate()
   for (const auto& pub : gnss_odom_pub_) pub->deactivate();
   for (const auto& pub : gnss_time_pub_) pub->deactivate();
   for (const auto& pub : gnss_aiding_status_pub_) pub->deactivate();
+  for (const auto& pub : gnss_antenna_offset_correction_pub_) pub->deactivate();
   for (const auto& pub : gnss_fix_info_pub_) pub->deactivate();
   for (const auto& pub : gnss_sbas_info_pub_) pub->deactivate();
   for (const auto& pub : gnss_rf_error_detection_pub_) pub->deactivate();
@@ -428,6 +435,7 @@ void Publishers::publish()
   for (const auto& pub : gnss_odom_pub_) pub->publish();
   for (const auto& pub : gnss_time_pub_) pub->publish();
   for (const auto& pub : gnss_aiding_status_pub_) pub->publish();
+  for (const auto& pub : gnss_antenna_offset_correction_pub_) pub->publish();
   for (const auto& pub : gnss_fix_info_pub_) pub->publish();
   for (const auto& pub : gnss_sbas_info_pub_) pub->publish();
   for (const auto& pub : gnss_rf_error_detection_pub_) pub->publish();
@@ -1274,6 +1282,9 @@ void Publishers::handleFilterRelPosNed(const mip::data_filter::RelPosNed& rel_po
 void Publishers::handleFilterGnssPosAidStatus(const mip::data_filter::GnssPosAidStatus& gnss_pos_aid_status, const uint8_t descriptor_set, mip::Timestamp timestamp)
 {
   // GNSS Position aiding status
+  if (gnss_aiding_status_pub_.size() < gnss_pos_aid_status.receiver_id)
+    return;
+
   const uint8_t gnss_index = gnss_pos_aid_status.receiver_id - 1;
   auto gnss_aiding_status_msg = gnss_aiding_status_pub_[gnss_index]->getMessageToUpdate();
   gnss_aiding_status_msg->gps_tow = gnss_pos_aid_status.time_of_week;
@@ -1316,6 +1327,18 @@ void Publishers::handleFilterGnssPosAidStatus(const mip::data_filter::GnssPosAid
   }
   if (!status_set)
     filter_fix_msg->status.status = NavSatFixMsg::_status_type::STATUS_NO_FIX;
+}
+
+void Publishers::handleFilterMultiAntennaOffsetCorrection(const mip::data_filter::MultiAntennaOffsetCorrection& multi_antenna_offset_correction, const uint8_t descriptor_set, mip::Timestamp timestamp)
+{
+  if (gnss_antenna_offset_correction_pub_.size() < multi_antenna_offset_correction.receiver_id)
+    return;
+
+  const uint8_t gnss_index = multi_antenna_offset_correction.receiver_id - 1;
+  auto gnss_antenna_offset_correction_msg = gnss_antenna_offset_correction_pub_[gnss_index]->getMessageToUpdate();
+  gnss_antenna_offset_correction_msg->offset[0] = multi_antenna_offset_correction.offset[0];
+  gnss_antenna_offset_correction_msg->offset[1] = multi_antenna_offset_correction.offset[1];
+  gnss_antenna_offset_correction_msg->offset[2] = multi_antenna_offset_correction.offset[2];
 }
 
 void Publishers::handleFilterGnssDualAntennaStatus(const mip::data_filter::GnssDualAntennaStatus& gnss_dual_antenna_status, const uint8_t descriptor_set, mip::Timestamp timestamp)
@@ -1370,6 +1393,12 @@ void Publishers::handleFilterAidingMeasurementSummary(const mip::data_filter::Ai
   }
 }
 
+void Publishers::handleAfterPacket(const mip::Packet& packet, mip::Timestamp timestamp)
+{
+  // Right now, we don't have to do much, just publish everything
+  publish();
+}
+
 void Publishers::updateHeaderTime(RosHeaderType* header, uint8_t descriptor_set, mip::Timestamp timestamp)
 {
   // If we are using device timestamp, we should only assign a value if we have actually received a timestamp
@@ -1387,7 +1416,7 @@ void Publishers::updateHeaderTime(RosHeaderType* header, uint8_t descriptor_set,
   }
   else
   {
-    setRosTime(&header->stamp, timestamp / 1000, (timestamp % 1000) * 1000);
+    setRosTime(&header->stamp, timestamp / 1000, (timestamp % 1000) * 1000000);
   }
 }
 
@@ -1398,8 +1427,8 @@ void Publishers::setGpsTime(RosTimeType* time, const mip::data_shared::GpsTimest
   double subseconds = modf(timestamp.tow, &seconds);
 
   // Seconds since start of Unix time = seconds between 1970 and 1980 + number of weeks since 1980 * number of seconds in a week + number of complete seconds past in current week - leap seconds since start of GPS time
-  const uint64_t utc_milliseconds = static_cast<uint64_t>((315964800 + timestamp.week_number * 604800 + static_cast<uint64_t>(seconds) - 18) * 1000L) + static_cast<uint64_t>(std::round(subseconds * 1000.0));
-  setRosTime(time, utc_milliseconds / 1000, (utc_milliseconds % 1000) * 1000);
+  const uint64_t utc_milliseconds = static_cast<uint64_t>((315964800 + timestamp.week_number * 604800 + static_cast<uint64_t>(seconds) - GPS_LEAP_SECONDS) * 1000L) + static_cast<uint64_t>(std::round(subseconds * 1000.0));
+  setRosTime(time, utc_milliseconds / 1000, (utc_milliseconds % 1000) * 1000000);
 }
 
 }  // namespace microstrain

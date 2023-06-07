@@ -335,7 +335,7 @@ mip::CmdResult RosMipDeviceMain::streamDescriptor(const uint8_t descriptor_set, 
   return writeMessageFormat(descriptor_set, num_descriptor_rates, descriptor_rates);
 }
 
-uint16_t RosMipDeviceMain::getDecimationFromHertz(const uint8_t descriptor_set, const float hertz)
+uint16_t RosMipDeviceMain::getDecimationFromHertz(const uint8_t descriptor_set, const float hertz, double* actual_hertz)
 {
   // Update the base rate if we don't have it yet
   mip::CmdResult result;
@@ -349,11 +349,23 @@ uint16_t RosMipDeviceMain::getDecimationFromHertz(const uint8_t descriptor_set, 
   {
     const uint16_t base_rate = base_rates_[descriptor_set];
     decimation = base_rate / hertz;
-    if (std::remainder(base_rate, hertz) != 0)
+    if (hertz > base_rate)
     {
-      const double actual_hertz = decimation == 0 ? 0 : static_cast<double>(base_rate) / decimation;
+      MICROSTRAIN_WARN(node_, "Requested data rate %.5f for descriptor set 0x%02x is higher than the max data rate %u. Using max data rate instead", hertz, descriptor_set, base_rate);
+      if (actual_hertz != nullptr)
+        *actual_hertz = base_rate;
+    }
+    else if (std::remainder(base_rate, hertz) != 0)
+    {
+      const double actual_hertz_local = decimation == 0 ? 0 : static_cast<double>(base_rate) / decimation;
       MICROSTRAIN_WARN(node_, "Requested data rate for descriptor set 0x%02x is not a valid data rate as the base rate is not evenly divisible by the data rate (%u / %.4f)", descriptor_set, base_rate, hertz);
-      MICROSTRAIN_WARN(node_, "  Streaming will be closer to %.4f hz instead of %.4f hz", actual_hertz, hertz);
+      MICROSTRAIN_WARN(node_, "  Streaming will be closer to %.4f hz instead of %.4f hz", actual_hertz_local, hertz);
+      if (actual_hertz != nullptr)
+        *actual_hertz = actual_hertz_local;
+    }
+    else if (actual_hertz != nullptr)
+    {
+      *actual_hertz = hertz;
     }
   }
   return decimation;
