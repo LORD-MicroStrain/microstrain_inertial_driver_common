@@ -145,23 +145,22 @@ bool MipPublisherMapping::configure(RosNodeType* config_node)
     }
   }
 
-  // Add shared descriptors if they were requested
-  bool use_device_timestamp;
-  getParam<bool>(config_node, "use_device_timestamp", use_device_timestamp, false);
-  if (use_device_timestamp)
+  // Add shared descriptors
+  if (mip_device_->supportsDescriptor(mip::data_sensor::DESCRIPTOR_SET, mip::data_shared::DATA_GPS_TIME))
   {
-    if (mip_device_->supportsDescriptor(mip::data_sensor::DESCRIPTOR_SET, mip::data_shared::DATA_GPS_TIME))
-    {
-      // Prospect devices
-      streamSharedDescriptor<mip::data_shared::GpsTimestamp>();
-    }
-    else
-    {
-      // Philo devices
-      streamAtDescriptorSetRate<mip::data_sensor::GpsTimestamp>();
-      streamAtDescriptorSetRate<mip::data_gnss::GpsTime>();
-      streamAtDescriptorSetRate<mip::data_filter::Timestamp>();
-    }
+    // Prospect devices
+    streamSharedDescriptor<mip::data_shared::GpsTimestamp>();
+  }
+  else
+  {
+    // Philo devices
+    streamAtDescriptorSetRate<mip::data_sensor::GpsTimestamp>();
+    streamAtDescriptorSetRate<mip::data_gnss::GpsTime>();
+    streamAtDescriptorSetRate<mip::data_filter::Timestamp>();
+  }
+  if (mip_device_->supportsDescriptor(mip::data_sensor::DESCRIPTOR_SET, mip::data_shared::DATA_REFERENCE_TIME))
+  {
+    streamSharedDescriptor<mip::data_shared::ReferenceTimestamp>();
   }
 
   // Enable each of the descriptor sets and save the message format
@@ -274,17 +273,6 @@ const std::map<std::string, FieldWrapper::SharedPtrVec> MipPublisherMapping::sta
     FieldWrapperType<mip::data_gnss::GpsTime, mip::data_gnss::MIP_GNSS1_DATA_DESC_SET>::initialize(),
   }},
 
-  {GNSS1_FIX_INFO_TOPIC, {
-    FieldWrapperType<mip::data_gnss::FixInfo, mip::data_gnss::DESCRIPTOR_SET>::initialize(),
-    FieldWrapperType<mip::data_gnss::FixInfo, mip::data_gnss::MIP_GNSS1_DATA_DESC_SET>::initialize(),
-  }},
-  {GNSS1_SBAS_INFO_TOPIC, {
-    FieldWrapperType<mip::data_gnss::SbasInfo, mip::data_gnss::MIP_GNSS1_DATA_DESC_SET>::initialize(),
-  }},
-  {GNSS1_RF_ERROR_DETECTION_TOPIC, {
-    FieldWrapperType<mip::data_gnss::RfErrorDetection, mip::data_gnss::MIP_GNSS1_DATA_DESC_SET>::initialize()
-  }},
-
   // GNSS2 topic mappings.
   {GNSS2_FIX_TOPIC, {
     FieldWrapperType<mip::data_gnss::PosLlh, mip::data_gnss::MIP_GNSS2_DATA_DESC_SET>::initialize(),
@@ -301,24 +289,6 @@ const std::map<std::string, FieldWrapper::SharedPtrVec> MipPublisherMapping::sta
   }},
   {GNSS2_TIME_REF_TOPIC, {
     FieldWrapperType<mip::data_gnss::GpsTime, mip::data_gnss::MIP_GNSS2_DATA_DESC_SET>::initialize(),
-  }},
-
-  {GNSS2_FIX_INFO_TOPIC, {
-    FieldWrapperType<mip::data_gnss::FixInfo, mip::data_gnss::MIP_GNSS2_DATA_DESC_SET>::initialize(),
-  }},
-  {GNSS2_SBAS_INFO_TOPIC, {
-    FieldWrapperType<mip::data_gnss::SbasInfo, mip::data_gnss::MIP_GNSS2_DATA_DESC_SET>::initialize(),
-  }},
-  {GNSS2_RF_ERROR_DETECTION_TOPIC, {
-    FieldWrapperType<mip::data_gnss::RfErrorDetection, mip::data_gnss::MIP_GNSS2_DATA_DESC_SET>::initialize()
-  }},
-
-  // RTK topic mappings
-  {RTK_STATUS_TOPIC, {
-    FieldWrapperType<mip::data_gnss::RtkCorrectionsStatus, mip::data_gnss::MIP_GNSS3_DATA_DESC_SET>::initialize(),
-  }},
-  {RTK_STATUS_V1_TOPIC, {
-    FieldWrapperType<mip::data_gnss::RtkCorrectionsStatus, mip::data_gnss::MIP_GNSS3_DATA_DESC_SET>::initialize(),
   }},
 
   // Filter topic mappings
@@ -354,40 +324,55 @@ const std::map<std::string, FieldWrapper::SharedPtrVec> MipPublisherMapping::sta
     FieldWrapperType<mip::data_filter::CompAngularRate>::initialize(),
   }},
 
-  {FILTER_STATUS_TOPIC, {
+  // MIP sensor (0x80) topic mappings
+  {MIP_SENSOR_OVERRANGE_STATUS_TOPIC, {
+    FieldWrapperType<mip::data_sensor::OverrangeStatus>::initialize(),
+  }},
+
+  // MIP GNSS1 (0x81, 0x91) topic mappings
+  {MIP_GNSS1_FIX_INFO_TOPIC, {
+    FieldWrapperType<mip::data_gnss::FixInfo, mip::data_gnss::DESCRIPTOR_SET>::initialize(),
+    FieldWrapperType<mip::data_gnss::FixInfo, mip::data_gnss::MIP_GNSS1_DATA_DESC_SET>::initialize(),
+  }},
+  {MIP_GNSS1_SBAS_INFO_TOPIC, {
+    FieldWrapperType<mip::data_gnss::SbasInfo, mip::data_gnss::MIP_GNSS1_DATA_DESC_SET>::initialize(),
+  }},
+  {MIP_GNSS1_RF_ERROR_DETECTION_TOPIC, {
+    FieldWrapperType<mip::data_gnss::RfErrorDetection, mip::data_gnss::MIP_GNSS1_DATA_DESC_SET>::initialize()
+  }},
+
+  // MIP GNSS2 (0x92) topic mappings
+  {MIP_GNSS2_FIX_INFO_TOPIC, {
+    FieldWrapperType<mip::data_gnss::FixInfo, mip::data_gnss::MIP_GNSS2_DATA_DESC_SET>::initialize(),
+  }},
+  {MIP_GNSS2_SBAS_INFO_TOPIC, {
+    FieldWrapperType<mip::data_gnss::SbasInfo, mip::data_gnss::MIP_GNSS2_DATA_DESC_SET>::initialize(),
+  }},
+  {MIP_GNSS2_RF_ERROR_DETECTION_TOPIC, {
+    FieldWrapperType<mip::data_gnss::RfErrorDetection, mip::data_gnss::MIP_GNSS2_DATA_DESC_SET>::initialize()
+  }},
+
+  // MIP GNSS Corrections (0x93) topic mappings
+  {MIP_GNSS_CORRECTIONS_RTK_CORRECTIONS_STATUS_TOPIC, {
+    FieldWrapperType<mip::data_gnss::RtkCorrectionsStatus, mip::data_gnss::MIP_GNSS3_DATA_DESC_SET>::initialize(),
+  }},
+
+  // MIP Filter (0x82) topic mappings
+  {MIP_FILTER_STATUS_TOPIC, {
     FieldWrapperType<mip::data_filter::Status>::initialize(),
   }},
-  {FILTER_HEADING_TOPIC, {
-    FieldWrapperType<mip::data_filter::EulerAngles>::initialize(),
-  }},
-  {FILTER_HEADING_STATE_TOPIC, {
-    FieldWrapperType<mip::data_filter::HeadingUpdateState>::initialize(),
-  }},
-  {FILTER_IMU_DATA_TOPIC, {
-    FieldWrapperType<mip::data_filter::AttitudeQuaternion>::initialize(),
-    FieldWrapperType<mip::data_filter::CompAngularRate>::initialize(),
-    FieldWrapperType<mip::data_filter::CompAccel>::initialize(),
-    FieldWrapperType<mip::data_filter::LinearAccel>::initialize(),
-    FieldWrapperType<mip::data_filter::EulerAnglesUncertainty>::initialize(),
-  }},
-  {GNSS1_AIDING_STATUS_TOPIC, {
+  {MIP_FILTER_GNSS_POSITION_AIDING_STATUS_TOPIC, {
     FieldWrapperType<mip::data_filter::GnssPosAidStatus>::initialize(),
   }},
-  {GNSS2_AIDING_STATUS_TOPIC, {
-    FieldWrapperType<mip::data_filter::GnssPosAidStatus>::initialize(),
-  }},
-  {GNSS1_ANTENNA_OFFSET_CORRECTION_TOPIC, {
+  {MIP_FILTER_MULTI_ANTENNA_OFFSET_CORRECTION_TOPIC, {
     FieldWrapperType<mip::data_filter::MultiAntennaOffsetCorrection>::initialize(),
   }},
-  {GNSS2_ANTENNA_OFFSET_CORRECTION_TOPIC, {
-    FieldWrapperType<mip::data_filter::MultiAntennaOffsetCorrection>::initialize(),
+  {MIP_FILTER_AIDING_MEASUREMENT_SUMMARY_TOPIC, {
+    FieldWrapperType<mip::data_filter::AidingMeasurementSummary>::initialize(),
   }},
-  {FILTER_DUAL_ANTENNA_STATUS_TOPIC, {
+  {MIP_FILTER_GNSS_DUAL_ANTENNA_STATUS_TOPIC, {
     FieldWrapperType<mip::data_filter::GnssDualAntennaStatus>::initialize(),
   }},
-  {FILTER_AIDING_SUMMARY_TOPIC, {
-    FieldWrapperType<mip::data_filter::AidingMeasurementSummary>::initialize(),
-  }}
 };
 
 const std::map<std::string, std::string> MipPublisherMapping::static_topic_to_data_rate_config_key_mapping_ =
@@ -396,12 +381,6 @@ const std::map<std::string, std::string> MipPublisherMapping::static_topic_to_da
   {IMU_RAW_DATA_TOPIC, "imu_raw_data_rate"},
   {IMU_RAW_MAG_TOPIC,  "imu_raw_mag_data_rate"},
   {IMU_DATA_TOPIC,     "imu_data_rate"},
-  /*
-  {IMU_DATA_TOPIC,              "imu_raw_data_rate"},
-  {IMU_MAG_TOPIC,               "imu_mag_data_rate"},
-  {IMU_GPS_CORR_TOPIC,          "imu_gps_corr_data_rate"},
-  {IMU_OVERRANGE_STATUS_TOPIC,  "imu_overrange_status_data_rate"},
-  */
 
   // GNSS/GNSS1 data rates
   {GNSS1_FIX_TOPIC,      "gnss1_fix_data_rate"},
@@ -410,28 +389,12 @@ const std::map<std::string, std::string> MipPublisherMapping::static_topic_to_da
   {GNSS1_ODOM_TOPIC,     "gnss1_odom_earth_data_rate"},
   {GNSS1_TIME_REF_TOPIC, "gnss1_time_data_rate"},
 
-  {GNSS1_FIX_INFO_TOPIC,                  "gnss1_fix_info_data_rate"},
-  {GNSS1_AIDING_STATUS_TOPIC,             "filter_aiding_status_data_rate"},
-  {GNSS1_ANTENNA_OFFSET_CORRECTION_TOPIC, "filter_antenna_offset_correction_data_rate"},
-  {GNSS1_SBAS_INFO_TOPIC,                 "gnss1_sbas_info_data_rate"},
-  {GNSS1_RF_ERROR_DETECTION_TOPIC,        "gnss1_rf_error_detection_data_rate"},
-
   // GNSS2 data rates
   {GNSS2_FIX_TOPIC,      "gnss2_fix_data_rate"},
   {GNSS2_VEL_TOPIC,      "gnss2_vel_data_rate"},
   {GNSS2_VEL_ECEF_TOPIC, "gnss2_vel_ecef_data_rate"},
   {GNSS2_ODOM_TOPIC,     "gnss2_odom_earth_data_rate"},
   {GNSS2_TIME_REF_TOPIC, "gnss2_time_data_rate"},
-
-  {GNSS2_FIX_INFO_TOPIC,                  "gnss2_fix_info_data_rate"},
-  {GNSS2_AIDING_STATUS_TOPIC,             "filter_aiding_status_data_rate"},
-  {GNSS2_ANTENNA_OFFSET_CORRECTION_TOPIC, "filter_antenna_offset_correction_data_rate"},
-  {GNSS2_SBAS_INFO_TOPIC,                 "gnss2_sbas_info_data_rate"},
-  {GNSS2_RF_ERROR_DETECTION_TOPIC,        "gnss2_rf_error_detection_data_rate"},
-
-  // RTK data rates
-  {RTK_STATUS_TOPIC,    "rtk_status_data_rate"},
-  {RTK_STATUS_V1_TOPIC, "rtk_status_data_rate"},
 
   // Filter data rates
   {FILTER_FIX_TOPIC,                 "filter_fix_data_rate"},
@@ -440,12 +403,29 @@ const std::map<std::string, std::string> MipPublisherMapping::static_topic_to_da
   {FILTER_ODOM_TOPIC,                "filter_odom_earth_data_rate"},
   {FILTER_RELATIVE_ODOM_TOPIC,       "filter_odom_map_data_rate"},
 
-  {FILTER_STATUS_TOPIC,              "filter_status_data_rate"},
-  {FILTER_HEADING_TOPIC,             "filter_heading_data_rate"},
-  {FILTER_HEADING_STATE_TOPIC,       "filter_heading_state_data_rate"},
-  {FILTER_IMU_DATA_TOPIC,            "filter_imu_data_rate"},
-  {FILTER_DUAL_ANTENNA_STATUS_TOPIC, "filter_gnss_dual_antenna_data_rate"},
-  {FILTER_AIDING_SUMMARY_TOPIC,      "filter_aiding_measurement_summary_data_rate"},
+
+  // MIP sensor (0x80) data rates
+  {MIP_SENSOR_OVERRANGE_STATUS_TOPIC, "mip_sensor_overrange_status_data_rate"},
+
+  // MIP GNSS1 (0x81, 0x91) data rates
+  {MIP_GNSS1_FIX_INFO_TOPIC,           "mip_gnss1_fix_info_data_rate"},
+  {MIP_GNSS1_SBAS_INFO_TOPIC,          "mip_gnss1_sbas_info_data_rate"},
+  {MIP_GNSS1_RF_ERROR_DETECTION_TOPIC, "mip_gnss1_rf_error_detection_data_rate"},
+
+  // MIP GNSS2 (0x92) data rates
+  {MIP_GNSS2_FIX_INFO_TOPIC,           "mip_gnss2_fix_info_data_rate"},
+  {MIP_GNSS2_SBAS_INFO_TOPIC,          "mip_gnss2_sbas_info_data_rate"},
+  {MIP_GNSS2_RF_ERROR_DETECTION_TOPIC, "mip_gnss2_rf_error_detection_data_rate"},
+
+  // MIP GNSS Corrections (0x93) data rates
+  {MIP_GNSS_CORRECTIONS_RTK_CORRECTIONS_STATUS_TOPIC, "mip_gnss_corrections_rtk_corrections_status_data_rate"},
+
+  // MIP filter (0x82) data rates
+  {MIP_FILTER_STATUS_TOPIC,                          "mip_filter_status_data_rate"},
+  {MIP_FILTER_GNSS_POSITION_AIDING_STATUS_TOPIC,     "mip_filter_gnss_position_aiding_status_data_rate"},
+  {MIP_FILTER_MULTI_ANTENNA_OFFSET_CORRECTION_TOPIC, "mip_filter_multi_antenna_offset_correction_data_rate"},
+  {MIP_FILTER_AIDING_MEASUREMENT_SUMMARY_TOPIC,      "mip_filter_aiding_measurement_summary_data_rate"},
+  {MIP_FILTER_GNSS_DUAL_ANTENNA_STATUS_TOPIC,        "mip_filter_gnss_dual_antenna_status_data_rate"},
 };
 
 const std::map<uint8_t, std::string> MipPublisherMapping::static_descriptor_set_to_data_rate_config_key_mapping_ =

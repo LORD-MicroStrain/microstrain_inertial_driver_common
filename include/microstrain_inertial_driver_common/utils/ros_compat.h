@@ -55,6 +55,7 @@ constexpr auto NUM_GNSS = 2;
 #include "sensor_msgs/NavSatFix.h"
 #include "sensor_msgs/Imu.h"
 #include "sensor_msgs/TimeReference.h"
+#include "sensor_msgs/FluidPressure.h"
 #include "geometry_msgs/PoseWithCovarianceStamped.h"
 #include "geometry_msgs/TwistStamped.h"
 #include "geometry_msgs/TwistWithCovarianceStamped.h"
@@ -71,21 +72,17 @@ constexpr auto NUM_GNSS = 2;
 #include "mavros_msgs/RTCM.h"
 #include "nmea_msgs/Sentence.h"
 
-#include "microstrain_inertial_msgs/Status.h"
-#include "microstrain_inertial_msgs/ImuOverrangeStatus.h"
-#include "microstrain_inertial_msgs/RTKStatus.h"
-#include "microstrain_inertial_msgs/RTKStatusV1.h"
-#include "microstrain_inertial_msgs/FilterStatus.h"
-#include "microstrain_inertial_msgs/FilterHeading.h"
-#include "microstrain_inertial_msgs/FilterHeadingState.h"
-#include "microstrain_inertial_msgs/FilterAidingMeasurementSummary.h"
-#include "microstrain_inertial_msgs/GPSCorrelationTimestampStamped.h"
-#include "microstrain_inertial_msgs/GNSSAidingStatus.h"
-#include "microstrain_inertial_msgs/GNSSAntennaOffsetCorrection.h"
-#include "microstrain_inertial_msgs/GNSSDualAntennaStatus.h"
-#include "microstrain_inertial_msgs/GNSSFixInfo.h"
-#include "microstrain_inertial_msgs/GNSSSbasInfo.h"
-#include "microstrain_inertial_msgs/GNSSRfErrorDetection.h"
+#include "microstrain_inertial_msgs/MicrostrainHeader.h"
+#include "microstrain_inertial_msgs/MipSensorOverrangeStatus.h"
+#include "microstrain_inertial_msgs/MipGnssFixInfo.h"
+#include "microstrain_inertial_msgs/MipGnssSbasInfo.h"
+#include "microstrain_inertial_msgs/MipGnssRfErrorDetection.h"
+#include "microstrain_inertial_msgs/MipGnssCorrectionsRtkCorrectionsStatus.h"
+#include "microstrain_inertial_msgs/MipFilterStatus.h"
+#include "microstrain_inertial_msgs/MipFilterGnssPositionAidingStatus.h"
+#include "microstrain_inertial_msgs/MipFilterMultiAntennaOffsetCorrection.h"
+#include "microstrain_inertial_msgs/MipFilterAidingMeasurementSummary.h"
+#include "microstrain_inertial_msgs/MipFilterGnssDualAntennaStatus.h"
 
 #include "microstrain_inertial_msgs/InputSpeedMeasurement.h"
 
@@ -164,6 +161,7 @@ constexpr auto NUM_GNSS = 2;
 #include "sensor_msgs/msg/nav_sat_fix.hpp"
 #include "sensor_msgs/msg/imu.hpp"
 #include "sensor_msgs/msg/time_reference.hpp"
+#include "sensor_msgs/msg/fluid_pressure.hpp"
 #include "geometry_msgs/msg/pose_with_covariance_stamped.hpp"
 #include "geometry_msgs/msg/twist_stamped.hpp"
 #include "geometry_msgs/msg/twist_with_covariance_stamped.hpp"
@@ -181,28 +179,24 @@ constexpr auto NUM_GNSS = 2;
 #include "mavros_msgs/msg/rtcm.hpp"
 #include "nmea_msgs/msg/sentence.hpp"
 
+#include "microstrain_inertial_msgs/msg/microstrain_header.hpp"
+#include "microstrain_inertial_msgs/msg/mip_sensor_overrange_status.hpp"
+#include "microstrain_inertial_msgs/msg/mip_gnss_fix_info.hpp"
+#include "microstrain_inertial_msgs/msg/mip_gnss_sbas_info.hpp"
+#include "microstrain_inertial_msgs/msg/mip_gnss_rf_error_detection.hpp"
+#include "microstrain_inertial_msgs/msg/mip_gnss_corrections_rtk_corrections_status.hpp"
+#include "microstrain_inertial_msgs/msg/mip_filter_status.hpp"
+#include "microstrain_inertial_msgs/msg/mip_filter_gnss_position_aiding_status.hpp"
+#include "microstrain_inertial_msgs/msg/mip_filter_multi_antenna_offset_correction.hpp"
+#include "microstrain_inertial_msgs/msg/mip_filter_aiding_measurement_summary.hpp"
+#include "microstrain_inertial_msgs/msg/mip_filter_gnss_dual_antenna_status.hpp"
+
 // .h header was deprecated in rolling and will likely be removed in future releases.
 #if MICROSTRAIN_ROLLING == 1 || MICROSTRAIN_HUMBLE == 1
 #include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
 #else
 #include "tf2_geometry_msgs/tf2_geometry_msgs.h"
 #endif
-
-#include "microstrain_inertial_msgs/msg/status.hpp"
-#include "microstrain_inertial_msgs/msg/imu_overrange_status.hpp"
-#include "microstrain_inertial_msgs/msg/rtk_status.hpp"
-#include "microstrain_inertial_msgs/msg/rtk_status_v1.hpp"
-#include "microstrain_inertial_msgs/msg/filter_status.hpp"
-#include "microstrain_inertial_msgs/msg/filter_heading.hpp"
-#include "microstrain_inertial_msgs/msg/filter_heading_state.hpp"
-#include "microstrain_inertial_msgs/msg/filter_aiding_measurement_summary.hpp"
-#include "microstrain_inertial_msgs/msg/gps_correlation_timestamp_stamped.hpp"
-#include "microstrain_inertial_msgs/msg/gnss_aiding_status.hpp"
-#include "microstrain_inertial_msgs/msg/gnss_antenna_offset_correction.hpp"
-#include "microstrain_inertial_msgs/msg/gnss_dual_antenna_status.hpp"
-#include "microstrain_inertial_msgs/msg/gnss_fix_info.hpp"
-#include "microstrain_inertial_msgs/msg/gnss_sbas_info.hpp"
-#include "microstrain_inertial_msgs/msg/gnss_rf_error_detection.hpp"
 
 #include "microstrain_inertial_msgs/msg/input_speed_measurement.hpp"
 
@@ -287,6 +281,16 @@ class RosPubType : public ::ros::Publisher
   void on_deactivate() { (void)0; }
 };
 
+template<typename MessageType>
+class RosSubType : public ::ros::Subscriber
+{
+ public:
+  using MessageSharedPtr = std::shared_ptr<MessageType>;
+  using SharedPtr = std::shared_ptr<RosSubType<MessageType>>;
+
+  explicit RosSubType(const ::ros::Subscriber& rhs) : ::ros::Subscriber(rhs) {}
+};
+
 /**
  * \brief Wrapper for a ROS1 service to make it look similar to a ROS2 service
  */
@@ -305,33 +309,31 @@ using RosTimeType = ::ros::Time;
 using RosTimerType = std::shared_ptr<::ros::Timer>;
 using RosRateType = ::ros::Rate;
 using RosHeaderType = ::std_msgs::Header;
-using RosSubType = std::shared_ptr<::ros::Subscriber>;
 
 // ROS1 Publisher Message Types
 using OdometryMsg = ::nav_msgs::Odometry;
 using ImuMsg = ::sensor_msgs::Imu;
 using NavSatFixMsg = ::sensor_msgs::NavSatFix;
+using FluidPressureMsg = ::sensor_msgs::FluidPressure;
 using TwistStampedMsg = ::geometry_msgs::TwistStamped;
+using PoseWithCovarianceStampedMsg = ::geometry_msgs::PoseWithCovarianceStamped;
 using TwistWithCovarianceStampedMsg = ::geometry_msgs::TwistWithCovarianceStamped;
 using MagneticFieldMsg = ::sensor_msgs::MagneticField;
 using TimeReferenceMsg = ::sensor_msgs::TimeReference;
 using NMEASentenceMsg = ::nmea_msgs::Sentence;
-using StatusMsg = ::microstrain_inertial_msgs::Status;
-using ImuOverrangeStatusMsg = ::microstrain_inertial_msgs::ImuOverrangeStatus;
-using RTKStatusMsg = ::microstrain_inertial_msgs::RTKStatus;
-using RTKStatusMsgV1 = ::microstrain_inertial_msgs::RTKStatusV1;
-using FilterStatusMsg = ::microstrain_inertial_msgs::FilterStatus;
-using FilterHeadingMsg = ::microstrain_inertial_msgs::FilterHeading;
-using FilterAidingMeasurementSummaryMsg = ::microstrain_inertial_msgs::FilterAidingMeasurementSummary;
-using FilterAidingMeasurementSummaryIndicatorMsg = ::microstrain_inertial_msgs::FilterAidingMeasurementSummaryIndicator;
-using GNSSAidingStatusMsg = ::microstrain_inertial_msgs::GNSSAidingStatus;
-using GNSSAntennaOffsetCorrectionMsg = ::microstrain_inertial_msgs::GNSSAntennaOffsetCorrection;
-using GNSSDualAntennaStatusMsg = ::microstrain_inertial_msgs::GNSSDualAntennaStatus;
-using GNSSFixInfoMsg = ::microstrain_inertial_msgs::GNSSFixInfo;
-using FilterHeadingStateMsg = ::microstrain_inertial_msgs::FilterHeadingState;
-using GPSCorrelationTimestampStampedMsg = ::microstrain_inertial_msgs::GPSCorrelationTimestampStamped;
-using GNSSSbasInfoMsg = ::microstrain_inertial_msgs::GNSSSbasInfo;
-using GNSSRfErrorDetectionMsg = ::microstrain_inertial_msgs::GNSSRfErrorDetection;
+
+using MicrostrainHeaderMsg = ::microstrain_inertial_msgs::MicrostrainHeader;
+using MipSensorOverrangeStatusMsg = ::microstrain_inertial_msgs::MipSensorOverrangeStatus;
+using MipGnssFixInfoMsg = ::microstrain_inertial_msgs::MipGnssFixInfo;
+using MipGnssSbasInfoMsg = ::microstrain_inertial_msgs::MipGnssSbasInfo;
+using MipGnssRfErrorDetectionMsg = ::microstrain_inertial_msgs::MipGnssRfErrorDetection;
+using MipGnssCorrectionsRtkCorrectionsStatusMsg = ::microstrain_inertial_msgs::MipGnssCorrectionsRtkCorrectionsStatus;
+using MipFilterGnssPositionAidingStatusMsg = ::microstrain_inertial_msgs::MipFilterGnssPositionAidingStatus;
+using MipFilterStatusMsg = ::microstrain_inertial_msgs::MipFilterStatus;
+using MipFilterMultiAntennaOffsetCorrectionMsg = ::microstrain_inertial_msgs::MipFilterMultiAntennaOffsetCorrection;
+using MipFilterAidingMeasurementSummaryMsg = ::microstrain_inertial_msgs::MipFilterAidingMeasurementSummary;
+
+using MipFilterGnssDualAntennaStatusMsg = ::microstrain_inertial_msgs::MipFilterGnssDualAntennaStatus;
 
 using TransformStampedMsg = ::geometry_msgs::TransformStamped;
 
@@ -346,12 +348,6 @@ using BoolMsg = ::std_msgs::Bool;
 using TimeReferenceMsg = ::sensor_msgs::TimeReference;
 using InputSpeedMeasurementMsg = ::microstrain_inertial_msgs::InputSpeedMeasurement;
 using RTCMMsg = ::mavros_msgs::RTCM;
-
-// ROS1 Subscriber Types
-using BoolSubType = RosSubType;
-using TimeReferenceSubType = RosSubType;
-using InputSpeedMeasurementSubType = RosSubType;
-using RTCMSubType = RosSubType;
 
 // ROS1 Service Message Types
 using TriggerServiceMsg = std_srvs::Trigger;
@@ -568,11 +564,11 @@ typename RosPubType<MessageType>::SharedPtr createPublisher(RosNodeType* node, c
  * \return Shared Pointer containing the initialized subscriber
  */
 template <class MessageType, class ClassType>
-std::shared_ptr<::ros::Subscriber> createSubscriber(RosNodeType* node, const std::string& topic,
+typename RosSubType<MessageType>::SharedPtr createSubscriber(RosNodeType* node, const std::string& topic,
                                                      const uint32_t queue_size,
                                                      void (ClassType::*fp)(const MessageType&), ClassType* obj)
 {
-  return std::make_shared<::ros::Subscriber>(node->template subscribe(topic.c_str(), queue_size, fp, obj));
+  return std::make_shared<RosSubType<MessageType>>(node->template subscribe(topic.c_str(), queue_size, fp, obj));
 }
 
 /**
@@ -645,6 +641,9 @@ class RosPubType : public ::rclcpp_lifecycle::LifecyclePublisher<MessageType>
   explicit RosPubType(const ::rclcpp_lifecycle::LifecyclePublisher<MessageType>& rhs) : ::rclcpp_lifecycle::LifecyclePublisher<MessageType>(rhs) {}
 };
 
+template<typename MessageType>
+using RosSubType = ::rclcpp::Subscriber<MessageType>;
+
 // Alias for the service type so it can be compatible with ROS1
 template<typename ServiceType>
 using RosServiceType = ::rclcpp::Service<ServiceType>;
@@ -653,27 +652,26 @@ using RosServiceType = ::rclcpp::Service<ServiceType>;
 using OdometryMsg = ::nav_msgs::msg::Odometry;
 using ImuMsg = ::sensor_msgs::msg::Imu;
 using NavSatFixMsg = ::sensor_msgs::msg::NavSatFix;
+using FluidPressureMsg = ::sensor_msgs::msg::FluidPressure;
 using TwistStampedMsg = ::geometry_msgs::msg::TwistStamped;
+using PoseWithCovarianceStampedMsg = ::geometry_msgs::msg::PoseWithCovarianceStamped;
 using TwistWithCovarianceStampedMsg = ::geometry_msgs::msg::TwistWithCovarianceStamped;
 using MagneticFieldMsg = ::sensor_msgs::msg::MagneticField;
 using TimeReferenceMsg = ::sensor_msgs::msg::TimeReference;
 using NMEASentenceMsg = ::nmea_msgs::msg::Sentence;
-using StatusMsg = ::microstrain_inertial_msgs::msg::Status;
-using ImuOverrangeStatusMsg = ::microstrain_inertial_msgs::msg::ImuOverrangeStatus;
-using RTKStatusMsg = ::microstrain_inertial_msgs::msg::RTKStatus;
-using RTKStatusMsgV1 = ::microstrain_inertial_msgs::msg::RTKStatusV1;
-using FilterStatusMsg = ::microstrain_inertial_msgs::msg::FilterStatus;
-using FilterHeadingMsg = ::microstrain_inertial_msgs::msg::FilterHeading;
-using FilterAidingMeasurementSummaryMsg = ::microstrain_inertial_msgs::msg::FilterAidingMeasurementSummary;
-using FilterAidingMeasurementSummaryIndicatorMsg = ::microstrain_inertial_msgs::msg::FilterAidingMeasurementSummaryIndicator;
-using GNSSAidingStatusMsg = ::microstrain_inertial_msgs::msg::GNSSAidingStatus;
-using GNSSAntennaOffsetCorrectionMsg = ::microstrain_inertial_msgs::msg::GNSSAntennaOffsetCorrection;
-using GNSSDualAntennaStatusMsg = ::microstrain_inertial_msgs::msg::GNSSDualAntennaStatus;
-using GNSSFixInfoMsg = ::microstrain_inertial_msgs::msg::GNSSFixInfo;
-using FilterHeadingStateMsg = ::microstrain_inertial_msgs::msg::FilterHeadingState;
-using GPSCorrelationTimestampStampedMsg = ::microstrain_inertial_msgs::msg::GPSCorrelationTimestampStamped;
-using GNSSSbasInfoMsg = ::microstrain_inertial_msgs::msg::GNSSSbasInfo;
-using GNSSRfErrorDetectionMsg = ::microstrain_inertial_msgs::msg::GNSSRfErrorDetection;
+
+using MicrostrainHeaderMsg = ::microstrain_inertial_msgs::msg::MicrostrainHeader;
+using MipSensorOverrangeStatusMsg = ::microstrain_inertial_msgs::msg::MipSensorOverrangeStatus;
+using MipGnssFixInfoMsg = ::microstrain_inertial_msgs::msg::MipGnssFixInfo;
+using MipGnssSbasInfoMsg = ::microstrain_inertial_msgs::msg::MipGnssSbasInfo;
+using MipGnssRfErrorDetectionMsg = ::microstrain_inertial_msgs::msg::MipGnssRfErrorDetection;
+using MipGnssCorrectionsRtkCorrectionsStatusMsg = ::microstrain_inertial_msgs::msg::MipGnssCorrectionsRtkCorrectionsStatus;
+using MipFilterStatusMsg = ::microstrain_inertial_msgs::msg::MipFilterStatus;
+using MipFilterGnssPositionAidingStatusMsg = ::microstrain_inertial_msgs::msg::MipFilterGnssPositionAidingStatus;
+using MipFilterMultiAntennaOffsetCorrectionMsg = ::microstrain_inertial_msgs::msg::MipFilterMultiAntennaOffsetCorrection;
+using MipFilterAidingMeasurementSummaryMsg = ::microstrain_inertial_msgs::msg::MipFilterAidingMeasurementSummary;
+
+using MipFilterGnssDualAntennaStatusMsg = ::microstrain_inertial_msgs::msg::MipFilterGnssDualAntennaStatus;
 
 using TransformStampedMsg = ::geometry_msgs::msg::TransformStamped;
 

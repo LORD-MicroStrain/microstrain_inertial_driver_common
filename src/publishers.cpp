@@ -36,10 +36,55 @@ geometry_msgs::Quaternion nedToEcefRotation(double lat_deg, double lon_deg, doub
   return tf2::toMsg(ecef_frame_attitude_quat);
 }
 
-
 constexpr auto USTRAIN_G =
     9.80665;  // from section 5.1.1 in
               // https://www.microstrain.com/sites/default/files/3dm-gx5-25_dcp_manual_8500-0065_reference_document.pdf
+
+ClockBiasMonitor::ClockBiasMonitor(const double weight, const double max_bias_estimate)
+  : weight_(weight), max_bias_estimate_(max_bias_estimate)
+{
+}
+
+void ClockBiasMonitor::addTime(const mip::Timestamp& system_time, const mip::data_shared::GpsTimestamp& device_time)
+{
+  //const double system_time_secs = static_cast<double>(system_time / 1000) + static_cast<double>((system_time % 1000)) * 1000000;
+  const double delta_time = (system_time / 1000 + (static_cast<double>((system_time % 1000)) / 1000000000)) - (device_time.week_number * 604800 + device_time.tow);
+
+  // Check if initialization is required
+  if (!have_bias_estimate_)
+  {
+    bias_estimate_ = delta_time;
+    have_bias_estimate_ = true;
+  }
+
+  // Check for outliers or time jumps
+  const double delta_from_previous_bias = std::fabs(delta_time - bias_estimate_);
+  if (delta_from_previous_bias > max_bias_estimate_)
+  {
+    bias_estimate_ = delta_time;
+  }
+
+  // Apply a low pass filter
+  bias_estimate_ = bias_estimate_ * weight_ + delta_time * (1 - weight_);
+}
+
+RosTimeType ClockBiasMonitor::getTime(const mip::Timestamp& system_time, const mip::data_shared::GpsTimestamp& device_time)
+{
+  // Calculate the bias estimate
+  addTime(system_time, device_time);
+
+  // Calculate the adjusted time
+  const double device_time_secs = (device_time.week_number * 604800 + device_time.tow) + bias_estimate_;
+
+  // Split the seconds into seconds and subseconds
+  double seconds;
+  double subseconds = modf(device_time_secs, &seconds);
+
+  // Set the ROS time
+  RosTimeType time;
+  setRosTime(&time, static_cast<uint64_t>(seconds), static_cast<uint64_t>(std::floor(subseconds * 1000000000)));
+  return time;
+}
 
 Publishers::Publishers(RosNodeType* node, Config* config)
   : node_(node), config_(config)
@@ -65,43 +110,32 @@ bool Publishers::configure()
   filter_vel_pub_->configure(node_, config_);
   filter_vel_ecef_pub_->configure(node_, config_);
   filter_odom_pub_->configure(node_, config_);
-  filter_relative_odom_pub_->configure(node_, config_);
-
-  /*
-  gps_corr_pub_->configure(node_, config_);
-  imu_overrange_status_pub_->configure(node_, config_);
-
-  for (const auto& pub : gnss_aiding_status_pub_) pub->configure(node_, config_);
-  for (const auto& pub : gnss_antenna_offset_correction_pub_) pub->configure(node_, config_);
-  for (const auto& pub : gnss_fix_info_pub_) pub->configure(node_, config_);
-  for (const auto& pub : gnss_sbas_info_pub_) pub->configure(node_, config_);
-  for (const auto& pub : gnss_rf_error_detection_pub_) pub->configure(node_, config_);
-
-  rtk_pub_->configure(node_, config_);
-  rtk_pub_v1_->configure(node_, config_);
-
-  filter_status_pub_->configure(node_, config_);
-  filter_heading_pub_->configure(node_, config_);
-  filter_heading_state_pub_->configure(node_, config_);
-  filter_aiding_mesaurement_summary_pub_->configure(node_, config_);
-  filter_odom_pub_->configure(node_, config_);
-  filter_imu_pub_->configure(node_, config_);
-  gnss_dual_antenna_status_pub_->configure(node_, config_);
 
   // Only publish relative odom if we support the relative position descriptor set
   if (config_->mip_device_->supportsDescriptor(mip::data_filter::DESCRIPTOR_SET, mip::data_filter::RelPosNed::FIELD_DESCRIPTOR))
     filter_relative_odom_pub_->configure(node_, config_);
 
+  mip_sensor_overrange_status_pub_->configure(node_, config_);
+
+  for (const auto& pub : mip_gnss_fix_info_pub_) pub->configure(node_, config_);
+  for (const auto& pub : mip_gnss_sbas_info_pub_) pub->configure(node_, config_);
+  for (const auto& pub : mip_gnss_rf_error_detection_pub_) pub->configure(node_, config_);
+
+  mip_gnss_corrections_rtk_corrections_status_pub_->configure(node_, config_);
+
+  mip_filter_status_pub_->configure(node_, config_);
+  mip_filter_gnss_position_aiding_status_pub_->configure(node_, config_);
+  mip_filter_multi_antenna_offset_correction_pub_->configure(node_, config_);
+  mip_filter_aiding_measurement_summary_pub_->configure(node_, config_);
+  mip_filter_gnss_dual_antenna_status_pub_->configure(node_, config_);
+
   if (config_->publish_nmea_)
     nmea_sentence_pub_->configure(node_);
-  */
 
   // Frame ID configuration
   raw_imu_pub_->getMessage()->header.frame_id = config_->frame_id_;
   mag_pub_->getMessage()->header.frame_id = config_->frame_id_;
   imu_pub_->getMessage()->header.frame_id = config_->frame_id_;
-
-  gps_corr_pub_->getMessage()->header.frame_id = config_->imu_frame_id_;
 
   for (int i = 0; i < gnss_fix_pub_.size(); i++) gnss_fix_pub_[i]->getMessage()->header.frame_id = config_->gnss_frame_id_[i];
   for (int i = 0; i < gnss_vel_pub_.size(); i++) gnss_vel_pub_[i]->getMessage()->header.frame_id = config_->gnss_frame_id_[i];
@@ -252,8 +286,6 @@ bool Publishers::configure()
 
   // Filter callbacks
   registerDataCallback<mip::data_filter::Status, &Publishers::handleFilterStatus>();
-  registerDataCallback<mip::data_filter::EulerAngles, &Publishers::handleFilterEulerAngles>();
-  registerDataCallback<mip::data_filter::HeadingUpdateState, &Publishers::handleFilterHeadingUpdateState>();
   registerDataCallback<mip::data_filter::EcefPos, &Publishers::handleFilterEcefPos>();
   registerDataCallback<mip::data_filter::EcefPosUncertainty, &Publishers::handleFilterEcefPosUncertainty>();
   registerDataCallback<mip::data_filter::PositionLlh, &Publishers::handleFilterPositionLlh>();
@@ -295,43 +327,34 @@ bool Publishers::activate()
   filter_vel_ecef_pub_->activate();
   filter_odom_pub_->activate();
   filter_relative_odom_pub_->activate();
-  /*
-  gps_corr_pub_->activate();
-  imu_overrange_status_pub_->activate();
 
-  for (const auto& pub : gnss_pub_) pub->activate();
-  for (const auto& pub : gnss_odom_pub_) pub->activate();
-  for (const auto& pub : gnss_time_pub_) pub->activate();
-  for (const auto& pub : gnss_aiding_status_pub_) pub->activate();
-  for (const auto& pub : gnss_antenna_offset_correction_pub_) pub->activate();
-  for (const auto& pub : gnss_fix_info_pub_) pub->activate();
-  for (const auto& pub : gnss_sbas_info_pub_) pub->activate();
-  for (const auto& pub : gnss_rf_error_detection_pub_) pub->activate();
+  mip_sensor_overrange_status_pub_->activate();
 
-  rtk_pub_->activate();
-  rtk_pub_v1_->activate();
+  for (const auto& pub : mip_gnss_fix_info_pub_) pub->activate();
+  for (const auto& pub : mip_gnss_sbas_info_pub_) pub->activate();
+  for (const auto& pub : mip_gnss_rf_error_detection_pub_) pub->activate();
 
-  filter_status_pub_->activate();
-  filter_heading_pub_->activate();
-  filter_heading_state_pub_->activate();
-  filter_aiding_mesaurement_summary_pub_->activate();
-  filter_odom_pub_->activate();
-  filter_relative_odom_pub_->activate();
-  filter_imu_pub_->activate();
-  gnss_dual_antenna_status_pub_->activate();
+  mip_gnss_corrections_rtk_corrections_status_pub_->activate();
+
+  mip_filter_status_pub_->activate();
+  mip_filter_gnss_position_aiding_status_pub_->activate();
+  mip_filter_multi_antenna_offset_correction_pub_->activate();
+  mip_filter_aiding_measurement_summary_pub_->activate();
+  mip_filter_gnss_dual_antenna_status_pub_->activate();
 
   nmea_sentence_pub_->activate();
-  */
 
   // Publish the static transforms
   if (config_->tf_mode_ != TF_MODE_OFF)
   {
-    if (config_->publish_base_link_imu_link_transform_)
-      static_transform_broadcaster_->sendTransform(config_->base_link_imu_link_transform_);
+    if (config_->publish_base_link_to_frame_id_transform_)
+      static_transform_broadcaster_->sendTransform(config_->base_link_to_frame_id_transform_);
     if (config_->tf_mode_ == TF_MODE_RELATIVE && static_earth_map_transform_)
       static_transform_broadcaster_->sendTransform(earth_map_transform_msg_);
     
     // Static antenna offsets
+    // TODO: Read transforms from the device instead of looking at the config
+    // TODO: If streaming the antenna offset correction topic, correct the offsets with them
     if (config_->mip_device_->supportsDescriptorSet(mip::data_gnss::DESCRIPTOR_SET) || config_->mip_device_->supportsDescriptorSet(mip::data_gnss::MIP_GNSS1_DATA_DESC_SET))
     {
       TransformStampedMsg gnss1_antenna_transform;
@@ -382,36 +405,30 @@ bool Publishers::deactivate()
   filter_fix_pub_->deactivate();
   filter_odom_pub_->deactivate();
   filter_relative_odom_pub_->deactivate();
-  /*
-  gps_corr_pub_->deactivate();
-  imu_overrange_status_pub_->deactivate();
 
-  for (const auto& pub : gnss_pub_) pub->deactivate();
-  for (const auto& pub : gnss_odom_pub_) pub->deactivate();
-  for (const auto& pub : gnss_time_pub_) pub->deactivate();
-  for (const auto& pub : gnss_aiding_status_pub_) pub->deactivate();
-  for (const auto& pub : gnss_antenna_offset_correction_pub_) pub->deactivate();
-  for (const auto& pub : gnss_fix_info_pub_) pub->deactivate();
-  for (const auto& pub : gnss_sbas_info_pub_) pub->deactivate();
-  for (const auto& pub : gnss_rf_error_detection_pub_) pub->deactivate();
+  mip_sensor_overrange_status_pub_->deactivate();
 
-  rtk_pub_->deactivate();
-  rtk_pub_v1_->deactivate();
+  for (const auto& pub : mip_gnss_fix_info_pub_) pub->deactivate();
+  for (const auto& pub : mip_gnss_sbas_info_pub_) pub->deactivate();
+  for (const auto& pub : mip_gnss_rf_error_detection_pub_) pub->deactivate();
 
-  filter_status_pub_->deactivate();
-  filter_heading_pub_->deactivate();
-  filter_heading_state_pub_->deactivate();
-  filter_aiding_mesaurement_summary_pub_->deactivate();
-  filter_odom_pub_->deactivate();
-  filter_relative_odom_pub_->deactivate();
-  filter_imu_pub_->deactivate();
-  gnss_dual_antenna_status_pub_->deactivate();
-  */
+  mip_gnss_corrections_rtk_corrections_status_pub_->deactivate();
+
+  mip_filter_status_pub_->deactivate();
+  mip_filter_gnss_position_aiding_status_pub_->deactivate();
+  mip_filter_multi_antenna_offset_correction_pub_->deactivate();
+  mip_filter_aiding_measurement_summary_pub_->deactivate();
+  mip_filter_gnss_dual_antenna_status_pub_->deactivate();
+
+  nmea_sentence_pub_->deactivate();
   return true;
 }
 
 void Publishers::publish()
 {
+  // This publish function will get called after each packet is processed.
+  // For standard ROS messages this allows us to combine multiple MIP fields and then publish them
+  // For custom ROS messages, the messages are published directly in the callbacks
   raw_imu_pub_->publish();
   mag_pub_->publish();
   imu_pub_->publish();
@@ -427,32 +444,8 @@ void Publishers::publish()
   filter_vel_ecef_pub_->publish();
   filter_odom_pub_->publish();
   filter_relative_odom_pub_->publish();
-  /*
-  gps_corr_pub_->publish();
-  imu_overrange_status_pub_->publish();
 
-  for (const auto& pub : gnss_pub_) pub->publish();
-  for (const auto& pub : gnss_odom_pub_) pub->publish();
-  for (const auto& pub : gnss_time_pub_) pub->publish();
-  for (const auto& pub : gnss_aiding_status_pub_) pub->publish();
-  for (const auto& pub : gnss_antenna_offset_correction_pub_) pub->publish();
-  for (const auto& pub : gnss_fix_info_pub_) pub->publish();
-  for (const auto& pub : gnss_sbas_info_pub_) pub->publish();
-  for (const auto& pub : gnss_rf_error_detection_pub_) pub->publish();
-
-  rtk_pub_->publish();
-  rtk_pub_v1_->publish();
-
-  filter_status_pub_->publish();
-  filter_heading_pub_->publish();
-  filter_heading_state_pub_->publish();
-  filter_aiding_mesaurement_summary_pub_->publish();
-  filter_odom_pub_->publish();
-  filter_relative_odom_pub_->publish();
-  filter_imu_pub_->publish();
-  gnss_dual_antenna_status_pub_->publish();
-  */
-
+  // Publish the dynamic transforms after the messages have been filled out
   std::string tf_error_string;
   if (config_->tf_mode_ == TF_MODE_GLOBAL && ecef_transform_position_updated_ && ecef_transform_attitude_updated_)
   {
@@ -547,7 +540,34 @@ void Publishers::handleSharedDeltaTicks(const mip::data_shared::DeltaTicks& delt
 
 void Publishers::handleSharedGpsTimestamp(const mip::data_shared::GpsTimestamp& gps_timestamp, const uint8_t descriptor_set, mip::Timestamp timestamp)
 {
+  // Use the timestamp to update the clock bias and save the adjusted timestamp for this packet
+  if (clock_bias_monitor_mapping_.find(descriptor_set) == clock_bias_monitor_mapping_.end())
+  {
+    // Max bias estimate changes based on rate
+    // TODO: This doesn't appear to work or be a good idea to set both of these numbers to 1
+    clock_bias_monitor_mapping_[descriptor_set] = ClockBiasMonitor(1, 1);
+  }
+  adjusted_time_mapping_[descriptor_set] = clock_bias_monitor_mapping_[descriptor_set].getTime(timestamp, gps_timestamp);
+
+  // Save the GPS timestamp
   gps_timestamp_mapping_[descriptor_set] = gps_timestamp;
+
+  // Update the GPS time message for this descriptor
+  uint8_t gnss_index;
+  switch (descriptor_set)
+  {
+    case mip::data_gnss::MIP_GNSS1_DATA_DESC_SET:
+      gnss_index = 0;
+      break;
+    case mip::data_gnss::MIP_GNSS2_DATA_DESC_SET:
+      gnss_index = 1;
+      break;
+    default:
+      return;
+  }
+  auto gps_time_msg = gnss_time_pub_[gnss_index]->getMessageToUpdate();
+  gps_time_msg->header.stamp = rosTimeNow(node_);
+  setGpsTime(&gps_time_msg->time_ref, gps_timestamp);
 }
 
 void Publishers::handleSharedDeltaTime(const mip::data_shared::DeltaTime& delta_time, const uint8_t descriptor_set, mip::Timestamp timestamp)
@@ -573,13 +593,6 @@ void Publishers::handleSensorGpsTimestamp(const mip::data_sensor::GpsTimestamp& 
   stored_timestamp.week_number = gps_timestamp.week_number;
   stored_timestamp.valid_flags = gps_timestamp.valid_flags;
   gps_timestamp_mapping_[descriptor_set] = stored_timestamp;
-
-  // Populate the ROS message
-  auto gps_corr_msg = gps_corr_pub_->getMessageToUpdate();
-  updateHeaderTime(&(gps_corr_msg->header), descriptor_set, timestamp);
-  gps_corr_msg->gps_cor.gps_tow = gps_timestamp.tow;
-  gps_corr_msg->gps_cor.gps_week_number = gps_timestamp.week_number;
-  gps_corr_msg->gps_cor.timestamp_flags = gps_timestamp.valid_flags;
 }
 
 void Publishers::handleSensorScaledAccel(const mip::data_sensor::ScaledAccel& scaled_accel, const uint8_t descriptor_set, mip::Timestamp timestamp)
@@ -650,17 +663,19 @@ void Publishers::handleSensorScaledMag(const mip::data_sensor::ScaledMag& scaled
 
 void Publishers::handleSensorOverrangeStatus(const mip::data_sensor::OverrangeStatus& overrange_status, const uint8_t descriptor_set, mip::Timestamp timestamp)
 {
-  auto imu_overrange_status_msg = imu_overrange_status_pub_->getMessageToUpdate();
-  imu_overrange_status_msg->status_accel_x = overrange_status.status.accelX();
-  imu_overrange_status_msg->status_accel_y = overrange_status.status.accelY();
-  imu_overrange_status_msg->status_accel_z = overrange_status.status.accelZ();
-  imu_overrange_status_msg->status_gyro_x = overrange_status.status.gyroX();
-  imu_overrange_status_msg->status_gyro_y = overrange_status.status.gyroY();
-  imu_overrange_status_msg->status_gyro_z = overrange_status.status.gyroZ();
-  imu_overrange_status_msg->status_mag_x = overrange_status.status.magX();
-  imu_overrange_status_msg->status_mag_y = overrange_status.status.magY();
-  imu_overrange_status_msg->status_mag_z = overrange_status.status.magZ();
-  imu_overrange_status_msg->status_press = overrange_status.status.press();
+  auto mip_sensor_overrange_status_msg = mip_sensor_overrange_status_pub_->getMessage();
+  updateMicrostrainHeader(&(mip_sensor_overrange_status_msg->header), descriptor_set);
+  mip_sensor_overrange_status_msg->status_accel_x = overrange_status.status.accelX();
+  mip_sensor_overrange_status_msg->status_accel_y = overrange_status.status.accelY();
+  mip_sensor_overrange_status_msg->status_accel_z = overrange_status.status.accelZ();
+  mip_sensor_overrange_status_msg->status_gyro_x = overrange_status.status.gyroX();
+  mip_sensor_overrange_status_msg->status_gyro_y = overrange_status.status.gyroY();
+  mip_sensor_overrange_status_msg->status_gyro_z = overrange_status.status.gyroZ();
+  mip_sensor_overrange_status_msg->status_mag_x = overrange_status.status.magX();
+  mip_sensor_overrange_status_msg->status_mag_y = overrange_status.status.magY();
+  mip_sensor_overrange_status_msg->status_mag_z = overrange_status.status.magZ();
+  mip_sensor_overrange_status_msg->status_press = overrange_status.status.press();
+  mip_sensor_overrange_status_pub_->publish(*mip_sensor_overrange_status_msg);
 }
 
 void Publishers::handleGnssGpsTime(const mip::data_gnss::GpsTime& gps_time, const uint8_t descriptor_set, mip::Timestamp timestamp)
@@ -676,6 +691,7 @@ void Publishers::handleGnssGpsTime(const mip::data_gnss::GpsTime& gps_time, cons
   uint8_t gnss_index;
   switch (descriptor_set)
   {
+    case mip::data_gnss::DESCRIPTOR_SET:
     case mip::data_gnss::MIP_GNSS1_DATA_DESC_SET:
       gnss_index = 0;
       break;
@@ -732,9 +748,8 @@ void Publishers::handleGnssVelNed(const mip::data_gnss::VelNed& vel_ned, const u
   gnss_vel_msg->twist.covariance[7] = vel_ned.speed_accuracy;
   gnss_vel_msg->twist.covariance[14] = vel_ned.speed_accuracy;
 
-  // GNSS odometry message
-  auto gnss_odom_msg = gnss_odom_pub_[gnss_index]->getMessageToUpdate();
-  updateHeaderTime(&(gnss_odom_msg->header), descriptor_set, timestamp);
+  // GNSS odometry message (not counted as updating)
+  auto gnss_odom_msg = gnss_odom_pub_[gnss_index]->getMessage();
   tf2::Quaternion gnss_course_over_ground;
   gnss_course_over_ground.setRPY(0, 0, vel_ned.heading);
   gnss_odom_msg->pose.pose.orientation = tf2::toMsg(gnss_course_over_ground);
@@ -783,14 +798,16 @@ void Publishers::handleGnssFixInfo(const mip::data_gnss::FixInfo& fix_info, cons
   const uint8_t gnss_index = (descriptor_set == mip::data_gnss::DESCRIPTOR_SET || descriptor_set == mip::data_gnss::MIP_GNSS1_DATA_DESC_SET) ? GNSS1_ID : GNSS2_ID;
 
   // GNSS Fix info message
-  auto gnss_fix_info_msg = gnss_fix_info_pub_[gnss_index]->getMessageToUpdate();
-  gnss_fix_info_msg->fix_type = static_cast<uint8_t>(fix_info.fix_type);
-  gnss_fix_info_msg->num_sv = fix_info.num_sv;
-  gnss_fix_info_msg->sbas_used = fix_info.fix_flags & mip::data_gnss::FixInfo::FixFlags::SBAS_USED;
-  gnss_fix_info_msg->dngss_used = fix_info.fix_flags & mip::data_gnss::FixInfo::FixFlags::DGNSS_USED;
+  auto mip_gnss_fix_info_msg = mip_gnss_fix_info_pub_[gnss_index]->getMessage();
+  updateMicrostrainHeader(&(mip_gnss_fix_info_msg->header), descriptor_set);
+  mip_gnss_fix_info_msg->fix_type = static_cast<uint8_t>(fix_info.fix_type);
+  mip_gnss_fix_info_msg->num_sv = fix_info.num_sv;
+  mip_gnss_fix_info_msg->sbas_used = fix_info.fix_flags & mip::data_gnss::FixInfo::FixFlags::SBAS_USED;
+  mip_gnss_fix_info_msg->dngss_used = fix_info.fix_flags & mip::data_gnss::FixInfo::FixFlags::DGNSS_USED;
+  mip_gnss_fix_info_pub_[gnss_index]->publish(*mip_gnss_fix_info_msg);
 
-  // GNSS fix message
-  auto gnss_fix_msg = gnss_fix_pub_[gnss_index]->getMessageToUpdate();
+  // GNSS fix message (not counted as updating)
+  auto gnss_fix_msg = gnss_fix_pub_[gnss_index]->getMessage();
   if (fix_info.fix_type == mip::data_gnss::FixInfo::FixType::FIX_RTK_FIXED || fix_info.fix_type == mip::data_gnss::FixInfo::FixType::FIX_RTK_FLOAT)
     gnss_fix_msg->status.status = NavSatFixMsg::_status_type::STATUS_GBAS_FIX;
   else if (fix_info.fix_flags.sbasUsed())
@@ -818,11 +835,12 @@ void Publishers::handleGnssRfErrorDetection(const mip::data_gnss::RfErrorDetecti
   }
 
   // Different message depending on the descriptor set
-  auto rf_error_detection_msg = gnss_rf_error_detection_pub_[gnss_index]->getMessageToUpdate();
-  rf_error_detection_msg->rf_band = static_cast<uint8_t>(rf_error_detection.rf_band);
-  rf_error_detection_msg->jamming_state = static_cast<uint8_t>(rf_error_detection.jamming_state);
-  rf_error_detection_msg->spoofing_state = static_cast<uint8_t>(rf_error_detection.spoofing_state);
-  rf_error_detection_msg->valid_flags = rf_error_detection.valid_flags;
+  auto mip_gnss_rf_error_detection_msg = mip_gnss_rf_error_detection_pub_[gnss_index]->getMessage();
+  updateMicrostrainHeader(&(mip_gnss_rf_error_detection_msg->header), descriptor_set);
+  mip_gnss_rf_error_detection_msg->rf_band = static_cast<uint8_t>(rf_error_detection.rf_band);
+  mip_gnss_rf_error_detection_msg->jamming_state = static_cast<uint8_t>(rf_error_detection.jamming_state);
+  mip_gnss_rf_error_detection_msg->spoofing_state = static_cast<uint8_t>(rf_error_detection.spoofing_state);
+  mip_gnss_rf_error_detection_pub_[gnss_index]->publish(*mip_gnss_rf_error_detection_msg);
 }
 
 void Publishers::handleGnssSbasInfo(const mip::data_gnss::SbasInfo& sbas_info, const uint8_t descriptor_set, mip::Timestamp timestamp)
@@ -842,62 +860,61 @@ void Publishers::handleGnssSbasInfo(const mip::data_gnss::SbasInfo& sbas_info, c
   }
 
   // Different message depending on descriptor
-  auto sbas_info_msg = gnss_sbas_info_pub_[gnss_index]->getMessageToUpdate();
-  sbas_info_msg->gps_tow = sbas_info.time_of_week;
-  sbas_info_msg->gps_week_number = sbas_info.week_number;
-  sbas_info_msg->sbas_system = static_cast<uint8_t>(sbas_info.sbas_system);
-  sbas_info_msg->sbas_id = sbas_info.sbas_id;
-  sbas_info_msg->count = sbas_info.count;
-
-  sbas_info_msg->status_range_available = sbas_info.sbas_status.rangeAvailable();
-  sbas_info_msg->status_corrections_available = sbas_info.sbas_status.correctionsAvailable();
-  sbas_info_msg->status_integrity_available = sbas_info.sbas_status.integrityAvailable();
-  sbas_info_msg->status_test_mode = sbas_info.sbas_status.testMode();
-
-  sbas_info_msg->valid_flags = sbas_info.valid_flags;
+  auto mip_gnss_sbas_info_msg = mip_gnss_sbas_info_pub_[gnss_index]->getMessage();
+  updateMicrostrainHeader(&(mip_gnss_sbas_info_msg->header), descriptor_set);
+  mip_gnss_sbas_info_msg->time_of_week = sbas_info.time_of_week;
+  mip_gnss_sbas_info_msg->week_number = sbas_info.week_number;
+  mip_gnss_sbas_info_msg->sbas_system = static_cast<uint8_t>(sbas_info.sbas_system);
+  mip_gnss_sbas_info_msg->sbas_id = sbas_info.sbas_id;
+  mip_gnss_sbas_info_msg->count = sbas_info.count;
+  mip_gnss_sbas_info_msg->status_range_available = sbas_info.sbas_status.rangeAvailable();
+  mip_gnss_sbas_info_msg->status_corrections_available = sbas_info.sbas_status.correctionsAvailable();
+  mip_gnss_sbas_info_msg->status_integrity_available = sbas_info.sbas_status.integrityAvailable();
+  mip_gnss_sbas_info_msg->status_test_mode = sbas_info.sbas_status.testMode();
+  mip_gnss_sbas_info_pub_[gnss_index]->publish(*mip_gnss_sbas_info_msg);
 }
 
 void Publishers::handleRtkCorrectionsStatus(const mip::data_gnss::RtkCorrectionsStatus& rtk_corrections_status, const uint8_t descriptor_set, mip::Timestamp timestamp)
 {
-  const uint8_t dongle_version = rtk_corrections_status.dongle_status & mip::commands_rtk::GetStatusFlags::StatusFlags::VERSION;
-  switch (dongle_version)
+  const mip::commands_rtk::GetStatusFlags::StatusFlags dongle_status(rtk_corrections_status.dongle_status);
+  switch (dongle_status.version())
   {
     // V1 dongle
     case 0:
     {
-      auto rtk_msg_v1 = rtk_pub_v1_->getMessageToUpdate();
-      rtk_msg_v1->raw_status_flags = rtk_corrections_status.dongle_status;
-      rtk_msg_v1->dongle_version = dongle_version;
-      rtk_msg_v1->dongle_controller_state = rtk_corrections_status.dongle_status & mip::commands_rtk::GetStatusFlags::StatusFlagsLegacy::CONTROLLERSTATE;
-      rtk_msg_v1->dongle_platform_state = rtk_corrections_status.dongle_status & mip::commands_rtk::GetStatusFlags::StatusFlagsLegacy::PLATFORMSTATE;
-      rtk_msg_v1->dongle_controller_status = rtk_corrections_status.dongle_status & mip::commands_rtk::GetStatusFlags::StatusFlagsLegacy::CONTROLLERSTATUSCODE;
-      rtk_msg_v1->dongle_platform_status = rtk_corrections_status.dongle_status & mip::commands_rtk::GetStatusFlags::StatusFlagsLegacy::PLATFORMSTATUSCODE;
-      rtk_msg_v1->dongle_reset_reason = rtk_corrections_status.dongle_status & mip::commands_rtk::GetStatusFlags::StatusFlagsLegacy::RESETCODE;
-      rtk_msg_v1->dongle_signal_quality = rtk_corrections_status.dongle_status & mip::commands_rtk::GetStatusFlags::StatusFlagsLegacy::SIGNALQUALITY;
-      break;
+      // RTK Dongle v1 not supported
+      return;
     }
     // V2 dongle
     default:
     {
-      auto rtk_msg = rtk_pub_->getMessageToUpdate();
-      rtk_msg->raw_status_flags = rtk_corrections_status.dongle_status;
-      rtk_msg->dongle_version = dongle_version;
-      rtk_msg->dongle_modem_state = rtk_corrections_status.dongle_status & mip::commands_rtk::GetStatusFlags::StatusFlags::MODEM_STATE;
-      rtk_msg->dongle_connection_type = rtk_corrections_status.dongle_status & mip::commands_rtk::GetStatusFlags::StatusFlags::CONNECTION_TYPE;
-      rtk_msg->dongle_rssi = -rtk_corrections_status.dongle_status & mip::commands_rtk::GetStatusFlags::StatusFlags::RSSI;
-      rtk_msg->dongle_signal_quality = rtk_corrections_status.dongle_status & mip::commands_rtk::GetStatusFlags::StatusFlags::SIGNAL_QUALITY;
-      rtk_msg->dongle_tower_change_indicator = rtk_corrections_status.dongle_status & mip::commands_rtk::GetStatusFlags::StatusFlags::TOWER_CHANGE_INDICATOR;
-      rtk_msg->dongle_nmea_timeout = rtk_corrections_status.dongle_status & mip::commands_rtk::GetStatusFlags::StatusFlags::NMEA_TIMEOUT;
-      rtk_msg->dongle_out_of_range = rtk_corrections_status.dongle_status & mip::commands_rtk::GetStatusFlags::StatusFlags::DEVICE_OUT_OF_RANGE;
-      rtk_msg->dongle_corrections_unavailable = rtk_corrections_status.dongle_status & mip::commands_rtk::GetStatusFlags::StatusFlags::CORRECTIONS_UNAVAILABLE;
+      auto mip_gnss_corrections_rtk_corrections_status_msg = mip_gnss_corrections_rtk_corrections_status_pub_->getMessage();
+      updateMicrostrainHeader(&(mip_gnss_corrections_rtk_corrections_status_msg->header), descriptor_set);
+      mip_gnss_corrections_rtk_corrections_status_msg->time_of_week = rtk_corrections_status.time_of_week;
+      mip_gnss_corrections_rtk_corrections_status_msg->week_number = rtk_corrections_status.week_number;
 
-      rtk_msg->gps_tow = rtk_corrections_status.time_of_week;
-      rtk_msg->gps_week = rtk_corrections_status.week_number;
-      rtk_msg->epoch_status = rtk_corrections_status.epoch_status;
-      rtk_msg->gps_correction_latency = rtk_corrections_status.gps_correction_latency;
-      rtk_msg->glonass_correction_latency = rtk_corrections_status.glonass_correction_latency;
-      rtk_msg->galileo_correction_latency = rtk_corrections_status.galileo_correction_latency;
-      rtk_msg->beidou_correction_latency = rtk_corrections_status.beidou_correction_latency;
+      mip_gnss_corrections_rtk_corrections_status_msg->epoch_status_antenna_location_received = rtk_corrections_status.epoch_status.antennaLocationReceived();
+      mip_gnss_corrections_rtk_corrections_status_msg->epoch_status_antenna_description_received = rtk_corrections_status.epoch_status.antennaDescriptionReceived();
+      mip_gnss_corrections_rtk_corrections_status_msg->epoch_status_gps_received = rtk_corrections_status.epoch_status.gpsReceived();
+      mip_gnss_corrections_rtk_corrections_status_msg->epoch_status_glonass_received = rtk_corrections_status.epoch_status.glonassReceived();
+      mip_gnss_corrections_rtk_corrections_status_msg->epoch_status_dongle_status_read_failed = rtk_corrections_status.epoch_status.dongleStatusReadFailed();
+
+      mip_gnss_corrections_rtk_corrections_status_msg->dongle_status_modem_state = dongle_status.modemState();
+      mip_gnss_corrections_rtk_corrections_status_msg->dongle_status_connection_type = dongle_status.connectionType();
+      mip_gnss_corrections_rtk_corrections_status_msg->dongle_status_rssi = -1 * dongle_status.rssi();
+      mip_gnss_corrections_rtk_corrections_status_msg->dongle_status_signal_quality = dongle_status.signalQuality();
+      mip_gnss_corrections_rtk_corrections_status_msg->dongle_status_tower_change_indicator = dongle_status.towerChangeIndicator();
+      mip_gnss_corrections_rtk_corrections_status_msg->dongle_status_nmea_timeout_flag = dongle_status.nmeaTimeout();
+      mip_gnss_corrections_rtk_corrections_status_msg->dongle_status_server_timeout_flag = dongle_status.serverTimeout();
+      mip_gnss_corrections_rtk_corrections_status_msg->dongle_status_rtcm_timeout_flag = dongle_status.rtcmTimeout();
+      mip_gnss_corrections_rtk_corrections_status_msg->dongle_status_device_out_of_range_flag = dongle_status.deviceOutOfRange();
+      mip_gnss_corrections_rtk_corrections_status_msg->dongle_status_corrections_unavailable_flag = dongle_status.correctionsUnavailable();
+
+      mip_gnss_corrections_rtk_corrections_status_msg->gps_correction_latency = rtk_corrections_status.gps_correction_latency;
+      mip_gnss_corrections_rtk_corrections_status_msg->glonass_correction_latency = rtk_corrections_status.glonass_correction_latency;
+      mip_gnss_corrections_rtk_corrections_status_msg->galileo_correction_latency = rtk_corrections_status.galileo_correction_latency;
+      mip_gnss_corrections_rtk_corrections_status_msg->beidou_correction_latency = rtk_corrections_status.beidou_correction_latency;
+      mip_gnss_corrections_rtk_corrections_status_pub_->publish(*mip_gnss_corrections_rtk_corrections_status_msg);
       break;
     }
   }
@@ -936,43 +953,42 @@ void Publishers::handleFilterTimestamp(const mip::data_filter::Timestamp& filter
 
 void Publishers::handleFilterStatus(const mip::data_filter::Status& status, const uint8_t descriptor_set, mip::Timestamp timestamp)
 {
-  auto filter_status_msg = filter_status_pub_->getMessageToUpdate();
-  filter_status_msg->filter_state = static_cast<uint16_t>(status.filter_state);
-  filter_status_msg->dynamics_mode = static_cast<uint16_t>(status.dynamics_mode);
-  filter_status_msg->status_flags = status.status_flags;
-}
+  auto mip_filter_status_msg = mip_filter_status_pub_->getMessage();
+  updateMicrostrainHeader(&(mip_filter_status_msg->header), descriptor_set);
+  mip_filter_status_msg->filter_state = static_cast<uint16_t>(status.filter_state);
+  mip_filter_status_msg->dynamics_mode = static_cast<uint16_t>(status.dynamics_mode);
 
-void Publishers::handleFilterEulerAngles(const mip::data_filter::EulerAngles& euler_angles, const uint8_t descriptor_set, mip::Timestamp timestamp)
-{
-  // Save the data after converting it to the proper frame
-  float filter_yaw;
-  if (config_->use_enu_frame_)
-  {
-    filter_yaw = M_PI / 2.0 - euler_angles.yaw;
-    if (filter_yaw > M_PI)
-      filter_yaw -= 2.0 * M_PI;
-    else if (filter_yaw < -M_PI)
-      filter_yaw += 2.0 * M_PI;
-  }
-  else
-  {
-    filter_yaw = euler_angles.yaw;
-  }
+  // Populate both the philo and prospect flags, it is up to the customer to determine which device they have
+  mip_filter_status_msg->status_flags_gx5_init_no_attitude = status.status_flags.gx5InitNoAttitude();
+  mip_filter_status_msg->status_flags_gx5_init_no_position_velocity = status.status_flags.gx5InitNoPositionVelocity();
+  mip_filter_status_msg->status_flags_gx5_run_imu_unavailable = status.status_flags.gx5RunImuUnavailable();
+  mip_filter_status_msg->status_flags_gx5_run_gps_unavailable = status.status_flags.gx5RunGpsUnavailable();
+  mip_filter_status_msg->status_flags_gx5_run_matrix_singularity = status.status_flags.gx5RunMatrixSingularity();
+  mip_filter_status_msg->status_flags_gx5_run_position_covariance_warning = status.status_flags.gx5RunPositionCovarianceWarning();
+  mip_filter_status_msg->status_flags_gx5_run_velocity_covariance_warning = status.status_flags.gx5RunVelocityCovarianceWarning();
+  mip_filter_status_msg->status_flags_gx5_run_attitude_covariance_warning = status.status_flags.gx5RunAttitudeCovarianceWarning();
+  mip_filter_status_msg->status_flags_gx5_run_nan_in_solution_warning = status.status_flags.gx5RunNanInSolutionWarning();
+  mip_filter_status_msg->status_flags_gx5_run_gyro_bias_est_high_warning = status.status_flags.gx5RunGyroBiasEstHighWarning();
+  mip_filter_status_msg->status_flags_gx5_run_accel_bias_est_high_warning = status.status_flags.gx5RunAccelBiasEstHighWarning();
+  mip_filter_status_msg->status_flags_gx5_run_gyro_scale_factor_est_high_warning = status.status_flags.gx5RunGyroScaleFactorEstHighWarning();
+  mip_filter_status_msg->status_flags_gx5_run_accel_scale_factor_est_high_warning = status.status_flags.gx5RunAccelScaleFactorEstHighWarning();
+  mip_filter_status_msg->status_flags_gx5_run_mag_bias_est_high_warning = status.status_flags.gx5RunMagBiasEstHighWarning();
+  mip_filter_status_msg->status_flags_gx5_run_ant_offset_correction_est_high_warning = status.status_flags.gx5RunAntOffsetCorrectionEstHighWarning();
+  mip_filter_status_msg->status_flags_gx5_run_mag_hard_iron_est_high_warning = status.status_flags.gx5RunMagHardIronEstHighWarning();
+  mip_filter_status_msg->status_flags_gx5_run_mag_soft_iron_est_high_warning = status.status_flags.gx5RunMagSoftIronEstHighWarning();
 
-  // Filter heading message
-  auto filter_heading_msg = filter_heading_pub_->getMessageToUpdate();
-  filter_heading_msg->heading_deg = filter_yaw * 180.0 / M_PI;
-  filter_heading_msg->heading_rad = filter_yaw;
-  filter_heading_msg->status_flags = euler_angles.valid_flags;
-}
-
-void Publishers::handleFilterHeadingUpdateState(const mip::data_filter::HeadingUpdateState& heading_update_state, const uint8_t descriptor_set, mip::Timestamp timestamp)
-{
-  auto filter_heading_state_msg = filter_heading_state_pub_->getMessageToUpdate();
-  filter_heading_state_msg->heading_rad = heading_update_state.heading;
-  filter_heading_state_msg->heading_uncertainty = heading_update_state.heading_1sigma;
-  filter_heading_state_msg->source = static_cast<uint8_t>(heading_update_state.source);
-  filter_heading_state_msg->status_flags = heading_update_state.valid_flags;
+  mip_filter_status_msg->status_flags_gq7_filter_condition = status.status_flags.gq7FilterCondition();
+  mip_filter_status_msg->status_flags_gq7_roll_pitch_warning = status.status_flags.gq7RollPitchWarning();
+  mip_filter_status_msg->status_flags_gq7_heading_warning = status.status_flags.gq7HeadingWarning();
+  mip_filter_status_msg->status_flags_gq7_position_warning = status.status_flags.gq7PositionWarning();
+  mip_filter_status_msg->status_flags_gq7_velocity_warning = status.status_flags.gq7VelocityWarning();
+  mip_filter_status_msg->status_flags_gq7_imu_bias_warning = status.status_flags.gq7ImuBiasWarning();
+  mip_filter_status_msg->status_flags_gq7_gnss_clk_warning = status.status_flags.gq7GnssClkWarning();
+  mip_filter_status_msg->status_flags_gq7_antenna_lever_arm_warning = status.status_flags.gq7AntennaLeverArmWarning();
+  mip_filter_status_msg->status_flags_gq7_mounting_transform_warning = status.status_flags.gq7MountingTransformWarning();
+  mip_filter_status_msg->status_flags_gq7_time_sync_warning = status.status_flags.gq7TimeSyncWarning();
+  mip_filter_status_msg->status_flags_gq7_solution_error = status.status_flags.gq7SolutionError();
+  mip_filter_status_pub_->publish(*mip_filter_status_msg);
 }
 
 void Publishers::handleFilterEcefPos(const mip::data_filter::EcefPos& ecef_pos, const uint8_t descriptor_set, mip::Timestamp timestamp)
@@ -1011,13 +1027,20 @@ void Publishers::handleFilterPositionLlhUncertainty(const mip::data_filter::Posi
   auto filter_fix_msg = filter_fix_pub_->getMessageToUpdate();
   updateHeaderTime(&(filter_fix_msg->header), descriptor_set, timestamp);
   filter_fix_msg->position_covariance_type = NavSatFixMsg::COVARIANCE_TYPE_DIAGONAL_KNOWN;
-  filter_fix_msg->position_covariance[0] = pow(position_llh_uncertainty.east, 2);
-  filter_fix_msg->position_covariance[4] = pow(position_llh_uncertainty.north, 2);
+  if (config_->use_enu_frame_)
+  {
+    filter_fix_msg->position_covariance[0] = pow(position_llh_uncertainty.north, 2);
+    filter_fix_msg->position_covariance[4] = pow(position_llh_uncertainty.east, 2);
+  }
+  else
+  {
+    filter_fix_msg->position_covariance[0] = pow(position_llh_uncertainty.east, 2);
+    filter_fix_msg->position_covariance[4] = pow(position_llh_uncertainty.north, 2);
+  }
   filter_fix_msg->position_covariance[8] = pow(position_llh_uncertainty.down, 2);
 
-  // Filter relative odometry message
-  auto filter_relative_odom_msg = filter_relative_odom_pub_->getMessageToUpdate();
-  updateHeaderTime(&(filter_relative_odom_msg->header), descriptor_set, timestamp);
+  // Filter relative odometry message (not counted as updating)
+  auto filter_relative_odom_msg = filter_relative_odom_pub_->getMessage();
   if (config_->use_enu_frame_)
   {
     filter_relative_odom_msg->pose.covariance[0] = pow(position_llh_uncertainty.east, 2);
@@ -1033,9 +1056,9 @@ void Publishers::handleFilterPositionLlhUncertainty(const mip::data_filter::Posi
 
 void Publishers::handleFilterAttitudeQuaternion(const mip::data_filter::AttitudeQuaternion& attitude_quaternion, const uint8_t descriptor_set, mip::Timestamp timestamp)
 {
-  // Filter odometry message
-  auto filter_odom_msg = filter_odom_pub_->getMessageToUpdate();
-  updateHeaderTime(&(filter_odom_msg->header), descriptor_set, timestamp);
+  // Filtered IMU message
+  auto imu_msg = imu_pub_->getMessageToUpdate();
+  updateHeaderTime(&(imu_msg->header), descriptor_set, timestamp);
   if (config_->use_enu_frame_)
   {
     tf2::Quaternion q_ned2enu, q_body2enu, q_vehiclebody2sensorbody, q_body2ned(attitude_quaternion.q[1], attitude_quaternion.q[2], attitude_quaternion.q[3], attitude_quaternion.q[0]);
@@ -1045,25 +1068,23 @@ void Publishers::handleFilterAttitudeQuaternion(const mip::data_filter::Attitude
 
     q_body2enu = q_ned2enu * q_body2ned * q_vehiclebody2sensorbody;
 
-    filter_odom_msg->pose.pose.orientation = tf2::toMsg(q_body2enu);
+    imu_msg->orientation = tf2::toMsg(q_body2enu);
   }
   else
   {
-    filter_odom_msg->pose.pose.orientation.x = attitude_quaternion.q[1];
-    filter_odom_msg->pose.pose.orientation.y = attitude_quaternion.q[2];
-    filter_odom_msg->pose.pose.orientation.z = attitude_quaternion.q[3];
-    filter_odom_msg->pose.pose.orientation.w = attitude_quaternion.q[0];
+    imu_msg->orientation.x = attitude_quaternion.q[1];
+    imu_msg->orientation.y = attitude_quaternion.q[2];
+    imu_msg->orientation.z = attitude_quaternion.q[3];
+    imu_msg->orientation.w = attitude_quaternion.q[0];
   }
 
-  // Filtered IMU message
-  auto imu_msg = imu_pub_->getMessageToUpdate();
-  updateHeaderTime(&(imu_msg->header), descriptor_set, timestamp);
-  imu_msg->orientation = filter_odom_msg->pose.pose.orientation;
+  // Filter odometry message (not counted as updating)
+  auto filter_odom_msg = filter_odom_pub_->getMessage();
+  filter_odom_msg->pose.pose.orientation = imu_msg->orientation;
 
-  // Filter relative odometry message
-  auto filter_relative_odom_msg = filter_relative_odom_pub_->getMessageToUpdate();
-  updateHeaderTime(&(filter_relative_odom_msg->header), descriptor_set, timestamp);
-  filter_relative_odom_msg->pose.pose.orientation = filter_odom_msg->pose.pose.orientation;
+  // Filter relative odometry message (not counted as updating)
+  auto filter_relative_odom_msg = filter_relative_odom_pub_->getMessage();
+  filter_relative_odom_msg->pose.pose.orientation = imu_msg->orientation;
 
   // Relative transform
   updateHeaderTime(&(filter_relative_transform_msg_.header), descriptor_set, timestamp);
@@ -1081,98 +1102,91 @@ void Publishers::handleFilterAttitudeQuaternion(const mip::data_filter::Attitude
 
 void Publishers::handleFilterEulerAnglesUncertainty(const mip::data_filter::EulerAnglesUncertainty& euler_angles_uncertainty, const uint8_t descriptor_set, mip::Timestamp timestamp)
 {
-  // Filter odometry message
-  auto filter_odom_msg = filter_odom_pub_->getMessageToUpdate();
-  updateHeaderTime(&(filter_odom_msg->header), descriptor_set, timestamp);
-  if (config_->use_enu_frame_)
-  {
-    filter_odom_msg->pose.covariance[28] = pow(euler_angles_uncertainty.roll, 2);
-    filter_odom_msg->pose.covariance[21] = pow(euler_angles_uncertainty.pitch, 2);
-  }
-  else
-  {
-    filter_odom_msg->pose.covariance[21] = pow(euler_angles_uncertainty.roll, 2);
-    filter_odom_msg->pose.covariance[28] = pow(euler_angles_uncertainty.pitch, 2);
-  }
-  filter_odom_msg->pose.covariance[35] = pow(euler_angles_uncertainty.yaw, 2);
-
   // Filtered IMU message
   auto imu_msg = imu_pub_->getMessageToUpdate();
   updateHeaderTime(&(imu_msg->header), descriptor_set, timestamp);
-  imu_msg->orientation_covariance[0] = filter_odom_msg->pose.covariance[21];
-  imu_msg->orientation_covariance[4] = filter_odom_msg->pose.covariance[28];
-  imu_msg->orientation_covariance[8] = filter_odom_msg->pose.covariance[35];
+  if (config_->use_enu_frame_)
+  {
+    imu_msg->orientation_covariance[0] = pow(euler_angles_uncertainty.pitch, 2);
+    imu_msg->orientation_covariance[4] = pow(euler_angles_uncertainty.roll, 2);
+  }
+  else
+  {
+    imu_msg->orientation_covariance[0] = pow(euler_angles_uncertainty.roll, 2);
+    imu_msg->orientation_covariance[4] = pow(euler_angles_uncertainty.pitch, 2);
+  }
+  imu_msg->orientation_covariance[8] = pow(euler_angles_uncertainty.yaw, 2);
 
-  // Filter relative odometry message
-  auto filter_relative_odom_msg = filter_relative_odom_pub_->getMessageToUpdate();
-  updateHeaderTime(&(filter_relative_odom_msg->header), descriptor_set, timestamp);
-  filter_relative_odom_msg->pose.covariance[21] = filter_odom_msg->pose.covariance[21];
-  filter_relative_odom_msg->pose.covariance[28] = filter_odom_msg->pose.covariance[28];
-  filter_relative_odom_msg->pose.covariance[35] = filter_odom_msg->pose.covariance[35];
+  // Filter odometry message (not counted as updating)
+  auto filter_odom_msg = filter_odom_pub_->getMessage();
+  filter_odom_msg->pose.covariance[21] = imu_msg->orientation_covariance[0];
+  filter_odom_msg->pose.covariance[28] = imu_msg->orientation_covariance[4];
+  filter_odom_msg->pose.covariance[35] = imu_msg->orientation_covariance[8];
+
+  // Filter relative odometry message (not counted as updating)
+  auto filter_relative_odom_msg = filter_relative_odom_pub_->getMessage();
+  filter_relative_odom_msg->pose.covariance[21] = imu_msg->orientation_covariance[0];
+  filter_relative_odom_msg->pose.covariance[28] = imu_msg->orientation_covariance[4];
+  filter_relative_odom_msg->pose.covariance[35] = imu_msg->orientation_covariance[8];
 }
 
 void Publishers::handleFilterVelocityNed(const mip::data_filter::VelocityNed& velocity_ned, const uint8_t descriptor_set, mip::Timestamp timestamp)
 {
-  // Filter odometry message
-  auto filter_odom_msg = filter_odom_pub_->getMessageToUpdate();
-  updateHeaderTime(&(filter_odom_msg->header), descriptor_set, timestamp);
-  if (config_->use_enu_frame_)
-  {
-    filter_odom_msg->twist.twist.linear.x = velocity_ned.east;
-    filter_odom_msg->twist.twist.linear.y = velocity_ned.north;
-    filter_odom_msg->twist.twist.linear.z = -velocity_ned.down;
-  }
-  else
-  {
-    filter_odom_msg->twist.twist.linear.x = velocity_ned.north;
-    filter_odom_msg->twist.twist.linear.y = velocity_ned.east;
-    filter_odom_msg->twist.twist.linear.z = velocity_ned.down;
-  }
-
   // Filter ENU velocity message
   auto filter_vel_msg = filter_vel_pub_->getMessageToUpdate();
   updateHeaderTime(&(filter_vel_msg->header), descriptor_set, timestamp);
-  filter_vel_msg->twist.twist.linear = filter_odom_msg->twist.twist.linear;
+  if (config_->use_enu_frame_)
+  {
+    filter_vel_msg->twist.twist.linear.x = velocity_ned.east;
+    filter_vel_msg->twist.twist.linear.y = velocity_ned.north;
+    filter_vel_msg->twist.twist.linear.z = -velocity_ned.down;
+  }
+  else
+  {
+    filter_vel_msg->twist.twist.linear.x = velocity_ned.north;
+    filter_vel_msg->twist.twist.linear.x = velocity_ned.east;
+    filter_vel_msg->twist.twist.linear.x = velocity_ned.down;
+  }
+
+  // Filter odometry message (not counted as updating)
+  auto filter_odom_msg = filter_odom_pub_->getMessage();
 
   // Rotate the velocity to the sensor frame
-  const tf2::Vector3 filter_current_vel(filter_odom_msg->twist.twist.linear.x, filter_odom_msg->twist.twist.linear.y, filter_odom_msg->twist.twist.linear.z);
+  const tf2::Vector3 filter_current_vel(filter_vel_msg->twist.twist.linear.x, filter_vel_msg->twist.twist.linear.y, filter_vel_msg->twist.twist.linear.z);
   const tf2::Vector3 filter_rotated_vel = tf2::quatRotate(filter_attitude_quaternion_.inverse(), filter_current_vel);
   filter_odom_msg->twist.twist.linear.x = filter_rotated_vel.getX();
   filter_odom_msg->twist.twist.linear.y = filter_rotated_vel.getY();
   filter_odom_msg->twist.twist.linear.z = filter_rotated_vel.getZ();
 
-  // Filter relative odometry message
-  auto filter_relative_odom_msg = filter_relative_odom_pub_->getMessageToUpdate();
-  updateHeaderTime(&(filter_relative_transform_msg_.header), descriptor_set, timestamp);
+  // Filter relative odometry message (not counted as updating)
+  auto filter_relative_odom_msg = filter_relative_odom_pub_->getMessage();
   filter_relative_odom_msg->twist.twist.linear = filter_odom_msg->twist.twist.linear;
 }
 
 void Publishers::handleFilterVelocityNedUncertainty(const mip::data_filter::VelocityNedUncertainty& velocity_ned_uncertainty, const uint8_t descriptor_set, mip::Timestamp timestamp)
 {
-  // Filter odometry message
-  auto filter_odom_msg = filter_odom_pub_->getMessageToUpdate();
-  updateHeaderTime(&(filter_odom_msg->header), descriptor_set, timestamp);
-  if (config_->use_enu_frame_)
-  {
-    filter_odom_msg->twist.covariance[0] = pow(velocity_ned_uncertainty.east, 2);
-    filter_odom_msg->twist.covariance[7] = pow(velocity_ned_uncertainty.north, 2);
-  }
-  else
-  {
-    filter_odom_msg->twist.covariance[0] = pow(velocity_ned_uncertainty.north, 2);
-    filter_odom_msg->twist.covariance[7] = pow(velocity_ned_uncertainty.east, 2);
-  }
-  filter_odom_msg->twist.covariance[14] = pow(velocity_ned_uncertainty.down, 2);
-
   // Filter ENU velocity message
   auto filter_vel_msg = filter_vel_pub_->getMessageToUpdate();
   updateHeaderTime(&(filter_vel_msg->header), descriptor_set, timestamp);
-  filter_vel_msg->twist.covariance = filter_odom_msg->twist.covariance;
+  if (config_->use_enu_frame_)
+  {
+    filter_vel_msg->twist.covariance[0] = pow(velocity_ned_uncertainty.east, 2);
+    filter_vel_msg->twist.covariance[7] = pow(velocity_ned_uncertainty.north, 2);
+  }
+  else
+  {
+    filter_vel_msg->twist.covariance[0] = pow(velocity_ned_uncertainty.north, 2);
+    filter_vel_msg->twist.covariance[7] = pow(velocity_ned_uncertainty.east, 2);
+  }
+  filter_vel_msg->twist.covariance[14] = pow(velocity_ned_uncertainty.down, 2);
 
-  // Filter relative odometry message
+  // Filter odometry message (not counted as updating)
+  auto filter_odom_msg = filter_odom_pub_->getMessageToUpdate();
+  filter_odom_msg->twist.covariance = filter_vel_msg->twist.covariance;
+
+  // Filter relative odometry message (not counted as opening)
   auto filter_relative_odom_msg = filter_relative_odom_pub_->getMessageToUpdate();
-  updateHeaderTime(&(filter_relative_transform_msg_.header), descriptor_set, timestamp);
-  filter_relative_odom_msg->twist.covariance = filter_odom_msg->twist.covariance;
+  filter_relative_odom_msg->twist.covariance = filter_vel_msg->twist.covariance;
 }
 
 void Publishers::handleFilterEcefVelocity(const mip::data_filter::EcefVel& ecef_vel, const uint8_t descriptor_set, mip::Timestamp timestamp)
@@ -1195,27 +1209,25 @@ void Publishers::handleFilterEcefVelocityUncertainty(const mip::data_filter::Ece
 
 void Publishers::handleFilterCompAngularRate(const mip::data_filter::CompAngularRate& comp_angular_rate, const uint8_t descriptor_set, mip::Timestamp timestamp)
 {
-  // Filter odometry message
-  auto filter_odom_msg = filter_odom_pub_->getMessageToUpdate();
-  updateHeaderTime(&(filter_odom_msg->header), descriptor_set, timestamp);
-  filter_odom_msg->twist.twist.angular.x = comp_angular_rate.gyro[0];
-  filter_odom_msg->twist.twist.angular.y = comp_angular_rate.gyro[1];
-  filter_odom_msg->twist.twist.angular.z = comp_angular_rate.gyro[2];
-  if (config_->use_enu_frame_)
-  {
-    filter_odom_msg->twist.twist.angular.y *= -1.0;
-    filter_odom_msg->twist.twist.angular.z *= -1.0;
-  }
-
   // Filtered IMU message
   auto imu_msg = imu_pub_->getMessageToUpdate();
   updateHeaderTime(&(imu_msg->header), descriptor_set, timestamp);
-  imu_msg->angular_velocity = filter_odom_msg->twist.twist.angular;
+  imu_msg->angular_velocity.x = comp_angular_rate.gyro[0];
+  imu_msg->angular_velocity.y = comp_angular_rate.gyro[1];
+  imu_msg->angular_velocity.z = comp_angular_rate.gyro[2];
+  if (config_->use_enu_frame_)
+  {
+    imu_msg->angular_velocity.y *= -1;
+    imu_msg->angular_velocity.z *= -1;
+  }
 
-  // Filter relative odometry message
-  auto filter_relative_odom_msg = filter_relative_odom_pub_->getMessageToUpdate();
-  updateHeaderTime(&(filter_relative_transform_msg_.header), descriptor_set, timestamp);
-  filter_relative_odom_msg->twist.twist.angular = filter_odom_msg->twist.twist.angular;
+  // Filter odometry message (not counted as updating)
+  auto filter_odom_msg = filter_odom_pub_->getMessage();
+  filter_odom_msg->twist.twist.angular = imu_msg->angular_velocity;
+
+  // Filter relative odometry message (not counted as updating)
+  auto filter_relative_odom_msg = filter_relative_odom_pub_->getMessage();
+  filter_relative_odom_msg->twist.twist.angular = imu_msg->angular_velocity;
 }
 
 void Publishers::handleFilterCompAccel(const mip::data_filter::CompAccel& comp_accel, const uint8_t descriptor_set, mip::Timestamp timestamp)
@@ -1281,46 +1293,46 @@ void Publishers::handleFilterRelPosNed(const mip::data_filter::RelPosNed& rel_po
 
 void Publishers::handleFilterGnssPosAidStatus(const mip::data_filter::GnssPosAidStatus& gnss_pos_aid_status, const uint8_t descriptor_set, mip::Timestamp timestamp)
 {
-  // GNSS Position aiding status
-  if (gnss_aiding_status_pub_.size() < gnss_pos_aid_status.receiver_id)
-    return;
+  // Filter GNSS position aiding status
+  auto mip_filter_gnss_position_aiding_status_msg = mip_filter_gnss_position_aiding_status_pub_->getMessage();
+  updateMicrostrainHeader(&(mip_filter_gnss_position_aiding_status_msg->header), descriptor_set);
+  mip_filter_gnss_position_aiding_status_msg->receiver_id = gnss_pos_aid_status.receiver_id;
+  mip_filter_gnss_position_aiding_status_msg->time_of_week = gnss_pos_aid_status.time_of_week;
+  mip_filter_gnss_position_aiding_status_msg->tight_coupling = gnss_pos_aid_status.status.tightCoupling();
+  mip_filter_gnss_position_aiding_status_msg->differential = gnss_pos_aid_status.status.differential();
+  mip_filter_gnss_position_aiding_status_msg->integer_fix = gnss_pos_aid_status.status.integerFix();
+  mip_filter_gnss_position_aiding_status_msg->gps_l1 = gnss_pos_aid_status.status.gpsL1();
+  mip_filter_gnss_position_aiding_status_msg->gps_l2 = gnss_pos_aid_status.status.gpsL2();
+  mip_filter_gnss_position_aiding_status_msg->gps_l5 = gnss_pos_aid_status.status.gpsL5();
+  mip_filter_gnss_position_aiding_status_msg->glo_l1 = gnss_pos_aid_status.status.gloL1();
+  mip_filter_gnss_position_aiding_status_msg->glo_l2 = gnss_pos_aid_status.status.gloL2();
+  mip_filter_gnss_position_aiding_status_msg->gal_e1 = gnss_pos_aid_status.status.galE1();
+  mip_filter_gnss_position_aiding_status_msg->gal_e5 = gnss_pos_aid_status.status.galE5();
+  mip_filter_gnss_position_aiding_status_msg->gal_e6 = gnss_pos_aid_status.status.galE6();
+  mip_filter_gnss_position_aiding_status_msg->bei_b1 = gnss_pos_aid_status.status.beiB1();
+  mip_filter_gnss_position_aiding_status_msg->bei_b2 = gnss_pos_aid_status.status.beiB2();
+  mip_filter_gnss_position_aiding_status_msg->bei_b3 = gnss_pos_aid_status.status.beiB3();
+  mip_filter_gnss_position_aiding_status_msg->no_fix = gnss_pos_aid_status.status.noFix();
+  mip_filter_gnss_position_aiding_status_msg->config_error = gnss_pos_aid_status.status.configError();
+  mip_filter_gnss_position_aiding_status_pub_->publish(*mip_filter_gnss_position_aiding_status_msg);
 
-  const uint8_t gnss_index = gnss_pos_aid_status.receiver_id - 1;
-  auto gnss_aiding_status_msg = gnss_aiding_status_pub_[gnss_index]->getMessageToUpdate();
-  gnss_aiding_status_msg->gps_tow = gnss_pos_aid_status.time_of_week;
-  gnss_aiding_status_msg->has_position_fix = (gnss_pos_aid_status.status & mip::data_filter::GnssAidStatusFlags::NO_FIX) == 0;
-  gnss_aiding_status_msg->tight_coupling = gnss_pos_aid_status.status & mip::data_filter::GnssAidStatusFlags::TIGHT_COUPLING;
-  gnss_aiding_status_msg->differential_corrections = gnss_pos_aid_status.status & mip::data_filter::GnssAidStatusFlags::DIFFERENTIAL;
-  gnss_aiding_status_msg->integer_fix = gnss_pos_aid_status.status & mip::data_filter::GnssAidStatusFlags::INTEGER_FIX;
-  gnss_aiding_status_msg->using_gps = gnss_pos_aid_status.status & mip::data_filter::GnssAidStatusFlags::GPS_L1
-                                   || gnss_pos_aid_status.status & mip::data_filter::GnssAidStatusFlags::GPS_L2
-                                   || gnss_pos_aid_status.status & mip::data_filter::GnssAidStatusFlags::GPS_L5;
-  gnss_aiding_status_msg->using_glonass = gnss_pos_aid_status.status & mip::data_filter::GnssAidStatusFlags::GLO_L1
-                                       || gnss_pos_aid_status.status & mip::data_filter::GnssAidStatusFlags::GLO_L2;
-  gnss_aiding_status_msg->using_galileo = gnss_pos_aid_status.status & mip::data_filter::GnssAidStatusFlags::GAL_E1
-                                       || gnss_pos_aid_status.status & mip::data_filter::GnssAidStatusFlags::GAL_E5
-                                       || gnss_pos_aid_status.status & mip::data_filter::GnssAidStatusFlags::GAL_E6;
-  gnss_aiding_status_msg->using_beidou = gnss_pos_aid_status.status & mip::data_filter::GnssAidStatusFlags::BEI_B1
-                                      || gnss_pos_aid_status.status & mip::data_filter::GnssAidStatusFlags::BEI_B2
-                                      || gnss_pos_aid_status.status & mip::data_filter::GnssAidStatusFlags::BEI_B3;
-
-  // Filter fix message
-  auto filter_fix_msg = filter_fix_pub_->getMessageToUpdate();
-  updateHeaderTime(&(filter_fix_msg->header), descriptor_set, timestamp);
+  // Filter fix message (not counted as updating)
+  auto filter_fix_msg = filter_fix_pub_->getMessage();
 
   // Take the best out of the two receivers
   bool status_set = false;
-  if (filter_fix_msg->status.status <= NavSatFixMsg::_status_type::STATUS_GBAS_FIX && gnss_aiding_status_msg->differential_corrections)
+  const uint8_t gnss_index = gnss_pos_aid_status.receiver_id - 1;
+  if (filter_fix_msg->status.status <= NavSatFixMsg::_status_type::STATUS_GBAS_FIX && mip_filter_gnss_position_aiding_status_msg->differential)
   {
     status_set = true;
     filter_fix_msg->status.status = NavSatFixMsg::_status_type::STATUS_GBAS_FIX;
   }
-  else if (filter_fix_msg->status.status <= NavSatFixMsg::_status_type::STATUS_SBAS_FIX && gnss_fix_info_pub_[gnss_index]->getMessage()->sbas_used)
+  else if (filter_fix_msg->status.status <= NavSatFixMsg::_status_type::STATUS_SBAS_FIX && mip_gnss_fix_info_pub_[gnss_index]->getMessage()->sbas_used)
   {
     status_set = true;
     filter_fix_msg->status.status = NavSatFixMsg::_status_type::STATUS_SBAS_FIX;
   }
-  else if (filter_fix_msg->status.status <= NavSatFixMsg::_status_type::STATUS_FIX && gnss_aiding_status_msg->has_position_fix)
+  else if (filter_fix_msg->status.status <= NavSatFixMsg::_status_type::STATUS_FIX && !mip_filter_gnss_position_aiding_status_msg->no_fix)
   {
     status_set = true;
     filter_fix_msg->status.status = NavSatFixMsg::_status_type::STATUS_FIX;
@@ -1331,93 +1343,90 @@ void Publishers::handleFilterGnssPosAidStatus(const mip::data_filter::GnssPosAid
 
 void Publishers::handleFilterMultiAntennaOffsetCorrection(const mip::data_filter::MultiAntennaOffsetCorrection& multi_antenna_offset_correction, const uint8_t descriptor_set, mip::Timestamp timestamp)
 {
-  if (gnss_antenna_offset_correction_pub_.size() < multi_antenna_offset_correction.receiver_id)
-    return;
-
-  const uint8_t gnss_index = multi_antenna_offset_correction.receiver_id - 1;
-  auto gnss_antenna_offset_correction_msg = gnss_antenna_offset_correction_pub_[gnss_index]->getMessageToUpdate();
-  gnss_antenna_offset_correction_msg->offset[0] = multi_antenna_offset_correction.offset[0];
-  gnss_antenna_offset_correction_msg->offset[1] = multi_antenna_offset_correction.offset[1];
-  gnss_antenna_offset_correction_msg->offset[2] = multi_antenna_offset_correction.offset[2];
+  // TODO: Use these antenna offset corrections combined with the configured antenna offsets to publish GNSS transforms
+  auto mip_filter_multi_antenna_offset_correction_msg = mip_filter_multi_antenna_offset_correction_pub_->getMessage();
+  updateMicrostrainHeader(&(mip_filter_multi_antenna_offset_correction_msg->header), descriptor_set);
+  mip_filter_multi_antenna_offset_correction_msg->receiver_id = multi_antenna_offset_correction.receiver_id;
+  mip_filter_multi_antenna_offset_correction_msg->offset[0] = multi_antenna_offset_correction.offset[0];
+  mip_filter_multi_antenna_offset_correction_msg->offset[1] = multi_antenna_offset_correction.offset[1];
+  mip_filter_multi_antenna_offset_correction_msg->offset[2] = multi_antenna_offset_correction.offset[2];
+  mip_filter_multi_antenna_offset_correction_pub_->publish(*mip_filter_multi_antenna_offset_correction_msg);
 }
 
-void Publishers::handleFilterGnssDualAntennaStatus(const mip::data_filter::GnssDualAntennaStatus& gnss_dual_antenna_status, const uint8_t descriptor_set, mip::Timestamp timestamp)
+void Publishers::handleFilterGnssDualAntennaStatus(const mip::data_filter::GnssDualAntennaStatus& mip_filter_gnss_dual_antenna_status, const uint8_t descriptor_set, mip::Timestamp timestamp)
 {
-  auto gnss_dual_antenna_status_msg = gnss_dual_antenna_status_pub_->getMessageToUpdate();
-  gnss_dual_antenna_status_msg->gps_tow = gnss_dual_antenna_status.time_of_week;
-  gnss_dual_antenna_status_msg->heading = gnss_dual_antenna_status.heading;
-  gnss_dual_antenna_status_msg->heading_uncertainty = gnss_dual_antenna_status.heading_unc;
-  gnss_dual_antenna_status_msg->fix_type = static_cast<uint8_t>(gnss_dual_antenna_status.fix_type);
-  gnss_dual_antenna_status_msg->rcv_1_valid = gnss_dual_antenna_status.status_flags & mip::data_filter::GnssDualAntennaStatus::DualAntennaStatusFlags::RCV_1_DATA_VALID;
-  gnss_dual_antenna_status_msg->rcv_2_valid = gnss_dual_antenna_status.status_flags & mip::data_filter::GnssDualAntennaStatus::DualAntennaStatusFlags::RCV_2_DATA_VALID;
-  gnss_dual_antenna_status_msg->antenna_offsets_valid = gnss_dual_antenna_status.status_flags & mip::data_filter::GnssDualAntennaStatus::DualAntennaStatusFlags::ANTENNA_OFFSETS_VALID;
+  auto mip_filter_gnss_dual_antenna_status_msg = mip_filter_gnss_dual_antenna_status_pub_->getMessage();
+  updateMicrostrainHeader(&(mip_filter_gnss_dual_antenna_status_msg->header), descriptor_set);
+  mip_filter_gnss_dual_antenna_status_msg->time_of_week = mip_filter_gnss_dual_antenna_status.time_of_week;
+  mip_filter_gnss_dual_antenna_status_msg->heading = mip_filter_gnss_dual_antenna_status.heading;
+  mip_filter_gnss_dual_antenna_status_msg->heading_unc = mip_filter_gnss_dual_antenna_status.heading_unc;
+  mip_filter_gnss_dual_antenna_status_msg->fix_type = static_cast<uint8_t>(mip_filter_gnss_dual_antenna_status.fix_type);
+  mip_filter_gnss_dual_antenna_status_msg->status_flags_rcv_1_data_valid = mip_filter_gnss_dual_antenna_status.status_flags & mip::data_filter::GnssDualAntennaStatus::DualAntennaStatusFlags::RCV_1_DATA_VALID;
+  mip_filter_gnss_dual_antenna_status_msg->status_flags_rcv_2_data_valid = mip_filter_gnss_dual_antenna_status.status_flags & mip::data_filter::GnssDualAntennaStatus::DualAntennaStatusFlags::RCV_2_DATA_VALID;
+  mip_filter_gnss_dual_antenna_status_msg->status_flags_antenna_offsets_valid = mip_filter_gnss_dual_antenna_status.status_flags & mip::data_filter::GnssDualAntennaStatus::DualAntennaStatusFlags::ANTENNA_OFFSETS_VALID;
+  mip_filter_gnss_dual_antenna_status_pub_->publish(*mip_filter_gnss_dual_antenna_status_msg);
 }
 
 void Publishers::handleFilterAidingMeasurementSummary(const mip::data_filter::AidingMeasurementSummary& aiding_measurement_summary, const uint8_t descriptor_set, mip::Timestamp timestamp)
 {
-  FilterAidingMeasurementSummaryIndicatorMsg* indicator = nullptr;
-  auto filter_aiding_measurement_summary_msg = filter_aiding_mesaurement_summary_pub_->getMessageToUpdate();
-  switch (aiding_measurement_summary.type)
-  {
-    case mip::data_filter::FilterAidingMeasurementType::GNSS:
-      if (aiding_measurement_summary.source == GNSS1_ID + 1)
-        indicator = &(filter_aiding_measurement_summary_msg->gnss1);
-      else if (aiding_measurement_summary.source == GNSS2_ID + 1)
-        indicator = &(filter_aiding_measurement_summary_msg->gnss2);
-      break;
-    case mip::data_filter::FilterAidingMeasurementType::DUAL_ANTENNA:
-      indicator = &(filter_aiding_measurement_summary_msg->dual_antenna);
-      break;
-    case mip::data_filter::FilterAidingMeasurementType::HEADING:
-      indicator = &(filter_aiding_measurement_summary_msg->heading);
-      break;
-    case mip::data_filter::FilterAidingMeasurementType::PRESSURE:
-      indicator = &(filter_aiding_measurement_summary_msg->pressure);
-      break;
-    case mip::data_filter::FilterAidingMeasurementType::MAGNETOMETER:
-      indicator = &(filter_aiding_measurement_summary_msg->magnetometer);
-      break;
-    case mip::data_filter::FilterAidingMeasurementType::SPEED:
-      indicator = &(filter_aiding_measurement_summary_msg->speed);
-      break;
-  }
+  auto mip_filter_aiding_measurement_summary_msg = mip_filter_aiding_measurement_summary_pub_->getMessage();
+  updateMicrostrainHeader(&(mip_filter_aiding_measurement_summary_msg->header), descriptor_set);
+  mip_filter_aiding_measurement_summary_msg->time_of_week = aiding_measurement_summary.time_of_week;
+  mip_filter_aiding_measurement_summary_msg->source = aiding_measurement_summary.source;
+  mip_filter_aiding_measurement_summary_msg->type = static_cast<uint8_t>(aiding_measurement_summary.type);
 
-  if (indicator != nullptr)
-  {
-    indicator->enabled = aiding_measurement_summary.indicator & mip::data_filter::FilterMeasurementIndicator::ENABLED;
-    indicator->used = aiding_measurement_summary.indicator & mip::data_filter::FilterMeasurementIndicator::USED;
-    indicator->residual_high_warning = aiding_measurement_summary.indicator & mip::data_filter::FilterMeasurementIndicator::RESIDUAL_HIGH_WARNING;
-    indicator->sample_time_warning = aiding_measurement_summary.indicator & mip::data_filter::FilterMeasurementIndicator::SAMPLE_TIME_WARNING;
-    indicator->configuration_error = aiding_measurement_summary.indicator & mip::data_filter::FilterMeasurementIndicator::CONFIGURATION_ERROR;
-    indicator->max_num_meas_exceeded = aiding_measurement_summary.indicator & mip::data_filter::FilterMeasurementIndicator::MAX_NUM_MEAS_EXCEEDED;
-  }
+  mip_filter_aiding_measurement_summary_msg->indicator_enabled = aiding_measurement_summary.indicator.enabled();
+  mip_filter_aiding_measurement_summary_msg->indicator_used = aiding_measurement_summary.indicator.used();
+  mip_filter_aiding_measurement_summary_msg->indicator_residual_high_warning = aiding_measurement_summary.indicator.residualHighWarning();
+  mip_filter_aiding_measurement_summary_msg->indicator_sample_time_warning = aiding_measurement_summary.indicator.sampleTimeWarning();
+  mip_filter_aiding_measurement_summary_msg->indicator_configuration_error = aiding_measurement_summary.indicator.configurationError();
+  mip_filter_aiding_measurement_summary_msg->indicator_max_num_meas_exceeded = aiding_measurement_summary.indicator.maxNumMeasExceeded();
+  mip_filter_aiding_measurement_summary_pub_->publish(*mip_filter_aiding_measurement_summary_msg);
 }
 
 void Publishers::handleAfterPacket(const mip::Packet& packet, mip::Timestamp timestamp)
 {
   // Right now, we don't have to do much, just publish everything
   publish();
+
+  // Reset some shared descriptors. These are unique to the packets, and we do not want to cache them past this packet
+  if (event_source_mapping_.find(packet.descriptorSet()) != event_source_mapping_.end())
+    event_source_mapping_[packet.descriptorSet()].trigger_id = 0;
+}
+
+void Publishers::updateMicrostrainHeader(MicrostrainHeaderMsg* microstrain_header, uint8_t descriptor_set) const
+{
+  // Update the ROS header with either the adjusted timestamp or the ROS timestamp
+  if (adjusted_time_mapping_.find(descriptor_set) != adjusted_time_mapping_.end())
+    microstrain_header->header.stamp = adjusted_time_mapping_.at(descriptor_set);
+  else
+    microstrain_header->header.stamp = rosTimeNow(node_);
+
+  // Set the event source if it was set for this packet
+  if (event_source_mapping_.find(descriptor_set) != event_source_mapping_.end())
+    microstrain_header->event_source = event_source_mapping_.at(descriptor_set).trigger_id;
+  else
+    microstrain_header->event_source = 0;
+  
+  // Set the most recent reference timestamp if we have one
+  if (reference_timestamp_mapping_.find(descriptor_set) != reference_timestamp_mapping_.end())
+    microstrain_header->reference_timestamp = reference_timestamp_mapping_.at(descriptor_set).nanoseconds;
+  
+  // Set the GPS timestamp if we have one (should always have one)
+  if (gps_timestamp_mapping_.find(descriptor_set) != gps_timestamp_mapping_.end())
+  {
+    microstrain_header->gps_timestamp.week_number = gps_timestamp_mapping_.at(descriptor_set).week_number;
+    microstrain_header->gps_timestamp.tow = gps_timestamp_mapping_.at(descriptor_set).tow;
+  }
 }
 
 void Publishers::updateHeaderTime(RosHeaderType* header, uint8_t descriptor_set, mip::Timestamp timestamp)
 {
-  // If we are using device timestamp, we should only assign a value if we have actually received a timestamp
-  if (config_->use_device_timestamp_)
-  {
-    if (gps_timestamp_mapping_.find(descriptor_set) != gps_timestamp_mapping_.end())
-    {
-      // Convert the GPS time to UTC
-      setGpsTime(&header->stamp, gps_timestamp_mapping_[descriptor_set]);
-    }
-  }
-  else if (config_->use_ros_time_)
-  {
-    header->stamp = rosTimeNow(node_);
-  }
+  // Find the adjusted timestamp for this packet, otherwise use ROS time
+  if (adjusted_time_mapping_.find(descriptor_set) != adjusted_time_mapping_.end())
+    header->stamp = adjusted_time_mapping_.at(descriptor_set);
   else
-  {
-    setRosTime(&header->stamp, timestamp / 1000, (timestamp % 1000) * 1000000);
-  }
+    header->stamp = rosTimeNow(node_);
 }
 
 void Publishers::setGpsTime(RosTimeType* time, const mip::data_shared::GpsTimestamp& timestamp)

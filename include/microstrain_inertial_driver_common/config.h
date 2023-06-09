@@ -113,10 +113,10 @@ public:
   int32_t tf_mode_;
 
   // IMU frame offset configuration
-  bool publish_base_link_imu_link_transform_;
+  bool publish_base_link_to_frame_id_transform_;
 
   // Configured static transforms
-  TransformStampedMsg base_link_imu_link_transform_;
+  TransformStampedMsg base_link_to_frame_id_transform_;
 
   std::string imu_frame_id_;
   std::string filter_frame_id_;

@@ -63,6 +63,18 @@ bool Subscribers::activate()
     }
   }
 
+  // Setup our external aiding measurement subscriptions
+  if (true)  // TODO: Replace with some sort of check (And check that each command is supported)
+  {
+    external_gnss_position_sub_ = createSubscriber<>(node_, "/ext/fix", 1000, &Subscribers::externalGnssPositionCallback, this);
+    external_pressure_sub_ = createSubscriber<>(node_, "/ext/pressure", 1000, &Subscribers::externalPressureCallback, this);
+    external_pose_sub_ = createSubscriber<>(node_, "/ext/pose", 1000, &Subscribers::externalPoseCallback, this);
+    external_gnss_vel_sub_ = createSubscriber<>(node_, "/ext/vel", 1000, &Subscribers::externalGnssVelCallback, this);
+    external_gnss_vel_ecef_sub_ = createSubscriber<>(node_, "/ext/vel/ecef", 1000, &Subscribers::externalGnssVelEcefCallback, this);
+    external_body_vel_sub_ = createSubscriber<>(node_, "/ext/vel/body", 1000, &Subscribers::externalBodyVelCallback, this);
+    //external_heading_sub_ = createSubscriber<>(node_, "/ext/heading", 1000, &Subscribers::externalHeadingCallback, this);
+  }
+
   return true;
 }
 
@@ -198,5 +210,42 @@ void Subscribers::rtcmCallback(const RTCMMsg& rtcm)
     MICROSTRAIN_WARN(node_, "Note: Device did not configure the aux port. See startup logs for why it was not configured");
   }
 }
+
+void Subscribers::externalGnssPositionCallback(const NavSatFixMsg& fix)
+{
+
+}
+
+void Subscribers::externalPressureCallback(const FluidPressureMsg& pressure)
+{
+
+}
+
+void Subscribers::externalPoseCallback(const PoseWithCovarianceStampedMsg& pose)
+{
+
+}
+
+void Subscribers::externalGnssVelCallback(const TwistWithCovarianceStampedMsg& gnss_vel)
+{
+
+}
+
+void Subscribers::externalGnssVelEcefCallback(const TwistWithCovarianceStampedMsg& gnss_ecef_vel)
+{
+
+}
+
+void Subscribers::externalBodyVelCallback(const TwistWithCovarianceStampedMsg& body_vel)
+{
+
+}
+
+/*
+void Subscribers::externalHeadingCallback(const QuaternionWithCovarianceStampedMsg& heading)
+{
+
+}
+*/
 
 }  // namespace microstrain

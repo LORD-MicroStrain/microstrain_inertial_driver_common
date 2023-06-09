@@ -81,18 +81,35 @@ public:
    */
   void externalSpeedCallback(const InputSpeedMeasurementMsg& speed);
 
+  void externalGnssPositionCallback(const NavSatFixMsg& fix);
+  void externalPressureCallback(const FluidPressureMsg& pressure);
+  void externalPoseCallback(const PoseWithCovarianceStampedMsg& pose);
+  void externalGnssVelCallback(const TwistWithCovarianceStampedMsg& gnss_vel);
+  void externalGnssVelEcefCallback(const TwistWithCovarianceStampedMsg& gnss_ecef_vel);
+  void externalBodyVelCallback(const TwistWithCovarianceStampedMsg& body_vel);
+  //void externalHeadingCallback(const QuaternionWithCovarianceStampedMsg& heading);
+
   // ZUPT subscribers
-  BoolSubType filter_vel_state_sub_;
-  BoolSubType filter_ang_state_sub_;
+  RosSubType<BoolMsg>::SharedPtr filter_vel_state_sub_;
+  RosSubType<BoolMsg>::SharedPtr filter_ang_state_sub_;
 
   // External GNSS subscriber
-  TimeReferenceSubType external_gps_time_sub_;
+  RosSubType<TimeReferenceMsg>::SharedPtr external_gps_time_sub_;
 
   // External speed subscriber
-  InputSpeedMeasurementSubType external_speed_sub_;
+  RosSubType<InputSpeedMeasurementMsg>::SharedPtr external_speed_sub_;
+
+  // External aising measurement subscribers
+  RosSubType<NavSatFixMsg>::SharedPtr                       external_gnss_position_sub_;
+  RosSubType<FluidPressureMsg>::SharedPtr                   external_pressure_sub_;
+  RosSubType<PoseWithCovarianceStampedMsg>::SharedPtr       external_pose_sub_;
+  RosSubType<TwistWithCovarianceStampedMsg>::SharedPtr      external_gnss_vel_sub_;
+  RosSubType<TwistWithCovarianceStampedMsg>::SharedPtr      external_gnss_vel_ecef_sub_;
+  RosSubType<TwistWithCovarianceStampedMsg>::SharedPtr      external_body_vel_sub_;
+  //RosSubType<QuaternionWithCovarianceStampedMsg>::SharedPtr external_heading_sub_;
 
   // RTCM subscriber
-  RTCMSubType rtcm_sub_;
+  RosSubType<RTCMMsg>::SharedPtr rtcm_sub_;
 
 private:
   // Node Information

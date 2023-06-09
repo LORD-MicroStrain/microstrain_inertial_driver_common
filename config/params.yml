@@ -53,8 +53,8 @@ tf_mode : 1
 
 # Static transform between base_link_frame_id and frame_id.
 #      NOTE: It is strongly recommended to define this in a urdf file if you are building a robot, or are able to modify the robot's description.
-publish_base_link_imu_link_transform : True
-base_link_imu_link_transform         : [0, 0, 0, 0, 0, 0, 1] # [ x, y, z, qi, qj, qk, qw ]
+publish_base_link_to_frame_id_transform  : True
+base_link_to_frame_id_transform          : [0, 0, 0, 0, 0, 0, 1] # [ x, y, z, qi, qj, qk, qw ]
 
 # Controls if the driver outputs data with-respect-to ENU frame
 #      false - position, velocity, and orientation are WRT the NED frame (native device frame)
@@ -118,12 +118,10 @@ imu_data_rate : 100
 #      If set to -1, will use imu_data_rate to determine the rate at which to stream and publish
 #      If set to 0, the stream will be turned off and the publisher will not be created
 imu_data_rate          : 100  # Rate of imu/data topic
+                              # Note: Both filter_odom_earth_data_rate and filter_odom_map_data_rate depend on the contents of this message.
+                              #       If either are set to a higher value, this message will be published at that rate.
 imu_raw_data_rate      : 0    # Rate of imu_raw/data topic
 imu_raw_mag_data_rate  : 0    # Rate of imu_raw/mag topic
-
-imu_gps_corr_data_rate         : -1  # Rate of gps_corr topic
-                                     # Note that for philo devices (GX5, CV5, CX5), this will be published at the highest IMU data rate if "use_device_timestamp" is set to true
-imu_overrange_status_data_rate : -1  # Rate of imu/overrange_status topic
 
 # Static IMU message covariance values (the device does not generate these) 
 # Since internally these are std::vector we need to use the rosparam tags 
@@ -139,22 +137,13 @@ gnss1_data_rate : 2
 # The speed at which the individual GNSS1 publishers will publish at.
 #      If set to -1, will use gnss1_data_rate to determine the rate at which to stream and publish
 #      If set to 0, the stream will be turned off and the publisher will not be created
-#
-#      Note: The parameters' "gnss1_nav_sat_fix_data_rate", "gnss1_odom_data_rate" associated ROS messages share several MIP fields,
-#            so if more than one is set to stream, and they are set to stream at different rates, messages will be published on both topics, at the higher rate
 gnss1_fix_data_rate        : 2  # Rate of gnss1/fix topic
 gnss1_vel_data_rate        : 0  # Rate of gnss1/vel topic
+                                # Note: gnss1_odom_earth_data_rate depends on the contents of this message.
+                                #       If it is set to a higher value, this message will be published at that rate.
 gnss1_vel_ecef_data_rate   : 0  # Rate of gnss1/vel/ecef topic
 gnss1_odom_earth_data_rate : 2  # Rate of gnss1/odom/earth topic
 gnss1_time_data_rate       : 2  # Rate of gnss1/time topic
-
-#gnss1_nav_sat_fix_data_rate        : -1  # Rate of gnss1/fix topic
-#gnss1_odom_data_rate               : -1  # Rate of gnss1/odom topic
-#gnss1_time_reference_data_rate     : -1  # Rate of gnss1/time_ref topic
-                                         # Note that on philo devices, if use_device_timestamp is set to true, this will be streamed at the highest GNSS rate
-gnss1_fix_info_data_rate           : -1  # Rate of gnss1/fix_info topic
-gnss1_sbas_info_data_rate          : -1  # Rate of gnss1/sbas_info topic
-gnss1_rf_error_detection_data_rate : -1  # Rate of gnss1/rf_error_detection topic
 
 # Antenna #1 lever arm offset vector
 #     For GQ7 - in the vehicle frame wrt IMU origin (meters)
@@ -168,21 +157,13 @@ gnss2_data_rate : 2
 # The speed at which the individual GNSS2 publishers will publish at.
 #      If set to -1, will use gnss2_data_rate to determine the rate at which to stream and publish
 #      If set to 0, the stream will be turned off and the publisher will not be created
-#
-#      Note: The parameters' "gnss2_nav_sat_fix_data_rate", "gnss2_odom_data_rate" associated ROS messages share several MIP fields,
-#            so if more than one is set to stream, and they are set to stream at different rates, messages will be published on both topics, at the higher rate
 gnss2_fix_data_rate        : 2  # Rate of gnss2/fix topic
 gnss2_vel_data_rate        : 0  # Rate of gnss2/vel topic
+                                # Note: gnss2_odom_earth_data_rate depends on the contents of this message.
+                                #       If it is set to a higher value, this message will be published at that rate.
 gnss2_vel_ecef_data_rate   : 0  # Rate of gnss2/vel/ecef topic
 gnss2_odom_earth_data_rate : 2  # Rate of gnss2/odom/earth topic
 gnss2_time_data_rate       : 2  # Rate of gnss2/time topic
-
-#gnss2_nav_sat_fix_data_rate        : -1  # Rate of gnss2/fix topic
-#gnss2_odom_data_rate               : -1  # Rate of gnss2/odom topic
-#gnss2_time_reference_data_rate     : -1  # Rate of gnss2/time_ref topic
-gnss2_fix_info_data_rate           : -1  # Rate of gnss2/fix_info topic
-gnss2_sbas_info_data_rate          : -1  # Rate of gnss2/sbas_info topic
-gnss2_rf_error_detection_data_rate : -1  # Rate of gnss1/rf_error_detection topic
 
 # Antenna #2 lever arm offset vector (In the vehicle frame wrt IMU origin (meters) )
 # Note: Make this as accurate as possible for good performance 
@@ -199,7 +180,6 @@ rtk_data_rate: 1
 
 # The speed at which the individual RTK publishers will publish at.
 #      If set to 0, the stream will be turned off and the publisher will not be created
-rtk_status_data_rate : 1  # Rate of rtk/status or rtk/status_v1 topics
 
 # (GQ7 Only) Allow the user to send RTCM messages to this node, and stream those messages to the GQ7
 subscribe_rtcm : False
@@ -220,26 +200,13 @@ filter_data_rate : 10
 # The speed at which the individual Filter publishers will publish at.
 #      If set to -1, will use filter_data_rate to determine the rate at which to stream and publish
 #      If set to 0, the stream will be turned off and the publisher will not be created
-#
-#      Note: The parameters' "filter_odom_data_rate", "filter_imu_data_rate", "filter_relative_odom_data_rate" associated ROS messages share several MIP fields,
-#            so if more than one is set to stream, and they are set to stream at different rates, messages will be published on both topics, at the higher rate
 filter_fix_data_rate        : 10  # Rate of /fix topic
 filter_vel_data_rate        : 0   # Rate of /vel topic
+                                  # Note: Both filter_odom_earth_data_rate and filter_odom_map_data_rate depend on the contents of this message.
+                                  #       If either are set to a higher value, this message will be published at that rate.
 filter_vel_ecef_data_rate   : 0   # Rate of /vel/ecef topic
 filter_odom_earth_data_rate : 10  # Rate of /odom/earth topic
-filter_odom_map_data_rate   : 10  # Rate pf /odom/map topic
-
-filter_status_data_rate                     : -1  # Rate of nav/status topic
-filter_heading_data_rate                    : -1  # Rate of nav/heading topic
-filter_heading_state_data_rate              : -1  # Rate of nav/heading_state topic
-#filter_odom_data_rate                       : -1  # Rate of nav/odom topic
-filter_imu_data_rate                        : -1  # Rate of nav/filtered_imu/data
-#filter_relative_odom_data_rate              : -1  # Rate of nav/relative_pos topic and the transform between filter_frame_id and filter_child_frame_id
-                                                  # Note that this data rate will also control the rate at which the transform between "filter_frame_id" and "filter_child_frame_id" will be published at
-filter_aiding_status_data_rate              : -1  # Rate of gnss1/aiding_status and gnss2/aiding_status topics
-filter_antenna_offset_correction_data_rate  : -1  # Rate of gnss1/antenna_offset_corection and gnss2/antenna_offset_correction topics
-filter_gnss_dual_antenna_data_rate          : -1  # Rate of nav/dual_antenna_status topic
-filter_aiding_measurement_summary_data_rate : -1  # Rate of nav/aiding_summary topic
+filter_odom_map_data_rate   : 10  # Rate of /odom/map topic
 
 # Sensor2vehicle frame transformation selector
 #     0 = None, 1 = Euler Angles, 2 - matrix, 3 - quaternion
@@ -316,6 +283,31 @@ filter_vel_in_vehicle_frame : True
 #   Note: This offset will affect the position and velocity measurements in the following topics: nav/odom, nav/relative_pos/odom
 #   Note: This offset is in the vehicle reference frame.
 filter_lever_arm_offset: [0.0, 0.0, 0.0]
+
+# The speed at which the individual MIP publishers will publish at.
+#      If set to -1, will use imu_data_rate to determine the rate at which to stream and publish
+#      If set to 0, the stream will be turned off and the publisher will not be created
+mip_sensor_overrange_status_data_rate : 0  # Rate of mip/sensor/overrange_status topic
+
+mip_gnss1_fix_info_data_rate           : 0  # Rate of mip/gnss1/fix_info topic
+mip_gnss1_sbas_info_data_rate          : 0  # Rate of mip/gnss1/sbas_info topic
+mip_gnss1_rf_error_detection_data_rate : 0  # Rate of mip/gnss1/rf_error_detection
+
+mip_gnss2_fix_info_data_rate           : 0  # Rate of mip/gnss1/fix_info topic
+mip_gnss2_sbas_info_data_rate          : 0  # Rate of mip/gnss2/sbas_info topic
+mip_gnss2_rf_error_detection_data_rate : 0  # Rate of mip/gnss2/rf_error_detection
+
+mip_gnss_corrections_rtk_corrections_status_data_rate : 0  # Rate of mip/gnss_corrections/rtk_corrections_status topic
+                                                           # Note : This is an on demand topic. If set to any other value than 0, this message will be published at whatever rate the device provides it
+
+mip_filter_status_data_rate                          : 0  # Rate of mip/filter/status topic
+mip_filter_gnss_position_aiding_status_data_rate     : 0  # Rate of mip/filter/gnss_aiding_status
+                                                          # Note: filter_fix_data_rate depends on the contents of this message.
+                                                          #       If it is set to a higher value, this message will be published at that rate.
+mip_filter_multi_antenna_offset_correction_data_rate : 0  # Rate of mip/filter/multi_antenna_offset_correction
+mip_filter_gnss_dual_antenna_status_data_rate        : 0  # Rate of mip/filter/gnss_dual_antenna_status
+mip_filter_aiding_measurement_summary_data_rate      : 0  # Rate of mip/filter/aiding_measurement_summary topic
+
 
 # (GQ7 Only) Hardware Odometer Control
 enable_hardware_odometer : False

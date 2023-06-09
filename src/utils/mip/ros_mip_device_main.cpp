@@ -349,11 +349,20 @@ uint16_t RosMipDeviceMain::getDecimationFromHertz(const uint8_t descriptor_set, 
   {
     const uint16_t base_rate = base_rates_[descriptor_set];
     decimation = base_rate / hertz;
-    if (hertz > base_rate)
+    if (base_rate == 0)
+    {
+      // If base rate is 0, we will just receive data whenever the device receives it. To do this, we just set the decimation to 1
+      MICROSTRAIN_DEBUG(node_, "Descriptor set 0x%02x is an on demand descriptor set, so we are ignoring requested hertz", descriptor_set);
+      if (actual_hertz != nullptr)
+        *actual_hertz = 1;  // Not true, but set it to non-zero so it streams
+      decimation = 1;
+    }
+    else if (hertz > base_rate)
     {
       MICROSTRAIN_WARN(node_, "Requested data rate %.5f for descriptor set 0x%02x is higher than the max data rate %u. Using max data rate instead", hertz, descriptor_set, base_rate);
       if (actual_hertz != nullptr)
         *actual_hertz = base_rate;
+      decimation = 1;
     }
     else if (std::remainder(base_rate, hertz) != 0)
     {
@@ -367,6 +376,10 @@ uint16_t RosMipDeviceMain::getDecimationFromHertz(const uint8_t descriptor_set, 
     {
       *actual_hertz = hertz;
     }
+  }
+  else if (actual_hertz != nullptr)
+  {
+    *actual_hertz = hertz;
   }
   return decimation;
 }

@@ -24,6 +24,39 @@
 namespace microstrain
 {
 
+class ClockBiasMonitor
+{
+ public:
+  /**
+   * \brief Constructor
+   * \param weight How much to weight the old bias estimate vs the new delta time. Closer to 1 means more weight on the old bias estimate
+   * \param max_bias_estimate Max bias estimate before resetting to the current delta time. Helps prevents jumps and outliers
+  */
+  ClockBiasMonitor(const double weight = 0.5, const double max_bias_estimate = 1);
+
+  /**
+   * \brief Adds a new time. The system time should be from as close as possible to the device time
+   * \param system_time The system time at which the device time was received
+   * \param device_time The device time we will calculate the bias for
+  */
+  void addTime(const mip::Timestamp& system_time, const mip::data_shared::GpsTimestamp& device_time);
+
+  /**
+   * \brief Gets the time in system time given a system time and device time
+   * \param system_time The system time at which the device time was received
+   * \param device_time The device time we will calculate the bias for
+   * \return The system time reflective of the device_time
+  */
+  RosTimeType getTime(const mip::Timestamp& system_time, const mip::data_shared::GpsTimestamp& device_time);
+
+ private:
+  double weight_;  /// How much to weight the old bias estimate vs the new delta time. Closer to 1 means more weight on the old bias estimate
+  double max_bias_estimate_;  /// Max bias estimate before resetting to the current delta time. Helps prevents jumps and outliers
+
+  bool have_bias_estimate_ = false;  /// Will be set to true after getting the bias estimate for the first time
+  double bias_estimate_ = 0.0;  /// Saved bias estimate. Can be used to convert a device time to a system time
+};
+
 /**
  * Contains ROS messages and the publishers that will publish them
  */
@@ -220,9 +253,6 @@ public:
   Publisher<MagneticFieldMsg>::SharedPtr                  mag_pub_                  = Publisher<MagneticFieldMsg>::initialize(IMU_RAW_MAG_TOPIC);
   Publisher<ImuMsg>::SharedPtr                            imu_pub_                  = Publisher<ImuMsg>::initialize(IMU_DATA_TOPIC);
 
-  Publisher<GPSCorrelationTimestampStampedMsg>::SharedPtr gps_corr_pub_             = Publisher<GPSCorrelationTimestampStampedMsg>::initialize(IMU_GPS_CORR_TOPIC);
-  Publisher<ImuOverrangeStatusMsg>::SharedPtr             imu_overrange_status_pub_ = Publisher<ImuOverrangeStatusMsg>::initialize(IMU_OVERRANGE_STATUS_TOPIC);
-
   // GNSS publishers
   Publisher<NavSatFixMsg>::SharedPtrVec                  gnss_fix_pub_          = Publisher<NavSatFixMsg>::initializeVec({GNSS1_FIX_TOPIC, GNSS2_FIX_TOPIC});
   Publisher<TwistWithCovarianceStampedMsg>::SharedPtrVec gnss_vel_pub_          = Publisher<TwistWithCovarianceStampedMsg>::initializeVec({GNSS1_VEL_TOPIC, GNSS2_VEL_TOPIC});
@@ -230,29 +260,31 @@ public:
   Publisher<OdometryMsg>::SharedPtrVec                   gnss_odom_pub_         = Publisher<OdometryMsg>::initializeVec({GNSS1_ODOM_TOPIC, GNSS2_ODOM_TOPIC});
   Publisher<TimeReferenceMsg>::SharedPtrVec              gnss_time_pub_         = Publisher<TimeReferenceMsg>::initializeVec({GNSS1_TIME_REF_TOPIC, GNSS2_TIME_REF_TOPIC});
 
-  Publisher<GNSSAidingStatusMsg>::SharedPtrVec            gnss_aiding_status_pub_             = Publisher<GNSSAidingStatusMsg>::initializeVec({GNSS1_AIDING_STATUS_TOPIC, GNSS2_AIDING_STATUS_TOPIC});
-  Publisher<GNSSAntennaOffsetCorrectionMsg>::SharedPtrVec gnss_antenna_offset_correction_pub_ = Publisher<GNSSAntennaOffsetCorrectionMsg>::initializeVec({GNSS1_ANTENNA_OFFSET_CORRECTION_TOPIC, GNSS2_ANTENNA_OFFSET_CORRECTION_TOPIC});
-  Publisher<GNSSFixInfoMsg>::SharedPtrVec                 gnss_fix_info_pub_                  = Publisher<GNSSFixInfoMsg>::initializeVec({GNSS1_FIX_INFO_TOPIC, GNSS2_FIX_INFO_TOPIC});
-  Publisher<GNSSSbasInfoMsg>::SharedPtrVec                gnss_sbas_info_pub_                 = Publisher<GNSSSbasInfoMsg>::initializeVec({GNSS1_SBAS_INFO_TOPIC, GNSS2_SBAS_INFO_TOPIC});
-  Publisher<GNSSRfErrorDetectionMsg>::SharedPtrVec        gnss_rf_error_detection_pub_        = Publisher<GNSSRfErrorDetectionMsg>::initializeVec({GNSS1_RF_ERROR_DETECTION_TOPIC, GNSS2_RF_ERROR_DETECTION_TOPIC});
-
-  // RTK publishers
-  Publisher<RTKStatusMsg>::SharedPtr   rtk_pub_    = Publisher<RTKStatusMsg>::initialize(RTK_STATUS_TOPIC);
-  Publisher<RTKStatusMsgV1>::SharedPtr rtk_pub_v1_ = Publisher<RTKStatusMsgV1>::initialize(RTK_STATUS_V1_TOPIC);
-
   // Filter publishers
-  Publisher<ImuMsg>::SharedPtr                            filter_imu_pub_                        = Publisher<ImuMsg>::initialize(FILTER_IMU_DATA_TOPIC);
   Publisher<NavSatFixMsg>::SharedPtr                      filter_fix_pub_                        = Publisher<NavSatFixMsg>::initialize(FILTER_FIX_TOPIC);
   Publisher<OdometryMsg>::SharedPtr                       filter_odom_pub_                       = Publisher<OdometryMsg>::initialize(FILTER_ODOM_TOPIC);
   Publisher<OdometryMsg>::SharedPtr                       filter_relative_odom_pub_              = Publisher<OdometryMsg>::initialize(FILTER_RELATIVE_ODOM_TOPIC);
   Publisher<TwistWithCovarianceStampedMsg>::SharedPtr     filter_vel_pub_                        = Publisher<TwistWithCovarianceStampedMsg>::initialize(FILTER_VEL_TOPIC);
   Publisher<TwistWithCovarianceStampedMsg>::SharedPtr     filter_vel_ecef_pub_                   = Publisher<TwistWithCovarianceStampedMsg>::initialize(FILTER_VEL_ECEF_TOPIC);
 
-  Publisher<FilterStatusMsg>::SharedPtr                   filter_status_pub_                     = Publisher<FilterStatusMsg>::initialize(FILTER_STATUS_TOPIC);
-  Publisher<FilterHeadingMsg>::SharedPtr                  filter_heading_pub_                    = Publisher<FilterHeadingMsg>::initialize(FILTER_HEADING_TOPIC);
-  Publisher<FilterHeadingStateMsg>::SharedPtr             filter_heading_state_pub_              = Publisher<FilterHeadingStateMsg>::initialize(FILTER_HEADING_STATE_TOPIC);
-  Publisher<FilterAidingMeasurementSummaryMsg>::SharedPtr filter_aiding_mesaurement_summary_pub_ = Publisher<FilterAidingMeasurementSummaryMsg>::initialize(FILTER_AIDING_SUMMARY_TOPIC);
-  Publisher<GNSSDualAntennaStatusMsg>::SharedPtr          gnss_dual_antenna_status_pub_          = Publisher<GNSSDualAntennaStatusMsg>::initialize(FILTER_DUAL_ANTENNA_STATUS_TOPIC);
+
+  // MIP Sensor (0x80) publishers
+  Publisher<MipSensorOverrangeStatusMsg>::SharedPtr mip_sensor_overrange_status_pub_ = Publisher<MipSensorOverrangeStatusMsg>::initialize(MIP_SENSOR_OVERRANGE_STATUS_TOPIC);
+
+  // MIP GNSS (0x81, 0x91, 0x92) publishers
+  Publisher<MipGnssFixInfoMsg>::SharedPtrVec          mip_gnss_fix_info_pub_           = Publisher<MipGnssFixInfoMsg>::initializeVec({MIP_GNSS1_FIX_INFO_TOPIC, MIP_GNSS2_FIX_INFO_TOPIC});
+  Publisher<MipGnssSbasInfoMsg>::SharedPtrVec         mip_gnss_sbas_info_pub_          = Publisher<MipGnssSbasInfoMsg>::initializeVec({MIP_GNSS1_SBAS_INFO_TOPIC, MIP_GNSS2_SBAS_INFO_TOPIC});
+  Publisher<MipGnssRfErrorDetectionMsg>::SharedPtrVec mip_gnss_rf_error_detection_pub_ = Publisher<MipGnssRfErrorDetectionMsg>::initializeVec({MIP_GNSS1_RF_ERROR_DETECTION_TOPIC, MIP_GNSS2_RF_ERROR_DETECTION_TOPIC});
+
+  // MIP GNSS Corrections (0x93) publishers
+  Publisher<MipGnssCorrectionsRtkCorrectionsStatusMsg>::SharedPtr mip_gnss_corrections_rtk_corrections_status_pub_ = Publisher<MipGnssCorrectionsRtkCorrectionsStatusMsg>::initialize(MIP_GNSS_CORRECTIONS_RTK_CORRECTIONS_STATUS_TOPIC);
+
+  // MIP filter (0x82) publishers
+  Publisher<MipFilterStatusMsg>::SharedPtr                   mip_filter_status_pub_                     = Publisher<MipFilterStatusMsg>::initialize(MIP_FILTER_STATUS_TOPIC);
+  Publisher<MipFilterGnssPositionAidingStatusMsg>::SharedPtr mip_filter_gnss_position_aiding_status_pub_ = Publisher<MipFilterGnssPositionAidingStatusMsg>::initialize(MIP_FILTER_GNSS_POSITION_AIDING_STATUS_TOPIC);
+  Publisher<MipFilterMultiAntennaOffsetCorrectionMsg>::SharedPtr mip_filter_multi_antenna_offset_correction_pub_ = Publisher<MipFilterMultiAntennaOffsetCorrectionMsg>::initialize(MIP_FILTER_MULTI_ANTENNA_OFFSET_CORRECTION_TOPIC);
+  Publisher<MipFilterAidingMeasurementSummaryMsg>::SharedPtr mip_filter_aiding_measurement_summary_pub_ = Publisher<MipFilterAidingMeasurementSummaryMsg>::initialize(MIP_FILTER_AIDING_MEASUREMENT_SUMMARY_TOPIC);
+  Publisher<MipFilterGnssDualAntennaStatusMsg>::SharedPtr          mip_filter_gnss_dual_antenna_status_pub_          = Publisher<MipFilterGnssDualAntennaStatusMsg>::initialize(MIP_FILTER_GNSS_DUAL_ANTENNA_STATUS_TOPIC);
 
   // NMEA sentence publisher
   Publisher<NMEASentenceMsg>::SharedPtr nmea_sentence_pub_ = Publisher<NMEASentenceMsg>::initialize(NMEA_SENTENCE_TOPIC);
@@ -328,8 +360,6 @@ private:
   // Callbacks to handle filter datat from the device
   void handleFilterTimestamp(const mip::data_filter::Timestamp& filter_timestamp, const uint8_t descriptor_set, mip::Timestamp timestamp);
   void handleFilterStatus(const mip::data_filter::Status& status, const uint8_t descriptor_set, mip::Timestamp timestamp);
-  void handleFilterEulerAngles(const mip::data_filter::EulerAngles& euler_angles, const uint8_t descriptor_set, mip::Timestamp timestamp);
-  void handleFilterHeadingUpdateState(const mip::data_filter::HeadingUpdateState& heading_update_state, const uint8_t descriptor_set, mip::Timestamp timestamp);
   void handleFilterEcefPos(const mip::data_filter::EcefPos& ecef_pos, const uint8_t descriptor_set, mip::Timestamp timestamp);
   void handleFilterEcefPosUncertainty(const mip::data_filter::EcefPosUncertainty& ecef_pos_uncertainty, const uint8_t descriptor_set, mip::Timestamp timestamp);
   void handleFilterPositionLlh(const mip::data_filter::PositionLlh& position_llh, const uint8_t descriptor_set, mip::Timestamp timestamp);
@@ -355,6 +385,13 @@ private:
    * \param timestamp The timestamp of when the packet was received
   */
   void handleAfterPacket(const mip::Packet& packet, mip::Timestamp timestamp);
+
+  /**
+   * \brief Updates the microstrain header contained in all MIP specific custom messages
+   * \param microstrain_header The header to update
+   * \param descriptor_set The descriptor set that the message comes from
+  */
+  void updateMicrostrainHeader(MicrostrainHeaderMsg* microstrain_header, uint8_t descriptor_set) const;
 
   /**
    * \brief Updates the header's timestamp to the type of timestamp based on the node's configuration
@@ -386,6 +423,12 @@ private:
   std::map<uint8_t, mip::data_shared::DeltaTime> delta_time_mapping_;
   std::map<uint8_t, mip::data_shared::ReferenceTimestamp> reference_timestamp_mapping_;
   std::map<uint8_t, mip::data_shared::ReferenceTimeDelta> reference_time_delta_mapping_;
+
+  // Clock bias monitor. Used to compute the clock bias between the device time and ROS time. One for each descriptor set
+  std::map<uint8_t, ClockBiasMonitor> clock_bias_monitor_mapping_;
+
+  // Adjusted system time using the clock bias monitors above
+  std::map<uint8_t, RosTimeType> adjusted_time_mapping_;
 
   // Save the orientation information, as it is used by some other data to transform based on orientation
   tf2::Quaternion filter_attitude_quaternion_ = tf2::Quaternion(0, 0, 0, 1);

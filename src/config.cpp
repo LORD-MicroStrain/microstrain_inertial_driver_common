@@ -70,7 +70,7 @@ bool Config::configure(RosNodeType* node)
 
   // tf config
   getParam<int32_t>(node, "tf_mode", tf_mode_, 2);
-  getParam<bool>(node, "publish_base_link_imu_link_transform", publish_base_link_imu_link_transform_, true);
+  getParam<bool>(node, "publish_base_link_to_frame_id_transform", publish_base_link_to_frame_id_transform_, true);
 
   // If using the NED frame, append that to the frame IDs
   if (!use_enu_frame_)
@@ -85,27 +85,25 @@ bool Config::configure(RosNodeType* node)
   }
 
   // Configure the static transforms
-  std::vector<double> base_link_imu_link_transform_vec;
-  getParam<std::vector<double>>(node, "base_link_imu_link_transform", base_link_imu_link_transform_vec, {0, 0, 0, 0, 0, 0, 1});
+  std::vector<double> base_link_to_frame_id_transform_vec;
+  getParam<std::vector<double>>(node, "base_link_to_frame_id_transform", base_link_to_frame_id_transform_vec, {0, 0, 0, 0, 0, 0, 1});
 
-  if (base_link_imu_link_transform_vec.size() != 7)
+  if (base_link_to_frame_id_transform_vec.size() != 7)
   {
-    MICROSTRAIN_ERROR(node, "base_link_imu_link_transform is invalid. Should have 7 elements, but has %lu", base_link_imu_link_transform_vec.size());
+    MICROSTRAIN_ERROR(node, "base_link_to_frame_id_transform  is invalid. Should have 7 elements, but has %lu", base_link_to_frame_id_transform_vec.size());
     return false;
   }
 
-  const RosTimeType static_transform_now = rosTimeNow(node);
-  base_link_imu_link_transform_.header.stamp = static_transform_now;
-
-  base_link_imu_link_transform_.header.frame_id = base_link_frame_id_;
-  base_link_imu_link_transform_.child_frame_id = frame_id_;
-  base_link_imu_link_transform_.transform.translation.x = base_link_imu_link_transform_vec[0];
-  base_link_imu_link_transform_.transform.translation.y = base_link_imu_link_transform_vec[1];
-  base_link_imu_link_transform_.transform.translation.z = base_link_imu_link_transform_vec[2];
-  base_link_imu_link_transform_.transform.rotation.x = base_link_imu_link_transform_vec[3];
-  base_link_imu_link_transform_.transform.rotation.y = base_link_imu_link_transform_vec[4];
-  base_link_imu_link_transform_.transform.rotation.z = base_link_imu_link_transform_vec[5];
-  base_link_imu_link_transform_.transform.rotation.w = base_link_imu_link_transform_vec[6];
+  base_link_to_frame_id_transform_.header.stamp = rosTimeNow(node);
+  base_link_to_frame_id_transform_.header.frame_id = base_link_frame_id_;
+  base_link_to_frame_id_transform_.child_frame_id = frame_id_;
+  base_link_to_frame_id_transform_.transform.translation.x = base_link_to_frame_id_transform_vec[0];
+  base_link_to_frame_id_transform_.transform.translation.y = base_link_to_frame_id_transform_vec[1];
+  base_link_to_frame_id_transform_.transform.translation.z = base_link_to_frame_id_transform_vec[2];
+  base_link_to_frame_id_transform_.transform.rotation.x = base_link_to_frame_id_transform_vec[3];
+  base_link_to_frame_id_transform_.transform.rotation.y = base_link_to_frame_id_transform_vec[4];
+  base_link_to_frame_id_transform_.transform.rotation.z = base_link_to_frame_id_transform_vec[5];
+  base_link_to_frame_id_transform_.transform.rotation.w = base_link_to_frame_id_transform_vec[6];
 
   // IMU
   getParam<std::vector<double>>(node, "imu_orientation_cov", imu_orientation_cov_, DEFAULT_MATRIX);
