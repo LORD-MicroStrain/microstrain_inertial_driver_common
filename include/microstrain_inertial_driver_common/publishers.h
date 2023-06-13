@@ -249,23 +249,23 @@ public:
 
 
   // IMU Publishers
-  Publisher<ImuMsg>::SharedPtr                            raw_imu_pub_              = Publisher<ImuMsg>::initialize(IMU_RAW_DATA_TOPIC);
-  Publisher<MagneticFieldMsg>::SharedPtr                  mag_pub_                  = Publisher<MagneticFieldMsg>::initialize(IMU_RAW_MAG_TOPIC);
-  Publisher<ImuMsg>::SharedPtr                            imu_pub_                  = Publisher<ImuMsg>::initialize(IMU_DATA_TOPIC);
+  Publisher<ImuMsg>::SharedPtr                            raw_imu_pub_ = Publisher<ImuMsg>::initialize(IMU_RAW_DATA_TOPIC);
+  Publisher<MagneticFieldMsg>::SharedPtr                  mag_pub_     = Publisher<MagneticFieldMsg>::initialize(IMU_RAW_MAG_TOPIC);
+  Publisher<ImuMsg>::SharedPtr                            imu_pub_     = Publisher<ImuMsg>::initialize(IMU_DATA_TOPIC);
 
   // GNSS publishers
-  Publisher<NavSatFixMsg>::SharedPtrVec                  gnss_fix_pub_          = Publisher<NavSatFixMsg>::initializeVec({GNSS1_FIX_TOPIC, GNSS2_FIX_TOPIC});
-  Publisher<TwistWithCovarianceStampedMsg>::SharedPtrVec gnss_vel_pub_          = Publisher<TwistWithCovarianceStampedMsg>::initializeVec({GNSS1_VEL_TOPIC, GNSS2_VEL_TOPIC});
-  Publisher<TwistWithCovarianceStampedMsg>::SharedPtrVec gnss_vel_ecef_pub_     = Publisher<TwistWithCovarianceStampedMsg>::initializeVec({GNSS1_VEL_ECEF_TOPIC, GNSS2_VEL_ECEF_TOPIC});
-  Publisher<OdometryMsg>::SharedPtrVec                   gnss_odom_pub_         = Publisher<OdometryMsg>::initializeVec({GNSS1_ODOM_TOPIC, GNSS2_ODOM_TOPIC});
-  Publisher<TimeReferenceMsg>::SharedPtrVec              gnss_time_pub_         = Publisher<TimeReferenceMsg>::initializeVec({GNSS1_TIME_REF_TOPIC, GNSS2_TIME_REF_TOPIC});
+  Publisher<NavSatFixMsg>::SharedPtrVec                  gnss_fix_pub_      = Publisher<NavSatFixMsg>::initializeVec({GNSS1_FIX_TOPIC, GNSS2_FIX_TOPIC});
+  Publisher<TwistWithCovarianceStampedMsg>::SharedPtrVec gnss_vel_pub_      = Publisher<TwistWithCovarianceStampedMsg>::initializeVec({GNSS1_VEL_TOPIC, GNSS2_VEL_TOPIC});
+  Publisher<TwistWithCovarianceStampedMsg>::SharedPtrVec gnss_vel_ecef_pub_ = Publisher<TwistWithCovarianceStampedMsg>::initializeVec({GNSS1_VEL_ECEF_TOPIC, GNSS2_VEL_ECEF_TOPIC});
+  Publisher<OdometryMsg>::SharedPtrVec                   gnss_odom_pub_     = Publisher<OdometryMsg>::initializeVec({GNSS1_ODOM_TOPIC, GNSS2_ODOM_TOPIC});
+  Publisher<TimeReferenceMsg>::SharedPtrVec              gnss_time_pub_     = Publisher<TimeReferenceMsg>::initializeVec({GNSS1_TIME_REF_TOPIC, GNSS2_TIME_REF_TOPIC});
 
   // Filter publishers
-  Publisher<NavSatFixMsg>::SharedPtr                      filter_fix_pub_                        = Publisher<NavSatFixMsg>::initialize(FILTER_FIX_TOPIC);
-  Publisher<OdometryMsg>::SharedPtr                       filter_odom_pub_                       = Publisher<OdometryMsg>::initialize(FILTER_ODOM_TOPIC);
-  Publisher<OdometryMsg>::SharedPtr                       filter_relative_odom_pub_              = Publisher<OdometryMsg>::initialize(FILTER_RELATIVE_ODOM_TOPIC);
-  Publisher<TwistWithCovarianceStampedMsg>::SharedPtr     filter_vel_pub_                        = Publisher<TwistWithCovarianceStampedMsg>::initialize(FILTER_VEL_TOPIC);
-  Publisher<TwistWithCovarianceStampedMsg>::SharedPtr     filter_vel_ecef_pub_                   = Publisher<TwistWithCovarianceStampedMsg>::initialize(FILTER_VEL_ECEF_TOPIC);
+  Publisher<NavSatFixMsg>::SharedPtr                      filter_fix_pub_           = Publisher<NavSatFixMsg>::initialize(FILTER_FIX_TOPIC);
+  Publisher<OdometryMsg>::SharedPtr                       filter_odom_pub_          = Publisher<OdometryMsg>::initialize(FILTER_ODOM_TOPIC);
+  Publisher<OdometryMsg>::SharedPtr                       filter_relative_odom_pub_ = Publisher<OdometryMsg>::initialize(FILTER_RELATIVE_ODOM_TOPIC);
+  Publisher<TwistWithCovarianceStampedMsg>::SharedPtr     filter_vel_pub_           = Publisher<TwistWithCovarianceStampedMsg>::initialize(FILTER_VEL_TOPIC);
+  Publisher<TwistWithCovarianceStampedMsg>::SharedPtr     filter_vel_ecef_pub_      = Publisher<TwistWithCovarianceStampedMsg>::initialize(FILTER_VEL_ECEF_TOPIC);
 
 
   // MIP Sensor (0x80) publishers
@@ -280,11 +280,11 @@ public:
   Publisher<MipGnssCorrectionsRtkCorrectionsStatusMsg>::SharedPtr mip_gnss_corrections_rtk_corrections_status_pub_ = Publisher<MipGnssCorrectionsRtkCorrectionsStatusMsg>::initialize(MIP_GNSS_CORRECTIONS_RTK_CORRECTIONS_STATUS_TOPIC);
 
   // MIP filter (0x82) publishers
-  Publisher<MipFilterStatusMsg>::SharedPtr                   mip_filter_status_pub_                     = Publisher<MipFilterStatusMsg>::initialize(MIP_FILTER_STATUS_TOPIC);
-  Publisher<MipFilterGnssPositionAidingStatusMsg>::SharedPtr mip_filter_gnss_position_aiding_status_pub_ = Publisher<MipFilterGnssPositionAidingStatusMsg>::initialize(MIP_FILTER_GNSS_POSITION_AIDING_STATUS_TOPIC);
-  Publisher<MipFilterMultiAntennaOffsetCorrectionMsg>::SharedPtr mip_filter_multi_antenna_offset_correction_pub_ = Publisher<MipFilterMultiAntennaOffsetCorrectionMsg>::initialize(MIP_FILTER_MULTI_ANTENNA_OFFSET_CORRECTION_TOPIC);
-  Publisher<MipFilterAidingMeasurementSummaryMsg>::SharedPtr mip_filter_aiding_measurement_summary_pub_ = Publisher<MipFilterAidingMeasurementSummaryMsg>::initialize(MIP_FILTER_AIDING_MEASUREMENT_SUMMARY_TOPIC);
-  Publisher<MipFilterGnssDualAntennaStatusMsg>::SharedPtr          mip_filter_gnss_dual_antenna_status_pub_          = Publisher<MipFilterGnssDualAntennaStatusMsg>::initialize(MIP_FILTER_GNSS_DUAL_ANTENNA_STATUS_TOPIC);
+  Publisher<MipFilterStatusMsg>::SharedPtr                         mip_filter_status_pub_                          = Publisher<MipFilterStatusMsg>::initialize(MIP_FILTER_STATUS_TOPIC);
+  Publisher<MipFilterGnssPositionAidingStatusMsg>::SharedPtr       mip_filter_gnss_position_aiding_status_pub_     = Publisher<MipFilterGnssPositionAidingStatusMsg>::initialize(MIP_FILTER_GNSS_POSITION_AIDING_STATUS_TOPIC);
+  Publisher<MipFilterMultiAntennaOffsetCorrectionMsg>::SharedPtr   mip_filter_multi_antenna_offset_correction_pub_ = Publisher<MipFilterMultiAntennaOffsetCorrectionMsg>::initialize(MIP_FILTER_MULTI_ANTENNA_OFFSET_CORRECTION_TOPIC);
+  Publisher<MipFilterAidingMeasurementSummaryMsg>::SharedPtr       mip_filter_aiding_measurement_summary_pub_      = Publisher<MipFilterAidingMeasurementSummaryMsg>::initialize(MIP_FILTER_AIDING_MEASUREMENT_SUMMARY_TOPIC);
+  Publisher<MipFilterGnssDualAntennaStatusMsg>::SharedPtr          mip_filter_gnss_dual_antenna_status_pub_        = Publisher<MipFilterGnssDualAntennaStatusMsg>::initialize(MIP_FILTER_GNSS_DUAL_ANTENNA_STATUS_TOPIC);
 
   // NMEA sentence publisher
   Publisher<NMEASentenceMsg>::SharedPtr nmea_sentence_pub_ = Publisher<NMEASentenceMsg>::initialize(NMEA_SENTENCE_TOPIC);
@@ -304,6 +304,7 @@ public:
   bool static_earth_map_transform_;
 
   // Published transforms
+  TransformStampedMsg gnss_antenna_transform_msg_[NUM_GNSS];
   TransformStampedMsg earth_map_transform_msg_;
   TransformStampedMsg filter_relative_transform_msg_;
 
@@ -423,6 +424,9 @@ private:
   std::map<uint8_t, mip::data_shared::DeltaTime> delta_time_mapping_;
   std::map<uint8_t, mip::data_shared::ReferenceTimestamp> reference_timestamp_mapping_;
   std::map<uint8_t, mip::data_shared::ReferenceTimeDelta> reference_time_delta_mapping_;
+
+  // Older philo devices do not support ECEF position, so we will need to convert from LLH to ECEF ourselves
+  bool supports_filter_ecef_;
 
   // Clock bias monitor. Used to compute the clock bias between the device time and ROS time. One for each descriptor set
   std::map<uint8_t, ClockBiasMonitor> clock_bias_monitor_mapping_;

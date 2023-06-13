@@ -158,6 +158,8 @@ bool Publishers::configure()
   std::copy(config_->imu_angular_cov_.begin(), config_->imu_angular_cov_.end(), raw_imu_msg->angular_velocity_covariance.begin());
   std::copy(config_->imu_orientation_cov_.begin(), config_->imu_orientation_cov_.end(), raw_imu_msg->orientation_covariance.begin());
 
+  supports_filter_ecef_ = config_->mip_device_->supportsDescriptor(mip::data_filter::DESCRIPTOR_SET, mip::data_filter::DATA_ECEF_POS);
+
   // Transform broadcaster setup
   static_transform_broadcaster_ = createStaticTransformBroadcaster(node_);
   transform_broadcaster_ = createTransformBroadcaster(node_);
@@ -234,6 +236,56 @@ bool Publishers::configure()
     {
       MICROSTRAIN_ERROR(node_, "This device does not support the relative position configuration command. Unable to publish relative transforms");
       return false;
+    }
+  }
+
+  // Configure the GNSS transforms
+  if (config_->tf_mode_ != TF_MODE_OFF)
+  {
+    // Static antenna offsets
+    // TODO: If streaming the antenna offset correction topic, correct the offsets with them
+    mip::CmdResult mip_cmd_result;
+    float gnss_antenna_offsets[3];
+    if (config_->mip_device_->supportsDescriptor(mip::commands_filter::DESCRIPTOR_SET, mip::commands_filter::CMD_ANTENNA_OFFSET))
+    {
+      if (!(mip_cmd_result = mip::commands_filter::readAntennaOffset(*(config_->mip_device_), gnss_antenna_offsets)))
+      {
+        MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to read GNSS antenna offsets required for GNSS antenna transforms");
+        return false;
+      }
+      TransformStampedMsg& gnss_antenna_transform = gnss_antenna_transform_msg_[GNSS1_ID];
+      gnss_antenna_transform.header.stamp = rosTimeNow(node_);
+      gnss_antenna_transform.header.frame_id = config_->frame_id_;
+      gnss_antenna_transform.child_frame_id = config_->gnss_frame_id_[GNSS1_ID];
+      gnss_antenna_transform.transform.translation.x = gnss_antenna_offsets[0];
+      gnss_antenna_transform.transform.translation.y = gnss_antenna_offsets[1];
+      gnss_antenna_transform.transform.translation.z = gnss_antenna_offsets[2];
+      gnss_antenna_transform.transform.rotation.x = 0;
+      gnss_antenna_transform.transform.rotation.y = 0;
+      gnss_antenna_transform.transform.rotation.z = 0;
+      gnss_antenna_transform.transform.rotation.w = 1;
+    }
+    else if (config_->mip_device_->supportsDescriptor(mip::commands_filter::DESCRIPTOR_SET, mip::commands_filter::CMD_MULTI_ANTENNA_OFFSET))
+    {
+      for (const uint8_t gnss_id : std::initializer_list<uint8_t>{GNSS1_ID, GNSS2_ID})
+      {
+        if (!(mip_cmd_result = mip::commands_filter::readMultiAntennaOffset(*(config_->mip_device_), gnss_id + 1, gnss_antenna_offsets)))
+        {
+          MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to read GNSS antenna offsets required for GNSS antenna transforms");
+          return false;
+        }
+        TransformStampedMsg& gnss_antenna_transform = gnss_antenna_transform_msg_[gnss_id];
+        gnss_antenna_transform.header.stamp = rosTimeNow(node_);
+        gnss_antenna_transform.header.frame_id = config_->frame_id_;
+        gnss_antenna_transform.child_frame_id = config_->gnss_frame_id_[gnss_id];
+        gnss_antenna_transform.transform.translation.x = gnss_antenna_offsets[0];
+        gnss_antenna_transform.transform.translation.y = gnss_antenna_offsets[1];
+        gnss_antenna_transform.transform.translation.z = gnss_antenna_offsets[2];
+        gnss_antenna_transform.transform.rotation.x = 0;
+        gnss_antenna_transform.transform.rotation.y = 0;
+        gnss_antenna_transform.transform.rotation.z = 0;
+        gnss_antenna_transform.transform.rotation.w = 1;
+      }
     }
   }
 
@@ -353,40 +405,13 @@ bool Publishers::activate()
       static_transform_broadcaster_->sendTransform(earth_map_transform_msg_);
     
     // Static antenna offsets
-    // TODO: Read transforms from the device instead of looking at the config
-    // TODO: If streaming the antenna offset correction topic, correct the offsets with them
+    // Note: If streaming the antenna offset correction topic, correct the offsets with them
     if (config_->mip_device_->supportsDescriptorSet(mip::data_gnss::DESCRIPTOR_SET) || config_->mip_device_->supportsDescriptorSet(mip::data_gnss::MIP_GNSS1_DATA_DESC_SET))
-    {
-      TransformStampedMsg gnss1_antenna_transform;
-      gnss1_antenna_transform.header.stamp = rosTimeNow(node_);
-      gnss1_antenna_transform.header.frame_id = config_->frame_id_;
-      gnss1_antenna_transform.child_frame_id = config_->gnss_frame_id_[GNSS1_ID];
-      gnss1_antenna_transform.transform.translation.x = config_->gnss_antenna_offset_[GNSS1_ID].at(0);
-      gnss1_antenna_transform.transform.translation.y = config_->gnss_antenna_offset_[GNSS1_ID].at(1);
-      gnss1_antenna_transform.transform.translation.z = config_->gnss_antenna_offset_[GNSS1_ID].at(2);
-      gnss1_antenna_transform.transform.rotation.x = 0;
-      gnss1_antenna_transform.transform.rotation.y = 0;
-      gnss1_antenna_transform.transform.rotation.z = 0;
-      gnss1_antenna_transform.transform.rotation.w = 1;
-      static_transform_broadcaster_->sendTransform(gnss1_antenna_transform);
-    }
+      static_transform_broadcaster_->sendTransform(gnss_antenna_transform_msg_[GNSS1_ID]);
     if (config_->mip_device_->supportsDescriptorSet(mip::data_gnss::MIP_GNSS2_DATA_DESC_SET))
-    {
-      TransformStampedMsg gnss2_antenna_transform;
-      gnss2_antenna_transform.header.stamp = rosTimeNow(node_);
-      gnss2_antenna_transform.header.frame_id = config_->frame_id_;
-      gnss2_antenna_transform.child_frame_id = config_->gnss_frame_id_[GNSS2_ID];
-      gnss2_antenna_transform.transform.translation.x = config_->gnss_antenna_offset_[GNSS2_ID].at(0);
-      gnss2_antenna_transform.transform.translation.y = config_->gnss_antenna_offset_[GNSS2_ID].at(1);
-      gnss2_antenna_transform.transform.translation.z = config_->gnss_antenna_offset_[GNSS2_ID].at(2);
-      gnss2_antenna_transform.transform.rotation.x = 0;
-      gnss2_antenna_transform.transform.rotation.y = 0;
-      gnss2_antenna_transform.transform.rotation.z = 0;
-      gnss2_antenna_transform.transform.rotation.w = 1;
-      static_transform_broadcaster_->sendTransform(gnss2_antenna_transform);
-    }
+      static_transform_broadcaster_->sendTransform(gnss_antenna_transform_msg_[GNSS2_ID]);
   }
-  
+
   return true;
 }
 
@@ -1019,6 +1044,15 @@ void Publishers::handleFilterPositionLlh(const mip::data_filter::PositionLlh& po
   filter_fix_msg->latitude = position_llh.latitude;
   filter_fix_msg->longitude = position_llh.longitude;
   filter_fix_msg->altitude = position_llh.ellipsoid_height;
+
+  // If the device does not support ECEF, fill it out here, and call the callback ourselves
+  if (!supports_filter_ecef_)
+  {
+    mip::data_filter::EcefPos ecef_pos;
+    geodetic_converter::GeodeticConverter::geodetic2Ecef(position_llh.latitude, position_llh.longitude, position_llh.ellipsoid_height,
+      &ecef_pos.position_ecef[0], &ecef_pos.position_ecef[1], &ecef_pos.position_ecef[2]);
+    handleFilterEcefPos(ecef_pos, descriptor_set, timestamp);
+  }
 }
 
 void Publishers::handleFilterPositionLlhUncertainty(const mip::data_filter::PositionLlhUncertainty& position_llh_uncertainty, const uint8_t descriptor_set, mip::Timestamp timestamp)
@@ -1343,7 +1377,6 @@ void Publishers::handleFilterGnssPosAidStatus(const mip::data_filter::GnssPosAid
 
 void Publishers::handleFilterMultiAntennaOffsetCorrection(const mip::data_filter::MultiAntennaOffsetCorrection& multi_antenna_offset_correction, const uint8_t descriptor_set, mip::Timestamp timestamp)
 {
-  // TODO: Use these antenna offset corrections combined with the configured antenna offsets to publish GNSS transforms
   auto mip_filter_multi_antenna_offset_correction_msg = mip_filter_multi_antenna_offset_correction_pub_->getMessage();
   updateMicrostrainHeader(&(mip_filter_multi_antenna_offset_correction_msg->header), descriptor_set);
   mip_filter_multi_antenna_offset_correction_msg->receiver_id = multi_antenna_offset_correction.receiver_id;
@@ -1351,6 +1384,14 @@ void Publishers::handleFilterMultiAntennaOffsetCorrection(const mip::data_filter
   mip_filter_multi_antenna_offset_correction_msg->offset[1] = multi_antenna_offset_correction.offset[1];
   mip_filter_multi_antenna_offset_correction_msg->offset[2] = multi_antenna_offset_correction.offset[2];
   mip_filter_multi_antenna_offset_correction_pub_->publish(*mip_filter_multi_antenna_offset_correction_msg);
+
+  // Update the GNSS transform
+  TransformStampedMsg gnss_antenna_transform = gnss_antenna_transform_msg_[multi_antenna_offset_correction.receiver_id - 1];
+  gnss_antenna_transform.header.stamp = rosTimeNow(node_);
+  gnss_antenna_transform.transform.translation.x += multi_antenna_offset_correction.offset[0];
+  gnss_antenna_transform.transform.translation.y += multi_antenna_offset_correction.offset[1];
+  gnss_antenna_transform.transform.translation.z += multi_antenna_offset_correction.offset[2];
+  transform_broadcaster_->sendTransform(gnss_antenna_transform);
 }
 
 void Publishers::handleFilterGnssDualAntennaStatus(const mip::data_filter::GnssDualAntennaStatus& mip_filter_gnss_dual_antenna_status, const uint8_t descriptor_set, mip::Timestamp timestamp)
