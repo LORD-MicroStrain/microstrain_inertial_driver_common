@@ -17,7 +17,7 @@
 namespace microstrain
 {
 
-geometry_msgs::Quaternion nedToEcefRotation(double lat_deg, double lon_deg, double i, double j, double k, double w)
+QuaternionMsg nedToEcefRotation(double lat_deg, double lon_deg, double i, double j, double k, double w)
 {
   double lat = lat_deg * (M_PI/180);
   double lon = lon_deg * (M_PI/180);
@@ -472,12 +472,13 @@ void Publishers::publish()
 
   // Publish the dynamic transforms after the messages have been filled out
   std::string tf_error_string;
+  RosTimeType frame_time; setRosTime(&frame_time, 0, 0);
   if (config_->tf_mode_ == TF_MODE_GLOBAL && ecef_transform_position_updated_ && ecef_transform_attitude_updated_)
   {
-    if (transform_buffer_->canTransform(config_->frame_id_, config_->target_frame_id_, RosTimeType(0), &tf_error_string))
+    if (transform_buffer_->canTransform(config_->frame_id_, config_->target_frame_id_, frame_time, RosDurationType(0, 0), &tf_error_string))
     {
       TransformStampedMsg earth_target_transform, earth_imu_link_transform;
-      const auto& target_imu_link_transform = transform_buffer_->lookupTransform(config_->frame_id_, config_->target_frame_id_, RosTimeType(0));
+      const auto& target_imu_link_transform = transform_buffer_->lookupTransform(config_->frame_id_, config_->target_frame_id_, frame_time, RosDurationType(0, 0));
 
       const auto& filter_odom_msg = filter_odom_pub_->getMessage();
       earth_imu_link_transform.transform.translation.x = filter_odom_msg->pose.pose.position.x;
@@ -513,10 +514,10 @@ void Publishers::publish()
   }
   else if (config_->tf_mode_ == TF_MODE_RELATIVE && relative_transform_position_updated_ && relative_transform_attitude_updated_)
   {
-    if (transform_buffer_->canTransform(config_->frame_id_, config_->target_frame_id_, RosTimeType(0), &tf_error_string))
+    if (transform_buffer_->canTransform(config_->frame_id_, config_->target_frame_id_, frame_time, RosDurationType(0, 0), &tf_error_string))
     {
       TransformStampedMsg map_target_transform, map_imu_link_transform;
-      const auto& target_imu_link_transform = transform_buffer_->lookupTransform(config_->frame_id_, config_->target_frame_id_, RosTimeType(0));
+      const auto& target_imu_link_transform = transform_buffer_->lookupTransform(config_->frame_id_, config_->target_frame_id_, frame_time, RosDurationType(0, 0));
 
       const auto& filter_relative_odom_msg = filter_relative_odom_pub_->getMessage();
       map_imu_link_transform.transform.translation.x = filter_relative_odom_msg->pose.pose.position.x;
@@ -783,7 +784,9 @@ void Publishers::handleGnssVelNed(const mip::data_gnss::VelNed& vel_ned, const u
   // Use the orientation to rotate the velocity into the antenna's frame
   const tf2::Vector3 gnss_current_vel(gnss_vel_msg->twist.twist.linear.x, gnss_vel_msg->twist.twist.linear.y, gnss_vel_msg->twist.twist.linear.z);
   const tf2::Vector3 gnss_rotated_vel = tf2::quatRotate(gnss_course_over_ground.inverse(), gnss_current_vel);
-  gnss_odom_msg->twist.twist.linear = tf2::toMsg(gnss_rotated_vel);
+  gnss_odom_msg->twist.twist.linear.x = gnss_rotated_vel.getX();
+  gnss_odom_msg->twist.twist.linear.y = gnss_rotated_vel.getY();
+  gnss_odom_msg->twist.twist.linear.z = gnss_rotated_vel.getZ();
   gnss_odom_msg->twist.covariance[0] = vel_ned.speed_accuracy;
   gnss_odom_msg->twist.covariance[7] = vel_ned.speed_accuracy;
   gnss_odom_msg->twist.covariance[14] = vel_ned.speed_accuracy;

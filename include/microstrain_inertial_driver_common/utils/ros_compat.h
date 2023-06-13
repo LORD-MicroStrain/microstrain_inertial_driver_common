@@ -56,6 +56,7 @@ constexpr auto NUM_GNSS = 2;
 #include "sensor_msgs/Imu.h"
 #include "sensor_msgs/TimeReference.h"
 #include "sensor_msgs/FluidPressure.h"
+#include "geometry_msgs/Quaternion.h"
 #include "geometry_msgs/PoseWithCovarianceStamped.h"
 #include "geometry_msgs/TwistStamped.h"
 #include "geometry_msgs/TwistWithCovarianceStamped.h"
@@ -162,6 +163,7 @@ constexpr auto NUM_GNSS = 2;
 #include "sensor_msgs/msg/imu.hpp"
 #include "sensor_msgs/msg/time_reference.hpp"
 #include "sensor_msgs/msg/fluid_pressure.hpp"
+#include "geometry_msgs/msg/quaternion.hpp"
 #include "geometry_msgs/msg/pose_with_covariance_stamped.hpp"
 #include "geometry_msgs/msg/twist_stamped.hpp"
 #include "geometry_msgs/msg/twist_with_covariance_stamped.hpp"
@@ -306,6 +308,7 @@ class RosServiceType : public ::ros::ServiceServer
 // ROS1 General Types
 using RosNodeType = ::ros::NodeHandle;
 using RosTimeType = ::ros::Time;
+using RosDurationType = ::ros::Duration;
 using RosTimerType = std::shared_ptr<::ros::Timer>;
 using RosRateType = ::ros::Rate;
 using RosHeaderType = ::std_msgs::Header;
@@ -315,6 +318,7 @@ using OdometryMsg = ::nav_msgs::Odometry;
 using ImuMsg = ::sensor_msgs::Imu;
 using NavSatFixMsg = ::sensor_msgs::NavSatFix;
 using FluidPressureMsg = ::sensor_msgs::FluidPressure;
+using QuaternionMsg = ::geometry_msgs::Quaternion;
 using TwistStampedMsg = ::geometry_msgs::TwistStamped;
 using PoseWithCovarianceStampedMsg = ::geometry_msgs::PoseWithCovarianceStamped;
 using TwistWithCovarianceStampedMsg = ::geometry_msgs::TwistWithCovarianceStamped;
@@ -624,6 +628,7 @@ inline void stopTimer(RosTimerType timer)
 // ROS2 Generic Types
 using RosNodeType = ::rclcpp_lifecycle::LifecycleNode;
 using RosTimeType = ::builtin_interfaces::msg::Time;
+using RosDurationType = ::rclcpp::Duration;
 using RosTimerType = ::rclcpp::TimerBase::SharedPtr;
 using RosRateType = ::rclcpp::Rate;
 using RosHeaderType = ::std_msgs::msg::Header;
@@ -642,7 +647,7 @@ class RosPubType : public ::rclcpp_lifecycle::LifecyclePublisher<MessageType>
 };
 
 template<typename MessageType>
-using RosSubType = ::rclcpp::Subscriber<MessageType>;
+using RosSubType = ::rclcpp::Subscription<MessageType>;
 
 // Alias for the service type so it can be compatible with ROS1
 template<typename ServiceType>
@@ -653,6 +658,7 @@ using OdometryMsg = ::nav_msgs::msg::Odometry;
 using ImuMsg = ::sensor_msgs::msg::Imu;
 using NavSatFixMsg = ::sensor_msgs::msg::NavSatFix;
 using FluidPressureMsg = ::sensor_msgs::msg::FluidPressure;
+using QuaternionMsg = ::geometry_msgs::msg::Quaternion;
 using TwistStampedMsg = ::geometry_msgs::msg::TwistStamped;
 using PoseWithCovarianceStampedMsg = ::geometry_msgs::msg::PoseWithCovarianceStamped;
 using TwistWithCovarianceStampedMsg = ::geometry_msgs::msg::TwistWithCovarianceStamped;
