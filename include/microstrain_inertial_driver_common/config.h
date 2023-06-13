@@ -69,6 +69,10 @@ public:
   std::shared_ptr<RosMipDeviceAux> aux_device_;
   std::shared_ptr<MipPublisherMapping> mip_publisher_mapping_;
 
+  // Reconnect varaibles
+  int reconnect_attempts_;
+  bool configure_after_reconnect_;
+
   // Info for converting to the ENU frame
   bool use_enu_frame_;
   tf2::Matrix3x3 t_ned2enu_;

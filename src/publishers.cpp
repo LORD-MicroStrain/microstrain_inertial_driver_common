@@ -934,7 +934,7 @@ void Publishers::handleRtkCorrectionsStatus(const mip::data_gnss::RtkCorrections
       mip_gnss_corrections_rtk_corrections_status_msg->dongle_status_tower_change_indicator = dongle_status.towerChangeIndicator();
       mip_gnss_corrections_rtk_corrections_status_msg->dongle_status_nmea_timeout_flag = dongle_status.nmeaTimeout();
       mip_gnss_corrections_rtk_corrections_status_msg->dongle_status_server_timeout_flag = dongle_status.serverTimeout();
-      mip_gnss_corrections_rtk_corrections_status_msg->dongle_status_rtcm_timeout_flag = dongle_status.rtcmTimeout();
+      mip_gnss_corrections_rtk_corrections_status_msg->dongle_status_rtcm_timeout_flag = dongle_status.correctionsTimeout();
       mip_gnss_corrections_rtk_corrections_status_msg->dongle_status_device_out_of_range_flag = dongle_status.deviceOutOfRange();
       mip_gnss_corrections_rtk_corrections_status_msg->dongle_status_corrections_unavailable_flag = dongle_status.correctionsUnavailable();
 

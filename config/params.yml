@@ -28,6 +28,12 @@ set_baud : False
 poll_port      : False
 poll_rate_hz   : 1.0
 poll_max_tries : 60
+# Number of times to attempt to reconnect to the device if it disconnects while running
+# If configure_after_reconnect is true, we will also reconfigure the device after we reconnect
+#      NOTE: It is strongly recommended to configure after reconnect unless device_setup is set to false
+#            as the device will likely initialize in a different state otherwise
+reconnect_attempts : 0
+configure_after_reconnect : True
 
 # Frame ID that most header.frame_id fields will be populated with.
 frame_id: "imu_link"

@@ -40,6 +40,24 @@ class RosConnection : public mip::Connection
   explicit RosConnection(RosNodeType* node);
 
   /**
+   * \brief Tests if the connection is connected
+   * \return true if the connection is connected
+  */
+  bool isConnected() final;
+
+  /**
+   * \brief Connects this connection to the device
+   * \return true if the connection succeeds
+  */
+  bool connect() final;
+
+  /**
+   * \brief Disconnects the connection from the device
+   * \return true if the connection is disconnected
+  */
+  bool disconnect() final;
+
+  /**
    * \brief Connects to the MIP device. When this function is finished, if it returns true, the device will be open, but not necesarilly ready to communicate
    * \param config_node Reference to a ROS node object that contains configuration information
    * \param port The serial port to connect to

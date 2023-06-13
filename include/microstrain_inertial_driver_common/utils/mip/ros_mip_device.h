@@ -85,6 +85,24 @@ class RosMipDevice
   bool recv(uint8_t* data, size_t data_len, size_t* out_len);
 
   /**
+   * \brief Attempts to connect to the device
+   * \return true if the device was able to connect, false otherwise
+  */
+  bool connect();
+
+  /**
+   * \brief Attempts to disconnect from the device
+   * \return true if the device was able to disconnect, false otherwise
+  */
+  bool disconnect();
+
+  /**
+   * \brief Attempts to reconnect to the device
+   * \return true if the device was able to reconnect, false otherwise
+  */
+  bool reconnect();
+
+  /**
    * \brief Returns the NMEA messages collected by the connection, and clears the list of messages on the connection object
    * \return List of NMEA messages collected by the connection
    */
