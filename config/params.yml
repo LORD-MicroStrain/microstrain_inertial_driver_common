@@ -28,6 +28,7 @@ set_baud : False
 poll_port      : False
 poll_rate_hz   : 1.0
 poll_max_tries : 60
+
 # Number of times to attempt to reconnect to the device if it disconnects while running
 # If configure_after_reconnect is true, we will also reconfigure the device after we reconnect
 #      NOTE: It is strongly recommended to configure after reconnect unless device_setup is set to false
@@ -45,6 +46,7 @@ map_frame_id       : "map"
 earth_frame_id     : "earth"
 gnss1_frame_id     : "gnss1_link"
 gnss2_frame_id     : "gnss2_link"
+odometer_frame_id  : "odometer_link"
 
 # Target frame ID to publish transform to. Note that there needs to be some path of transforms between this and frame_id
 target_frame_id : "base_link"
@@ -56,7 +58,7 @@ target_frame_id : "base_link"
 #      2 - Relative mode:
 #              Transform will be published from earth_frame_id to map_frame_id using relative position configuration
 #              Transform between earth_frame_id and map_frame_id will also be published using rel_pos_configuration
-tf_mode : 1
+tf_mode : 2
 
 # Static transform between base_link_frame_id and frame_id.
 #      NOTE: It is strongly recommended to define this in a urdf file if you are building a robot, or are able to modify the robot's description.
@@ -119,30 +121,27 @@ raw_file_directory : "/home/your_name"
 # ****************************************************************** 
 # IMU Settings 
 # ****************************************************************** 
-imu_data_rate : 100
 
 # The speed at which the individual IMU publishers will publish at.
-#      If set to -1, will use imu_data_rate to determine the rate at which to stream and publish
 #      If set to 0, the stream will be turned off and the publisher will not be created
-imu_data_rate          : 100  # Rate of imu/data topic
-                              # Note: Both filter_odom_earth_data_rate and filter_odom_map_data_rate depend on the contents of this message.
-                              #       If either are set to a higher value, this message will be published at that rate.
-imu_raw_data_rate      : 0    # Rate of imu_raw/data topic
-imu_raw_mag_data_rate  : 0    # Rate of imu_raw/mag topic
+imu_data_rate              : 100  # Rate of imu/data topic
+                                  # Note: Both filter_odom_earth_data_rate and filter_odom_map_data_rate depend on the contents of this message.
+                                  #       If either are set to a higher value, this message will be published at that rate.
+imu_raw_data_rate          : 0    # Rate of imu_raw/data topic
+imu_raw_mag_data_rate      : 0    # Rate of imu_raw/mag topic
+imu_raw_pressure_data_rate : 10    # Rate of imu_raw/pressure topic
 
 # Static IMU message covariance values (the device does not generate these) 
-# Since internally these are std::vector we need to use the rosparam tags 
-imu_orientation_cov : [0.01, 0, 0, 0, 0.01, 0, 0, 0, 0.01]
-imu_linear_cov      : [0.01, 0, 0, 0, 0.01, 0, 0, 0, 0.01]
-imu_angular_cov     : [0.01, 0, 0, 0, 0.01, 0, 0, 0, 0.01]
+imu_orientation_cov   : [0.01, 0, 0, 0, 0.01, 0, 0, 0, 0.01]
+imu_linear_cov        : [0.01, 0, 0, 0, 0.01, 0, 0, 0, 0.01]
+imu_angular_cov       : [0.01, 0, 0, 0, 0.01, 0, 0, 0, 0.01]
+imu_pressure_variance : 0.01
 
 # ****************************************************************** 
 # GNSS Settings (only applicable for devices with GNSS) 
 # ****************************************************************** 
-gnss1_data_rate : 2
 
 # The speed at which the individual GNSS1 publishers will publish at.
-#      If set to -1, will use gnss1_data_rate to determine the rate at which to stream and publish
 #      If set to 0, the stream will be turned off and the publisher will not be created
 gnss1_fix_data_rate        : 2  # Rate of gnss1/fix topic
 gnss1_vel_data_rate        : 0  # Rate of gnss1/vel topic
@@ -158,11 +157,11 @@ gnss1_time_data_rate       : 2  # Rate of gnss1/time topic
 #     Note: Make this as accurate as possible for good performance
 gnss1_antenna_offset : [0.0, -0.7, -1.0]
 
-# GNSS2 settings are only applicable for multi-GNSS systems (e.g. GQ7) 
-gnss2_data_rate : 2
+# ****************************************************************** 
+# GNSS2 Settings (only applicable for multi-GNSS systems (e.g. GQ7) )
+# ****************************************************************** 
 
 # The speed at which the individual GNSS2 publishers will publish at.
-#      If set to -1, will use gnss2_data_rate to determine the rate at which to stream and publish
 #      If set to 0, the stream will be turned off and the publisher will not be created
 gnss2_fix_data_rate        : 2  # Rate of gnss2/fix topic
 gnss2_vel_data_rate        : 0  # Rate of gnss2/vel topic
@@ -202,10 +201,8 @@ publish_nmea   : False
 # ****************************************************************** 
 # Kalman Filter Settings (only applicable for devices with a Kalman Filter) 
 # ****************************************************************** 
-filter_data_rate : 10
 
 # The speed at which the individual Filter publishers will publish at.
-#      If set to -1, will use filter_data_rate to determine the rate at which to stream and publish
 #      If set to 0, the stream will be turned off and the publisher will not be created
 filter_fix_data_rate        : 10  # Rate of /fix topic
 filter_vel_data_rate        : 0   # Rate of /vel topic
@@ -249,12 +246,6 @@ filter_dynamics_mode : 1
 #      If this is set to true, the acceleration will not factor out gravity, if set to false gravity will be filtered out of the linear acceleration.
 filter_use_compensated_accel : True
 
-# ZUPT control 
-filter_velocity_zupt_topic : "/moving_vel"
-filter_angular_zupt_topic  : "/moving_ang"
-filter_velocity_zupt       : True
-filter_angular_zupt        : True
-
 # (GQ7/CV7 full support, GX5-45 limited support) Adaptive filter settings
 #      Adaptive level: 0 - off, 1 - Conservative, 2 = Moderate (default), 3 = agressive
 #      Time limit: Max duration of measurement rejection prior to recovery, in milliseconds - default = 15000 
@@ -292,7 +283,6 @@ filter_vel_in_vehicle_frame : True
 filter_lever_arm_offset: [0.0, 0.0, 0.0]
 
 # The speed at which the individual MIP publishers will publish at.
-#      If set to -1, will use imu_data_rate to determine the rate at which to stream and publish
 #      If set to 0, the stream will be turned off and the publisher will not be created
 mip_sensor_overrange_status_data_rate : 0  # Rate of mip/sensor/overrange_status topic
 
@@ -533,3 +523,13 @@ filter_nmea_gll_data_rate: 0
 filter_nmea_rmc_data_rate: 0
 filter_nmea_hdt_data_rate: 0
 filter_nmea_prka_data_rate: 0  # Note that this message_id will not have any talker ID on it since it is proprietary and can only come from the filter descriptor set
+
+# External aiding measurement configuration
+subscribe_ext_fix      : False
+subscribe_ext_vel_ned  : False
+subscribe_ext_vel_enu  : False
+subscribe_ext_vel_ecef : False
+subscribe_ext_vel_body : False
+subscribe_ext_pressure : False
+subscribe_ext_pose     : False
+subscribe_ext_heading  : False

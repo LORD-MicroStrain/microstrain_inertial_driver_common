@@ -104,6 +104,7 @@ public:
   bool filter_enable_gnss_antenna_cal_;
   bool filter_use_compensated_accel_;
   bool filter_relative_pos_config_;
+  std::vector<float> filter_speed_lever_arm_;
 
   // Frame id configuration
   std::string frame_id_;
@@ -112,6 +113,7 @@ public:
   std::string map_frame_id_;
   std::string earth_frame_id_;
   std::string gnss_frame_id_[NUM_GNSS];
+  std::string odometer_frame_id_;
 
   // TF mode and transform configuration
   int32_t tf_mode_;
@@ -122,14 +124,17 @@ public:
   // Configured static transforms
   TransformStampedMsg base_link_to_frame_id_transform_;
 
-  std::string imu_frame_id_;
-  std::string filter_frame_id_;
-  std::string filter_child_frame_id_;
-  std::string nmea_frame_id_;
+  // Subscriber settings
+  bool subscribe_ext_fix_;
+  bool subscribe_ext_vel_ned_;
+  bool subscribe_ext_vel_enu_;
+  bool subscribe_ext_vel_ecef_;
+  bool subscribe_ext_vel_body_;
+  bool subscribe_ext_pressure_;
+  bool subscribe_ext_pose_;
+  bool subscribe_ext_heading_;
 
   // Topic strings
-  std::string velocity_zupt_topic_;
-  std::string angular_zupt_topic_;
   std::string external_gps_time_topic_;
   std::string external_speed_topic_;
 
@@ -141,14 +146,11 @@ public:
   bool subscribe_rtcm_;
   std::string rtcm_topic_;
 
-  // ZUPT, angular ZUPT topic listener variables
-  bool angular_zupt_;
-  bool velocity_zupt_;
-
   // Static covariance vectors
   std::vector<double> imu_linear_cov_;
   std::vector<double> imu_angular_cov_;
   std::vector<double> imu_orientation_cov_;
+  double imu_pressure_vairance_;
 
   // Gnss antenna offsets
   std::vector<float> gnss_antenna_offset_[NUM_GNSS];
@@ -158,6 +160,7 @@ public:
   bool raw_file_include_support_data_;
   std::ofstream raw_file_;
   std::ofstream raw_file_aux_;
+
 
   // NMEA streaming parameters
   bool nmea_message_allow_duplicate_talker_ids_;

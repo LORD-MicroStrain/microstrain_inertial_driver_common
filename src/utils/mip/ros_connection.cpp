@@ -31,7 +31,7 @@ RosConnection::RosConnection(RosNodeType* node) : node_(node)
 {
 }
 
-bool RosConnection::isConnected()
+bool RosConnection::isConnected() const
 {
   if (connection_)
     return connection_->isConnected();

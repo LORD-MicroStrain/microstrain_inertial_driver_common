@@ -38,12 +38,6 @@ Config::Config(RosNodeType* node) : node_(node)
 bool Config::configure(RosNodeType* node)
 {
   // Initialize some default and static config
-  imu_frame_id_ = "sensor";
-  gnss_frame_id_[GNSS1_ID] = "gnss1_antenna_wgs84_ned";
-  gnss_frame_id_[GNSS2_ID] = "gnss2_antenna_wgs84_ned";
-  filter_frame_id_ = "sensor_wgs84_ned";
-  filter_child_frame_id_ = "sensor";
-  nmea_frame_id_ = "nmea";
   t_ned2enu_ = tf2::Matrix3x3(0, 1, 0, 1, 0, 0, 0, 0, -1);
   t_vehiclebody2sensorbody_ = tf2::Matrix3x3(1, 0, 0, 0, -1, 0, 0, 0, -1);
 
@@ -71,6 +65,7 @@ bool Config::configure(RosNodeType* node)
   getParam<std::string>(node, "earth_frame_id", earth_frame_id_, "earth");
   getParam<std::string>(node, "gnss1_frame_id", gnss_frame_id_[GNSS1_ID], "gnss1_link");
   getParam<std::string>(node, "gnss2_frame_id", gnss_frame_id_[GNSS2_ID], "gnss2_link");
+  getParam<std::string>(node, "odometer_frame_id", odometer_frame_id_, "odometer_link");
 
   // tf config
   getParam<int32_t>(node, "tf_mode", tf_mode_, 2);
@@ -86,6 +81,7 @@ bool Config::configure(RosNodeType* node)
     map_frame_id_ += ned_suffix;
     for (int i = 0; i < NUM_GNSS; i++)
       gnss_frame_id_[i] += ned_suffix;
+    odometer_frame_id_ += ned_suffix;
   }
 
   // Configure the static transforms
@@ -113,7 +109,7 @@ bool Config::configure(RosNodeType* node)
   getParam<std::vector<double>>(node, "imu_orientation_cov", imu_orientation_cov_, DEFAULT_MATRIX);
   getParam<std::vector<double>>(node, "imu_linear_cov", imu_linear_cov_, DEFAULT_MATRIX);
   getParam<std::vector<double>>(node, "imu_angular_cov", imu_angular_cov_, DEFAULT_MATRIX);
-  getParam<std::string>(node, "imu_frame_id", imu_frame_id_, imu_frame_id_);
+  getParam<double>(node, "imu_pressure_variance", imu_pressure_vairance_, 0.01);
 
   // GNSS 1/2
   std::vector<double> gnss_antenna_offset_double[NUM_GNSS];
@@ -131,15 +127,11 @@ bool Config::configure(RosNodeType* node)
   getParam<bool>(node, "subscribe_rtcm", subscribe_rtcm_, false);
   getParam<std::string>(node, "rtcm_topic", rtcm_topic_, std::string("/rtcm"));
   getParam<bool>(node, "publish_nmea", publish_nmea_, false);
-  getParam<std::string>(node, "nmea_frame_id", nmea_frame_id_, nmea_frame_id_);
 
   // FILTER
-  getParam<std::string>(node, "filter_frame_id", filter_frame_id_, filter_frame_id_);
-  getParam<std::string>(node, "filter_child_frame_id", filter_child_frame_id_, filter_child_frame_id_);
+  std::vector<double> filter_speed_lever_arm_double(3, 0.0);
   getParam<bool>(node, "filter_relative_position_config", filter_relative_pos_config_, false);
   getParam<double>(node, "gps_leap_seconds", gps_leap_seconds_, 18.0);
-  getParam<bool>(node, "filter_angular_zupt", angular_zupt_, false);
-  getParam<bool>(node, "filter_velocity_zupt", velocity_zupt_, false);
   getParam<bool>(node, "filter_enable_gnss_heading_aiding", filter_enable_gnss_heading_aiding_, true);
   getParam<bool>(node, "filter_enable_gnss_pos_vel_aiding", filter_enable_gnss_pos_vel_aiding_, true);
   getParam<bool>(node, "filter_enable_altimeter_aiding", filter_enable_altimeter_aiding_, false);
@@ -150,12 +142,22 @@ bool Config::configure(RosNodeType* node)
   getParam<bool>(node, "filter_enable_wheeled_vehicle_constraint", filter_enable_wheeled_vehicle_constraint_, false);
   getParam<bool>(node, "filter_enable_vertical_gyro_constraint", filter_enable_vertical_gyro_constraint_, false);
   getParam<bool>(node, "filter_enable_gnss_antenna_cal", filter_enable_gnss_antenna_cal_, false);
-  getParam<std::string>(node, "filter_velocity_zupt_topic", velocity_zupt_topic_, std::string("/moving_vel"));
-  getParam<std::string>(node, "filter_angular_zupt_topic", angular_zupt_topic_, std::string("/moving_ang"));
   getParam<std::string>(node, "filter_external_gps_time_topic", external_gps_time_topic_,
                          std::string("/external_gps_time"));
   getParam<std::string>(node, "filter_external_speed_topic", external_speed_topic_, "/external_speed");
   getParam<bool>(node, "filter_use_compensated_accel", filter_use_compensated_accel_, true);
+  getParam<std::vector<double>>(node, "filter_speed_lever_arm", filter_speed_lever_arm_double, DEFAULT_VECTOR);
+  filter_speed_lever_arm_ = std::vector<float>(filter_speed_lever_arm_double.begin(), filter_speed_lever_arm_double.end());
+
+  // Subscribers
+  getParam<bool>(node, "subscribe_ext_fix", subscribe_ext_fix_, false);
+  getParam<bool>(node, "subscribe_ext_vel_ned", subscribe_ext_vel_ned_, false);
+  getParam<bool>(node, "subscribe_ext_vel_enu", subscribe_ext_vel_enu_, false);
+  getParam<bool>(node, "subscribe_ext_vel_ecef", subscribe_ext_vel_ecef_, false);
+  getParam<bool>(node, "subscribe_ext_vel_body", subscribe_ext_vel_body_, false);
+  getParam<bool>(node, "subscribe_ext_pressure", subscribe_ext_pressure_, false);
+  getParam<bool>(node, "subscribe_ext_pose", subscribe_ext_pose_, false);
+  getParam<bool>(node, "subscribe_ext_heading", subscribe_ext_heading_, false);
 
   // NMEA streaming
   getParam<bool>(node, "nmea_message_allow_duplicate_talker_ids", nmea_message_allow_duplicate_talker_ids_, false);
@@ -575,7 +577,6 @@ bool Config::configureFilter(RosNodeType* node)
   int filter_relative_position_frame;
   int filter_relative_position_source;
   std::vector<double> filter_relative_position_ref_double(3, 0.0);
-  std::vector<double> filter_speed_lever_arm_double(3, 0.0);
   double filter_gnss_antenna_cal_max_offset;
   std::vector<double> filter_lever_arm_offset_double(3, 0.0);
   getParam<int32_t>(node, "filter_adaptive_level", filter_adaptive_level, 2);
@@ -589,7 +590,6 @@ bool Config::configureFilter(RosNodeType* node)
   getParam<int32_t>(node, "filter_relative_position_frame", filter_relative_position_frame, 2);
   getParam<int32_t>(node, "filter_relative_position_source", filter_relative_position_source, 1);
   getParam<std::vector<double>>(node, "filter_relative_position_ref", filter_relative_position_ref_double, DEFAULT_VECTOR);
-  getParam<std::vector<double>>(node, "filter_speed_lever_arm", filter_speed_lever_arm_double, DEFAULT_VECTOR);
   getParam<double>(node, "filter_gnss_antenna_cal_max_offset", filter_gnss_antenna_cal_max_offset, 0.1);
   getParam<std::vector<double>>(node, "filter_lever_arm_offset", filter_lever_arm_offset_double, DEFAULT_VECTOR);
 
@@ -609,7 +609,6 @@ bool Config::configureFilter(RosNodeType* node)
   std::vector<float> filter_init_attitude(filter_init_attitude_double.begin(), filter_init_attitude_double.end());
 
   std::vector<double> filter_relative_position_ref(filter_relative_position_ref_double.begin(), filter_relative_position_ref_double.end());
-  std::vector<float> filter_speed_lever_arm(filter_speed_lever_arm_double.begin(), filter_speed_lever_arm_double.end());
 
   std::vector<float> filter_sensor2vehicle_frame_transformation_euler(filter_sensor2vehicle_frame_transformation_euler_double.begin(), filter_sensor2vehicle_frame_transformation_euler_double.end());
   std::vector<float> filter_sensor2vehicle_frame_transformation_matrix(filter_sensor2vehicle_frame_transformation_matrix_double.begin(), filter_sensor2vehicle_frame_transformation_matrix_double.end());
@@ -795,8 +794,8 @@ bool Config::configureFilter(RosNodeType* node)
   // Set the filter speed lever arm
   if (mip_device_->supportsDescriptor(descriptor_set, mip::commands_filter::CMD_SPEED_LEVER_ARM))
   {
-    MICROSTRAIN_INFO(node_, "Setting speed lever arm to: [%f, %f, %f]", filter_speed_lever_arm[0], filter_speed_lever_arm[1], filter_speed_lever_arm[2]);
-    if (!(mip_cmd_result = mip::commands_filter::writeSpeedLeverArm(*mip_device_, 1, filter_speed_lever_arm.data())))
+    MICROSTRAIN_INFO(node_, "Setting speed lever arm to: [%f, %f, %f]", filter_speed_lever_arm_[0], filter_speed_lever_arm_[1], filter_speed_lever_arm_[2]);
+    if (!(mip_cmd_result = mip::commands_filter::writeSpeedLeverArm(*mip_device_, 1, filter_speed_lever_arm_.data())))
     {
       MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to configure speed lever arm");
       return false;

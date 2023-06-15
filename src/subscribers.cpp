@@ -23,25 +23,6 @@ Subscribers::Subscribers(RosNodeType* node, Config* config)
 
 bool Subscribers::activate()
 {
-  // Clear the ZUPT listener flags
-  vel_still_ = false;
-  ang_still_ = false;
-
-  // Create a topic listener for ZUPTs
-  if (config_->velocity_zupt_ && config_->mip_device_->supportsDescriptor(mip::commands_filter::DESCRIPTOR_SET, mip::commands_filter::CMD_COMMANDED_ZUPT))
-    filter_vel_state_sub_ = createSubscriber<>(node_, config_->velocity_zupt_topic_, 1000, &Subscribers::velZuptCallback, this);
-
-  // Create a topic listener for angular ZUPTs
-  if (config_->angular_zupt_ && config_->mip_device_->supportsDescriptor(mip::commands_filter::DESCRIPTOR_SET, mip::commands_filter::CMD_COMMANDED_ANGULAR_ZUPT))
-    filter_ang_state_sub_ = createSubscriber<>(node_, config_->angular_zupt_topic_.c_str(), 1000, &Subscribers::angZuptCallback, this);
-
-  // Create a topic listener for external GNSS updates
-  if (config_->filter_enable_external_gps_time_update_ && config_->mip_device_->supportsDescriptor(mip::commands_base::DESCRIPTOR_SET, mip::commands_base::CMD_GPS_TIME_BROADCAST_NEW))
-  {
-    MICROSTRAIN_INFO(node_, "Subscribed to %s for external GPS time", config_->external_gps_time_topic_.c_str());
-    external_gps_time_sub_ = createSubscriber<>(node_, config_->external_gps_time_topic_.c_str(), 1000, &Subscribers::externalGpsTimeCallback, this);
-  }
-
   // Create a topic listener for external RTCM updates
   if (config_->subscribe_rtcm_)
   {
@@ -63,120 +44,61 @@ bool Subscribers::activate()
     }
   }
 
-  // Setup our external aiding measurement subscriptions
-  if (true)  // TODO: Replace with some sort of check (And check that each command is supported)
+  // Setup the external measurement subscribers
+  if (config_->subscribe_ext_fix_ && config_->mip_device_->supportsDescriptor(mip::commands_aiding::DESCRIPTOR_SET, mip::commands_aiding::CMD_LLH_POS))
   {
-    external_gnss_position_sub_ = createSubscriber<>(node_, "/ext/fix", 1000, &Subscribers::externalGnssPositionCallback, this);
-    external_pressure_sub_ = createSubscriber<>(node_, "/ext/pressure", 1000, &Subscribers::externalPressureCallback, this);
-    external_pose_sub_ = createSubscriber<>(node_, "/ext/pose", 1000, &Subscribers::externalPoseCallback, this);
-    external_gnss_vel_sub_ = createSubscriber<>(node_, "/ext/vel", 1000, &Subscribers::externalGnssVelCallback, this);
-    external_gnss_vel_ecef_sub_ = createSubscriber<>(node_, "/ext/vel/ecef", 1000, &Subscribers::externalGnssVelEcefCallback, this);
-    external_body_vel_sub_ = createSubscriber<>(node_, "/ext/vel/body", 1000, &Subscribers::externalBodyVelCallback, this);
-    //external_heading_sub_ = createSubscriber<>(node_, "/ext/heading", 1000, &Subscribers::externalHeadingCallback, this);
+    MICROSTRAIN_INFO(node_, "Subscribing to %s for external GPS position", EXT_FIX_TOPIC);
+    external_gnss_position_sub_ = createSubscriber<>(node_, EXT_FIX_TOPIC, 1000, &Subscribers::externalGnssPositionCallback, this);
+  }
+  if (config_->subscribe_ext_vel_ned_ && config_->mip_device_->supportsDescriptor(mip::commands_aiding::DESCRIPTOR_SET, mip::commands_aiding::CMD_NED_VEL))
+  {
+    MICROSTRAIN_INFO(node_, "Subscribing to %s for external GPS Velocity in the NED frame", EXT_VEL_NED_TOPIC);
+    external_gnss_vel_ned_sub_ = createSubscriber<>(node_, EXT_VEL_NED_TOPIC, 1000, &Subscribers::externalGnssVelNedCallback, this);
+  }
+  if (config_->subscribe_ext_vel_enu_ && config_->mip_device_->supportsDescriptor(mip::commands_aiding::DESCRIPTOR_SET, mip::commands_aiding::CMD_NED_VEL))
+  {
+    MICROSTRAIN_INFO(node_, "Subscribing to %s for external GPS Velocity in the ENU frame", EXT_VEL_ENU_TOPIC);
+    external_gnss_vel_enu_sub_ = createSubscriber<>(node_, EXT_VEL_ENU_TOPIC, 1000, &Subscribers::externalGnssVelEnuCallback, this);
+  }
+  if (config_->subscribe_ext_vel_ecef_ && config_->mip_device_->supportsDescriptor(mip::commands_aiding::DESCRIPTOR_SET, mip::commands_aiding::CMD_ECEF_VEL))
+  {
+    MICROSTRAIN_INFO(node_, "Subscribing to %s for external GPS Velocity in the ECEF frame", EXT_VEL_ECEF_TOPIC);
+    external_gnss_vel_ecef_sub_ = createSubscriber<>(node_, EXT_VEL_ECEF_TOPIC, 1000, &Subscribers::externalGnssVelEcefCallback, this);
+  }
+  if (config_->subscribe_ext_vel_body_ && config_->mip_device_->supportsDescriptor(mip::commands_aiding::DESCRIPTOR_SET, mip::commands_aiding::CMD_ODOM_VEL))
+  {
+    MICROSTRAIN_INFO(node_, "Subscribing to %s for external Velocity in the Body frame", EXT_VEL_BODY_TOPIC);
+    external_body_vel_sub_ = createSubscriber<>(node_, EXT_VEL_BODY_TOPIC, 1000, &Subscribers::externalBodyVelCallback, this);
+  }
+  if (config_->subscribe_ext_pressure_ && false)  // TODO: Check pressure descriptor
+  {
+    MICROSTRAIN_INFO(node_, "Subscribing to %s for external pressure", EXT_PRESSURE_TOPIC);
+    external_pressure_sub_ = createSubscriber<>(node_, EXT_PRESSURE_TOPIC, 1000, &Subscribers::externalPressureCallback, this);
+  }
+  if (config_->subscribe_ext_pose_ && config_->mip_device_->supportsDescriptor(mip::commands_aiding::DESCRIPTOR_SET, mip::commands_aiding::CMD_DELTA_POSITION))
+  {
+    MICROSTRAIN_INFO(node_, "Subscribing to %s for external pose", EXT_VEL_BODY_TOPIC);
+    external_pose_sub_ = createSubscriber<>(node_, EXT_POSE_TOPIC, 1000, &Subscribers::externalPoseCallback, this);
+  }
+  if (config_->subscribe_ext_heading_ && config_->mip_device_->supportsDescriptor(mip::commands_aiding::DESCRIPTOR_SET, mip::commands_aiding::CMD_HEADING_TRUE))
+  {
+    MICROSTRAIN_INFO(node_, "Subscribing to %s for external heading", EXT_HEADING_TOPIC);
+    external_heading_sub_ = createSubscriber<>(node_, EXT_HEADING_TOPIC, 1000, &Subscribers::externalHeadingCallback, this);
+  }
+
+  // If any of the external subscribers were set up, configure the time callbacks
+  if (config_->subscribe_ext_fix_ || config_->subscribe_ext_vel_ned_ || config_->subscribe_ext_vel_enu_ || config_->subscribe_ext_vel_ecef_ ||
+      config_->subscribe_ext_vel_body_ || config_->subscribe_ext_pressure_ || config_->subscribe_ext_pose_ || config_->subscribe_ext_heading_)
+  {
+    if (config_->mip_device_->supportsDescriptor(mip::commands_base::DESCRIPTOR_SET, mip::commands_base::CMD_GPS_TIME_BROADCAST_NEW))
+    {
+      MICROSTRAIN_INFO(node_, "Subscribing to %s and %s for external timing information", EXT_TIME_GPS_TOPIC, EXT_TIME_TOPIC);
+      external_time_gps_sub_ = createSubscriber<>(node_, EXT_TIME_GPS_TOPIC, 1000, &Subscribers::externalTimeGpsCallback, this);
+      external_time_sub_ = createSubscriber<>(node_, EXT_TIME_TOPIC, 1000, &Subscribers::externalTimeCallback, this);
+    }
   }
 
   return true;
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////////////////
-// Velocity ZUPT Callback
-/////////////////////////////////////////////////////////////////////////////////////////////////////
-void Subscribers::velZuptCallback(const BoolMsg& state)
-{
-  if (vel_still_ != state.data)
-  {
-    vel_still_ = state.data;
-
-    if (vel_still_)
-    {
-      vel_zupt_timer_ = createTimer<Subscribers>(node_, 5, &Subscribers::velZupt, this);
-    }
-  }
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////////////////
-// Velocity ZUPT Subtask
-//
-// Note: Handles sending the ZUPT command regularly while stationary
-/////////////////////////////////////////////////////////////////////////////////////////////////////
-void Subscribers::velZupt()
-{
-  if (!vel_still_)
-  {
-    stopTimer(vel_zupt_timer_);
-    return;
-  }
-
-  mip::CmdResult mip_cmd_result;
-  MICROSTRAIN_DEBUG(node_, "Sending Vel ZUPT");
-  if (!(mip_cmd_result = mip::commands_filter::commandedZupt(*(config_->mip_device_))))
-  {
-    MICROSTRAIN_ERROR(node_, "Failed to send angular ZUPT");
-    MICROSTRAIN_ERROR(node_, "Error(%d): %s", mip_cmd_result.value, mip_cmd_result.name());
-  }
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////////////////
-// Angular Rate ZUPT Callback
-/////////////////////////////////////////////////////////////////////////////////////////////////////
-void Subscribers::angZuptCallback(const BoolMsg& state)
-{
-  if (ang_still_ != state.data)
-  {
-    ang_still_ = state.data;
-
-    if (ang_still_)
-    {
-      ang_zupt_timer_ = createTimer<Subscribers>(node_, 5, &Subscribers::angZupt, this);
-    }
-  }
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////////////////
-// Angular Rate ZUPT Subtask
-//
-// Note: Handles sending the ZUPT command regularly while not rotating
-/////////////////////////////////////////////////////////////////////////////////////////////////////
-void Subscribers::angZupt()
-{
-  if (!ang_still_)
-  {
-    stopTimer(ang_zupt_timer_);
-    return;
-  }
-
-  mip::CmdResult mip_cmd_result;
-  MICROSTRAIN_DEBUG(node_, "Sending Angular ZUPT");
-  if (!(mip_cmd_result = mip::commands_filter::commandedAngularZupt(*(config_->mip_device_))))
-  {
-    MICROSTRAIN_ERROR(node_, "Failed to send angular ZUPT");
-    MICROSTRAIN_ERROR(node_, "Error(%d): %s", mip_cmd_result.value, mip_cmd_result.name());
-  }
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////////////////
-// External GPS Time Callback
-/////////////////////////////////////////////////////////////////////////////////////////////////////
-void Subscribers::externalGpsTimeCallback(const TimeReferenceMsg& time)
-{
-  int64_t utcTime = getTimeRefSec(time.time_ref) + config_->gps_leap_seconds_ - UTC_GPS_EPOCH_DUR;
-
-  int64_t secs = utcTime % static_cast<int32_t>(SECS_PER_WEEK);
-
-  int weeks = (utcTime - secs) / SECS_PER_WEEK;
-
-  mip::CmdResult mip_cmd_result;
-  MICROSTRAIN_INFO(node_, "GPS Update: w%i, s%ld", weeks, secs);
-  if (!(mip_cmd_result = mip::commands_base::writeGpsTimeUpdate(*(config_->mip_device_), mip::commands_base::GpsTimeUpdate::FieldId::WEEK_NUMBER, weeks)))
-  {
-    MICROSTRAIN_ERROR(node_, "Failed to send GPS time update for week number");
-    MICROSTRAIN_ERROR(node_, "Error(%d): %s", mip_cmd_result.value, mip_cmd_result.name());
-  }
-  if (!(mip_cmd_result = mip::commands_base::writeGpsTimeUpdate(*(config_->mip_device_), mip::commands_base::GpsTimeUpdate::FieldId::TIME_OF_WEEK, secs)))
-  {
-    MICROSTRAIN_ERROR(node_, "Failed to send GPS time update for time of week");
-    MICROSTRAIN_ERROR(node_, "Error(%d): %s", mip_cmd_result.value, mip_cmd_result.name());
-  }
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -192,9 +114,287 @@ void Subscribers::externalSpeedCallback(const InputSpeedMeasurementMsg& speed)
   }
 }
 
-/////////////////////////////////////////////////////////////////////////////////////////////////////
-// RTCM Callback
-/////////////////////////////////////////////////////////////////////////////////////////////////////
+void Subscribers::externalTimeGpsCallback(const TimeReferenceMsg& time)
+{
+  // If this is the first message we received, set the frame ID
+  if (time.header.frame_id.empty())
+  {
+    MICROSTRAIN_WARN_THROTTLE(node_, 2, "Invalid header.frame_id for external GPS time. frame_id must not be empty");
+    return;
+  }
+  if (gps_time_frame_id_.empty())
+  {
+    gps_time_frame_id_ = time.header.frame_id;
+
+    // Add this as a zero offset clock bias to the device list
+    const RosTimeType& now = rosTimeNow(node_);
+    device_time_to_ros_time_clock_bias_monitors_[time.header.frame_id] = ClockBiasMonitor(1, 1);
+    device_time_to_ros_time_clock_bias_monitors_[time.header.frame_id].addTime(now, now);
+  }
+  
+  // Add the time to the clock bias
+  if (gps_time_frame_id_ == time.header.frame_id)
+  {
+    ros_time_to_gps_time_clock_bias_monitor_.addTime(time.header.stamp, time.time_ref);
+  }
+  else
+  {
+    // If we received a different frame_id than the first message, ignore it
+    MICROSTRAIN_WARN_THROTTLE(node_, 2, "Invalid header.frame_id %s for external GPS time, we already received a GPS time with frame id %s, all messages must use that frame_id",
+      time.header.frame_id.c_str(), gps_time_frame_id_.c_str());
+  }
+
+  // Set the time on the device
+  const int64_t gps_time = getTimeRefSec(time.time_ref) + config_->gps_leap_seconds_ - UTC_GPS_EPOCH_DUR;
+  const uint32_t gps_tow = gps_time % static_cast<int32_t>(SECS_PER_WEEK);
+  const uint32_t gps_week_number = (gps_time - gps_tow) / SECS_PER_WEEK;
+
+  mip::CmdResult mip_cmd_result;
+  MICROSTRAIN_DEBUG(node_, "Updating GPS week number to %u", gps_week_number);
+  if (!(mip_cmd_result = mip::commands_base::writeGpsTimeUpdate(*(config_->mip_device_), mip::commands_base::GpsTimeUpdate::FieldId::WEEK_NUMBER, gps_week_number)))
+    MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to send GPS time update for week number");
+  MICROSTRAIN_DEBUG(node_, "Updating GPS time of week to %u", gps_tow);
+  if (!(mip_cmd_result = mip::commands_base::writeGpsTimeUpdate(*(config_->mip_device_), mip::commands_base::GpsTimeUpdate::FieldId::TIME_OF_WEEK, gps_tow)))
+    MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to send GPS time update for time of week");
+}
+
+void Subscribers::externalTimeCallback(const TimeReferenceMsg& time)
+{
+  // If this frame ID is the same as the GPS frame ID, do nothing
+  if (time.header.frame_id.empty() || time.header.frame_id == gps_time_frame_id_)
+    return;
+
+  // If we don't have an entry for this frame_id, make one
+  if (device_time_to_ros_time_clock_bias_monitors_.find(time.header.frame_id) == device_time_to_ros_time_clock_bias_monitors_.end())
+    device_time_to_ros_time_clock_bias_monitors_[time.header.frame_id] = ClockBiasMonitor(0.99, 2);
+  
+  // Add the time
+  device_time_to_ros_time_clock_bias_monitors_[time.header.frame_id].addTime(time.time_ref, time.header.stamp);
+}
+
+void Subscribers::externalGnssPositionCallback(const NavSatFixMsg& fix)
+{
+  // Fill out the time for the message
+  mip::commands_aiding::LlhPos llh_pos;
+  if (!populateAidingTime(fix.header, EXT_FIX_TOPIC, &llh_pos.time))
+    return;
+
+  // TODO: Do sensor_id stuff
+
+  // If the message has no uncertainty, we can't process it
+  if (fix.position_covariance_type == NavSatFixMsg::COVARIANCE_TYPE_UNKNOWN)
+  {
+    MICROSTRAIN_WARN_THROTTLE(node_, 10, "Invalid NavSatFix message, must have uncertainty to process measurements");
+    return;
+  }
+
+  // Fill out the rest of the message and send it
+  llh_pos.valid_flags.setAll();
+  llh_pos.latitude = fix.latitude;
+  llh_pos.longitude = fix.longitude;
+  llh_pos.height = fix.altitude;
+  if (isNed(fix.header))
+  {
+    llh_pos.uncertainty[0] = sqrt(fix.position_covariance[0]);
+    llh_pos.uncertainty[1] = sqrt(fix.position_covariance[4]);
+  }
+  else
+  {
+    llh_pos.uncertainty[0] = sqrt(fix.position_covariance[4]);
+    llh_pos.uncertainty[1] = sqrt(fix.position_covariance[0]);
+  }
+  llh_pos.uncertainty[2] = sqrt(fix.position_covariance[8]);
+
+  mip::CmdResult mip_cmd_result;
+  if (!(mip_cmd_result = config_->mip_device_->device().runCommand<mip::commands_aiding::LlhPos>(llh_pos)))
+    MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to send aiding LLH position aiding command");
+}
+
+void Subscribers::externalGnssVelNedCallback(const TwistWithCovarianceStampedMsg& gnss_vel)
+{
+  // Make sure the frame_id is NED
+  if (!isNed(gnss_vel.header))
+  {
+    MICROSTRAIN_WARN_THROTTLE(node_, 10, "Invalid velocity message received on %s, the frame_id must end with _ned, but is %s", EXT_VEL_NED_TOPIC, gnss_vel.header.frame_id.c_str());
+    return;
+  }
+
+  // Fill out the time for the message
+  mip::commands_aiding::NedVel ned_vel;
+  if (!populateAidingTime(gnss_vel.header, EXT_VEL_NED_TOPIC, &ned_vel.time))
+    return;
+
+  // TODO: Do sensor_id stuff
+
+  // Fill out the rest of the message and send it
+  if (gnss_vel.twist.covariance[0] != 0)
+  {
+    ned_vel.velocity[0] = gnss_vel.twist.twist.linear.x;
+    ned_vel.uncertainty[0] = sqrt(gnss_vel.twist.covariance[0]);
+    ned_vel.valid_flags.x(true);
+  }
+  if (gnss_vel.twist.covariance[7] != 0)
+  {
+    ned_vel.velocity[1] = gnss_vel.twist.twist.linear.y;
+    ned_vel.uncertainty[1] = sqrt(gnss_vel.twist.covariance[7]);
+    ned_vel.valid_flags.y(true);
+  }
+  if (gnss_vel.twist.covariance[14] != 0)
+  {
+    ned_vel.velocity[2] = gnss_vel.twist.twist.linear.z;
+    ned_vel.uncertainty[2] = sqrt(gnss_vel.twist.covariance[14]);
+    ned_vel.valid_flags.z(true);
+  }
+
+  mip::CmdResult mip_cmd_result;
+  if (!(mip_cmd_result = config_->mip_device_->device().runCommand<mip::commands_aiding::NedVel>(ned_vel)))
+    MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to send NED velocity aiding command");
+}
+
+void Subscribers::externalGnssVelEnuCallback(const TwistWithCovarianceStampedMsg& gnss_vel)
+{
+  // Make sure the frame_id is ENU
+  if (isNed(gnss_vel.header))
+  {
+    MICROSTRAIN_WARN_THROTTLE(node_, 10, "Invalid velocity message received on %s, the frame_id must not end with _ned, but is %s", EXT_VEL_NED_TOPIC, gnss_vel.header.frame_id.c_str());
+    return;
+  }
+
+  // Fill out the time for the message
+  mip::commands_aiding::NedVel ned_vel;
+  if (!populateAidingTime(gnss_vel.header, EXT_VEL_NED_TOPIC, &ned_vel.time))
+    return;
+
+  // TODO: Do sensor_id stuff
+
+  // Fill out the rest of the message and send it
+  if (gnss_vel.twist.covariance[7] != 0)
+  {
+    ned_vel.velocity[0] = gnss_vel.twist.twist.linear.y;
+    ned_vel.uncertainty[0] = sqrt(gnss_vel.twist.covariance[7]);
+    ned_vel.valid_flags.x(true);
+  }
+  if (gnss_vel.twist.covariance[0] != 0)
+  {
+    ned_vel.velocity[1] = gnss_vel.twist.twist.linear.x;
+    ned_vel.uncertainty[1] = sqrt(gnss_vel.twist.covariance[0]);
+    ned_vel.valid_flags.y(true);
+  }
+  if (gnss_vel.twist.covariance[14] != 0)
+  {
+    ned_vel.velocity[2] = -gnss_vel.twist.twist.linear.z;
+    ned_vel.uncertainty[2] = sqrt(gnss_vel.twist.covariance[14]);
+    ned_vel.valid_flags.z(true);
+  }
+
+  mip::CmdResult mip_cmd_result;
+  if (!(mip_cmd_result = config_->mip_device_->device().runCommand<mip::commands_aiding::NedVel>(ned_vel)))
+    MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to send ENU velocity aiding command");
+}
+
+void Subscribers::externalGnssVelEcefCallback(const TwistWithCovarianceStampedMsg& gnss_ecef_vel)
+{
+  // Fill out the time for the message
+  mip::commands_aiding::EcefVel ecef_vel;
+  if (!populateAidingTime(gnss_ecef_vel.header, EXT_VEL_ECEF_TOPIC, &ecef_vel.time))
+    return;
+  
+  // TODO: Do sensor_id stuff
+
+  // Fill out the rest of the message and send it
+  if (gnss_ecef_vel.twist.covariance[0] != 0)
+  {
+    ecef_vel.velocity[0] = gnss_ecef_vel.twist.twist.linear.x;
+    ecef_vel.uncertainty[0] = sqrt(gnss_ecef_vel.twist.covariance[0]);
+    ecef_vel.valid_flags.x(true);
+  }
+  if (gnss_ecef_vel.twist.covariance[7] != 0)
+  {
+    ecef_vel.velocity[1] = gnss_ecef_vel.twist.twist.linear.y;
+    ecef_vel.uncertainty[1] = sqrt(gnss_ecef_vel.twist.covariance[7]);
+    ecef_vel.valid_flags.y(true);
+  }
+  if (gnss_ecef_vel.twist.covariance[14] != 0)
+  {
+    ecef_vel.velocity[2] = gnss_ecef_vel.twist.twist.linear.z;
+    ecef_vel.uncertainty[2] = sqrt(gnss_ecef_vel.twist.covariance[14]);
+    ecef_vel.valid_flags.z(true);
+  }
+
+  mip::CmdResult mip_cmd_result;
+  if (!(mip_cmd_result = config_->mip_device_->device().runCommand<mip::commands_aiding::EcefVel>(ecef_vel)))
+    MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to send ECEF velocity aiding command");
+}
+
+void Subscribers::externalWheelSpeedCallback(const TwistWithCovarianceStampedMsg& wheel_speed)
+{
+  // TODO: No MIP command yet
+}
+
+void Subscribers::externalBodyVelCallback(const TwistWithCovarianceStampedMsg& body_vel)
+{
+  // Fill out the time of the message
+  mip::commands_aiding::VehicleFixedFrameVelocity vehicle_fixed_frame_velocity;
+  if (!populateAidingTime(body_vel.header, EXT_VEL_BODY_TOPIC, &vehicle_fixed_frame_velocity.time))
+    return;
+  
+  // TODO: Do sensor_id stuff
+
+  // Fill out the rest of the message and send it
+  if (body_vel.twist.covariance[0] != 0)
+  {
+    vehicle_fixed_frame_velocity.velocity[0] = body_vel.twist.twist.linear.x;
+    vehicle_fixed_frame_velocity.uncertainty[0] = sqrt(body_vel.twist.covariance[0]);
+    vehicle_fixed_frame_velocity.valid_flags.x(true);
+  }
+  if (body_vel.twist.covariance[7] != 0)
+  {
+    vehicle_fixed_frame_velocity.velocity[1] = body_vel.twist.twist.linear.y;
+    vehicle_fixed_frame_velocity.uncertainty[1] = sqrt(body_vel.twist.covariance[7]);
+    vehicle_fixed_frame_velocity.valid_flags.y(true);
+  }
+  if (body_vel.twist.covariance[14] != 0)
+  {
+    vehicle_fixed_frame_velocity.velocity[2] = body_vel.twist.twist.linear.z;
+    vehicle_fixed_frame_velocity.uncertainty[2] = sqrt(body_vel.twist.covariance[14]);
+    vehicle_fixed_frame_velocity.valid_flags.z(true);
+  }
+
+  mip::CmdResult mip_cmd_result;
+  if (!(mip_cmd_result = config_->mip_device_->device().runCommand<mip::commands_aiding::VehicleFixedFrameVelocity>(vehicle_fixed_frame_velocity)))
+    MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to send body frame velocity command");
+}
+
+void Subscribers::externalPressureCallback(const FluidPressureMsg& pressure)
+{
+  // TODO: No MIP command yet
+}
+
+void Subscribers::externalPoseCallback(const PoseWithCovarianceStampedMsg& pose)
+{
+  // TODO: No MIP command yet
+}
+
+void Subscribers::externalHeadingCallback(const DualAntennaHeadingMsg& heading)
+{
+  // Fill out the time of the message
+  mip::commands_aiding::TrueHeading true_heading;
+  if (!populateAidingTime(heading.header, EXT_HEADING_TOPIC, &true_heading.time))
+    return;
+  
+  // TODO: Do sensor_id stuff
+
+  // Fill out the rest of the message and send it
+  // TODO: Do I need to rotate this if it is ENU?
+  true_heading.valid_flags = 0xFFFF;
+  true_heading.heading = heading.heading;
+  true_heading.uncertainty = heading.uncertainty;
+
+  mip::CmdResult mip_cmd_result;
+  if (!(mip_cmd_result = config_->mip_device_->device().runCommand<mip::commands_aiding::TrueHeading>(true_heading)))
+    MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to send external heading command");
+}
+
 void Subscribers::rtcmCallback(const RTCMMsg& rtcm)
 {
   MICROSTRAIN_DEBUG(node_, "Received RTCM message of size %lu", rtcm.data.size());
@@ -211,41 +411,34 @@ void Subscribers::rtcmCallback(const RTCMMsg& rtcm)
   }
 }
 
-void Subscribers::externalGnssPositionCallback(const NavSatFixMsg& fix)
+bool Subscribers::populateAidingTime(const RosHeaderType& header, const std::string& topic, mip::commands_aiding::Time* time)
 {
+  // Make sure we can do all the required lookups
+  if (header.frame_id.empty())
+  {
+    MICROSTRAIN_WARN_THROTTLE(node_, 2, "Invalid message received on %s, must have header.frame_id set", topic.c_str());
+    return false;
+  }
+  else if (device_time_to_ros_time_clock_bias_monitors_.find(header.frame_id) == device_time_to_ros_time_clock_bias_monitors_.end() ||
+           !device_time_to_ros_time_clock_bias_monitors_[header.frame_id].hasBiasEstimate())
+  {
+    MICROSTRAIN_WARN_THROTTLE(node_, 10, "Invalid message received on %s, we do not have a clock bias for frame_id %s", topic.c_str(), header.frame_id.c_str());
+    MICROSTRAIN_WARN_THROTTLE(node_, 10, "  Please ensure that you are publishing a time reference to %s for this frame_id", EXT_TIME_TOPIC);
+    MICROSTRAIN_WARN_THROTTLE(node_, 10, "  If this frame_id is perfectly synced with ROS time, add it to the ext_frame_ids_no_clock_bias config parameter");
+    return false;
+  }
+  else if (!ros_time_to_gps_time_clock_bias_monitor_.hasBiasEstimate())
+  {
+    MICROSTRAIN_WARN_THROTTLE(node_, 10, "Invalid message received on %s, we do not have a clock bias for ROS time to GPS time", topic.c_str());
+    MICROSTRAIN_WARN_THROTTLE(node_, 10, "  Ensure that you are publishing a time reference to %s", EXT_TIME_GPS_TOPIC);
+    return false;
+  }
 
+  // Make the conversion - device_time -> ros_time -> gps_time
+  const double time_secs = getTimeRefSecs(header.stamp) + device_time_to_ros_time_clock_bias_monitors_.at(header.frame_id).getBiasEstimate() + ros_time_to_gps_time_clock_bias_monitor_.getBiasEstimate();
+  time->timebase = mip::commands_aiding::Time::Timebase::INTERNAL_REFERENCE;
+  time->nanoseconds = static_cast<uint64_t>(time_secs * 1000000000);
+  return true;
 }
-
-void Subscribers::externalPressureCallback(const FluidPressureMsg& pressure)
-{
-
-}
-
-void Subscribers::externalPoseCallback(const PoseWithCovarianceStampedMsg& pose)
-{
-
-}
-
-void Subscribers::externalGnssVelCallback(const TwistWithCovarianceStampedMsg& gnss_vel)
-{
-
-}
-
-void Subscribers::externalGnssVelEcefCallback(const TwistWithCovarianceStampedMsg& gnss_ecef_vel)
-{
-
-}
-
-void Subscribers::externalBodyVelCallback(const TwistWithCovarianceStampedMsg& body_vel)
-{
-
-}
-
-/*
-void Subscribers::externalHeadingCallback(const QuaternionWithCovarianceStampedMsg& heading)
-{
-
-}
-*/
 
 }  // namespace microstrain

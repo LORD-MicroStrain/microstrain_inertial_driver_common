@@ -43,7 +43,7 @@ class RosConnection : public mip::Connection
    * \brief Tests if the connection is connected
    * \return true if the connection is connected
   */
-  bool isConnected() final;
+  bool isConnected() const final;
 
   /**
    * \brief Connects this connection to the device

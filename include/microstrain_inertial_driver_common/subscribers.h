@@ -12,10 +12,24 @@
 #define MICROSTRAIN_INERTIAL_DRIVER_COMMON_SUBSCRIBERS_H
 
 #include "microstrain_inertial_driver_common/utils/ros_compat.h"
+#include "microstrain_inertial_driver_common/utils/clock_bias_monitor.h"
 #include "microstrain_inertial_driver_common/config.h"
+
+#include "mip/definitions/commands_aiding.hpp"
 
 namespace microstrain
 {
+
+constexpr auto EXT_TIME_GPS_TOPIC = "ext/time/gps";
+constexpr auto EXT_TIME_TOPIC     = "ext/time";
+constexpr auto EXT_FIX_TOPIC      = "ext/fix";
+constexpr auto EXT_VEL_NED_TOPIC  = "ext/vel/ned";
+constexpr auto EXT_VEL_ENU_TOPIC  = "ext/vel/enu";
+constexpr auto EXT_VEL_ECEF_TOPIC = "ext/vel/ecef";
+constexpr auto EXT_VEL_BODY_TOPIC = "ext/vel/body";
+constexpr auto EXT_PRESSURE_TOPIC = "ext/pressure";
+constexpr auto EXT_POSE_TOPIC     = "ext/pose";
+constexpr auto EXT_HEADING_TOPIC  = "ext/heading";
 
 /**
  * Contains subscribers and the functions they call
@@ -42,32 +56,23 @@ public:
   bool activate();
 
   /**
-   * \brief Callback that will start the velZupt task to send the velZupt command at 5 hz
-   * \param state  If the state is true, the task will be started, if the state is false, the task will be stopped
+   * \brief Accepts external speed measurement to set speed on the device
+   * \param speed  Message containing the external speed measurement
    */
-  void velZuptCallback(const BoolMsg& state);
+  void externalSpeedCallback(const InputSpeedMeasurementMsg& speed);
 
-  /**
-   * \brief Sends the velZupt command. Meant to be called in a loop
-   */
-  void velZupt();
+  void externalTimeGpsCallback(const TimeReferenceMsg& time);
+  void externalTimeCallback(const TimeReferenceMsg& time);
 
-  /**
-   * \brief Callback that will start the angZupt task to send the angZupt command at 5 hz
-   * \param state  If the state is true, the task will be started, if the state is false, the task will be stopped
-   */
-  void angZuptCallback(const BoolMsg& state);
-
-  /**
-   * \brief Sends the angZupt command. Meant to be called in a loop
-   */
-  void angZupt();
-
-  /**
-   * \brief Accepts external GPS time to set time on the device
-   * \param time  Message containing external GPS time
-   */
-  void externalGpsTimeCallback(const TimeReferenceMsg& time);
+  void externalGnssPositionCallback(const NavSatFixMsg& fix);
+  void externalGnssVelNedCallback(const TwistWithCovarianceStampedMsg& gnss_vel);
+  void externalGnssVelEnuCallback(const TwistWithCovarianceStampedMsg& gnss_vel);
+  void externalGnssVelEcefCallback(const TwistWithCovarianceStampedMsg& gnss_ecef_vel);
+  void externalWheelSpeedCallback(const TwistWithCovarianceStampedMsg& wheel_speed);
+  void externalBodyVelCallback(const TwistWithCovarianceStampedMsg& body_vel);
+  void externalPressureCallback(const FluidPressureMsg& pressure);
+  void externalPoseCallback(const PoseWithCovarianceStampedMsg& pose);
+  void externalHeadingCallback(const DualAntennaHeadingMsg& heading);
 
   /**
    * \brief Accepts RTCM corrections from a ROS topic
@@ -75,52 +80,40 @@ public:
    */
   void rtcmCallback(const RTCMMsg& rtcm);
 
-  /**
-   * \brief Accepts external speed measurement to set speed on the device
-   * \param speed  Message containing the external speed measurement
-   */
-  void externalSpeedCallback(const InputSpeedMeasurementMsg& speed);
-
-  void externalGnssPositionCallback(const NavSatFixMsg& fix);
-  void externalPressureCallback(const FluidPressureMsg& pressure);
-  void externalPoseCallback(const PoseWithCovarianceStampedMsg& pose);
-  void externalGnssVelCallback(const TwistWithCovarianceStampedMsg& gnss_vel);
-  void externalGnssVelEcefCallback(const TwistWithCovarianceStampedMsg& gnss_ecef_vel);
-  void externalBodyVelCallback(const TwistWithCovarianceStampedMsg& body_vel);
-  //void externalHeadingCallback(const QuaternionWithCovarianceStampedMsg& heading);
-
-  // ZUPT subscribers
-  RosSubType<BoolMsg>::SharedPtr filter_vel_state_sub_;
-  RosSubType<BoolMsg>::SharedPtr filter_ang_state_sub_;
-
   // External GNSS subscriber
   RosSubType<TimeReferenceMsg>::SharedPtr external_gps_time_sub_;
 
   // External speed subscriber
   RosSubType<InputSpeedMeasurementMsg>::SharedPtr external_speed_sub_;
 
-  // External aising measurement subscribers
+  // External aiding measurement subscribers
+  RosSubType<TimeReferenceMsg>::SharedPtr                   external_time_gps_sub_;
+  RosSubType<TimeReferenceMsg>::SharedPtr                   external_time_sub_;
   RosSubType<NavSatFixMsg>::SharedPtr                       external_gnss_position_sub_;
-  RosSubType<FluidPressureMsg>::SharedPtr                   external_pressure_sub_;
-  RosSubType<PoseWithCovarianceStampedMsg>::SharedPtr       external_pose_sub_;
-  RosSubType<TwistWithCovarianceStampedMsg>::SharedPtr      external_gnss_vel_sub_;
+  RosSubType<TwistWithCovarianceStampedMsg>::SharedPtr      external_gnss_vel_ned_sub_;
+  RosSubType<TwistWithCovarianceStampedMsg>::SharedPtr      external_gnss_vel_enu_sub_;
   RosSubType<TwistWithCovarianceStampedMsg>::SharedPtr      external_gnss_vel_ecef_sub_;
   RosSubType<TwistWithCovarianceStampedMsg>::SharedPtr      external_body_vel_sub_;
-  //RosSubType<QuaternionWithCovarianceStampedMsg>::SharedPtr external_heading_sub_;
+  RosSubType<FluidPressureMsg>::SharedPtr                   external_pressure_sub_;
+  RosSubType<PoseWithCovarianceStampedMsg>::SharedPtr       external_pose_sub_;
+  RosSubType<DualAntennaHeadingMsg>::SharedPtr              external_heading_sub_;
 
   // RTCM subscriber
   RosSubType<RTCMMsg>::SharedPtr rtcm_sub_;
 
 private:
+  bool populateAidingTime(const RosHeaderType& header, const std::string& topic, mip::commands_aiding::Time* time);
+
   // Node Information
   RosNodeType* node_;
   Config* config_;
 
-  bool vel_still_;
-  bool ang_still_;
+  // Clock bias monitor from ROS time to GPS time
+  std::string gps_time_frame_id_ = "";
+  ClockBiasMonitor ros_time_to_gps_time_clock_bias_monitor_ = ClockBiasMonitor(0.9, 1);
 
-  RosTimerType vel_zupt_timer_;
-  RosTimerType ang_zupt_timer_;
+  // Mapping between different sensor times and ROS time
+  std::map<std::string, ClockBiasMonitor> device_time_to_ros_time_clock_bias_monitors_;
 };
 
 }  // namespace microstrain

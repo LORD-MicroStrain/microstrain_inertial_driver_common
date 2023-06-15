@@ -64,29 +64,10 @@ bool MipPublisherMapping::configure(RosNodeType* config_node)
     // Get the data rate for the topic, and if it is not the default, use it, otherwise use the data class data rate
     if (static_topic_to_data_rate_config_key_mapping_.find(topic) != static_topic_to_data_rate_config_key_mapping_.end())
     {
-      getParamFloat(config_node, static_topic_to_data_rate_config_key_mapping_.at(topic), topic_info.data_rate, FIELD_DATA_RATE_USE_DATA_CLASS);
+      getParamFloat(config_node, static_topic_to_data_rate_config_key_mapping_.at(topic), topic_info.data_rate, DATA_CLASS_DATA_RATE_DO_NOT_STREAM);
       if (topic_info.data_rate == FIELD_DATA_RATE_USE_DATA_CLASS)
       {
-        // Get the maximum data rate for the data classes associated with the topic if no specific field data rate was configured
-        std::vector<float> descriptor_set_rates;
-        for (const uint8_t descriptor_set : topic_info.descriptor_sets)
-        {
-          if (static_descriptor_set_to_data_rate_config_key_mapping_.find(descriptor_set) != static_descriptor_set_to_data_rate_config_key_mapping_.end())
-          {
-            float descriptor_set_rate;
-            getParamFloat(config_node, static_descriptor_set_to_data_rate_config_key_mapping_.at(descriptor_set), descriptor_set_rate, DATA_CLASS_DATA_RATE_DO_NOT_STREAM);
-            descriptor_set_rates.push_back(descriptor_set_rate);
-          }
-          else
-          {
-            MICROSTRAIN_ERROR(node_, "Descriptor sets 0x%02x used by topic %s does not have an associated data rate. This should be added to the 'static_descriptor_set_to_data_rate_config_key_mapping_' map", descriptor_set, topic.c_str());
-            return false;
-          }
-        }
-        if (!descriptor_set_rates.empty())
-          topic_info.data_rate = *std::max_element(descriptor_set_rates.begin(), descriptor_set_rates.end());
-        else
-          topic_info.data_rate = DATA_CLASS_DATA_RATE_DO_NOT_STREAM;
+        MICROSTRAIN_WARN(node_, "Data rates of %0.1f are no longer supported. Disabling topic %s", FIELD_DATA_RATE_USE_DATA_CLASS, topic.c_str());
       }
     }
     else
@@ -113,7 +94,7 @@ bool MipPublisherMapping::configure(RosNodeType* config_node)
       auto& descriptor_rates = streamed_descriptors_mapping_[descriptor_set];
 
       // If the data rate is 0, do not stream any data
-      if (topic_info.data_rate == 0)
+      if (topic_info.data_rate == DATA_CLASS_DATA_RATE_DO_NOT_STREAM)
       {
         MICROSTRAIN_DEBUG(node_, "Not configuring descriptor 0x%02x%02x to stream because it's data rate is set to 0", descriptor_set, field_descriptor);
         continue;
@@ -241,6 +222,9 @@ const std::map<std::string, FieldWrapper::SharedPtrVec> MipPublisherMapping::sta
   }},
   {IMU_RAW_MAG_TOPIC, {
     FieldWrapperType<mip::data_sensor::ScaledMag>::initialize(),
+  }},
+  {IMU_RAW_PRESSURE_TOPIC, {
+    FieldWrapperType<mip::data_sensor::ScaledPressure>::initialize(),
   }},
   {IMU_DATA_TOPIC, {
     FieldWrapperType<mip::data_filter::AttitudeQuaternion>::initialize(),
@@ -378,9 +362,10 @@ const std::map<std::string, FieldWrapper::SharedPtrVec> MipPublisherMapping::sta
 const std::map<std::string, std::string> MipPublisherMapping::static_topic_to_data_rate_config_key_mapping_ =
 {
   // /imu* data rates
-  {IMU_RAW_DATA_TOPIC, "imu_raw_data_rate"},
-  {IMU_RAW_MAG_TOPIC,  "imu_raw_mag_data_rate"},
-  {IMU_DATA_TOPIC,     "imu_data_rate"},
+  {IMU_RAW_DATA_TOPIC,     "imu_raw_data_rate"},
+  {IMU_RAW_MAG_TOPIC,      "imu_raw_mag_data_rate"},
+  {IMU_RAW_PRESSURE_TOPIC, "imu_raw_pressure_data_rate"},
+  {IMU_DATA_TOPIC,         "imu_data_rate"},
 
   // GNSS/GNSS1 data rates
   {GNSS1_FIX_TOPIC,      "gnss1_fix_data_rate"},
@@ -397,11 +382,11 @@ const std::map<std::string, std::string> MipPublisherMapping::static_topic_to_da
   {GNSS2_TIME_REF_TOPIC, "gnss2_time_data_rate"},
 
   // Filter data rates
-  {FILTER_FIX_TOPIC,                 "filter_fix_data_rate"},
-  {FILTER_VEL_TOPIC,                 "filter_vel_data_rate"},
-  {FILTER_VEL_ECEF_TOPIC,            "filter_vel_ecef_data_rate"},
-  {FILTER_ODOM_TOPIC,                "filter_odom_earth_data_rate"},
-  {FILTER_RELATIVE_ODOM_TOPIC,       "filter_odom_map_data_rate"},
+  {FILTER_FIX_TOPIC,           "filter_fix_data_rate"},
+  {FILTER_VEL_TOPIC,           "filter_vel_data_rate"},
+  {FILTER_VEL_ECEF_TOPIC,      "filter_vel_ecef_data_rate"},
+  {FILTER_ODOM_TOPIC,          "filter_odom_earth_data_rate"},
+  {FILTER_RELATIVE_ODOM_TOPIC, "filter_odom_map_data_rate"},
 
 
   // MIP sensor (0x80) data rates
@@ -426,16 +411,6 @@ const std::map<std::string, std::string> MipPublisherMapping::static_topic_to_da
   {MIP_FILTER_MULTI_ANTENNA_OFFSET_CORRECTION_TOPIC, "mip_filter_multi_antenna_offset_correction_data_rate"},
   {MIP_FILTER_AIDING_MEASUREMENT_SUMMARY_TOPIC,      "mip_filter_aiding_measurement_summary_data_rate"},
   {MIP_FILTER_GNSS_DUAL_ANTENNA_STATUS_TOPIC,        "mip_filter_gnss_dual_antenna_status_data_rate"},
-};
-
-const std::map<uint8_t, std::string> MipPublisherMapping::static_descriptor_set_to_data_rate_config_key_mapping_ =
-{
-  {mip::data_sensor::DESCRIPTOR_SET,        "imu_data_rate"},
-  {mip::data_gnss::DESCRIPTOR_SET,          "gnss1_data_rate"},
-  {mip::data_gnss::MIP_GNSS1_DATA_DESC_SET, "gnss1_data_rate"},
-  {mip::data_gnss::MIP_GNSS2_DATA_DESC_SET, "gnss2_data_rate"},
-  {mip::data_gnss::MIP_GNSS3_DATA_DESC_SET, "rtk_data_rate"},
-  {mip::data_filter::DESCRIPTOR_SET,        "filter_data_rate"},
 };
 
 }  // namespace microstrain

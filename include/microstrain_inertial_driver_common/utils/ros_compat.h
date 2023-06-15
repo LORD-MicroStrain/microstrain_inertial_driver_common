@@ -73,6 +73,8 @@ constexpr auto NUM_GNSS = 2;
 #include "mavros_msgs/RTCM.h"
 #include "nmea_msgs/Sentence.h"
 
+#include "microstrain_inertial_msgs/DualAntennaHeading.h"
+
 #include "microstrain_inertial_msgs/MicrostrainHeader.h"
 #include "microstrain_inertial_msgs/MipSensorOverrangeStatus.h"
 #include "microstrain_inertial_msgs/MipGnssFixInfo.h"
@@ -180,6 +182,8 @@ constexpr auto NUM_GNSS = 2;
 #include "std_msgs/msg/string.hpp"
 #include "mavros_msgs/msg/rtcm.hpp"
 #include "nmea_msgs/msg/sentence.hpp"
+
+#include "microstrain_inertial_msgs/msg/dual_antenna_heading.hpp"
 
 #include "microstrain_inertial_msgs/msg/microstrain_header.hpp"
 #include "microstrain_inertial_msgs/msg/mip_sensor_overrange_status.hpp"
@@ -325,6 +329,8 @@ using TwistWithCovarianceStampedMsg = ::geometry_msgs::TwistWithCovarianceStampe
 using MagneticFieldMsg = ::sensor_msgs::MagneticField;
 using TimeReferenceMsg = ::sensor_msgs::TimeReference;
 using NMEASentenceMsg = ::nmea_msgs::Sentence;
+
+using DualAntennaHeadingMsg = ::microstrain_inertial_msgs::DualAntennaHeading;
 
 using MicrostrainHeaderMsg = ::microstrain_inertial_msgs::MicrostrainHeader;
 using MipSensorOverrangeStatusMsg = ::microstrain_inertial_msgs::MipSensorOverrangeStatus;
@@ -484,8 +490,19 @@ inline void setRosTime(RosTimeType* time, int32_t sec, int32_t nsec)
  */
 inline int64_t getTimeRefSec(const ros::Time& time_ref)
 {
-  return time_ref.toSec();
+  return time_ref.sec;
 }
+
+/**
+ * \brief Gets the seconds and nanoseconds converted to seconds as a double
+ * \param time_ref  The ros time object to extract the time from
+ * \return seconds combined with nanoseconds from the ros time object
+*/
+inline double getTimeRefSecs(const builtin_interfaces::msg::Time& time_ref)
+{
+  return static_cast<double>(time_ref.sec) + static_cast<double>(time_ref.nsec) / 1000000000.0;
+}
+
 
 /**
  * \brief Sets the sequence number on a ROS header. This is only useful in ROS1 as ROS2 removed the seq member
@@ -666,6 +683,8 @@ using MagneticFieldMsg = ::sensor_msgs::msg::MagneticField;
 using TimeReferenceMsg = ::sensor_msgs::msg::TimeReference;
 using NMEASentenceMsg = ::nmea_msgs::msg::Sentence;
 
+using DualAntennaHeadingMsg = ::microstrain_inertial_msgs::msg::DualAntennaHeading;
+
 using MicrostrainHeaderMsg = ::microstrain_inertial_msgs::msg::MicrostrainHeader;
 using MipSensorOverrangeStatusMsg = ::microstrain_inertial_msgs::msg::MipSensorOverrangeStatus;
 using MipGnssFixInfoMsg = ::microstrain_inertial_msgs::msg::MipGnssFixInfo;
@@ -833,6 +852,16 @@ inline void setRosTime(builtin_interfaces::msg::Time* time, int32_t sec, int32_t
 inline int64_t getTimeRefSec(const builtin_interfaces::msg::Time& time_ref)
 {
   return time_ref.sec;
+}
+
+/**
+ * \brief Gets the seconds and nanoseconds converted to seconds as a double
+ * \param time_ref  The ros time object to extract the time from
+ * \return seconds combined with nanoseconds from the ros time object
+*/
+inline double getTimeRefSecs(const builtin_interfaces::msg::Time& time_ref)
+{
+  return static_cast<double>(time_ref.sec) + static_cast<double>(time_ref.nanosec) / 1000000000.0;
 }
 
 /**
@@ -1009,6 +1038,13 @@ inline void getParamFloat(RosNodeType* node, const std::string& param_name, floa
   }
 }
 
+/**
+ * \brief Extension of getParam. Explicitly gets the array as an array of uint16 values
+ * \param node  The ROS node to extract the config from
+ * \param param_name  The name of the config value to extract
+ * \param param_val  Variable to store the extracted config value in
+ * \param default_val  The default value to set param_val to if the config can't be found
+*/
 inline void getUint16ArrayParam(RosNodeType* node, const std::string& param_name, std::vector<uint16_t>& param_val, const std::vector<uint16_t>& default_val)
 {
   // Get the parameter as ints since that is all ROS supports
@@ -1020,6 +1056,25 @@ inline void getUint16ArrayParam(RosNodeType* node, const std::string& param_name
   param_val = std::vector<uint16_t>(param_val_int.begin(), param_val_int.end());
 }
 
+inline void setRosTime(RosTimeType* time_ref, double time)
+{
+  // Split the time into seconds and subseconds
+  double seconds;
+  double subseconds = std::modf(time, &seconds);
+
+  // Set the ros time
+  if (time_ref != nullptr)
+    setRosTime(time_ref, static_cast<int64_t>(seconds), static_cast<int64_t>(std::floor(subseconds * 1000000000)));
+}
+
+inline bool isNed(const RosHeaderType& header)
+{
+  const std::string& ned_suffix = "_ned";
+  if (header.frame_id.length() > ned_suffix.length())
+    return (0 == header.frame_id.compare(header.frame_id.length() - ned_suffix.length(), ned_suffix.length(), ned_suffix));
+  else
+    return false;
+}
 
 }  // namespace microstrain
 

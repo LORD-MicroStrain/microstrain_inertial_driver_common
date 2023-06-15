@@ -24,39 +24,6 @@
 namespace microstrain
 {
 
-class ClockBiasMonitor
-{
- public:
-  /**
-   * \brief Constructor
-   * \param weight How much to weight the old bias estimate vs the new delta time. Closer to 1 means more weight on the old bias estimate
-   * \param max_bias_estimate Max bias estimate before resetting to the current delta time. Helps prevents jumps and outliers
-  */
-  ClockBiasMonitor(const double weight = 0.5, const double max_bias_estimate = 1);
-
-  /**
-   * \brief Adds a new time. The system time should be from as close as possible to the device time
-   * \param system_time The system time at which the device time was received
-   * \param device_time The device time we will calculate the bias for
-  */
-  void addTime(const mip::Timestamp& system_time, const mip::data_shared::GpsTimestamp& device_time);
-
-  /**
-   * \brief Gets the time in system time given a system time and device time
-   * \param system_time The system time at which the device time was received
-   * \param device_time The device time we will calculate the bias for
-   * \return The system time reflective of the device_time
-  */
-  RosTimeType getTime(const mip::Timestamp& system_time, const mip::data_shared::GpsTimestamp& device_time);
-
- private:
-  double weight_;  /// How much to weight the old bias estimate vs the new delta time. Closer to 1 means more weight on the old bias estimate
-  double max_bias_estimate_;  /// Max bias estimate before resetting to the current delta time. Helps prevents jumps and outliers
-
-  bool have_bias_estimate_ = false;  /// Will be set to true after getting the bias estimate for the first time
-  double bias_estimate_ = 0.0;  /// Saved bias estimate. Can be used to convert a device time to a system time
-};
-
 /**
  * Contains ROS messages and the publishers that will publish them
  */
@@ -162,6 +129,15 @@ public:
     }
 
     /**
+     * \brief Checks if this publisher has been configured
+     * \return True if the publisher is configured
+    */
+    bool configured() const
+    {
+      return publisher_ != nullptr;
+    }
+
+    /**
      * \brief Activates the publisher. After this function is called, the publisher is ready to call publish on
      */
     void activate()
@@ -249,9 +225,10 @@ public:
 
 
   // IMU Publishers
-  Publisher<ImuMsg>::SharedPtr                            raw_imu_pub_ = Publisher<ImuMsg>::initialize(IMU_RAW_DATA_TOPIC);
-  Publisher<MagneticFieldMsg>::SharedPtr                  mag_pub_     = Publisher<MagneticFieldMsg>::initialize(IMU_RAW_MAG_TOPIC);
-  Publisher<ImuMsg>::SharedPtr                            imu_pub_     = Publisher<ImuMsg>::initialize(IMU_DATA_TOPIC);
+  Publisher<ImuMsg>::SharedPtr           raw_imu_pub_ = Publisher<ImuMsg>::initialize(IMU_RAW_DATA_TOPIC);
+  Publisher<MagneticFieldMsg>::SharedPtr mag_pub_     = Publisher<MagneticFieldMsg>::initialize(IMU_RAW_MAG_TOPIC);
+  Publisher<FluidPressureMsg>::SharedPtr pressure_pub_ = Publisher<FluidPressureMsg>::initialize(IMU_RAW_PRESSURE_TOPIC); 
+  Publisher<ImuMsg>::SharedPtr           imu_pub_     = Publisher<ImuMsg>::initialize(IMU_DATA_TOPIC);
 
   // GNSS publishers
   Publisher<NavSatFixMsg>::SharedPtrVec                  gnss_fix_pub_      = Publisher<NavSatFixMsg>::initializeVec({GNSS1_FIX_TOPIC, GNSS2_FIX_TOPIC});
@@ -342,6 +319,7 @@ private:
   void handleSensorScaledGyro(const mip::data_sensor::ScaledGyro& scaled_gyro, const uint8_t descriptor_set, mip::Timestamp timestamp);
   void handleSensorCompQuaternion(const mip::data_sensor::CompQuaternion& comp_quaternion, const uint8_t descriptor_set, mip::Timestamp timestamp);
   void handleSensorScaledMag(const mip::data_sensor::ScaledMag& scaled_mag, const uint8_t descriptor_set, mip::Timestamp timestamp);
+  void handleSensorScaledPressure(const mip::data_sensor::ScaledPressure& scaled_pressure, const uint8_t descriptor_set, mip::Timestamp timestamp);
   void handleSensorOverrangeStatus(const mip::data_sensor::OverrangeStatus& overrange_status, const uint8_t descriptor_set, mip::Timestamp timestamp);
 
   // Callbcaks to handle GNSS1/2 data from the device
@@ -427,12 +405,6 @@ private:
 
   // Older philo devices do not support ECEF position, so we will need to convert from LLH to ECEF ourselves
   bool supports_filter_ecef_;
-
-  // Clock bias monitor. Used to compute the clock bias between the device time and ROS time. One for each descriptor set
-  std::map<uint8_t, ClockBiasMonitor> clock_bias_monitor_mapping_;
-
-  // Adjusted system time using the clock bias monitors above
-  std::map<uint8_t, RosTimeType> adjusted_time_mapping_;
 
   // Save the orientation information, as it is used by some other data to transform based on orientation
   tf2::Quaternion filter_attitude_quaternion_ = tf2::Quaternion(0, 0, 0, 1);

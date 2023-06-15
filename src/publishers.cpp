@@ -40,51 +40,6 @@ constexpr auto USTRAIN_G =
     9.80665;  // from section 5.1.1 in
               // https://www.microstrain.com/sites/default/files/3dm-gx5-25_dcp_manual_8500-0065_reference_document.pdf
 
-ClockBiasMonitor::ClockBiasMonitor(const double weight, const double max_bias_estimate)
-  : weight_(weight), max_bias_estimate_(max_bias_estimate)
-{
-}
-
-void ClockBiasMonitor::addTime(const mip::Timestamp& system_time, const mip::data_shared::GpsTimestamp& device_time)
-{
-  //const double system_time_secs = static_cast<double>(system_time / 1000) + static_cast<double>((system_time % 1000)) * 1000000;
-  const double delta_time = (system_time / 1000 + (static_cast<double>((system_time % 1000)) / 1000000000)) - (device_time.week_number * 604800 + device_time.tow);
-
-  // Check if initialization is required
-  if (!have_bias_estimate_)
-  {
-    bias_estimate_ = delta_time;
-    have_bias_estimate_ = true;
-  }
-
-  // Check for outliers or time jumps
-  const double delta_from_previous_bias = std::fabs(delta_time - bias_estimate_);
-  if (delta_from_previous_bias > max_bias_estimate_)
-  {
-    bias_estimate_ = delta_time;
-  }
-
-  // Apply a low pass filter
-  bias_estimate_ = bias_estimate_ * weight_ + delta_time * (1 - weight_);
-}
-
-RosTimeType ClockBiasMonitor::getTime(const mip::Timestamp& system_time, const mip::data_shared::GpsTimestamp& device_time)
-{
-  // Calculate the bias estimate
-  addTime(system_time, device_time);
-
-  // Calculate the adjusted time
-  const double device_time_secs = (device_time.week_number * 604800 + device_time.tow) + bias_estimate_;
-
-  // Split the seconds into seconds and subseconds
-  double seconds;
-  double subseconds = modf(device_time_secs, &seconds);
-
-  // Set the ROS time
-  RosTimeType time;
-  setRosTime(&time, static_cast<uint64_t>(seconds), static_cast<uint64_t>(std::floor(subseconds * 1000000000)));
-  return time;
-}
 
 Publishers::Publishers(RosNodeType* node, Config* config)
   : node_(node), config_(config)
@@ -98,6 +53,7 @@ bool Publishers::configure()
 {
   raw_imu_pub_->configure(node_, config_);
   mag_pub_->configure(node_, config_);
+  pressure_pub_->configure(node_, config_);
   imu_pub_->configure(node_, config_);
 
   for (const auto& pub : gnss_fix_pub_) pub->configure(node_, config_);
@@ -135,6 +91,7 @@ bool Publishers::configure()
   // Frame ID configuration
   raw_imu_pub_->getMessage()->header.frame_id = config_->frame_id_;
   mag_pub_->getMessage()->header.frame_id = config_->frame_id_;
+  pressure_pub_->getMessage()->header.frame_id = config_->frame_id_;
   imu_pub_->getMessage()->header.frame_id = config_->frame_id_;
 
   for (int i = 0; i < gnss_fix_pub_.size(); i++) gnss_fix_pub_[i]->getMessage()->header.frame_id = config_->gnss_frame_id_[i];
@@ -157,6 +114,7 @@ bool Publishers::configure()
   std::copy(config_->imu_linear_cov_.begin(), config_->imu_linear_cov_.end(), raw_imu_msg->linear_acceleration_covariance.begin());
   std::copy(config_->imu_angular_cov_.begin(), config_->imu_angular_cov_.end(), raw_imu_msg->angular_velocity_covariance.begin());
   std::copy(config_->imu_orientation_cov_.begin(), config_->imu_orientation_cov_.end(), raw_imu_msg->orientation_covariance.begin());
+  pressure_pub_->getMessage()->variance = config_->imu_pressure_vairance_;
 
   supports_filter_ecef_ = config_->mip_device_->supportsDescriptor(mip::data_filter::DESCRIPTOR_SET, mip::data_filter::DATA_ECEF_POS);
 
@@ -312,6 +270,7 @@ bool Publishers::configure()
   registerDataCallback<mip::data_sensor::ScaledGyro, &Publishers::handleSensorScaledGyro>();
   registerDataCallback<mip::data_sensor::CompQuaternion, &Publishers::handleSensorCompQuaternion>();
   registerDataCallback<mip::data_sensor::ScaledMag, &Publishers::handleSensorScaledMag>();
+  registerDataCallback<mip::data_sensor::ScaledPressure, &Publishers::handleSensorScaledPressure>();
   registerDataCallback<mip::data_sensor::OverrangeStatus, &Publishers::handleSensorOverrangeStatus>();
 
   // GNSS1/2 callbacks
@@ -366,6 +325,7 @@ bool Publishers::activate()
 {
   raw_imu_pub_->activate();
   mag_pub_->activate();
+  pressure_pub_->activate();
   imu_pub_->activate();
 
   for (const auto& pub : gnss_fix_pub_) pub->activate();
@@ -419,6 +379,7 @@ bool Publishers::deactivate()
 {
   raw_imu_pub_->deactivate();
   mag_pub_->deactivate();
+  pressure_pub_->deactivate();
   imu_pub_->deactivate();
 
   for (const auto& pub : gnss_fix_pub_) pub->deactivate();
@@ -456,6 +417,7 @@ void Publishers::publish()
   // For custom ROS messages, the messages are published directly in the callbacks
   raw_imu_pub_->publish();
   mag_pub_->publish();
+  pressure_pub_->publish();
   imu_pub_->publish();
 
   for (const auto& pub : gnss_fix_pub_) pub->publish();
@@ -566,15 +528,6 @@ void Publishers::handleSharedDeltaTicks(const mip::data_shared::DeltaTicks& delt
 
 void Publishers::handleSharedGpsTimestamp(const mip::data_shared::GpsTimestamp& gps_timestamp, const uint8_t descriptor_set, mip::Timestamp timestamp)
 {
-  // Use the timestamp to update the clock bias and save the adjusted timestamp for this packet
-  if (clock_bias_monitor_mapping_.find(descriptor_set) == clock_bias_monitor_mapping_.end())
-  {
-    // Max bias estimate changes based on rate
-    // TODO: This doesn't appear to work or be a good idea to set both of these numbers to 1
-    clock_bias_monitor_mapping_[descriptor_set] = ClockBiasMonitor(1, 1);
-  }
-  adjusted_time_mapping_[descriptor_set] = clock_bias_monitor_mapping_[descriptor_set].getTime(timestamp, gps_timestamp);
-
   // Save the GPS timestamp
   gps_timestamp_mapping_[descriptor_set] = gps_timestamp;
 
@@ -685,6 +638,13 @@ void Publishers::handleSensorScaledMag(const mip::data_sensor::ScaledMag& scaled
     mag_msg->magnetic_field.y *= -1.0;
     mag_msg->magnetic_field.z *= -1.0;
   }
+}
+
+void Publishers::handleSensorScaledPressure(const mip::data_sensor::ScaledPressure& scaled_pressure, const uint8_t descriptor_set, mip::Timestamp timestamp)
+{
+  auto pressure_msg = pressure_pub_->getMessageToUpdate();
+  updateHeaderTime(&(pressure_msg->header), descriptor_set, timestamp);
+  pressure_msg->fluid_pressure = scaled_pressure.scaled_pressure * 100;
 }
 
 void Publishers::handleSensorOverrangeStatus(const mip::data_sensor::OverrangeStatus& overrange_status, const uint8_t descriptor_set, mip::Timestamp timestamp)
@@ -1440,11 +1400,8 @@ void Publishers::handleAfterPacket(const mip::Packet& packet, mip::Timestamp tim
 
 void Publishers::updateMicrostrainHeader(MicrostrainHeaderMsg* microstrain_header, uint8_t descriptor_set) const
 {
-  // Update the ROS header with either the adjusted timestamp or the ROS timestamp
-  if (adjusted_time_mapping_.find(descriptor_set) != adjusted_time_mapping_.end())
-    microstrain_header->header.stamp = adjusted_time_mapping_.at(descriptor_set);
-  else
-    microstrain_header->header.stamp = rosTimeNow(node_);
+  // Update the ROS header with the ROS timestamp
+  microstrain_header->header.stamp = rosTimeNow(node_);
 
   // Set the event source if it was set for this packet
   if (event_source_mapping_.find(descriptor_set) != event_source_mapping_.end())
@@ -1466,11 +1423,8 @@ void Publishers::updateMicrostrainHeader(MicrostrainHeaderMsg* microstrain_heade
 
 void Publishers::updateHeaderTime(RosHeaderType* header, uint8_t descriptor_set, mip::Timestamp timestamp)
 {
-  // Find the adjusted timestamp for this packet, otherwise use ROS time
-  if (adjusted_time_mapping_.find(descriptor_set) != adjusted_time_mapping_.end())
-    header->stamp = adjusted_time_mapping_.at(descriptor_set);
-  else
-    header->stamp = rosTimeNow(node_);
+  // Set the header time to the current ROS time
+  header->stamp = rosTimeNow(node_);
 }
 
 void Publishers::setGpsTime(RosTimeType* time, const mip::data_shared::GpsTimestamp& timestamp)

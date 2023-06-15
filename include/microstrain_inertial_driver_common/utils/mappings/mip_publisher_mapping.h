@@ -29,6 +29,7 @@ namespace microstrain
 // Topic names
 static constexpr auto IMU_RAW_DATA_TOPIC = "imu_raw/data";
 static constexpr auto IMU_RAW_MAG_TOPIC = "imu_raw/mag";
+static constexpr auto IMU_RAW_PRESSURE_TOPIC = "imu_raw/pressure";
 static constexpr auto IMU_DATA_TOPIC = "imu/data";
 
 static constexpr auto GNSS1_FIX_TOPIC = "gnss1/fix";
@@ -48,7 +49,6 @@ static constexpr auto FILTER_VEL_TOPIC = "/vel";
 static constexpr auto FILTER_VEL_ECEF_TOPIC = "/vel/ecef";
 static constexpr auto FILTER_ODOM_TOPIC = "/odom/earth";
 static constexpr auto FILTER_RELATIVE_ODOM_TOPIC = "/odom/map";
-
 
 static constexpr auto MIP_SENSOR_OVERRANGE_STATUS_TOPIC = "mip/sensor/overrange_status";
 
@@ -185,9 +185,6 @@ class MipPublisherMapping
   // Static mappings for topics. Note that this map contains all possible topics regardless of what the device supports
   static const std::map<std::string, FieldWrapper::SharedPtrVec> static_topic_to_mip_type_mapping_;  /// Mapping between topics and MIP types which can be used to lookup the descriptor set and field descriptors for a topic.
   static const std::map<std::string, std::string> static_topic_to_data_rate_config_key_mapping_;  /// Mapping between topics and the keys in the config used to configure their data rates
-
-  // Static mappings for descriptor sets. Note that this map contains all possible descriptor sets regardless of what the device supports
-  static const std::map<uint8_t, std::string> static_descriptor_set_to_data_rate_config_key_mapping_;  /// Mapping between descriptor sets and the keys in the config used to configure their data rates if no more specific topic option was provided
 };
 
 template<typename MipType>

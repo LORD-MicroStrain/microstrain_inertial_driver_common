@@ -92,7 +92,7 @@ void NodeCommon::parseAndPublishMain()
   {
     for (auto& nmea_message : config_.mip_device_->nmeaMsgs())
     {
-      nmea_message.header.frame_id = config_.nmea_frame_id_;
+      //nmea_message.header.frame_id = config_.nmea_frame_id_;  // TODO: Assign the correct frame_id to the NMEA sentence
       publishers_.nmea_sentence_pub_->publish(nmea_message);
     }
   }
@@ -108,7 +108,8 @@ void NodeCommon::parseAndPublishAux()
   {
     for (auto& nmea_message : config_.aux_device_->nmeaMsgs())
     {
-      nmea_message.header.frame_id = config_.nmea_frame_id_;
+      // Assume that the aux port will only produce NMEA from GNSS1
+      nmea_message.header.frame_id = config_.gnss_frame_id_[GNSS1_ID];
       publishers_.nmea_sentence_pub_->publish(nmea_message);
     }
   }
