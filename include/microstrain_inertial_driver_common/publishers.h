@@ -16,6 +16,8 @@
 #include <vector>
 #include <string>
 
+#include <GeographicLib/Geocentric.hpp>
+
 #include "mip/mip_all.hpp"
 
 #include "microstrain_inertial_driver_common/utils/ros_compat.h"
@@ -393,6 +395,9 @@ private:
   // Handles to the ROS node and the config
   RosNodeType* node_;
   Config* config_;
+
+  // Ecef to LLH converter
+  GeographicLib::Geocentric geocentric_converter_ = GeographicLib::Geocentric::WGS84();
 
   // Mapping between every shared data field and descriptor sets
   std::map<uint8_t, mip::data_shared::EventSource> event_source_mapping_;

@@ -12,8 +12,6 @@
 
 #include "microstrain_inertial_driver_common/publishers.h"
 
-#include "microstrain_inertial_driver_common/utils/geodetic_converter.h"
-
 namespace microstrain
 {
 
@@ -158,22 +156,13 @@ bool Publishers::configure()
         }
         else if (rel_pos_frame == mip::commands_filter::FilterReferenceFrame::LLH)
         {
-          geodetic_converter::GeodeticConverter::geodetic2Ecef(
-            rel_pos_coordinates[0], rel_pos_coordinates[1], rel_pos_coordinates[2],
-            &(earth_map_transform_msg_.transform.translation.x),
-            &(earth_map_transform_msg_.transform.translation.y),
-            &(earth_map_transform_msg_.transform.translation.z)
-          );
+          geocentric_converter_.Forward(rel_pos_coordinates[0], rel_pos_coordinates[1], rel_pos_coordinates[2],
+            earth_map_transform_msg_.transform.translation.x, earth_map_transform_msg_.transform.translation.y, earth_map_transform_msg_.transform.translation.z);
         }
 
         // Get the lat lon and alt since that's the only way I know how to get the rotation
         double lat, lon, alt;
-        geodetic_converter::GeodeticConverter::ecef2Geodetic(
-          earth_map_transform_msg_.transform.translation.x,
-          earth_map_transform_msg_.transform.translation.y,
-          earth_map_transform_msg_.transform.translation.z,
-          &lat, &lon, &alt
-        );
+        geocentric_converter_.Reverse(earth_map_transform_msg_.transform.translation.x, earth_map_transform_msg_.transform.translation.y, earth_map_transform_msg_.transform.translation.z, lat, lon, alt);
         earth_map_transform_msg_.transform.rotation = nedToEcefRotation(lat, lon, 0, 0, 0, 1);
 
         earth_map_transform_msg_.header.stamp = rosTimeNow(node_);
@@ -918,12 +907,7 @@ void Publishers::handleRtkBaseStationInfo(const mip::data_gnss::BaseStationInfo&
 
   // Get the lat lon and alt since that's the only way I know how to get the rotation
   double lat, lon, alt;
-  geodetic_converter::GeodeticConverter::ecef2Geodetic(
-    earth_map_transform_msg_.transform.translation.x,
-    earth_map_transform_msg_.transform.translation.y,
-    earth_map_transform_msg_.transform.translation.z,
-    &lat, &lon, &alt
-  );
+  geocentric_converter_.Reverse(earth_map_transform_msg_.transform.translation.x, earth_map_transform_msg_.transform.translation.y, earth_map_transform_msg_.transform.translation.z, lat, lon, alt);
   earth_map_transform_msg_.transform.rotation = nedToEcefRotation(lat, lon, 0, 0, 0, 1);
 
   earth_map_transform_updated_ = true;
@@ -1012,8 +996,8 @@ void Publishers::handleFilterPositionLlh(const mip::data_filter::PositionLlh& po
   if (!supports_filter_ecef_)
   {
     mip::data_filter::EcefPos ecef_pos;
-    geodetic_converter::GeodeticConverter::geodetic2Ecef(position_llh.latitude, position_llh.longitude, position_llh.ellipsoid_height,
-      &ecef_pos.position_ecef[0], &ecef_pos.position_ecef[1], &ecef_pos.position_ecef[2]);
+    geocentric_converter_.Forward(position_llh.latitude, position_llh.longitude, position_llh.ellipsoid_height,
+      ecef_pos.position_ecef[0], ecef_pos.position_ecef[1], ecef_pos.position_ecef[2]);
     handleFilterEcefPos(ecef_pos, descriptor_set, timestamp);
   }
 }
