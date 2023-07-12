@@ -15,23 +15,37 @@
 namespace microstrain
 {
 
-QuaternionMsg nedToEcefRotation(double lat_deg, double lon_deg, double i, double j, double k, double w)
+static inline tf2::Matrix3x3 ecefToNedTransform(double lat_deg, double lon_deg)
 {
-  double lat = lat_deg * (M_PI/180);
-  double lon = lon_deg * (M_PI/180);
-  const tf2::Matrix3x3 ecef_to_ned(-sin(lat) * cos(lon), -sin(lat) * sin(lon), cos(lat),
-                          -sin(lon), cos(lon), 0,
-                          -cos(lat) * cos(lon), -cos(lat) * sin(lon), -sin(lat));
-  const tf2::Matrix3x3 ned_to_ecef = ecef_to_ned.inverse();
+  const double lat = lat_deg * (M_PI / 180);
+  const double lon = lon_deg * (M_PI / 180);
+  return tf2::Matrix3x3(-sin(lat) * cos(lon),  -sin(lat) * sin(lon),  cos(lat), 
+                        -sin(lon),             cos(lon),              0,
+                        -cos(lat) * cos(lon),  -cos(lat) * sin(lon),  -sin(lat));
+}
 
-  const tf2::Quaternion ned_attitude(i, j, k, w);
-  const tf2::Matrix3x3 ned_attitude_matrix(ned_attitude);
+static inline tf2::Matrix3x3 ecefToEnuTransform(double lat_deg, double lon_deg)
+{
+  const tf2::Matrix3x3 ned_to_enu(
+    0, 1, 0,
+    1, 0, 0,
+    0, 0, -1
+  );
+  return ned_to_enu * ecefToNedTransform(lat_deg, lon_deg);
+}
 
-  const tf2::Matrix3x3 ecef_frame_attitude = ned_to_ecef * ned_attitude_matrix;
-  tf2::Quaternion ecef_frame_attitude_quat;
-  ecef_frame_attitude.getRotation(ecef_frame_attitude_quat);
+static inline tf2::Quaternion ecefToEnuRotation(double lat, double lon)
+{
+  tf2::Quaternion ecef_to_enu_quat;
+  ecefToEnuTransform(lat, lon).getRotation(ecef_to_enu_quat);
+  return ecef_to_enu_quat;
+}
 
-  return tf2::toMsg(ecef_frame_attitude_quat);
+static inline tf2::Quaternion ecefToNedRotation(double lat, double lon)
+{
+  tf2::Quaternion ecef_to_ned_quat;
+  ecefToNedTransform(lat, lon).getRotation(ecef_to_ned_quat);
+  return ecef_to_ned_quat;
 }
 
 constexpr auto USTRAIN_G =
@@ -139,7 +153,7 @@ bool Publishers::configure()
       {
         // Stream the base station info at 2 hertz so we can publish the earth to map transform
         MICROSTRAIN_DEBUG(node_, "Streaming RTK base station info data at 2 hertz");
-        if (!(mip_cmd_result = config_->mip_device_->streamDescriptor(mip::data_gnss::MIP_GNSS3_DATA_DESC_SET, mip::data_gnss::DATA_BASE_STATION_INFO, 2)))
+        if (!(mip_cmd_result = config_->mip_device_->streamDescriptor(mip::data_gnss::MIP_GNSS3_DATA_DESC_SET, mip::data_gnss::DATA_BASE_STATION_INFO, 1)))
         {
           MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to stream RTK base station info required for earth to map transform");
           return false;
@@ -163,7 +177,10 @@ bool Publishers::configure()
         // Get the lat lon and alt since that's the only way I know how to get the rotation
         double lat, lon, alt;
         geocentric_converter_.Reverse(earth_map_transform_msg_.transform.translation.x, earth_map_transform_msg_.transform.translation.y, earth_map_transform_msg_.transform.translation.z, lat, lon, alt);
-        earth_map_transform_msg_.transform.rotation = nedToEcefRotation(lat, lon, 0, 0, 0, 1);
+        if (config_->use_enu_frame_)
+          earth_map_transform_msg_.transform.rotation = tf2::toMsg(ecefToEnuRotation(lat, lon));
+        else
+          earth_map_transform_msg_.transform.rotation = tf2::toMsg(ecefToNedRotation(lat, lon));
 
         earth_map_transform_msg_.header.stamp = rosTimeNow(node_);
 
@@ -360,6 +377,61 @@ bool Publishers::activate()
     if (config_->mip_device_->supportsDescriptorSet(mip::data_gnss::MIP_GNSS2_DATA_DESC_SET))
       static_transform_broadcaster_->sendTransform(gnss_antenna_transform_msg_[GNSS2_ID]);
   }
+/*
+  fix:
+  latitude: 44.43680839543218
+  longitude: -73.11303545015332
+  altitude: 125.24075772982184
+
+map:
+  x: -546.8382260079006
+  y: -92.32231864505714
+  z: -8.735169942181159
+
+earth:
+  x: 1325107.9787029044
+  y: -4365014.043271315
+  z: 4442964.759372787
+
+earth -> map:
+  transform:
+    translation:
+      x: 1325614.272864889
+      y: -4364799.313667827
+      z: 4443036.795322589
+    rotation:
+      x: 0.54910731579098
+      y: 0.7406398772652487
+      z: 0.2306112591394279
+      w: -0.31105011671348043
+  double lat = 44.43680839543218;
+  double lon = -73.11303545015332;
+  double alt = 125.24075772982184;
+  double imu_ecef_x = 1325107.9787029044;
+  double imu_ecef_y = -4365014.043271315;
+  double imu_ecef_z = 4442964.759372787;
+  double imu_wrt_map_enu_x = -546.8382260079006;
+  double imu_wrt_map_enu_y = -92.32231864505714;
+  double imu_wrt_map_enu_z = -8.735169942181159;
+  double map_ecef_x = 1325614.272864889;
+  double map_ecef_y = -4364799.313667827;
+  double map_ecef_z = 4443036.795322589;
+
+  double ecef_x_calc, ecef_y_calc, ecef_z_calc;
+  geocentric_converter_.Forward(lat, lon, alt, ecef_x_calc, ecef_y_calc, ecef_z_calc);
+
+  double lat_map, lon_map, alt_map;
+  geocentric_converter_.Reverse(map_ecef_x, map_ecef_y, map_ecef_z, lat_map, lon_map, alt_map);
+
+  tf2::Vector3 imu_wrt_map_ned_vec(imu_wrt_map_enu_x, imu_wrt_map_enu_y, imu_wrt_map_enu_z);
+  tf2::Vector3 imu_wrt_map_ecef_vec = ecefToEnuTransform(lat_map, lon_map).inverse() * imu_wrt_map_ned_vec;
+
+  MICROSTRAIN_INFO(node_, "\n\n");
+  MICROSTRAIN_INFO(node_, "Lat: %f, Lon: %f, Alt: %f", lat, lon, alt);
+  MICROSTRAIN_INFO(node_, "Map in ECEF + Offset x: %f, y: %f, z: %f", map_ecef_x + imu_wrt_map_ecef_vec.getX(), map_ecef_y + imu_wrt_map_ecef_vec.getY(), map_ecef_z + imu_wrt_map_ecef_vec.getZ());
+  MICROSTRAIN_INFO(node_, "Calculated ECEF      x: %f, y: %f, z: %f", ecef_x_calc, ecef_y_calc, ecef_z_calc);
+  MICROSTRAIN_INFO(node_, "\n\n");
+      */
 
   return true;
 }
@@ -426,28 +498,26 @@ void Publishers::publish()
   RosTimeType frame_time; setRosTime(&frame_time, 0, 0);
   if (config_->tf_mode_ == TF_MODE_GLOBAL && ecef_transform_position_updated_ && ecef_transform_attitude_updated_)
   {
-    if (transform_buffer_->canTransform(config_->frame_id_, config_->target_frame_id_, frame_time, RosDurationType(0, 0), &tf_error_string))
+    if (transform_buffer_->canTransform(config_->target_frame_id_, config_->frame_id_, frame_time, RosDurationType(0, 0), &tf_error_string))
     {
       TransformStampedMsg earth_target_transform, earth_imu_link_transform;
-      const auto& target_imu_link_transform = transform_buffer_->lookupTransform(config_->frame_id_, config_->target_frame_id_, frame_time, RosDurationType(0, 0));
+      const auto& imu_link_target_transform = transform_buffer_->lookupTransform(config_->target_frame_id_, config_->frame_id_, frame_time, RosDurationType(0, 0));
 
       const auto& filter_odom_msg = filter_odom_pub_->getMessage();
+      const auto& filter_fix_msg = filter_fix_pub_->getMessage();
       earth_imu_link_transform.transform.translation.x = filter_odom_msg->pose.pose.position.x;
       earth_imu_link_transform.transform.translation.y = filter_odom_msg->pose.pose.position.y;
       earth_imu_link_transform.transform.translation.z = filter_odom_msg->pose.pose.position.z;
-      earth_imu_link_transform.transform.rotation = filter_odom_msg->pose.pose.orientation;
 
-      tf2::doTransform(earth_imu_link_transform, earth_target_transform, target_imu_link_transform);
+      // Convert the orientation from the ENU/NED frame to ECEF
+      tf2::Quaternion local_orientation;
+      tf2::fromMsg(filter_odom_msg->pose.pose.orientation, local_orientation);
+      if (config_->use_enu_frame_)
+        earth_imu_link_transform.transform.rotation = tf2::toMsg(ecefToEnuRotation(filter_fix_msg->latitude, filter_fix_msg->longitude) * local_orientation);
+      else
+        earth_imu_link_transform.transform.rotation = tf2::toMsg(ecefToNedRotation(filter_fix_msg->latitude, filter_fix_msg->longitude) * local_orientation);
 
-      // Handle the rotational transform between ECEF and NED
-      const auto filter_fix_msg = filter_fix_pub_->getMessage();
-      earth_target_transform.transform.rotation = nedToEcefRotation(
-        filter_fix_msg->latitude, filter_fix_msg->longitude,
-        earth_target_transform.transform.rotation.x,
-        earth_target_transform.transform.rotation.y,
-        earth_target_transform.transform.rotation.z,
-        earth_target_transform.transform.rotation.w
-      );
+      tf2::doTransform(earth_imu_link_transform, earth_target_transform, imu_link_target_transform);
 
       earth_target_transform.header.stamp = filter_odom_msg->header.stamp;      
       earth_target_transform.header.frame_id = config_->earth_frame_id_;
@@ -465,10 +535,10 @@ void Publishers::publish()
   }
   else if (config_->tf_mode_ == TF_MODE_RELATIVE && relative_transform_position_updated_ && relative_transform_attitude_updated_)
   {
-    if (transform_buffer_->canTransform(config_->frame_id_, config_->target_frame_id_, frame_time, RosDurationType(0, 0), &tf_error_string))
+    if (transform_buffer_->canTransform(config_->target_frame_id_, config_->frame_id_, frame_time, RosDurationType(0, 0), &tf_error_string))
     {
       TransformStampedMsg map_target_transform, map_imu_link_transform;
-      const auto& target_imu_link_transform = transform_buffer_->lookupTransform(config_->frame_id_, config_->target_frame_id_, frame_time, RosDurationType(0, 0));
+      const auto& imu_link_target_transform = transform_buffer_->lookupTransform(config_->target_frame_id_, config_->frame_id_, frame_time, RosDurationType(0, 0));
 
       const auto& filter_relative_odom_msg = filter_relative_odom_pub_->getMessage();
       map_imu_link_transform.transform.translation.x = filter_relative_odom_msg->pose.pose.position.x;
@@ -476,7 +546,7 @@ void Publishers::publish()
       map_imu_link_transform.transform.translation.z = filter_relative_odom_msg->pose.pose.position.z;
       map_imu_link_transform.transform.rotation = filter_relative_odom_msg->pose.pose.orientation;
 
-      tf2::doTransform(map_imu_link_transform, map_target_transform, target_imu_link_transform);
+      tf2::doTransform(map_imu_link_transform, map_target_transform, imu_link_target_transform);
 
       map_target_transform.header.stamp = filter_relative_odom_msg->header.stamp;      
       map_target_transform.header.frame_id = config_->map_frame_id_;
@@ -905,11 +975,13 @@ void Publishers::handleRtkBaseStationInfo(const mip::data_gnss::BaseStationInfo&
   earth_map_transform_msg_.transform.translation.y = base_station_info.ecef_pos[1];
   earth_map_transform_msg_.transform.translation.z = base_station_info.ecef_pos[2];
 
-  // Get the lat lon and alt since that's the only way I know how to get the rotation
+  // Find the rotation between ECEF and the ENU/NED frame
   double lat, lon, alt;
   geocentric_converter_.Reverse(earth_map_transform_msg_.transform.translation.x, earth_map_transform_msg_.transform.translation.y, earth_map_transform_msg_.transform.translation.z, lat, lon, alt);
-  earth_map_transform_msg_.transform.rotation = nedToEcefRotation(lat, lon, 0, 0, 0, 1);
-
+  if (config_->use_enu_frame_)
+    earth_map_transform_msg_.transform.rotation = tf2::toMsg(ecefToEnuRotation(lat, lon));
+  else
+    earth_map_transform_msg_.transform.rotation = tf2::toMsg(ecefToNedRotation(lat, lon));
   earth_map_transform_updated_ = true;
 }
 
@@ -970,6 +1042,8 @@ void Publishers::handleFilterEcefPos(const mip::data_filter::EcefPos& ecef_pos, 
   filter_odom_msg->pose.pose.position.x = ecef_pos.position_ecef[0];
   filter_odom_msg->pose.pose.position.y = ecef_pos.position_ecef[1];
   filter_odom_msg->pose.pose.position.z = ecef_pos.position_ecef[2];
+
+  // TODO: Calculate the map -> imu_link transform manually using this measurement
 
   // Note that we are ready to publish the ECEF transform
   ecef_transform_position_updated_ = true;
