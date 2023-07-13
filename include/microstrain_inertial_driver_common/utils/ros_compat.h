@@ -498,7 +498,7 @@ inline int64_t getTimeRefSec(const ros::Time& time_ref)
  * \param time_ref  The ros time object to extract the time from
  * \return seconds combined with nanoseconds from the ros time object
 */
-inline double getTimeRefSecs(const builtin_interfaces::msg::Time& time_ref)
+inline double getTimeRefSecs(const ros::Time& time_ref)
 {
   return static_cast<double>(time_ref.sec) + static_cast<double>(time_ref.nsec) / 1000000000.0;
 }
