@@ -34,18 +34,19 @@ static inline tf2::Matrix3x3 ecefToEnuTransform(double lat_deg, double lon_deg)
   return ned_to_enu * ecefToNedTransform(lat_deg, lon_deg);
 }
 
-static inline tf2::Quaternion ecefToEnuRotation(double lat, double lon)
+// REname this, it is a transformation
+static inline tf2::Quaternion ecefToEnuTransformQuat(double lat, double lon)
 {
   tf2::Quaternion ecef_to_enu_quat;
   ecefToEnuTransform(lat, lon).getRotation(ecef_to_enu_quat);
-  return ecef_to_enu_quat;
+  return ecef_to_enu_quat.inverse();
 }
 
-static inline tf2::Quaternion ecefToNedRotation(double lat, double lon)
+static inline tf2::Quaternion ecefToNedTransformQuat(double lat, double lon)
 {
   tf2::Quaternion ecef_to_ned_quat;
   ecefToNedTransform(lat, lon).getRotation(ecef_to_ned_quat);
-  return ecef_to_ned_quat;
+  return ecef_to_ned_quat.inverse();
 }
 
 constexpr auto USTRAIN_G =
@@ -77,11 +78,11 @@ bool Publishers::configure()
   filter_fix_pub_->configure(node_, config_);
   filter_vel_pub_->configure(node_, config_);
   filter_vel_ecef_pub_->configure(node_, config_);
-  filter_odom_pub_->configure(node_, config_);
+  filter_odom_earth_pub_->configure(node_, config_);
 
   // Only publish relative odom if we support the relative position descriptor set
   if (config_->mip_device_->supportsDescriptor(mip::data_filter::DESCRIPTOR_SET, mip::data_filter::RelPosNed::FIELD_DESCRIPTOR))
-    filter_relative_odom_pub_->configure(node_, config_);
+    filter_odom_map_pub_->configure(node_, config_);
 
   mip_sensor_overrange_status_pub_->configure(node_, config_);
 
@@ -110,16 +111,16 @@ bool Publishers::configure()
   for (int i = 0; i < gnss_vel_pub_.size(); i++) gnss_vel_pub_[i]->getMessage()->header.frame_id = config_->gnss_frame_id_[i];
   for (int i = 0; i < gnss_vel_ecef_pub_.size(); i++) gnss_vel_ecef_pub_[i]->getMessage()->header.frame_id = config_->gnss_frame_id_[i];
   for (int i = 0; i < gnss_odom_pub_.size(); i++) gnss_odom_pub_[i]->getMessage()->header.frame_id = config_->earth_frame_id_;
-  for (int i = 0; i < gnss_odom_pub_.size(); i++) gnss_odom_pub_[i]->getMessage()->child_frame_id = config_->gnss_frame_id_[i];
+  for (int i = 0; i < gnss_odom_pub_.size(); i++) gnss_odom_pub_[i]->getMessage()->child_frame_id = config_->earth_frame_id_;
   for (int i = 0; i < gnss_time_pub_.size(); i++) gnss_time_pub_[i]->getMessage()->header.frame_id = config_->gnss_frame_id_[i];
 
   filter_fix_pub_->getMessage()->header.frame_id = config_->frame_id_;
   filter_vel_pub_->getMessage()->header.frame_id = config_->frame_id_;
   filter_vel_ecef_pub_->getMessage()->header.frame_id = config_->frame_id_;
-  filter_odom_pub_->getMessage()->header.frame_id = config_->earth_frame_id_;
-  filter_odom_pub_->getMessage()->child_frame_id = config_->frame_id_;
-  filter_relative_odom_pub_->getMessage()->header.frame_id = config_->map_frame_id_;
-  filter_relative_odom_pub_->getMessage()->child_frame_id = config_->frame_id_;
+  filter_odom_earth_pub_->getMessage()->header.frame_id = config_->earth_frame_id_;
+  filter_odom_earth_pub_->getMessage()->child_frame_id = config_->earth_frame_id_;
+  filter_odom_map_pub_->getMessage()->header.frame_id = config_->map_frame_id_;
+  filter_odom_map_pub_->getMessage()->child_frame_id = config_->frame_id_;
 
   // Other assorted static configuration
   auto raw_imu_msg = raw_imu_pub_->getMessage();
@@ -178,9 +179,9 @@ bool Publishers::configure()
         double lat, lon, alt;
         geocentric_converter_.Reverse(earth_map_transform_msg_.transform.translation.x, earth_map_transform_msg_.transform.translation.y, earth_map_transform_msg_.transform.translation.z, lat, lon, alt);
         if (config_->use_enu_frame_)
-          earth_map_transform_msg_.transform.rotation = tf2::toMsg(ecefToEnuRotation(lat, lon));
+          earth_map_transform_msg_.transform.rotation = tf2::toMsg(ecefToEnuTransformQuat(lat, lon));
         else
-          earth_map_transform_msg_.transform.rotation = tf2::toMsg(ecefToNedRotation(lat, lon));
+          earth_map_transform_msg_.transform.rotation = tf2::toMsg(ecefToNedTransformQuat(lat, lon));
 
         earth_map_transform_msg_.header.stamp = rosTimeNow(node_);
 
@@ -207,7 +208,6 @@ bool Publishers::configure()
   if (config_->tf_mode_ != TF_MODE_OFF)
   {
     // Static antenna offsets
-    // TODO: If streaming the antenna offset correction topic, correct the offsets with them
     mip::CmdResult mip_cmd_result;
     float gnss_antenna_offsets[3];
     if (config_->mip_device_->supportsDescriptor(mip::commands_filter::DESCRIPTOR_SET, mip::commands_filter::CMD_ANTENNA_OFFSET))
@@ -272,8 +272,8 @@ bool Publishers::configure()
   registerDataCallback<mip::data_filter::Timestamp, &Publishers::handleFilterTimestamp>();
 
   // IMU callbacks
-  registerDataCallback<mip::data_sensor::ScaledAccel, &Publishers::handleSensorScaledAccel>();
-  registerDataCallback<mip::data_sensor::ScaledGyro, &Publishers::handleSensorScaledGyro>();
+  registerDataCallback<mip::data_sensor::DeltaTheta, &Publishers::handleSensorDeltaTheta>();
+  registerDataCallback<mip::data_sensor::DeltaVelocity, &Publishers::handleSensorDeltaVelocity>();
   registerDataCallback<mip::data_sensor::CompQuaternion, &Publishers::handleSensorCompQuaternion>();
   registerDataCallback<mip::data_sensor::ScaledMag, &Publishers::handleSensorScaledMag>();
   registerDataCallback<mip::data_sensor::ScaledPressure, &Publishers::handleSensorScaledPressure>();
@@ -343,8 +343,8 @@ bool Publishers::activate()
   filter_fix_pub_->activate();
   filter_vel_pub_->activate();
   filter_vel_ecef_pub_->activate();
-  filter_odom_pub_->activate();
-  filter_relative_odom_pub_->activate();
+  filter_odom_earth_pub_->activate();
+  filter_odom_map_pub_->activate();
 
   mip_sensor_overrange_status_pub_->activate();
 
@@ -377,61 +377,6 @@ bool Publishers::activate()
     if (config_->mip_device_->supportsDescriptorSet(mip::data_gnss::MIP_GNSS2_DATA_DESC_SET))
       static_transform_broadcaster_->sendTransform(gnss_antenna_transform_msg_[GNSS2_ID]);
   }
-/*
-  fix:
-  latitude: 44.43680839543218
-  longitude: -73.11303545015332
-  altitude: 125.24075772982184
-
-map:
-  x: -546.8382260079006
-  y: -92.32231864505714
-  z: -8.735169942181159
-
-earth:
-  x: 1325107.9787029044
-  y: -4365014.043271315
-  z: 4442964.759372787
-
-earth -> map:
-  transform:
-    translation:
-      x: 1325614.272864889
-      y: -4364799.313667827
-      z: 4443036.795322589
-    rotation:
-      x: 0.54910731579098
-      y: 0.7406398772652487
-      z: 0.2306112591394279
-      w: -0.31105011671348043
-  double lat = 44.43680839543218;
-  double lon = -73.11303545015332;
-  double alt = 125.24075772982184;
-  double imu_ecef_x = 1325107.9787029044;
-  double imu_ecef_y = -4365014.043271315;
-  double imu_ecef_z = 4442964.759372787;
-  double imu_wrt_map_enu_x = -546.8382260079006;
-  double imu_wrt_map_enu_y = -92.32231864505714;
-  double imu_wrt_map_enu_z = -8.735169942181159;
-  double map_ecef_x = 1325614.272864889;
-  double map_ecef_y = -4364799.313667827;
-  double map_ecef_z = 4443036.795322589;
-
-  double ecef_x_calc, ecef_y_calc, ecef_z_calc;
-  geocentric_converter_.Forward(lat, lon, alt, ecef_x_calc, ecef_y_calc, ecef_z_calc);
-
-  double lat_map, lon_map, alt_map;
-  geocentric_converter_.Reverse(map_ecef_x, map_ecef_y, map_ecef_z, lat_map, lon_map, alt_map);
-
-  tf2::Vector3 imu_wrt_map_ned_vec(imu_wrt_map_enu_x, imu_wrt_map_enu_y, imu_wrt_map_enu_z);
-  tf2::Vector3 imu_wrt_map_ecef_vec = ecefToEnuTransform(lat_map, lon_map).inverse() * imu_wrt_map_ned_vec;
-
-  MICROSTRAIN_INFO(node_, "\n\n");
-  MICROSTRAIN_INFO(node_, "Lat: %f, Lon: %f, Alt: %f", lat, lon, alt);
-  MICROSTRAIN_INFO(node_, "Map in ECEF + Offset x: %f, y: %f, z: %f", map_ecef_x + imu_wrt_map_ecef_vec.getX(), map_ecef_y + imu_wrt_map_ecef_vec.getY(), map_ecef_z + imu_wrt_map_ecef_vec.getZ());
-  MICROSTRAIN_INFO(node_, "Calculated ECEF      x: %f, y: %f, z: %f", ecef_x_calc, ecef_y_calc, ecef_z_calc);
-  MICROSTRAIN_INFO(node_, "\n\n");
-      */
 
   return true;
 }
@@ -450,8 +395,8 @@ bool Publishers::deactivate()
   for (const auto& pub : gnss_time_pub_) pub->deactivate();
 
   filter_fix_pub_->deactivate();
-  filter_odom_pub_->deactivate();
-  filter_relative_odom_pub_->deactivate();
+  filter_odom_earth_pub_->deactivate();
+  filter_odom_map_pub_->deactivate();
 
   mip_sensor_overrange_status_pub_->deactivate();
 
@@ -490,8 +435,8 @@ void Publishers::publish()
   filter_fix_pub_->publish();
   filter_vel_pub_->publish();
   filter_vel_ecef_pub_->publish();
-  filter_odom_pub_->publish();
-  filter_relative_odom_pub_->publish();
+  filter_odom_earth_pub_->publish();
+  filter_odom_map_pub_->publish();
 
   // Publish the dynamic transforms after the messages have been filled out
   std::string tf_error_string;
@@ -503,23 +448,23 @@ void Publishers::publish()
       TransformStampedMsg earth_target_transform, earth_imu_link_transform;
       const auto& imu_link_target_transform = transform_buffer_->lookupTransform(config_->target_frame_id_, config_->frame_id_, frame_time, RosDurationType(0, 0));
 
-      const auto& filter_odom_msg = filter_odom_pub_->getMessage();
+      const auto& filter_odom_earth_msg = filter_odom_earth_pub_->getMessage();
       const auto& filter_fix_msg = filter_fix_pub_->getMessage();
-      earth_imu_link_transform.transform.translation.x = filter_odom_msg->pose.pose.position.x;
-      earth_imu_link_transform.transform.translation.y = filter_odom_msg->pose.pose.position.y;
-      earth_imu_link_transform.transform.translation.z = filter_odom_msg->pose.pose.position.z;
+      earth_imu_link_transform.transform.translation.x = filter_odom_earth_msg->pose.pose.position.x;
+      earth_imu_link_transform.transform.translation.y = filter_odom_earth_msg->pose.pose.position.y;
+      earth_imu_link_transform.transform.translation.z = filter_odom_earth_msg->pose.pose.position.z;
 
       // Convert the orientation from the ENU/NED frame to ECEF
       tf2::Quaternion local_orientation;
-      tf2::fromMsg(filter_odom_msg->pose.pose.orientation, local_orientation);
+      tf2::fromMsg(filter_odom_earth_msg->pose.pose.orientation, local_orientation);
       if (config_->use_enu_frame_)
-        earth_imu_link_transform.transform.rotation = tf2::toMsg(ecefToEnuRotation(filter_fix_msg->latitude, filter_fix_msg->longitude) * local_orientation);
+        earth_imu_link_transform.transform.rotation = tf2::toMsg(ecefToEnuTransformQuat(filter_fix_msg->latitude, filter_fix_msg->longitude) * local_orientation);
       else
-        earth_imu_link_transform.transform.rotation = tf2::toMsg(ecefToNedRotation(filter_fix_msg->latitude, filter_fix_msg->longitude) * local_orientation);
+        earth_imu_link_transform.transform.rotation = tf2::toMsg(ecefToNedTransformQuat(filter_fix_msg->latitude, filter_fix_msg->longitude) * local_orientation);
 
       tf2::doTransform(earth_imu_link_transform, earth_target_transform, imu_link_target_transform);
 
-      earth_target_transform.header.stamp = filter_odom_msg->header.stamp;      
+      earth_target_transform.header.stamp = filter_odom_earth_msg->header.stamp;      
       earth_target_transform.header.frame_id = config_->earth_frame_id_;
       earth_target_transform.child_frame_id = config_->target_frame_id_;
 
@@ -540,15 +485,15 @@ void Publishers::publish()
       TransformStampedMsg map_target_transform, map_imu_link_transform;
       const auto& imu_link_target_transform = transform_buffer_->lookupTransform(config_->target_frame_id_, config_->frame_id_, frame_time, RosDurationType(0, 0));
 
-      const auto& filter_relative_odom_msg = filter_relative_odom_pub_->getMessage();
-      map_imu_link_transform.transform.translation.x = filter_relative_odom_msg->pose.pose.position.x;
-      map_imu_link_transform.transform.translation.y = filter_relative_odom_msg->pose.pose.position.y;
-      map_imu_link_transform.transform.translation.z = filter_relative_odom_msg->pose.pose.position.z;
-      map_imu_link_transform.transform.rotation = filter_relative_odom_msg->pose.pose.orientation;
+      const auto& filter_odom_map_msg = filter_odom_map_pub_->getMessage();
+      map_imu_link_transform.transform.translation.x = filter_odom_map_msg->pose.pose.position.x;
+      map_imu_link_transform.transform.translation.y = filter_odom_map_msg->pose.pose.position.y;
+      map_imu_link_transform.transform.translation.z = filter_odom_map_msg->pose.pose.position.z;
+      map_imu_link_transform.transform.rotation = filter_odom_map_msg->pose.pose.orientation;
 
       tf2::doTransform(map_imu_link_transform, map_target_transform, imu_link_target_transform);
 
-      map_target_transform.header.stamp = filter_relative_odom_msg->header.stamp;      
+      map_target_transform.header.stamp = filter_odom_map_msg->header.stamp;      
       map_target_transform.header.frame_id = config_->map_frame_id_;
       map_target_transform.child_frame_id = config_->target_frame_id_;
 
@@ -633,31 +578,46 @@ void Publishers::handleSensorGpsTimestamp(const mip::data_sensor::GpsTimestamp& 
   gps_timestamp_mapping_[descriptor_set] = stored_timestamp;
 }
 
-void Publishers::handleSensorScaledAccel(const mip::data_sensor::ScaledAccel& scaled_accel, const uint8_t descriptor_set, mip::Timestamp timestamp)
+void Publishers::handleSensorDeltaTheta(const mip::data_sensor::DeltaTheta& delta_theta, const uint8_t descriptor_set, mip::Timestamp timestamp)
 {
+  // Attempt to get the delta time, if we can't find it we will estimate based on the data rate
+  float delta_time;
+  if (delta_time_mapping_.find(descriptor_set) != delta_time_mapping_.end())
+    delta_time = delta_time_mapping_.at(descriptor_set).seconds;
+  else
+    delta_time = 1 / raw_imu_pub_->dataRate();
+  
+  // We use this delta measurement to exclude outliers and provide a more useful IMU measurement
   auto raw_imu_msg = raw_imu_pub_->getMessageToUpdate();
   updateHeaderTime(&(raw_imu_msg->header), descriptor_set, timestamp);
-  raw_imu_msg->linear_acceleration.x = USTRAIN_G * scaled_accel.scaled_accel[0];
-  raw_imu_msg->linear_acceleration.y = USTRAIN_G * scaled_accel.scaled_accel[1];
-  raw_imu_msg->linear_acceleration.z = USTRAIN_G * scaled_accel.scaled_accel[2];
-  if (config_->use_enu_frame_)
-  {
-    raw_imu_msg->linear_acceleration.y *= -1.0;
-    raw_imu_msg->linear_acceleration.z *= -1.0;
-  }
-}
-
-void Publishers::handleSensorScaledGyro(const mip::data_sensor::ScaledGyro& scaled_gyro, const uint8_t descriptor_set, mip::Timestamp timestamp)
-{
-  auto raw_imu_msg = raw_imu_pub_->getMessageToUpdate();
-  updateHeaderTime(&(raw_imu_msg->header), descriptor_set, timestamp);
-  raw_imu_msg->angular_velocity.x = scaled_gyro.scaled_gyro[0];
-  raw_imu_msg->angular_velocity.y = scaled_gyro.scaled_gyro[1];
-  raw_imu_msg->angular_velocity.z = scaled_gyro.scaled_gyro[2];
+  raw_imu_msg->angular_velocity.x = delta_theta.delta_theta[0] / delta_time;
+  raw_imu_msg->angular_velocity.y = delta_theta.delta_theta[1] / delta_time;
+  raw_imu_msg->angular_velocity.z = delta_theta.delta_theta[2] / delta_time;
   if (config_->use_enu_frame_)
   {
     raw_imu_msg->angular_velocity.y *= -1.0;
     raw_imu_msg->angular_velocity.z *= -1.0;
+  }
+}
+
+void Publishers::handleSensorDeltaVelocity(const mip::data_sensor::DeltaVelocity& delta_velocity, const uint8_t descriptor_set, mip::Timestamp timestamp)
+{
+  // Attempt to get the delta time, if we can't find it we will estimate based on the data rate
+  float delta_time;
+  if (delta_time_mapping_.find(descriptor_set) != delta_time_mapping_.end())
+    delta_time = delta_time_mapping_.at(descriptor_set).seconds;
+  else
+    delta_time = 1 / raw_imu_pub_->dataRate();
+  
+  auto raw_imu_msg = raw_imu_pub_->getMessageToUpdate();
+  updateHeaderTime(&(raw_imu_msg->header), descriptor_set, timestamp);
+  raw_imu_msg->linear_acceleration.x = USTRAIN_G * delta_velocity.delta_velocity[0] / delta_time;
+  raw_imu_msg->linear_acceleration.y = USTRAIN_G * delta_velocity.delta_velocity[1] / delta_time;
+  raw_imu_msg->linear_acceleration.z = USTRAIN_G * delta_velocity.delta_velocity[2] / delta_time;
+  if (config_->use_enu_frame_)
+  {
+    raw_imu_msg->linear_acceleration.y *= -1.0;
+    raw_imu_msg->linear_acceleration.z *= -1.0;
   }
 }
 
@@ -670,7 +630,7 @@ void Publishers::handleSensorCompQuaternion(const mip::data_sensor::CompQuaterni
     tf2::Quaternion q_ned2enu, q_body2enu, q_vehiclebody2sensorbody, q_body2ned(comp_quaternion.q[1], comp_quaternion.q[2], comp_quaternion.q[3], comp_quaternion.q[0]);
 
     config_->t_ned2enu_.getRotation(q_ned2enu);
-    config_->t_vehiclebody2sensorbody_.getRotation(q_vehiclebody2sensorbody);
+    config_->t_microstrain_vehicle_to_ros_vehicle_transform_.getRotation(q_vehiclebody2sensorbody);
 
     q_body2enu = q_ned2enu * q_body2ned * q_vehiclebody2sensorbody;
 
@@ -793,22 +753,21 @@ void Publishers::handleGnssVelNed(const mip::data_gnss::VelNed& vel_ned, const u
   gnss_vel_msg->twist.covariance[7] = vel_ned.speed_accuracy;
   gnss_vel_msg->twist.covariance[14] = vel_ned.speed_accuracy;
 
-  // GNSS odometry message (not counted as updating)
-  auto gnss_odom_msg = gnss_odom_pub_[gnss_index]->getMessage();
-  tf2::Quaternion gnss_course_over_ground;
-  gnss_course_over_ground.setRPY(0, 0, vel_ned.heading);
-  gnss_odom_msg->pose.pose.orientation = tf2::toMsg(gnss_course_over_ground);
-  gnss_odom_msg->pose.covariance[35] = vel_ned.heading_accuracy;
+  // Get the rotation between our vehicle frame and Ros' definition of vehicle frame
+  tf2::Quaternion microstrain_vehicle_to_ros_vehicle_transform_quat;
+  config_->t_microstrain_vehicle_to_ros_vehicle_transform_.getRotation(microstrain_vehicle_to_ros_vehicle_transform_quat);
 
-  // Use the orientation to rotate the velocity into the antenna's frame
-  const tf2::Vector3 gnss_current_vel(gnss_vel_msg->twist.twist.linear.x, gnss_vel_msg->twist.twist.linear.y, gnss_vel_msg->twist.twist.linear.z);
-  const tf2::Vector3 gnss_rotated_vel = tf2::quatRotate(gnss_course_over_ground.inverse(), gnss_current_vel);
-  gnss_odom_msg->twist.twist.linear.x = gnss_rotated_vel.getX();
-  gnss_odom_msg->twist.twist.linear.y = gnss_rotated_vel.getY();
-  gnss_odom_msg->twist.twist.linear.z = gnss_rotated_vel.getZ();
-  gnss_odom_msg->twist.covariance[0] = vel_ned.speed_accuracy;
-  gnss_odom_msg->twist.covariance[7] = vel_ned.speed_accuracy;
-  gnss_odom_msg->twist.covariance[14] = vel_ned.speed_accuracy;
+  // GNSS odometry message (not counted as updating)
+  auto gnss_fix_msg = gnss_fix_pub_[gnss_index]->getMessage();
+  auto gnss_odom_msg = gnss_odom_pub_[gnss_index]->getMessage();
+  tf2::Quaternion gnss_ned_transform_quat;
+  gnss_ned_transform_quat.setRPY(0, 0, vel_ned.heading);
+  const tf2::Quaternion ned_to_ecef_transform_quat = ecefToNedTransformQuat(gnss_fix_msg->latitude, gnss_fix_msg->longitude);
+  tf2::Quaternion gnss_ecef_orientation = ned_to_ecef_transform_quat * gnss_ned_transform_quat;
+  if (config_->use_enu_frame_)
+    gnss_ecef_orientation *= microstrain_vehicle_to_ros_vehicle_transform_quat;
+  gnss_odom_msg->pose.pose.orientation = tf2::toMsg(gnss_ecef_orientation);
+  gnss_odom_msg->pose.covariance[35] = vel_ned.heading_accuracy;
 }
 
 void Publishers::handleGnssPosEcef(const mip::data_gnss::PosEcef& pos_ecef, const uint8_t descriptor_set, mip::Timestamp timestamp)
@@ -837,6 +796,10 @@ void Publishers::handleGnssVelEcef(const mip::data_gnss::VelEcef& vel_ecef, cons
   gnss_vel_ecef_msg->twist.covariance[0] = vel_ecef.v_accuracy;
   gnss_vel_ecef_msg->twist.covariance[7] = vel_ecef.v_accuracy;
   gnss_vel_ecef_msg->twist.covariance[14] = vel_ecef.v_accuracy;
+
+  // GNSS odometry message (not counted as updating)
+  auto gnss_odom_msg = gnss_odom_pub_[gnss_index]->getMessage();
+  gnss_odom_msg->twist = gnss_vel_ecef_msg->twist;
 }
 
 void Publishers::handleGnssFixInfo(const mip::data_gnss::FixInfo& fix_info, const uint8_t descriptor_set, mip::Timestamp timestamp)
@@ -979,9 +942,9 @@ void Publishers::handleRtkBaseStationInfo(const mip::data_gnss::BaseStationInfo&
   double lat, lon, alt;
   geocentric_converter_.Reverse(earth_map_transform_msg_.transform.translation.x, earth_map_transform_msg_.transform.translation.y, earth_map_transform_msg_.transform.translation.z, lat, lon, alt);
   if (config_->use_enu_frame_)
-    earth_map_transform_msg_.transform.rotation = tf2::toMsg(ecefToEnuRotation(lat, lon));
+    earth_map_transform_msg_.transform.rotation = tf2::toMsg(ecefToEnuTransformQuat(lat, lon));
   else
-    earth_map_transform_msg_.transform.rotation = tf2::toMsg(ecefToNedRotation(lat, lon));
+    earth_map_transform_msg_.transform.rotation = tf2::toMsg(ecefToNedTransformQuat(lat, lon));
   earth_map_transform_updated_ = true;
 }
 
@@ -1037,13 +1000,13 @@ void Publishers::handleFilterStatus(const mip::data_filter::Status& status, cons
 
 void Publishers::handleFilterEcefPos(const mip::data_filter::EcefPos& ecef_pos, const uint8_t descriptor_set, mip::Timestamp timestamp)
 {
-  auto filter_odom_msg = filter_odom_pub_->getMessageToUpdate();
-  updateHeaderTime(&(filter_odom_msg->header), descriptor_set, timestamp);
-  filter_odom_msg->pose.pose.position.x = ecef_pos.position_ecef[0];
-  filter_odom_msg->pose.pose.position.y = ecef_pos.position_ecef[1];
-  filter_odom_msg->pose.pose.position.z = ecef_pos.position_ecef[2];
+  auto filter_odom_earth_msg = filter_odom_earth_pub_->getMessageToUpdate();
+  updateHeaderTime(&(filter_odom_earth_msg->header), descriptor_set, timestamp);
+  filter_odom_earth_msg->pose.pose.position.x = ecef_pos.position_ecef[0];
+  filter_odom_earth_msg->pose.pose.position.y = ecef_pos.position_ecef[1];
+  filter_odom_earth_msg->pose.pose.position.z = ecef_pos.position_ecef[2];
 
-  // TODO: Calculate the map -> imu_link transform manually using this measurement
+  // TODO: Calculate the map -> imu_link transform manually using this measurement for devices that do not support it
 
   // Note that we are ready to publish the ECEF transform
   ecef_transform_position_updated_ = true;
@@ -1051,11 +1014,11 @@ void Publishers::handleFilterEcefPos(const mip::data_filter::EcefPos& ecef_pos, 
 
 void Publishers::handleFilterEcefPosUncertainty(const mip::data_filter::EcefPosUncertainty& ecef_pos_uncertainty, const uint8_t descriptor_set, mip::Timestamp timestamp)
 {
-  auto filter_odom_msg = filter_odom_pub_->getMessageToUpdate();
-  updateHeaderTime(&(filter_odom_msg->header), descriptor_set, timestamp);
-  filter_odom_msg->pose.covariance[0] = pow(ecef_pos_uncertainty.pos_uncertainty[0], 2);
-  filter_odom_msg->pose.covariance[7] = pow(ecef_pos_uncertainty.pos_uncertainty[1], 2);
-  filter_odom_msg->pose.covariance[14] = pow(ecef_pos_uncertainty.pos_uncertainty[2], 2);
+  auto filter_odom_earth_msg = filter_odom_earth_pub_->getMessageToUpdate();
+  updateHeaderTime(&(filter_odom_earth_msg->header), descriptor_set, timestamp);
+  filter_odom_earth_msg->pose.covariance[0] = pow(ecef_pos_uncertainty.pos_uncertainty[0], 2);
+  filter_odom_earth_msg->pose.covariance[7] = pow(ecef_pos_uncertainty.pos_uncertainty[1], 2);
+  filter_odom_earth_msg->pose.covariance[14] = pow(ecef_pos_uncertainty.pos_uncertainty[2], 2);
 }
 
 void Publishers::handleFilterPositionLlh(const mip::data_filter::PositionLlh& position_llh, const uint8_t descriptor_set, mip::Timestamp timestamp)
@@ -1095,33 +1058,36 @@ void Publishers::handleFilterPositionLlhUncertainty(const mip::data_filter::Posi
   filter_fix_msg->position_covariance[8] = pow(position_llh_uncertainty.down, 2);
 
   // Filter relative odometry message (not counted as updating)
-  auto filter_relative_odom_msg = filter_relative_odom_pub_->getMessage();
+  auto filter_odom_map_msg = filter_odom_map_pub_->getMessage();
   if (config_->use_enu_frame_)
   {
-    filter_relative_odom_msg->pose.covariance[0] = pow(position_llh_uncertainty.east, 2);
-    filter_relative_odom_msg->pose.covariance[7] = pow(position_llh_uncertainty.north, 2);
+    filter_odom_map_msg->pose.covariance[0] = pow(position_llh_uncertainty.east, 2);
+    filter_odom_map_msg->pose.covariance[7] = pow(position_llh_uncertainty.north, 2);
   }
   else
   {
-    filter_relative_odom_msg->pose.covariance[0] = pow(position_llh_uncertainty.north, 2);
-    filter_relative_odom_msg->pose.covariance[7] = pow(position_llh_uncertainty.east, 2);
+    filter_odom_map_msg->pose.covariance[0] = pow(position_llh_uncertainty.north, 2);
+    filter_odom_map_msg->pose.covariance[7] = pow(position_llh_uncertainty.east, 2);
   }
-  filter_relative_odom_msg->pose.covariance[14] = pow(position_llh_uncertainty.down, 2);
+  filter_odom_map_msg->pose.covariance[14] = pow(position_llh_uncertainty.down, 2);
 }
 
 void Publishers::handleFilterAttitudeQuaternion(const mip::data_filter::AttitudeQuaternion& attitude_quaternion, const uint8_t descriptor_set, mip::Timestamp timestamp)
 {
+  // Get the rotation between our vehicle frame and Ros' definition of vehicle frame
+  tf2::Quaternion microstrain_vehicle_to_ros_vehicle_transform_quat;
+  config_->t_microstrain_vehicle_to_ros_vehicle_transform_.getRotation(microstrain_vehicle_to_ros_vehicle_transform_quat);
+
   // Filtered IMU message
   auto imu_msg = imu_pub_->getMessageToUpdate();
   updateHeaderTime(&(imu_msg->header), descriptor_set, timestamp);
   if (config_->use_enu_frame_)
   {
-    tf2::Quaternion q_ned2enu, q_body2enu, q_vehiclebody2sensorbody, q_body2ned(attitude_quaternion.q[1], attitude_quaternion.q[2], attitude_quaternion.q[3], attitude_quaternion.q[0]);
+    tf2::Quaternion q_ned2enu, q_body2enu, q_body2ned(attitude_quaternion.q[1], attitude_quaternion.q[2], attitude_quaternion.q[3], attitude_quaternion.q[0]);
 
     config_->t_ned2enu_.getRotation(q_ned2enu);
-    config_->t_vehiclebody2sensorbody_.getRotation(q_vehiclebody2sensorbody);
 
-    q_body2enu = q_ned2enu * q_body2ned * q_vehiclebody2sensorbody;
+    q_body2enu = q_ned2enu * q_body2ned * microstrain_vehicle_to_ros_vehicle_transform_quat;
 
     imu_msg->orientation = tf2::toMsg(q_body2enu);
   }
@@ -1133,17 +1099,23 @@ void Publishers::handleFilterAttitudeQuaternion(const mip::data_filter::Attitude
     imu_msg->orientation.w = attitude_quaternion.q[0];
   }
 
-  // Filter odometry message (not counted as updating)
-  auto filter_odom_msg = filter_odom_pub_->getMessage();
-  filter_odom_msg->pose.pose.orientation = imu_msg->orientation;
+  // Filter odometry message rotated to ECEF (not counted as updating)
+  const auto& filter_fix_msg = filter_fix_pub_->getMessage();
+  auto filter_odom_earth_msg = filter_odom_earth_pub_->getMessage();
+  const tf2::Quaternion imu_ned_transform_quat(attitude_quaternion.q[1], attitude_quaternion.q[2], attitude_quaternion.q[3], attitude_quaternion.q[0]);
+  const tf2::Quaternion ned_to_ecef_transform_quat = ecefToNedTransformQuat(filter_fix_msg->latitude, filter_fix_msg->longitude);
+  tf2::Quaternion imu_ecef_orientation = ned_to_ecef_transform_quat * imu_ned_transform_quat;
+  if (config_->use_enu_frame_)
+    imu_ecef_orientation *= microstrain_vehicle_to_ros_vehicle_transform_quat;
+  filter_odom_earth_msg->pose.pose.orientation = tf2::toMsg(imu_ecef_orientation);
 
   // Filter relative odometry message (not counted as updating)
-  auto filter_relative_odom_msg = filter_relative_odom_pub_->getMessage();
-  filter_relative_odom_msg->pose.pose.orientation = imu_msg->orientation;
+  auto filter_odom_map_msg = filter_odom_map_pub_->getMessage();
+  filter_odom_map_msg->pose.pose.orientation = imu_msg->orientation;
 
   // Relative transform
   updateHeaderTime(&(filter_relative_transform_msg_.header), descriptor_set, timestamp);
-  filter_relative_transform_msg_.transform.rotation = filter_odom_msg->pose.pose.orientation;
+  filter_relative_transform_msg_.transform.rotation = imu_msg->orientation;
 
   // ECEF transform updated
   ecef_transform_attitude_updated_ = true;
@@ -1173,16 +1145,16 @@ void Publishers::handleFilterEulerAnglesUncertainty(const mip::data_filter::Eule
   imu_msg->orientation_covariance[8] = pow(euler_angles_uncertainty.yaw, 2);
 
   // Filter odometry message (not counted as updating)
-  auto filter_odom_msg = filter_odom_pub_->getMessage();
-  filter_odom_msg->pose.covariance[21] = imu_msg->orientation_covariance[0];
-  filter_odom_msg->pose.covariance[28] = imu_msg->orientation_covariance[4];
-  filter_odom_msg->pose.covariance[35] = imu_msg->orientation_covariance[8];
+  auto filter_odom_earth_msg = filter_odom_earth_pub_->getMessage();
+  filter_odom_earth_msg->pose.covariance[21] = imu_msg->orientation_covariance[0];
+  filter_odom_earth_msg->pose.covariance[28] = imu_msg->orientation_covariance[4];
+  filter_odom_earth_msg->pose.covariance[35] = imu_msg->orientation_covariance[8];
 
   // Filter relative odometry message (not counted as updating)
-  auto filter_relative_odom_msg = filter_relative_odom_pub_->getMessage();
-  filter_relative_odom_msg->pose.covariance[21] = imu_msg->orientation_covariance[0];
-  filter_relative_odom_msg->pose.covariance[28] = imu_msg->orientation_covariance[4];
-  filter_relative_odom_msg->pose.covariance[35] = imu_msg->orientation_covariance[8];
+  auto filter_odom_map_msg = filter_odom_map_pub_->getMessage();
+  filter_odom_map_msg->pose.covariance[21] = imu_msg->orientation_covariance[0];
+  filter_odom_map_msg->pose.covariance[28] = imu_msg->orientation_covariance[4];
+  filter_odom_map_msg->pose.covariance[35] = imu_msg->orientation_covariance[8];
 }
 
 void Publishers::handleFilterVelocityNed(const mip::data_filter::VelocityNed& velocity_ned, const uint8_t descriptor_set, mip::Timestamp timestamp)
@@ -1203,19 +1175,15 @@ void Publishers::handleFilterVelocityNed(const mip::data_filter::VelocityNed& ve
     filter_vel_msg->twist.twist.linear.x = velocity_ned.down;
   }
 
-  // Filter odometry message (not counted as updating)
-  auto filter_odom_msg = filter_odom_pub_->getMessage();
+  // Filter relative odometry message (not counted as updating)
+  auto filter_odom_map_msg = filter_odom_map_pub_->getMessage();
 
   // Rotate the velocity to the sensor frame
   const tf2::Vector3 filter_current_vel(filter_vel_msg->twist.twist.linear.x, filter_vel_msg->twist.twist.linear.y, filter_vel_msg->twist.twist.linear.z);
   const tf2::Vector3 filter_rotated_vel = tf2::quatRotate(filter_attitude_quaternion_.inverse(), filter_current_vel);
-  filter_odom_msg->twist.twist.linear.x = filter_rotated_vel.getX();
-  filter_odom_msg->twist.twist.linear.y = filter_rotated_vel.getY();
-  filter_odom_msg->twist.twist.linear.z = filter_rotated_vel.getZ();
-
-  // Filter relative odometry message (not counted as updating)
-  auto filter_relative_odom_msg = filter_relative_odom_pub_->getMessage();
-  filter_relative_odom_msg->twist.twist.linear = filter_odom_msg->twist.twist.linear;
+  filter_odom_map_msg->twist.twist.linear.x = filter_rotated_vel.getX();
+  filter_odom_map_msg->twist.twist.linear.y = filter_rotated_vel.getY();
+  filter_odom_map_msg->twist.twist.linear.z = filter_rotated_vel.getZ();
 }
 
 void Publishers::handleFilterVelocityNedUncertainty(const mip::data_filter::VelocityNedUncertainty& velocity_ned_uncertainty, const uint8_t descriptor_set, mip::Timestamp timestamp)
@@ -1235,31 +1203,37 @@ void Publishers::handleFilterVelocityNedUncertainty(const mip::data_filter::Velo
   }
   filter_vel_msg->twist.covariance[14] = pow(velocity_ned_uncertainty.down, 2);
 
-  // Filter odometry message (not counted as updating)
-  auto filter_odom_msg = filter_odom_pub_->getMessageToUpdate();
-  filter_odom_msg->twist.covariance = filter_vel_msg->twist.covariance;
-
   // Filter relative odometry message (not counted as opening)
-  auto filter_relative_odom_msg = filter_relative_odom_pub_->getMessageToUpdate();
-  filter_relative_odom_msg->twist.covariance = filter_vel_msg->twist.covariance;
+  auto filter_odom_map_msg = filter_odom_map_pub_->getMessageToUpdate();
+  filter_odom_map_msg->twist.covariance = filter_vel_msg->twist.covariance;
 }
 
 void Publishers::handleFilterEcefVelocity(const mip::data_filter::EcefVel& ecef_vel, const uint8_t descriptor_set, mip::Timestamp timestamp)
 {
+  // Filter ECEF velocity message
   auto filter_vel_ecef_msg = filter_vel_ecef_pub_->getMessageToUpdate();
   updateHeaderTime(&(filter_vel_ecef_msg->header), descriptor_set, timestamp);
   filter_vel_ecef_msg->twist.twist.linear.x = ecef_vel.velocity_ecef[0];
   filter_vel_ecef_msg->twist.twist.linear.y = ecef_vel.velocity_ecef[1];
   filter_vel_ecef_msg->twist.twist.linear.z = ecef_vel.velocity_ecef[2];
+
+  // Filter odometry message (not counted as updating)
+  auto filter_odom_earth_msg = filter_odom_earth_pub_->getMessage();
+  filter_odom_earth_msg->twist.twist.linear = filter_vel_ecef_msg->twist.twist.linear;
 }
 
 void Publishers::handleFilterEcefVelocityUncertainty(const mip::data_filter::EcefVelUncertainty& ecef_vel_uncertainty, const uint8_t descriptor_set, mip::Timestamp timestamp)
 {
+  // Filter ECEF velocity message
   auto filter_vel_ecef_msg = filter_vel_ecef_pub_->getMessageToUpdate();
   updateHeaderTime(&(filter_vel_ecef_msg->header), descriptor_set, timestamp);
   filter_vel_ecef_msg->twist.covariance[0] = pow(ecef_vel_uncertainty.vel_uncertainty[0], 2);
   filter_vel_ecef_msg->twist.covariance[7] = pow(ecef_vel_uncertainty.vel_uncertainty[1], 2);
   filter_vel_ecef_msg->twist.covariance[14] = pow(ecef_vel_uncertainty.vel_uncertainty[2], 2);
+
+  // Filter odometry message (not counted as updating)
+  auto filter_odom_earth_msg = filter_odom_earth_pub_->getMessageToUpdate();
+  filter_odom_earth_msg->twist.covariance = filter_vel_ecef_msg->twist.covariance;
 }
 
 void Publishers::handleFilterCompAngularRate(const mip::data_filter::CompAngularRate& comp_angular_rate, const uint8_t descriptor_set, mip::Timestamp timestamp)
@@ -1276,13 +1250,21 @@ void Publishers::handleFilterCompAngularRate(const mip::data_filter::CompAngular
     imu_msg->angular_velocity.z *= -1;
   }
 
+  // Filter velocity message (not counted as updating)
+  auto filter_vel_msg = filter_vel_pub_->getMessage();
+  filter_vel_msg->twist.twist.angular = imu_msg->angular_velocity;
+
+  // Filter velocity ECEF message (not counted as updating)
+  auto filter_vel_ecef_msg = filter_vel_ecef_pub_->getMessage();
+  filter_vel_ecef_msg->twist.twist.angular = imu_msg->angular_velocity;
+
   // Filter odometry message (not counted as updating)
-  auto filter_odom_msg = filter_odom_pub_->getMessage();
-  filter_odom_msg->twist.twist.angular = imu_msg->angular_velocity;
+  auto filter_odom_earth_msg = filter_odom_earth_pub_->getMessage();
+  filter_odom_earth_msg->twist.twist.angular = imu_msg->angular_velocity;
 
   // Filter relative odometry message (not counted as updating)
-  auto filter_relative_odom_msg = filter_relative_odom_pub_->getMessage();
-  filter_relative_odom_msg->twist.twist.angular = imu_msg->angular_velocity;
+  auto filter_odom_map_msg = filter_odom_map_pub_->getMessage();
+  filter_odom_map_msg->twist.twist.angular = imu_msg->angular_velocity;
 }
 
 void Publishers::handleFilterCompAccel(const mip::data_filter::CompAccel& comp_accel, const uint8_t descriptor_set, mip::Timestamp timestamp)
@@ -1322,25 +1304,25 @@ void Publishers::handleFilterLinearAccel(const mip::data_filter::LinearAccel& li
 void Publishers::handleFilterRelPosNed(const mip::data_filter::RelPosNed& rel_pos_ned, const uint8_t descriptor_set, mip::Timestamp timestamp)
 {
   // Filter relative odometry message
-  auto filter_relative_odom_msg = filter_relative_odom_pub_->getMessageToUpdate();
-  updateHeaderTime(&(filter_relative_transform_msg_.header), descriptor_set, timestamp);
+  auto filter_odom_map_msg = filter_odom_map_pub_->getMessageToUpdate();
+  updateHeaderTime(&(filter_odom_map_msg->header), descriptor_set, timestamp);
   if (config_->use_enu_frame_)
   {
-    filter_relative_odom_msg->pose.pose.position.x = rel_pos_ned.relative_position[1];
-    filter_relative_odom_msg->pose.pose.position.y = rel_pos_ned.relative_position[0];
-    filter_relative_odom_msg->pose.pose.position.z = -rel_pos_ned.relative_position[2];
+    filter_odom_map_msg->pose.pose.position.x = rel_pos_ned.relative_position[1];
+    filter_odom_map_msg->pose.pose.position.y = rel_pos_ned.relative_position[0];
+    filter_odom_map_msg->pose.pose.position.z = -rel_pos_ned.relative_position[2];
   }
   else
   {
-    filter_relative_odom_msg->pose.pose.position.x = rel_pos_ned.relative_position[0];
-    filter_relative_odom_msg->pose.pose.position.y = rel_pos_ned.relative_position[1];
-    filter_relative_odom_msg->pose.pose.position.z = rel_pos_ned.relative_position[2];
+    filter_odom_map_msg->pose.pose.position.x = rel_pos_ned.relative_position[0];
+    filter_odom_map_msg->pose.pose.position.y = rel_pos_ned.relative_position[1];
+    filter_odom_map_msg->pose.pose.position.z = rel_pos_ned.relative_position[2];
   }
 
   // Relative transform
-  filter_relative_transform_msg_.transform.translation.x = filter_relative_odom_msg->pose.pose.position.x;
-  filter_relative_transform_msg_.transform.translation.y = filter_relative_odom_msg->pose.pose.position.y;
-  filter_relative_transform_msg_.transform.translation.z = filter_relative_odom_msg->pose.pose.position.z;
+  filter_relative_transform_msg_.transform.translation.x = filter_odom_map_msg->pose.pose.position.x;
+  filter_relative_transform_msg_.transform.translation.y = filter_odom_map_msg->pose.pose.position.y;
+  filter_relative_transform_msg_.transform.translation.z = filter_odom_map_msg->pose.pose.position.z;
 
   // Relative transform updated
   relative_transform_position_updated_ = true;

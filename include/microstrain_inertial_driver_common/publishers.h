@@ -126,6 +126,7 @@ public:
      */
     void configure(RosNodeType* node, Config* config)
     {
+      data_rate_ = config->mip_publisher_mapping_->getDataRate(topic_);
       if (config->mip_publisher_mapping_->shouldPublish(topic_))
         configure(node);
     }
@@ -188,6 +189,11 @@ public:
       return topic_;
     }
 
+    float dataRate() const
+    {
+      return data_rate_;
+    }
+
     /**
      * \brief Gets whether or not this publisher's message has been updated
      * \return true if the message has been updated, false if not
@@ -219,6 +225,7 @@ public:
 
    private:
     const std::string topic_;  /// The topic that this class will publish to
+    float data_rate_;  /// The data rate in hertz that this topic is streamed at
     bool updated_;  /// Whether or not the message has been updated since the last iteration
 
     typename RosPubType<MessageType>::MessageSharedPtr message_;  /// Pointer to a message that can be updated and published by this class
@@ -241,8 +248,8 @@ public:
 
   // Filter publishers
   Publisher<NavSatFixMsg>::SharedPtr                      filter_fix_pub_           = Publisher<NavSatFixMsg>::initialize(FILTER_FIX_TOPIC);
-  Publisher<OdometryMsg>::SharedPtr                       filter_odom_pub_          = Publisher<OdometryMsg>::initialize(FILTER_ODOM_TOPIC);
-  Publisher<OdometryMsg>::SharedPtr                       filter_relative_odom_pub_ = Publisher<OdometryMsg>::initialize(FILTER_RELATIVE_ODOM_TOPIC);
+  Publisher<OdometryMsg>::SharedPtr                       filter_odom_earth_pub_          = Publisher<OdometryMsg>::initialize(FILTER_ODOM_TOPIC);
+  Publisher<OdometryMsg>::SharedPtr                       filter_odom_map_pub_ = Publisher<OdometryMsg>::initialize(FILTER_RELATIVE_ODOM_TOPIC);
   Publisher<TwistWithCovarianceStampedMsg>::SharedPtr     filter_vel_pub_           = Publisher<TwistWithCovarianceStampedMsg>::initialize(FILTER_VEL_TOPIC);
   Publisher<TwistWithCovarianceStampedMsg>::SharedPtr     filter_vel_ecef_pub_      = Publisher<TwistWithCovarianceStampedMsg>::initialize(FILTER_VEL_ECEF_TOPIC);
 
@@ -317,8 +324,8 @@ private:
 
   // Callbacks to handle sensor data from the MIP device
   void handleSensorGpsTimestamp(const mip::data_sensor::GpsTimestamp& gps_timestamp, const uint8_t descriptor_set, mip::Timestamp timestamp);
-  void handleSensorScaledAccel(const mip::data_sensor::ScaledAccel& scaled_accel, const uint8_t descriptor_set, mip::Timestamp timestamp);
-  void handleSensorScaledGyro(const mip::data_sensor::ScaledGyro& scaled_gyro, const uint8_t descriptor_set, mip::Timestamp timestamp);
+  void handleSensorDeltaTheta(const mip::data_sensor::DeltaTheta& delta_theta, const uint8_t descriptor_set, mip::Timestamp timestamp);
+  void handleSensorDeltaVelocity(const mip::data_sensor::DeltaVelocity& delta_velocity, const uint8_t descriptor_set, mip::Timestamp timestamp);
   void handleSensorCompQuaternion(const mip::data_sensor::CompQuaternion& comp_quaternion, const uint8_t descriptor_set, mip::Timestamp timestamp);
   void handleSensorScaledMag(const mip::data_sensor::ScaledMag& scaled_mag, const uint8_t descriptor_set, mip::Timestamp timestamp);
   void handleSensorScaledPressure(const mip::data_sensor::ScaledPressure& scaled_pressure, const uint8_t descriptor_set, mip::Timestamp timestamp);
