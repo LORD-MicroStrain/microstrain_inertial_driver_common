@@ -897,8 +897,23 @@ void getParam(RosNodeType* node, const std::string& param_name, ConfigType& para
   }
   else
   {
-    param_val = node->declare_parameter<ConfigType>(param_name, default_val);
+    rcl_interfaces::msg::ParameterDescriptor descriptor;
+    descriptor.dynamic_typing = true;
+    param_val = node->declare_parameter(param_name, rclcpp::ParameterValue{default_val}, descriptor).get<ConfigType>();
   }
+}
+
+template <class ConfigType>
+void setParam(RosNodeType* node, const std::string& param_name, const ConfigType& param_val)
+{
+  if (!node->has_parameter(param_name))
+  {
+    rcl_interfaces::msg::ParameterDescriptor descriptor;
+    descriptor.dynamic_typing = true;
+    node->declare_parameter(param_name, rclcpp::ParameterValue{}, descriptor);
+  }
+
+  node->set_parameter(rclcpp::Parameter(param_name, param_val));
 }
 
 inline TransformBufferType createTransformBuffer(RosNodeType* node)
