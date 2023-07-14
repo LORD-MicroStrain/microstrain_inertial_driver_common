@@ -110,7 +110,7 @@ public:
   // Frame id configuration
   std::string frame_id_;
   std::string target_frame_id_;
-  std::string base_link_frame_id_;
+  std::string mount_frame_id_;
   std::string map_frame_id_;
   std::string earth_frame_id_;
   std::string gnss_frame_id_[NUM_GNSS];
@@ -120,10 +120,10 @@ public:
   int32_t tf_mode_;
 
   // IMU frame offset configuration
-  bool publish_base_link_to_frame_id_transform_;
+  bool publish_mount_to_frame_id_transform_;
 
   // Configured static transforms
-  TransformStampedMsg base_link_to_frame_id_transform_;
+  TransformStampedMsg mount_to_frame_id_transform_;
 
   // Subscriber settings
   bool subscribe_ext_fix_;
