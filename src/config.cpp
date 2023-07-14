@@ -47,6 +47,7 @@ bool Config::configure(RosNodeType* node)
 
   // General
   getParam<bool>(node, "debug", debug_, false);
+  getParam<bool>(node, "device_setup", device_setup_, false);
 
   // Reconnect
   getParam<int>(node, "reconnect_attempts", reconnect_attempts_, 0);
@@ -68,13 +69,13 @@ bool Config::configure(RosNodeType* node)
   getParam<std::string>(node, "odometer_frame_id", odometer_frame_id_, "odometer_link");
 
   // tf config
-  getParam<int32_t>(node, "tf_mode", tf_mode_, 2);
+  getParam<int32_t>(node, "tf_mode", tf_mode_, TF_MODE_GLOBAL);
   getParam<bool>(node, "publish_base_link_to_frame_id_transform", publish_base_link_to_frame_id_transform_, true);
 
   // If using the NED frame, append that to the frame IDs
   if (!use_enu_frame_)
   {
-    constexpr auto ned_suffix = "_ned";
+    constexpr char ned_suffix[] = "_ned";
     frame_id_ += ned_suffix;
     target_frame_id_ += ned_suffix;
     base_link_frame_id_ += ned_suffix;
@@ -176,6 +177,14 @@ bool Config::configure(RosNodeType* node)
   // Log the MIP SDK version
   MICROSTRAIN_INFO(node_, "Using MIP SDK version: %s", MIP_SDK_VERSION_FULL);
 
+  // Do some configuration validation
+  if (!filter_relative_pos_config_ && device_setup_)
+  {
+    MICROSTRAIN_WARN(node_, "No relative position configured. We will not publish relative odometry or transforms.");
+    MICROSTRAIN_WARN(node_, "  Please configure relative position to publish relative position data");
+    setParam<float>(node, mip_publisher_mapping_->static_topic_to_data_rate_config_key_mapping_.at(FILTER_ODOM_MAP_TOPIC).c_str(), DATA_CLASS_DATA_RATE_DO_NOT_STREAM);
+  }
+
   // Connect to the device and set it up if we were asked to
   if (!connectDevice(node))
     return false;
@@ -238,10 +247,8 @@ bool Config::connectDevice(RosNodeType* node)
 bool Config::setupDevice(RosNodeType* node)
 {
   // Read the config used by this section
-  bool device_setup;
   bool save_settings;
   bool filter_reset_after_config;
-  getParam<bool>(node, "device_setup", device_setup, false);
   getParam<bool>(node, "save_settings", save_settings, true);
   getParam<bool>(node, "filter_reset_after_config", filter_reset_after_config, true);
 
@@ -254,7 +261,7 @@ bool Config::setupDevice(RosNodeType* node)
     return false;
 
   // Send commands to the device to configure it
-  if (device_setup)
+  if (device_setup_)
   {
     MICROSTRAIN_DEBUG(node_, "Configuring device");
     if (!configureBase(node) ||
@@ -781,10 +788,20 @@ bool Config::configureFilter(RosNodeType* node)
         return false;
       }
     }
+    else if (tf_mode_ == TF_MODE_RELATIVE && device_setup_)
+    {
+      MICROSTRAIN_ERROR(node_, "Relative position not configured. Please set relative position configuration if you want to use relative transform mode");
+      return false;
+    }
     else
     {
       MICROSTRAIN_INFO(node_, "Note: Not configuring filter relative position");
     }
+  }
+  else if (tf_mode_ == TF_MODE_RELATIVE)
+  {
+    MICROSTRAIN_ERROR(node_, "Relative position not currently supported by this device.");
+    return false;
   }
   else
   {

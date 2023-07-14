@@ -58,7 +58,7 @@ target_frame_id : "base_link"
 #      2 - Relative mode:
 #              Transform will be published from earth_frame_id to map_frame_id using relative position configuration
 #              Transform between earth_frame_id and map_frame_id will also be published using rel_pos_configuration
-tf_mode : 2
+tf_mode : 1
 
 # Static transform between base_link_frame_id and frame_id.
 #      NOTE: It is strongly recommended to define this in a urdf file if you are building a robot, or are able to modify the robot's description.

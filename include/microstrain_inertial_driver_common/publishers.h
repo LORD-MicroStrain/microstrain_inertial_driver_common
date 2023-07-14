@@ -248,8 +248,8 @@ public:
 
   // Filter publishers
   Publisher<NavSatFixMsg>::SharedPtr                      filter_fix_pub_           = Publisher<NavSatFixMsg>::initialize(FILTER_FIX_TOPIC);
-  Publisher<OdometryMsg>::SharedPtr                       filter_odom_earth_pub_          = Publisher<OdometryMsg>::initialize(FILTER_ODOM_TOPIC);
-  Publisher<OdometryMsg>::SharedPtr                       filter_odom_map_pub_ = Publisher<OdometryMsg>::initialize(FILTER_RELATIVE_ODOM_TOPIC);
+  Publisher<OdometryMsg>::SharedPtr                       filter_odom_earth_pub_          = Publisher<OdometryMsg>::initialize(FILTER_ODOM_EARTH_TOPIC );
+  Publisher<OdometryMsg>::SharedPtr                       filter_odom_map_pub_ = Publisher<OdometryMsg>::initialize(FILTER_ODOM_MAP_TOPIC);
   Publisher<TwistWithCovarianceStampedMsg>::SharedPtr     filter_vel_pub_           = Publisher<TwistWithCovarianceStampedMsg>::initialize(FILTER_VEL_TOPIC);
   Publisher<TwistWithCovarianceStampedMsg>::SharedPtr     filter_vel_ecef_pub_      = Publisher<TwistWithCovarianceStampedMsg>::initialize(FILTER_VEL_ECEF_TOPIC);
 

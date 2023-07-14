@@ -47,8 +47,8 @@ static constexpr auto GNSS2_TIME_REF_TOPIC = "gnss2/time";
 static constexpr auto FILTER_FIX_TOPIC = "/fix";
 static constexpr auto FILTER_VEL_TOPIC = "/vel";
 static constexpr auto FILTER_VEL_ECEF_TOPIC = "/vel/ecef";
-static constexpr auto FILTER_ODOM_TOPIC = "/odom/earth";
-static constexpr auto FILTER_RELATIVE_ODOM_TOPIC = "/odom/map";
+static constexpr auto FILTER_ODOM_EARTH_TOPIC  = "/odom/earth";
+static constexpr auto FILTER_ODOM_MAP_TOPIC = "/odom/map";
 
 static constexpr auto MIP_SENSOR_OVERRANGE_STATUS_TOPIC = "mip/sensor/overrange_status";
 
@@ -160,6 +160,9 @@ class MipPublisherMapping
    */
   bool shouldPublish(const std::string& topic) const;
 
+  // Static mappings for topics. Note that this map contains all possible topics regardless of what the device supports
+  static const std::map<std::string, FieldWrapper::SharedPtrVec> static_topic_to_mip_type_mapping_;  /// Mapping between topics and MIP types which can be used to lookup the descriptor set and field descriptors for a topic.
+  static const std::map<std::string, std::string> static_topic_to_data_rate_config_key_mapping_;  /// Mapping between topics and the keys in the config used to configure their data rates
  private:
   /**
    * \brief Streams the desired descriptor for all descriptor sets that support it at the highest rate of the descriptor sets.
@@ -182,9 +185,6 @@ class MipPublisherMapping
   std::map<std::string, MipPublisherMappingInfo> topic_info_mapping_;  /// Will be populated based on the device with a mapping between with the topic and ROS and MIP configuration.
   std::map<uint8_t, std::vector<mip::DescriptorRate>> streamed_descriptors_mapping_;  /// Will be populated based on the device with a mapping between descriptor sets and the rates for each field descriptor.
 
-  // Static mappings for topics. Note that this map contains all possible topics regardless of what the device supports
-  static const std::map<std::string, FieldWrapper::SharedPtrVec> static_topic_to_mip_type_mapping_;  /// Mapping between topics and MIP types which can be used to lookup the descriptor set and field descriptors for a topic.
-  static const std::map<std::string, std::string> static_topic_to_data_rate_config_key_mapping_;  /// Mapping between topics and the keys in the config used to configure their data rates
 };
 
 template<typename MipType>

@@ -291,7 +291,7 @@ const std::map<std::string, FieldWrapper::SharedPtrVec> MipPublisherMapping::sta
     FieldWrapperType<mip::data_filter::EcefVelUncertainty>::initialize(),
     FieldWrapperType<mip::data_filter::CompAngularRate>::initialize(),
   }},
-  {FILTER_ODOM_TOPIC, {
+  {FILTER_ODOM_EARTH_TOPIC , {
     FieldWrapperType<mip::data_filter::EcefPos>::initialize(),
     FieldWrapperType<mip::data_filter::EcefPosUncertainty>::initialize(),
     FieldWrapperType<mip::data_filter::AttitudeQuaternion>::initialize(),
@@ -300,7 +300,7 @@ const std::map<std::string, FieldWrapper::SharedPtrVec> MipPublisherMapping::sta
     FieldWrapperType<mip::data_filter::EcefVelUncertainty>::initialize(),
     FieldWrapperType<mip::data_filter::CompAngularRate>::initialize(),
   }},
-  {FILTER_RELATIVE_ODOM_TOPIC, {
+  {FILTER_ODOM_MAP_TOPIC, {
     FieldWrapperType<mip::data_filter::RelPosNed>::initialize(),
     FieldWrapperType<mip::data_filter::PositionLlhUncertainty>::initialize(),
     FieldWrapperType<mip::data_filter::AttitudeQuaternion>::initialize(),
@@ -387,8 +387,8 @@ const std::map<std::string, std::string> MipPublisherMapping::static_topic_to_da
   {FILTER_FIX_TOPIC,           "filter_fix_data_rate"},
   {FILTER_VEL_TOPIC,           "filter_vel_data_rate"},
   {FILTER_VEL_ECEF_TOPIC,      "filter_vel_ecef_data_rate"},
-  {FILTER_ODOM_TOPIC,          "filter_odom_earth_data_rate"},
-  {FILTER_RELATIVE_ODOM_TOPIC, "filter_odom_map_data_rate"},
+  {FILTER_ODOM_EARTH_TOPIC ,          "filter_odom_earth_data_rate"},
+  {FILTER_ODOM_MAP_TOPIC, "filter_odom_map_data_rate"},
 
 
   // MIP sensor (0x80) data rates

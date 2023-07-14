@@ -528,6 +528,12 @@ void getParam(RosNodeType* node, const std::string& param_name, ConfigType& para
   node->param<ConfigType>(param_name, param_val, default_val);
 }
 
+template <class ConfigType>
+void setParam(RosNodeType* node, const std::string& param_name, const ConfigType& param_val)
+{
+  node->setParam(param_name, param_val);
+}
+
 inline TransformBufferType createTransformBuffer(RosNodeType* node)
 {
   return std::make_shared<tf2_ros::Buffer>();
