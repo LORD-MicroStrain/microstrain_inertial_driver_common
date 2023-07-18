@@ -623,25 +623,26 @@ void Publishers::handleSensorDeltaVelocity(const mip::data_sensor::DeltaVelocity
 
 void Publishers::handleSensorCompQuaternion(const mip::data_sensor::CompQuaternion& comp_quaternion, const uint8_t descriptor_set, mip::Timestamp timestamp)
 {
+  // Convert the quaternion into a tf2 quaternion so we can do math on it easier
+  const tf2::Quaternion q_ned_to_microstrain_vehicle(comp_quaternion.q[1], comp_quaternion.q[2], comp_quaternion.q[3], comp_quaternion.q[0]);
+
   auto raw_imu_msg = raw_imu_pub_->getMessageToUpdate();
   updateHeaderTime(&(raw_imu_msg->header), descriptor_set, timestamp);
   if (config_->use_enu_frame_)
   {
-    tf2::Quaternion q_ned2enu, q_body2enu, q_vehiclebody2sensorbody, q_body2ned(comp_quaternion.q[1], comp_quaternion.q[2], comp_quaternion.q[3], comp_quaternion.q[0]);
+    tf2::Quaternion q_enu_to_ned;
+    config_->t_ned_to_enu_.getRotation(q_enu_to_ned);
 
-    config_->t_ned2enu_.getRotation(q_ned2enu);
-    config_->t_microstrain_vehicle_to_ros_vehicle_transform_.getRotation(q_vehiclebody2sensorbody);
+    tf2::Quaternion q_microstrain_vehicle_to_ros_vehicle;
+    config_->t_ros_vehicle_to_microstrain_vehicle_.getRotation(q_microstrain_vehicle_to_ros_vehicle);
 
-    q_body2enu = q_ned2enu * q_body2ned * q_vehiclebody2sensorbody;
+    const tf2::Quaternion q_enu_to_ros_vehicle = q_enu_to_ned * q_ned_to_microstrain_vehicle * q_microstrain_vehicle_to_ros_vehicle;
 
-    raw_imu_msg->orientation = tf2::toMsg(q_body2enu);
+    raw_imu_msg->orientation = tf2::toMsg(q_enu_to_ros_vehicle);
   }
   else
   {
-    raw_imu_msg->orientation.x = comp_quaternion.q[1];
-    raw_imu_msg->orientation.y = comp_quaternion.q[2];
-    raw_imu_msg->orientation.z = comp_quaternion.q[3];
-    raw_imu_msg->orientation.w = comp_quaternion.q[0];
+    raw_imu_msg->orientation = tf2::toMsg(q_ned_to_microstrain_vehicle);
   }
 }
 
@@ -754,8 +755,8 @@ void Publishers::handleGnssVelNed(const mip::data_gnss::VelNed& vel_ned, const u
   gnss_vel_msg->twist.covariance[14] = vel_ned.speed_accuracy;
 
   // Get the rotation between our vehicle frame and Ros' definition of vehicle frame
-  tf2::Quaternion microstrain_vehicle_to_ros_vehicle_transform_quat;
-  config_->t_microstrain_vehicle_to_ros_vehicle_transform_.getRotation(microstrain_vehicle_to_ros_vehicle_transform_quat);
+  tf2::Quaternion q_microstrain_vehicle_to_ros_vehicle_quat;
+  config_->t_ros_vehicle_to_microstrain_vehicle_.getRotation(q_microstrain_vehicle_to_ros_vehicle_quat);
 
   // GNSS odometry message (not counted as updating)
   auto gnss_fix_msg = gnss_fix_pub_[gnss_index]->getMessage();
@@ -765,7 +766,7 @@ void Publishers::handleGnssVelNed(const mip::data_gnss::VelNed& vel_ned, const u
   const tf2::Quaternion ned_to_ecef_transform_quat = ecefToNedTransformQuat(gnss_fix_msg->latitude, gnss_fix_msg->longitude);
   tf2::Quaternion gnss_ecef_orientation = ned_to_ecef_transform_quat * gnss_ned_transform_quat;
   if (config_->use_enu_frame_)
-    gnss_ecef_orientation *= microstrain_vehicle_to_ros_vehicle_transform_quat;
+    gnss_ecef_orientation *= q_microstrain_vehicle_to_ros_vehicle_quat;
   gnss_odom_msg->pose.pose.orientation = tf2::toMsg(gnss_ecef_orientation);
   gnss_odom_msg->pose.covariance[35] = vel_ned.heading_accuracy;
 }
@@ -1075,39 +1076,47 @@ void Publishers::handleFilterPositionLlhUncertainty(const mip::data_filter::Posi
 void Publishers::handleFilterAttitudeQuaternion(const mip::data_filter::AttitudeQuaternion& attitude_quaternion, const uint8_t descriptor_set, mip::Timestamp timestamp)
 {
   // Get the rotation between our vehicle frame and Ros' definition of vehicle frame
-  tf2::Quaternion microstrain_vehicle_to_ros_vehicle_transform_quat;
-  config_->t_microstrain_vehicle_to_ros_vehicle_transform_.getRotation(microstrain_vehicle_to_ros_vehicle_transform_quat);
+  tf2::Quaternion q_microstrain_vehicle_to_ros_vehicle;
+  config_->t_ros_vehicle_to_microstrain_vehicle_.getRotation(q_microstrain_vehicle_to_ros_vehicle);
+
+  // Gonna need to do a lot of math below, so turn the quaternion into a tf2 quaternion
+  const tf2::Quaternion q_ned_to_microstrain_vehicle(attitude_quaternion.q[1], attitude_quaternion.q[2], attitude_quaternion.q[3], attitude_quaternion.q[0]);
 
   // Filtered IMU message
   auto imu_msg = imu_pub_->getMessageToUpdate();
   updateHeaderTime(&(imu_msg->header), descriptor_set, timestamp);
   if (config_->use_enu_frame_)
   {
-    tf2::Quaternion q_ned2enu, q_body2enu, q_body2ned(attitude_quaternion.q[1], attitude_quaternion.q[2], attitude_quaternion.q[3], attitude_quaternion.q[0]);
+    tf2::Quaternion q_enu_to_ned;
+    config_->t_ned_to_enu_.getRotation(q_enu_to_ned);
 
-    config_->t_ned2enu_.getRotation(q_ned2enu);
+    const tf2::Quaternion q_enu_to_ros_vehicle = q_enu_to_ned * q_ned_to_microstrain_vehicle * q_microstrain_vehicle_to_ros_vehicle;
 
-    q_body2enu = q_ned2enu * q_body2ned * microstrain_vehicle_to_ros_vehicle_transform_quat;
-
-    imu_msg->orientation = tf2::toMsg(q_body2enu);
+    imu_msg->orientation = tf2::toMsg(q_enu_to_ros_vehicle);
   }
   else
   {
-    imu_msg->orientation.x = attitude_quaternion.q[1];
-    imu_msg->orientation.y = attitude_quaternion.q[2];
-    imu_msg->orientation.z = attitude_quaternion.q[3];
-    imu_msg->orientation.w = attitude_quaternion.q[0];
+    imu_msg->orientation = tf2::toMsg(q_ned_to_microstrain_vehicle);
   }
 
   // Filter odometry message rotated to ECEF (not counted as updating)
-  const auto& filter_fix_msg = filter_fix_pub_->getMessage();
   auto filter_odom_earth_msg = filter_odom_earth_pub_->getMessage();
-  const tf2::Quaternion imu_ned_transform_quat(attitude_quaternion.q[1], attitude_quaternion.q[2], attitude_quaternion.q[3], attitude_quaternion.q[0]);
-  const tf2::Quaternion ned_to_ecef_transform_quat = ecefToNedTransformQuat(filter_fix_msg->latitude, filter_fix_msg->longitude);
-  tf2::Quaternion imu_ecef_orientation = ned_to_ecef_transform_quat * imu_ned_transform_quat;
+
+  // Convert the ECEF coordinates to LLH so we can lookup the rotation
+  double lat, lon, alt;
+  geocentric_converter_.Reverse(filter_odom_earth_msg->pose.pose.position.x, filter_odom_earth_msg->pose.pose.position.y, filter_odom_earth_msg->pose.pose.position.z, lat, lon, alt);
+
+  const tf2::Quaternion q_ecef_to_ned = ecefToNedTransformQuat(lat, lon);
+  tf2::Quaternion q_ecef_to_microstrain_vehicle = q_ecef_to_ned * q_ned_to_microstrain_vehicle;
   if (config_->use_enu_frame_)
-    imu_ecef_orientation *= microstrain_vehicle_to_ros_vehicle_transform_quat;
-  filter_odom_earth_msg->pose.pose.orientation = tf2::toMsg(imu_ecef_orientation);
+  {
+    const tf2::Quaternion q_ecef_to_ros_vehicle = q_ecef_to_microstrain_vehicle * q_microstrain_vehicle_to_ros_vehicle;
+    filter_odom_earth_msg->pose.pose.orientation = tf2::toMsg(q_ecef_to_ros_vehicle);
+  }
+  else
+  {
+    filter_odom_earth_msg->pose.pose.orientation = tf2::toMsg(q_ecef_to_microstrain_vehicle);
+  }
 
   // Filter relative odometry message (not counted as updating)
   auto filter_odom_map_msg = filter_odom_map_pub_->getMessage();
@@ -1171,19 +1180,20 @@ void Publishers::handleFilterVelocityNed(const mip::data_filter::VelocityNed& ve
   else
   {
     filter_vel_msg->twist.twist.linear.x = velocity_ned.north;
-    filter_vel_msg->twist.twist.linear.x = velocity_ned.east;
-    filter_vel_msg->twist.twist.linear.x = velocity_ned.down;
+    filter_vel_msg->twist.twist.linear.y = velocity_ned.east;
+    filter_vel_msg->twist.twist.linear.z = velocity_ned.down;
   }
 
   // Filter relative odometry message (not counted as updating)
   auto filter_odom_map_msg = filter_odom_map_pub_->getMessage();
 
   // Rotate the velocity to the sensor frame
-  const tf2::Vector3 filter_current_vel(filter_vel_msg->twist.twist.linear.x, filter_vel_msg->twist.twist.linear.y, filter_vel_msg->twist.twist.linear.z);
-  const tf2::Vector3 filter_rotated_vel = tf2::quatRotate(filter_attitude_quaternion_.inverse(), filter_current_vel);
-  filter_odom_map_msg->twist.twist.linear.x = filter_rotated_vel.getX();
-  filter_odom_map_msg->twist.twist.linear.y = filter_rotated_vel.getY();
-  filter_odom_map_msg->twist.twist.linear.z = filter_rotated_vel.getZ();
+  const tf2::Quaternion q_map_to_imu(filter_odom_map_msg->pose.pose.orientation.x, filter_odom_map_msg->pose.pose.orientation.y, filter_odom_map_msg->pose.pose.orientation.z, filter_odom_map_msg->pose.pose.orientation.w);
+  const tf2::Vector3 v_map_velocity(filter_vel_msg->twist.twist.linear.x, filter_vel_msg->twist.twist.linear.y, filter_vel_msg->twist.twist.linear.z);
+  const tf2::Vector3 v_imu_velocity = tf2::quatRotate(q_map_to_imu.inverse(), v_map_velocity);
+  filter_odom_map_msg->twist.twist.linear.x = v_imu_velocity.getX();
+  filter_odom_map_msg->twist.twist.linear.y = v_imu_velocity.getY();
+  filter_odom_map_msg->twist.twist.linear.z = v_imu_velocity.getZ();
 }
 
 void Publishers::handleFilterVelocityNedUncertainty(const mip::data_filter::VelocityNedUncertainty& velocity_ned_uncertainty, const uint8_t descriptor_set, mip::Timestamp timestamp)

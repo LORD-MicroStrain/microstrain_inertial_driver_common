@@ -76,8 +76,8 @@ public:
 
   // Info for converting to the ENU frame
   bool use_enu_frame_;
-  tf2::Matrix3x3 t_ned2enu_;
-  tf2::Matrix3x3 t_microstrain_vehicle_to_ros_vehicle_transform_;
+  tf2::Matrix3x3 t_ned_to_enu_;
+  tf2::Matrix3x3 t_ros_vehicle_to_microstrain_vehicle_;
 
   // Flag for using device timestamp instead of PC received time
   bool use_device_timestamp_;

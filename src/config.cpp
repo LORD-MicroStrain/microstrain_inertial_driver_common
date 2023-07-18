@@ -38,8 +38,8 @@ Config::Config(RosNodeType* node) : node_(node)
 bool Config::configure(RosNodeType* node)
 {
   // Initialize some default and static config
-  t_ned2enu_ = tf2::Matrix3x3(0, 1, 0, 1, 0, 0, 0, 0, -1);
-  t_microstrain_vehicle_to_ros_vehicle_transform_ = tf2::Matrix3x3(1, 0, 0, 0, -1, 0, 0, 0, -1);
+  t_ned_to_enu_ = tf2::Matrix3x3(0, 1, 0, 1, 0, 0, 0, 0, -1);
+  t_ros_vehicle_to_microstrain_vehicle_ = tf2::Matrix3x3(1, 0, 0, 0, -1, 0, 0, 0, -1);
 
   ///
   /// Generic configuration used by the rest of the driver
