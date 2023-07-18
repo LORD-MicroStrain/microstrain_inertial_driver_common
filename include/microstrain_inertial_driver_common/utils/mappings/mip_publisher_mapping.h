@@ -27,46 +27,46 @@ namespace microstrain
 {
 
 // Topic names
-static constexpr auto IMU_RAW_DATA_TOPIC = "imu_raw/data";
-static constexpr auto IMU_RAW_MAG_TOPIC = "imu_raw/mag";
-static constexpr auto IMU_RAW_PRESSURE_TOPIC = "imu_raw/pressure";
 static constexpr auto IMU_DATA_TOPIC = "imu/data";
+static constexpr auto IMU_MAG_TOPIC = "imu/mag";
+static constexpr auto IMU_PRESSURE_TOPIC = "imu/pressure";
 
-static constexpr auto GNSS1_FIX_TOPIC = "gnss1/fix";
-static constexpr auto GNSS1_VEL_TOPIC = "gnss1/vel";
-static constexpr auto GNSS1_VEL_ECEF_TOPIC = "gnss1/vel/ecef";
-static constexpr auto GNSS1_ODOM_TOPIC = "gnss1/odom/earth";
-static constexpr auto GNSS1_TIME_REF_TOPIC = "gnss1/time";
+static constexpr auto GNSS1_LLH_POSITION_TOPIC = "gnss_1/llh_position";
+static constexpr auto GNSS1_VELOCITY_TOPIC = "gnss_1/velocity";
+static constexpr auto GNSS1_VELOCITY_ECEF_TOPIC = "gnss_1/velocity_ecef";
+static constexpr auto GNSS1_ODOMETRY_TOPIC = "gnss_1/odometry_earth";
+static constexpr auto GNSS1_TIME_REF_TOPIC = "gnss_1/time";
 
-static constexpr auto GNSS2_FIX_TOPIC = "gnss2/fix";
-static constexpr auto GNSS2_VEL_TOPIC = "gnss2/vel";
-static constexpr auto GNSS2_VEL_ECEF_TOPIC = "gnss2/vel/ecef";
-static constexpr auto GNSS2_ODOM_TOPIC = "gnss2/odom/earth";
-static constexpr auto GNSS2_TIME_REF_TOPIC = "gnss2/time";
+static constexpr auto GNSS2_FIX_TOPIC = "gnss_2/llh_position";
+static constexpr auto GNSS2_VELOCITY_TOPIC = "gnss_2/velocity";
+static constexpr auto GNSS2_VELOCITY_ECEF_TOPIC = "gnss_2/velocity_ecef";
+static constexpr auto GNSS2_ODOMETRY_TOPIC = "gnss_2/odometry_earth";
+static constexpr auto GNSS2_TIME_REF_TOPIC = "gnss_2/time";
 
-static constexpr auto FILTER_FIX_TOPIC = "/fix";
-static constexpr auto FILTER_VEL_TOPIC = "/vel";
-static constexpr auto FILTER_VEL_ECEF_TOPIC = "/vel/ecef";
-static constexpr auto FILTER_ODOM_EARTH_TOPIC  = "/odom/earth";
-static constexpr auto FILTER_ODOM_MAP_TOPIC = "/odom/map";
+static constexpr auto FILTER_IMU_DATA_TOPIC = "ekf/imu/data";
+static constexpr auto FILTER_LLH_POSITION_TOPIC = "ekf/llh_position";
+static constexpr auto FILTER_VELOCITY_TOPIC = "ekf/velocity";
+static constexpr auto FILTER_VELOCITY_ECEF_TOPIC = "ekf/velocity_ecef";
+static constexpr auto FILTER_ODOMETRY_EARTH_TOPIC  = "ekf/odometry_earth";
+static constexpr auto FILTER_ODOMETRY_MAP_TOPIC = "ekf/odometry_map";
 
 static constexpr auto MIP_SENSOR_OVERRANGE_STATUS_TOPIC = "mip/sensor/overrange_status";
 
-static constexpr auto MIP_GNSS1_FIX_INFO_TOPIC = "mip/gnss1/fix_info";
-static constexpr auto MIP_GNSS1_SBAS_INFO_TOPIC = "mip/gnss1/sbas_info";
-static constexpr auto MIP_GNSS1_RF_ERROR_DETECTION_TOPIC = "mip/gnss1/rf_error_detection";
+static constexpr auto MIP_GNSS1_FIX_INFO_TOPIC = "mip/gnss_1/fix_info";
+static constexpr auto MIP_GNSS1_SBAS_INFO_TOPIC = "mip/gnss_1/sbas_info";
+static constexpr auto MIP_GNSS1_RF_ERROR_DETECTION_TOPIC = "mip/gnss_1/rf_error_detection";
 
-static constexpr auto MIP_GNSS2_FIX_INFO_TOPIC = "mip/gnss2/fix_info";
-static constexpr auto MIP_GNSS2_SBAS_INFO_TOPIC = "mip/gnss2/sbas_info";
-static constexpr auto MIP_GNSS2_RF_ERROR_DETECTION_TOPIC = "mip/gnss2/rf_error_detection";
+static constexpr auto MIP_GNSS2_FIX_INFO_TOPIC = "mip/gnss_2/fix_info";
+static constexpr auto MIP_GNSS2_SBAS_INFO_TOPIC = "mip/gnss_2/sbas_info";
+static constexpr auto MIP_GNSS2_RF_ERROR_DETECTION_TOPIC = "mip/gnss_2/rf_error_detection";
 
 static constexpr auto MIP_GNSS_CORRECTIONS_RTK_CORRECTIONS_STATUS_TOPIC = "mip/gnss_corrections/rtk_corrections_status";
 
-static constexpr auto MIP_FILTER_STATUS_TOPIC = "mip/filter/status";
-static constexpr auto MIP_FILTER_GNSS_POSITION_AIDING_STATUS_TOPIC = "mip/filter/gnss_position_aiding_status";
-static constexpr auto MIP_FILTER_MULTI_ANTENNA_OFFSET_CORRECTION_TOPIC = "mip/filter/multi_antenna_offset_correction";
-static constexpr auto MIP_FILTER_GNSS_DUAL_ANTENNA_STATUS_TOPIC = "mip/filter/gnss_dual_antenna_status";
-static constexpr auto MIP_FILTER_AIDING_MEASUREMENT_SUMMARY_TOPIC = "mip/filter/aiding_measurement_summary";
+static constexpr auto MIP_FILTER_STATUS_TOPIC = "mip/ekf/status";
+static constexpr auto MIP_FILTER_GNSS_POSITION_AIDING_STATUS_TOPIC = "mip/ekf/gnss_position_aiding_status";
+static constexpr auto MIP_FILTER_MULTI_ANTENNA_OFFSET_CORRECTION_TOPIC = "mip/ekf/multi_antenna_offset_correction";
+static constexpr auto MIP_FILTER_GNSS_DUAL_ANTENNA_STATUS_TOPIC = "mip/ekf/gnss_dual_antenna_status";
+static constexpr auto MIP_FILTER_AIDING_MEASUREMENT_SUMMARY_TOPIC = "mip/ekf/aiding_measurement_summary";
 
 static constexpr auto NMEA_SENTENCE_TOPIC = "nmea/sentence";
 

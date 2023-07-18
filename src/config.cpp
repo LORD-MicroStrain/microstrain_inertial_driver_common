@@ -64,8 +64,8 @@ bool Config::configure(RosNodeType* node)
   getParam<std::string>(node, "mount_frame_id", mount_frame_id_, "base_link");
   getParam<std::string>(node, "map_frame_id", map_frame_id_, "map");
   getParam<std::string>(node, "earth_frame_id", earth_frame_id_, "earth");
-  getParam<std::string>(node, "gnss1_frame_id", gnss_frame_id_[GNSS1_ID], "gnss1_link");
-  getParam<std::string>(node, "gnss2_frame_id", gnss_frame_id_[GNSS2_ID], "gnss2_link");
+  getParam<std::string>(node, "gnss1_frame_id", gnss_frame_id_[GNSS1_ID], "gnss_1_antenna_link");
+  getParam<std::string>(node, "gnss2_frame_id", gnss_frame_id_[GNSS2_ID], "gnss_2_antenna_link");
   getParam<std::string>(node, "odometer_frame_id", odometer_frame_id_, "odometer_link");
 
   // tf config
@@ -182,7 +182,7 @@ bool Config::configure(RosNodeType* node)
   {
     MICROSTRAIN_WARN(node_, "No relative position configured. We will not publish relative odometry or transforms.");
     MICROSTRAIN_WARN(node_, "  Please configure relative position to publish relative position data");
-    setParam<float>(node, mip_publisher_mapping_->static_topic_to_data_rate_config_key_mapping_.at(FILTER_ODOM_MAP_TOPIC).c_str(), DATA_CLASS_DATA_RATE_DO_NOT_STREAM);
+    setParam<float>(node, mip_publisher_mapping_->static_topic_to_data_rate_config_key_mapping_.at(FILTER_ODOMETRY_MAP_TOPIC).c_str(), DATA_CLASS_DATA_RATE_DO_NOT_STREAM);
   }
 
   // Connect to the device and set it up if we were asked to

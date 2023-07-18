@@ -44,8 +44,8 @@ frame_id: "imu_link"
 mount_frame_id     : "base_link"  # Frame ID that the device is mounted on.
 map_frame_id       : "map"
 earth_frame_id     : "earth"
-gnss1_frame_id     : "gnss1_link"
-gnss2_frame_id     : "gnss2_link"
+gnss1_frame_id     : "gnss_1_antenna_link"
+gnss2_frame_id     : "gnss_2_antenna_link"
 odometer_frame_id  : "odometer_link"
 
 # Target frame ID to publish transform to. Note that there needs to be some path of transforms between this and frame_id
@@ -126,12 +126,9 @@ raw_file_directory : "/home/your_name"
 
 # The speed at which the individual IMU publishers will publish at.
 #      If set to 0, the stream will be turned off and the publisher will not be created
-imu_data_rate              : 100  # Rate of imu/data topic
-                                  # Note: Both filter_odom_earth_data_rate and filter_odom_map_data_rate depend on the contents of this message.
-                                  #       If either are set to a higher value, this message will be published at that rate.
-imu_raw_data_rate          : 0    # Rate of imu_raw/data topic
-imu_raw_mag_data_rate      : 0    # Rate of imu_raw/mag topic
-imu_raw_pressure_data_rate : 0    # Rate of imu_raw/pressure topic
+imu_data_rate          : 1000 # Rate of imu/data topic
+imu_mag_data_rate      : 0    # Rate of imu/mag topic
+imu_pressure_data_rate : 0    # Rate of imu/pressure topic
 
 # Static IMU message covariance values (the device does not generate these) 
 imu_orientation_cov   : [0.01, 0, 0, 0, 0.01, 0, 0, 0, 0.01]
@@ -145,13 +142,13 @@ imu_pressure_variance : 0.01
 
 # The speed at which the individual GNSS1 publishers will publish at.
 #      If set to 0, the stream will be turned off and the publisher will not be created
-gnss1_fix_data_rate        : 2  # Rate of gnss1/fix topic
-gnss1_vel_data_rate        : 2  # Rate of gnss1/vel topic
-gnss1_vel_ecef_data_rate   : 0  # Rate of gnss1/vel/ecef topic
-                                # Note: gnss1_odom_earth_data_rate depends on the contents of this message.
-                                #       If it is set to a higher value, this message will be published at that rate.
-gnss1_odom_earth_data_rate : 2  # Rate of gnss1/odom/earth topic
-gnss1_time_data_rate       : 0  # Rate of gnss1/time topic
+gnss1_llh_position_data_rate   : 2  # Rate of gnss_1/llh_position topic
+gnss1_velocity_data_rate       : 2  # Rate of gnss_1/velocity topic
+gnss1_velocity_ecef_data_rate  : 0  # Rate of gnss_1/velocity_ecef topic
+                                    # Note: gnss1_odometry_earth_data_rate depends on the contents of this message.
+                                    #       If it is set to a higher value, this message will be published at that rate.
+gnss1_odometry_earth_data_rate : 0  # Rate of gnss_1/odometry_earth topic
+gnss1_time_data_rate           : 0  # Rate of gnss_1/time topic
 
 # Antenna #1 lever arm offset vector
 #     For GQ7 - in the vehicle frame wrt IMU origin (meters)
@@ -165,13 +162,13 @@ gnss1_antenna_offset : [0.0, -0.7, -1.0]
 
 # The speed at which the individual GNSS2 publishers will publish at.
 #      If set to 0, the stream will be turned off and the publisher will not be created
-gnss2_fix_data_rate        : 2  # Rate of gnss2/fix topic
-gnss2_vel_data_rate        : 2  # Rate of gnss2/vel topic
-gnss2_vel_ecef_data_rate   : 0  # Rate of gnss2/vel/ecef topic
-                                # Note: gnss2_odom_earth_data_rate depends on the contents of this message.
-                                #       If it is set to a higher value, this message will be published at that rate.
-gnss2_odom_earth_data_rate : 0  # Rate of gnss2/odom/earth topic
-gnss2_time_data_rate       : 0  # Rate of gnss2/time topic
+gnss2_llh_position_data_rate   : 2  # Rate of gnss_2/llh_position topic
+gnss2_velocity_data_rate       : 2  # Rate of gnss_2/velocity topic
+gnss2_velocity_ecef_data_rate  : 0  # Rate of gnss_2/velocity_ecef topic
+                                    # Note: gnss2_odometry_earth_data_rate depends on the contents of this message.
+                                    #       If it is set to a higher value, this message will be published at that rate.
+gnss2_odometry_earth_data_rate : 0  # Rate of gnss_2/odometry_earth topic
+gnss2_time_data_rate           : 0  # Rate of gnss_2/time topic
 
 # Antenna #2 lever arm offset vector (In the vehicle frame wrt IMU origin (meters) )
 # Note: Make this as accurate as possible for good performance 
@@ -206,15 +203,18 @@ publish_nmea   : False
 
 # The speed at which the individual Filter publishers will publish at.
 #      If set to 0, the stream will be turned off and the publisher will not be created
-filter_fix_data_rate        : 100   # Rate of /fix topic
-filter_vel_data_rate        : 0     # Rate of /vel topic
-                                    # Note: filter_odom_map_data_rate depends on the contents of this message.
-                                    #       If either are set to a higher value, this message will be published at that rate.
-filter_vel_ecef_data_rate   : 0     # Rate of /vel/ecef topic
-                                    # Note: filter_odom_earth_data_rate depends on the contents of this message.
-                                    #       If either are set to a higher value, this message will be published at that rate.
-filter_odom_earth_data_rate : 100   # Rate of /odom/earth topic
-filter_odom_map_data_rate   : 100   # Rate of /odom/map topic
+filter_imu_data_rate            : 0  # Rate of ekf/imu/data topic
+                                     # Note: Both filter_odometry_earth_data_rate and filter_odometry_map_data_rate depend on the contents of this message.
+                                     #       If either are set to a higher value, this message will be published at that rate.
+filter_llh_position_data_rate   : 0  # Rate of ekf/llh_position topic
+filter_velocity_data_rate       : 0  # Rate of ekf/velocity topic
+                                     # Note: filter_odometry_map_data_rate depends on the contents of this message.
+                                     #       If either are set to a higher value, this message will be published at that rate.
+filter_velocity_ecef_data_rate  : 0  # Rate of ekf/velocity_ecef topic
+                                     # Note: filter_odometry_earth_data_rate depends on the contents of this message.
+                                     #       If either are set to a higher value, this message will be published at that rate.
+filter_odometry_earth_data_rate : 10 # Rate of ekf/odometry_earth topic
+filter_odometry_map_data_rate   : 10 # Rate of ekf/odometry_map topic
 
 # Sensor2vehicle frame transformation selector
 #     0 = None, 1 = Euler Angles, 2 - matrix, 3 - quaternion
@@ -282,7 +282,7 @@ filter_external_speed_topic : "/external_speed"
 filter_vel_in_vehicle_frame : True
 
 # (GQ7 Only) Reference point lever arm offset control.
-#   Note: This offset will affect the position and velocity measurements in the following topics: nav/odom, nav/relative_pos/odom
+#   Note: This offset will affect the position and velocity measurements in the following topics: nav/odometry, nav/relative_pos/odometry
 #   Note: This offset is in the vehicle reference frame.
 filter_lever_arm_offset: [0.0, 0.0, 0.0]
 
@@ -290,20 +290,20 @@ filter_lever_arm_offset: [0.0, 0.0, 0.0]
 #      If set to 0, the stream will be turned off and the publisher will not be created
 mip_sensor_overrange_status_data_rate : 0  # Rate of mip/sensor/overrange_status topic
 
-mip_gnss1_fix_info_data_rate           : 0  # Rate of mip/gnss1/fix_info topic
-mip_gnss1_sbas_info_data_rate          : 0  # Rate of mip/gnss1/sbas_info topic
-mip_gnss1_rf_error_detection_data_rate : 0  # Rate of mip/gnss1/rf_error_detection
+mip_gnss1_fix_info_data_rate           : 0  # Rate of mip/gnss_1/fix_info topic
+mip_gnss1_sbas_info_data_rate          : 0  # Rate of mip/gnss_1/sbas_info topic
+mip_gnss1_rf_error_detection_data_rate : 0  # Rate of mip/gnss_1/rf_error_detection
 
-mip_gnss2_fix_info_data_rate           : 0  # Rate of mip/gnss1/fix_info topic
-mip_gnss2_sbas_info_data_rate          : 0  # Rate of mip/gnss2/sbas_info topic
-mip_gnss2_rf_error_detection_data_rate : 0  # Rate of mip/gnss2/rf_error_detection
+mip_gnss2_fix_info_data_rate           : 0  # Rate of mip/gnss_1/fix_info topic
+mip_gnss2_sbas_info_data_rate          : 0  # Rate of mip/gnss_2/sbas_info topic
+mip_gnss2_rf_error_detection_data_rate : 0  # Rate of mip/gnss_2/rf_error_detection
 
 mip_gnss_corrections_rtk_corrections_status_data_rate : 0  # Rate of mip/gnss_corrections/rtk_corrections_status topic
                                                            # Note : This is an on demand topic. If set to any other value than 0, this message will be published at whatever rate the device provides it
 
 mip_filter_status_data_rate                          : 0  # Rate of mip/filter/status topic
 mip_filter_gnss_position_aiding_status_data_rate     : 0  # Rate of mip/filter/gnss_aiding_status
-                                                          # Note: filter_fix_data_rate depends on the contents of this message.
+                                                          # Note: filter_llh_position_data_rate depends on the contents of this message.
                                                           #       If it is set to a higher value, this message will be published at that rate.
 mip_filter_multi_antenna_offset_correction_data_rate : 0  # Rate of mip/filter/multi_antenna_offset_correction
 mip_filter_gnss_dual_antenna_status_data_rate        : 0  # Rate of mip/filter/gnss_dual_antenna_status
@@ -414,7 +414,7 @@ filter_init_attitude : [0.0, 0.0, 0.0]
 filter_relative_position_config : False
 filter_relative_position_frame  : 2
 filter_relative_position_source : 1
-filter_relative_position_ref    : [0, 0, 0.01]
+filter_relative_position_ref    : [0.0, 0.0, 0.01]
 
 # (GQ7 only) Speed Lever Arm Configuration
 #   Lever Arm - In vehicle reference frame (meters)

@@ -234,24 +234,24 @@ public:
 
 
   // IMU Publishers
-  Publisher<ImuMsg>::SharedPtr           raw_imu_pub_ = Publisher<ImuMsg>::initialize(IMU_RAW_DATA_TOPIC);
-  Publisher<MagneticFieldMsg>::SharedPtr mag_pub_     = Publisher<MagneticFieldMsg>::initialize(IMU_RAW_MAG_TOPIC);
-  Publisher<FluidPressureMsg>::SharedPtr pressure_pub_ = Publisher<FluidPressureMsg>::initialize(IMU_RAW_PRESSURE_TOPIC); 
-  Publisher<ImuMsg>::SharedPtr           imu_pub_     = Publisher<ImuMsg>::initialize(IMU_DATA_TOPIC);
+  Publisher<ImuMsg>::SharedPtr           imu_pub_ = Publisher<ImuMsg>::initialize(IMU_DATA_TOPIC);
+  Publisher<MagneticFieldMsg>::SharedPtr mag_pub_     = Publisher<MagneticFieldMsg>::initialize(IMU_MAG_TOPIC);
+  Publisher<FluidPressureMsg>::SharedPtr pressure_pub_ = Publisher<FluidPressureMsg>::initialize(IMU_PRESSURE_TOPIC); 
 
   // GNSS publishers
-  Publisher<NavSatFixMsg>::SharedPtrVec                  gnss_fix_pub_      = Publisher<NavSatFixMsg>::initializeVec({GNSS1_FIX_TOPIC, GNSS2_FIX_TOPIC});
-  Publisher<TwistWithCovarianceStampedMsg>::SharedPtrVec gnss_vel_pub_      = Publisher<TwistWithCovarianceStampedMsg>::initializeVec({GNSS1_VEL_TOPIC, GNSS2_VEL_TOPIC});
-  Publisher<TwistWithCovarianceStampedMsg>::SharedPtrVec gnss_vel_ecef_pub_ = Publisher<TwistWithCovarianceStampedMsg>::initializeVec({GNSS1_VEL_ECEF_TOPIC, GNSS2_VEL_ECEF_TOPIC});
-  Publisher<OdometryMsg>::SharedPtrVec                   gnss_odom_pub_     = Publisher<OdometryMsg>::initializeVec({GNSS1_ODOM_TOPIC, GNSS2_ODOM_TOPIC});
+  Publisher<NavSatFixMsg>::SharedPtrVec                  gnss_llh_position_pub_      = Publisher<NavSatFixMsg>::initializeVec({GNSS1_LLH_POSITION_TOPIC, GNSS2_FIX_TOPIC});
+  Publisher<TwistWithCovarianceStampedMsg>::SharedPtrVec gnss_velocity_pub_      = Publisher<TwistWithCovarianceStampedMsg>::initializeVec({GNSS1_VELOCITY_TOPIC, GNSS2_VELOCITY_TOPIC});
+  Publisher<TwistWithCovarianceStampedMsg>::SharedPtrVec gnss_velocity_ecef_pub_ = Publisher<TwistWithCovarianceStampedMsg>::initializeVec({GNSS1_VELOCITY_ECEF_TOPIC, GNSS2_VELOCITY_ECEF_TOPIC});
+  Publisher<OdometryMsg>::SharedPtrVec                   gnss_odometry_pub_     = Publisher<OdometryMsg>::initializeVec({GNSS1_ODOMETRY_TOPIC, GNSS2_ODOMETRY_TOPIC});
   Publisher<TimeReferenceMsg>::SharedPtrVec              gnss_time_pub_     = Publisher<TimeReferenceMsg>::initializeVec({GNSS1_TIME_REF_TOPIC, GNSS2_TIME_REF_TOPIC});
 
   // Filter publishers
-  Publisher<NavSatFixMsg>::SharedPtr                      filter_fix_pub_           = Publisher<NavSatFixMsg>::initialize(FILTER_FIX_TOPIC);
-  Publisher<OdometryMsg>::SharedPtr                       filter_odom_earth_pub_          = Publisher<OdometryMsg>::initialize(FILTER_ODOM_EARTH_TOPIC );
-  Publisher<OdometryMsg>::SharedPtr                       filter_odom_map_pub_ = Publisher<OdometryMsg>::initialize(FILTER_ODOM_MAP_TOPIC);
-  Publisher<TwistWithCovarianceStampedMsg>::SharedPtr     filter_vel_pub_           = Publisher<TwistWithCovarianceStampedMsg>::initialize(FILTER_VEL_TOPIC);
-  Publisher<TwistWithCovarianceStampedMsg>::SharedPtr     filter_vel_ecef_pub_      = Publisher<TwistWithCovarianceStampedMsg>::initialize(FILTER_VEL_ECEF_TOPIC);
+  Publisher<ImuMsg>::SharedPtr                            filter_imu_pub_        = Publisher<ImuMsg>::initialize(FILTER_IMU_DATA_TOPIC);
+  Publisher<NavSatFixMsg>::SharedPtr                      filter_llh_position_pub_        = Publisher<NavSatFixMsg>::initialize(FILTER_LLH_POSITION_TOPIC);
+  Publisher<OdometryMsg>::SharedPtr                       filter_odometry_earth_pub_ = Publisher<OdometryMsg>::initialize(FILTER_ODOMETRY_EARTH_TOPIC );
+  Publisher<OdometryMsg>::SharedPtr                       filter_odometry_map_pub_   = Publisher<OdometryMsg>::initialize(FILTER_ODOMETRY_MAP_TOPIC);
+  Publisher<TwistWithCovarianceStampedMsg>::SharedPtr     filter_velocity_pub_        = Publisher<TwistWithCovarianceStampedMsg>::initialize(FILTER_VELOCITY_TOPIC);
+  Publisher<TwistWithCovarianceStampedMsg>::SharedPtr     filter_velocity_ecef_pub_   = Publisher<TwistWithCovarianceStampedMsg>::initialize(FILTER_VELOCITY_ECEF_TOPIC);
 
 
   // MIP Sensor (0x80) publishers
@@ -417,9 +417,6 @@ private:
 
   // Older philo devices do not support ECEF position, so we will need to convert from LLH to ECEF ourselves
   bool supports_filter_ecef_;
-
-  // Save the orientation information, as it is used by some other data to transform based on orientation
-  tf2::Quaternion filter_attitude_quaternion_ = tf2::Quaternion(0, 0, 0, 1);
 
   // TF2 buffer lookup class
   TransformBufferType transform_buffer_;
