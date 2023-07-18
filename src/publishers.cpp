@@ -365,8 +365,8 @@ bool Publishers::activate()
   // Publish the static transforms
   if (config_->tf_mode_ != TF_MODE_OFF)
   {
-    if (config_->publish_base_link_to_frame_id_transform_)
-      static_transform_broadcaster_->sendTransform(config_->base_link_to_frame_id_transform_);
+    if (config_->publish_mount_to_frame_id_transform_)
+      static_transform_broadcaster_->sendTransform(config_->mount_to_frame_id_transform_);
     if (config_->tf_mode_ == TF_MODE_RELATIVE && static_earth_map_transform_)
       static_transform_broadcaster_->sendTransform(earth_map_transform_msg_);
     

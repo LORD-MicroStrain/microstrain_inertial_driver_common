@@ -61,7 +61,7 @@ bool Config::configure(RosNodeType* node)
   // Frame ID config
   getParam<std::string>(node, "frame_id", frame_id_, "imu_link");
   getParam<std::string>(node, "target_frame_id", target_frame_id_, "base_link");
-  getParam<std::string>(node, "base_link_frame_id", base_link_frame_id_, "base_link");
+  getParam<std::string>(node, "mount_frame_id", mount_frame_id_, "base_link");
   getParam<std::string>(node, "map_frame_id", map_frame_id_, "map");
   getParam<std::string>(node, "earth_frame_id", earth_frame_id_, "earth");
   getParam<std::string>(node, "gnss1_frame_id", gnss_frame_id_[GNSS1_ID], "gnss1_link");
@@ -70,7 +70,7 @@ bool Config::configure(RosNodeType* node)
 
   // tf config
   getParam<int32_t>(node, "tf_mode", tf_mode_, TF_MODE_GLOBAL);
-  getParam<bool>(node, "publish_base_link_to_frame_id_transform", publish_base_link_to_frame_id_transform_, true);
+  getParam<bool>(node, "publish_mount_to_frame_id_transform", publish_mount_to_frame_id_transform_, true);
 
   // If using the NED frame, append that to the frame IDs
   if (!use_enu_frame_)
@@ -78,7 +78,7 @@ bool Config::configure(RosNodeType* node)
     constexpr char ned_suffix[] = "_ned";
     frame_id_ += ned_suffix;
     target_frame_id_ += ned_suffix;
-    base_link_frame_id_ += ned_suffix;
+    mount_frame_id_ += ned_suffix;
     map_frame_id_ += ned_suffix;
     for (int i = 0; i < NUM_GNSS; i++)
       gnss_frame_id_[i] += ned_suffix;
@@ -86,25 +86,25 @@ bool Config::configure(RosNodeType* node)
   }
 
   // Configure the static transforms
-  std::vector<double> base_link_to_frame_id_transform_vec;
-  getParam<std::vector<double>>(node, "base_link_to_frame_id_transform", base_link_to_frame_id_transform_vec, {0, 0, 0, 0, 0, 0, 1});
+  std::vector<double> mount_to_frame_id_transform_vec;
+  getParam<std::vector<double>>(node, "mount_to_frame_id_transform", mount_to_frame_id_transform_vec, {0, 0, 0, 0, 0, 0, 1});
 
-  if (base_link_to_frame_id_transform_vec.size() != 7)
+  if (mount_to_frame_id_transform_vec.size() != 7)
   {
-    MICROSTRAIN_ERROR(node, "base_link_to_frame_id_transform  is invalid. Should have 7 elements, but has %lu", base_link_to_frame_id_transform_vec.size());
+    MICROSTRAIN_ERROR(node, "mount_to_frame_id_transform  is invalid. Should have 7 elements, but has %lu", mount_to_frame_id_transform_vec.size());
     return false;
   }
 
-  base_link_to_frame_id_transform_.header.stamp = rosTimeNow(node);
-  base_link_to_frame_id_transform_.header.frame_id = base_link_frame_id_;
-  base_link_to_frame_id_transform_.child_frame_id = frame_id_;
-  base_link_to_frame_id_transform_.transform.translation.x = base_link_to_frame_id_transform_vec[0];
-  base_link_to_frame_id_transform_.transform.translation.y = base_link_to_frame_id_transform_vec[1];
-  base_link_to_frame_id_transform_.transform.translation.z = base_link_to_frame_id_transform_vec[2];
-  base_link_to_frame_id_transform_.transform.rotation.x = base_link_to_frame_id_transform_vec[3];
-  base_link_to_frame_id_transform_.transform.rotation.y = base_link_to_frame_id_transform_vec[4];
-  base_link_to_frame_id_transform_.transform.rotation.z = base_link_to_frame_id_transform_vec[5];
-  base_link_to_frame_id_transform_.transform.rotation.w = base_link_to_frame_id_transform_vec[6];
+  mount_to_frame_id_transform_.header.stamp = rosTimeNow(node);
+  mount_to_frame_id_transform_.header.frame_id = mount_frame_id_;
+  mount_to_frame_id_transform_.child_frame_id = frame_id_;
+  mount_to_frame_id_transform_.transform.translation.x = mount_to_frame_id_transform_vec[0];
+  mount_to_frame_id_transform_.transform.translation.y = mount_to_frame_id_transform_vec[1];
+  mount_to_frame_id_transform_.transform.translation.z = mount_to_frame_id_transform_vec[2];
+  mount_to_frame_id_transform_.transform.rotation.x = mount_to_frame_id_transform_vec[3];
+  mount_to_frame_id_transform_.transform.rotation.y = mount_to_frame_id_transform_vec[4];
+  mount_to_frame_id_transform_.transform.rotation.z = mount_to_frame_id_transform_vec[5];
+  mount_to_frame_id_transform_.transform.rotation.w = mount_to_frame_id_transform_vec[6];
 
   // IMU
   getParam<std::vector<double>>(node, "imu_orientation_cov", imu_orientation_cov_, DEFAULT_MATRIX);

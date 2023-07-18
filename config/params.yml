@@ -41,7 +41,7 @@ frame_id: "imu_link"
 
 # Frame IDs determining the transforms published by this node to aid in navigation. See https://www.ros.org/reps/rep-0105.html
 #      NOTE: If use_enu_frame is false, these frames (with the exception of earth_frame_id) will automatically have "_ned" appended to them.
-base_link_frame_id : "base_link"
+mount_frame_id     : "base_link"  # Frame ID that the device is mounted on.
 map_frame_id       : "map"
 earth_frame_id     : "earth"
 gnss1_frame_id     : "gnss1_link"
@@ -49,6 +49,8 @@ gnss2_frame_id     : "gnss2_link"
 odometer_frame_id  : "odometer_link"
 
 # Target frame ID to publish transform to. Note that there needs to be some path of transforms between this and frame_id
+#     If tf_mode is set to 1, a transform between earth_frame_id and target_frame_id will be published
+#     If tf_mode is set to 2, a transform between map_frame_id and target_frame_id will be published
 target_frame_id : "base_link"
 
 # The mode in which we will publish transforms to the above frame IDs
@@ -60,10 +62,10 @@ target_frame_id : "base_link"
 #              Transform between earth_frame_id and map_frame_id will also be published using rel_pos_configuration
 tf_mode : 1
 
-# Static transform between base_link_frame_id and frame_id.
+# Static transform between mount_frame_id and frame_id.
 #      NOTE: It is strongly recommended to define this in a urdf file if you are building a robot, or are able to modify the robot's description.
-publish_base_link_to_frame_id_transform  : True
-base_link_to_frame_id_transform          : [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0] # [ x, y, z, qi, qj, qk, qw ]
+publish_mount_to_frame_id_transform  : True
+mount_to_frame_id_transform          : [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0] # [ x, y, z, qi, qj, qk, qw ]
 
 # Controls if the driver outputs data with-respect-to ENU frame
 #      false - position, velocity, and orientation are WRT the NED frame (native device frame)
