@@ -151,6 +151,7 @@ public:
   std::vector<double> imu_linear_cov_;
   std::vector<double> imu_angular_cov_;
   std::vector<double> imu_orientation_cov_;
+  std::vector<double> imu_mag_cov_;
   double imu_pressure_vairance_;
 
   // Gnss antenna offsets

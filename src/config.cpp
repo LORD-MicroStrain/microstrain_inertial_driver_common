@@ -110,6 +110,7 @@ bool Config::configure(RosNodeType* node)
   getParam<std::vector<double>>(node, "imu_orientation_cov", imu_orientation_cov_, DEFAULT_MATRIX);
   getParam<std::vector<double>>(node, "imu_linear_cov", imu_linear_cov_, DEFAULT_MATRIX);
   getParam<std::vector<double>>(node, "imu_angular_cov", imu_angular_cov_, DEFAULT_MATRIX);
+  getParam<std::vector<double>>(node, "imu_mag_cov", imu_mag_cov_, DEFAULT_MATRIX);
   getParam<double>(node, "imu_pressure_variance", imu_pressure_vairance_, 0.01);
 
   // GNSS 1/2

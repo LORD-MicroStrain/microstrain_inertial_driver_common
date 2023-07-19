@@ -124,9 +124,11 @@ bool Publishers::configure()
 
   // Other assorted static configuration
   auto imu_msg = imu_pub_->getMessage();
+  auto mag_msg = mag_pub_->getMessage();
   std::copy(config_->imu_linear_cov_.begin(), config_->imu_linear_cov_.end(), imu_msg->linear_acceleration_covariance.begin());
   std::copy(config_->imu_angular_cov_.begin(), config_->imu_angular_cov_.end(), imu_msg->angular_velocity_covariance.begin());
   std::copy(config_->imu_orientation_cov_.begin(), config_->imu_orientation_cov_.end(), imu_msg->orientation_covariance.begin());
+  std::copy(config_->imu_mag_cov_.begin(), config_->imu_mag_cov_.end(), mag_msg->magnetic_field_covariance.begin());
   pressure_pub_->getMessage()->variance = config_->imu_pressure_vairance_;
 
   supports_filter_ecef_ = config_->mip_device_->supportsDescriptor(mip::data_filter::DESCRIPTOR_SET, mip::data_filter::DATA_ECEF_POS);
