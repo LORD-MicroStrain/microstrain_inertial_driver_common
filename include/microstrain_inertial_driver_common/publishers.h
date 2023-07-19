@@ -234,24 +234,25 @@ public:
 
 
   // IMU Publishers
-  Publisher<ImuMsg>::SharedPtr           imu_pub_ = Publisher<ImuMsg>::initialize(IMU_DATA_TOPIC);
-  Publisher<MagneticFieldMsg>::SharedPtr mag_pub_     = Publisher<MagneticFieldMsg>::initialize(IMU_MAG_TOPIC);
-  Publisher<FluidPressureMsg>::SharedPtr pressure_pub_ = Publisher<FluidPressureMsg>::initialize(IMU_PRESSURE_TOPIC); 
+  Publisher<ImuMsg>::SharedPtr                        imu_pub_         = Publisher<ImuMsg>::initialize(IMU_DATA_TOPIC);
+  Publisher<MagneticFieldMsg>::SharedPtr              mag_pub_         = Publisher<MagneticFieldMsg>::initialize(IMU_MAG_TOPIC);
+  Publisher<FluidPressureMsg>::SharedPtr              pressure_pub_    = Publisher<FluidPressureMsg>::initialize(IMU_PRESSURE_TOPIC); 
+  Publisher<TwistWithCovarianceStampedMsg>::SharedPtr wheel_speed_pub_ = Publisher<TwistWithCovarianceStampedMsg>::initialize(IMU_WHEEL_SPEED_TOPIC);
 
   // GNSS publishers
-  Publisher<NavSatFixMsg>::SharedPtrVec                  gnss_llh_position_pub_      = Publisher<NavSatFixMsg>::initializeVec({GNSS1_LLH_POSITION_TOPIC, GNSS2_FIX_TOPIC});
+  Publisher<NavSatFixMsg>::SharedPtrVec                  gnss_llh_position_pub_  = Publisher<NavSatFixMsg>::initializeVec({GNSS1_LLH_POSITION_TOPIC, GNSS2_FIX_TOPIC});
   Publisher<TwistWithCovarianceStampedMsg>::SharedPtrVec gnss_velocity_pub_      = Publisher<TwistWithCovarianceStampedMsg>::initializeVec({GNSS1_VELOCITY_TOPIC, GNSS2_VELOCITY_TOPIC});
   Publisher<TwistWithCovarianceStampedMsg>::SharedPtrVec gnss_velocity_ecef_pub_ = Publisher<TwistWithCovarianceStampedMsg>::initializeVec({GNSS1_VELOCITY_ECEF_TOPIC, GNSS2_VELOCITY_ECEF_TOPIC});
-  Publisher<OdometryMsg>::SharedPtrVec                   gnss_odometry_pub_     = Publisher<OdometryMsg>::initializeVec({GNSS1_ODOMETRY_TOPIC, GNSS2_ODOMETRY_TOPIC});
-  Publisher<TimeReferenceMsg>::SharedPtrVec              gnss_time_pub_     = Publisher<TimeReferenceMsg>::initializeVec({GNSS1_TIME_REF_TOPIC, GNSS2_TIME_REF_TOPIC});
+  Publisher<OdometryMsg>::SharedPtrVec                   gnss_odometry_pub_      = Publisher<OdometryMsg>::initializeVec({GNSS1_ODOMETRY_TOPIC, GNSS2_ODOMETRY_TOPIC});
+  Publisher<TimeReferenceMsg>::SharedPtrVec              gnss_time_pub_          = Publisher<TimeReferenceMsg>::initializeVec({GNSS1_TIME_REF_TOPIC, GNSS2_TIME_REF_TOPIC});
 
   // Filter publishers
-  Publisher<ImuMsg>::SharedPtr                            filter_imu_pub_        = Publisher<ImuMsg>::initialize(FILTER_IMU_DATA_TOPIC);
-  Publisher<NavSatFixMsg>::SharedPtr                      filter_llh_position_pub_        = Publisher<NavSatFixMsg>::initialize(FILTER_LLH_POSITION_TOPIC);
+  Publisher<ImuMsg>::SharedPtr                            filter_imu_pub_            = Publisher<ImuMsg>::initialize(FILTER_IMU_DATA_TOPIC);
+  Publisher<NavSatFixMsg>::SharedPtr                      filter_llh_position_pub_   = Publisher<NavSatFixMsg>::initialize(FILTER_LLH_POSITION_TOPIC);
   Publisher<OdometryMsg>::SharedPtr                       filter_odometry_earth_pub_ = Publisher<OdometryMsg>::initialize(FILTER_ODOMETRY_EARTH_TOPIC );
   Publisher<OdometryMsg>::SharedPtr                       filter_odometry_map_pub_   = Publisher<OdometryMsg>::initialize(FILTER_ODOMETRY_MAP_TOPIC);
-  Publisher<TwistWithCovarianceStampedMsg>::SharedPtr     filter_velocity_pub_        = Publisher<TwistWithCovarianceStampedMsg>::initialize(FILTER_VELOCITY_TOPIC);
-  Publisher<TwistWithCovarianceStampedMsg>::SharedPtr     filter_velocity_ecef_pub_   = Publisher<TwistWithCovarianceStampedMsg>::initialize(FILTER_VELOCITY_ECEF_TOPIC);
+  Publisher<TwistWithCovarianceStampedMsg>::SharedPtr     filter_velocity_pub_       = Publisher<TwistWithCovarianceStampedMsg>::initialize(FILTER_VELOCITY_TOPIC);
+  Publisher<TwistWithCovarianceStampedMsg>::SharedPtr     filter_velocity_ecef_pub_  = Publisher<TwistWithCovarianceStampedMsg>::initialize(FILTER_VELOCITY_ECEF_TOPIC);
 
 
   // MIP Sensor (0x80) publishers
@@ -330,6 +331,7 @@ private:
   void handleSensorCompQuaternion(const mip::data_sensor::CompQuaternion& comp_quaternion, const uint8_t descriptor_set, mip::Timestamp timestamp);
   void handleSensorScaledMag(const mip::data_sensor::ScaledMag& scaled_mag, const uint8_t descriptor_set, mip::Timestamp timestamp);
   void handleSensorScaledPressure(const mip::data_sensor::ScaledPressure& scaled_pressure, const uint8_t descriptor_set, mip::Timestamp timestamp);
+  void handleSensorOdometerData(const mip::data_sensor::OdometerData& odometer_data, const uint8_t descriptor_set, mip::Timestamp timestamp);
   void handleSensorOverrangeStatus(const mip::data_sensor::OverrangeStatus& overrange_status, const uint8_t descriptor_set, mip::Timestamp timestamp);
 
   // Callbcaks to handle GNSS1/2 data from the device

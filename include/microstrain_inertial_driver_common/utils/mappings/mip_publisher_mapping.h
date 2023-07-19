@@ -30,6 +30,7 @@ namespace microstrain
 static constexpr auto IMU_DATA_TOPIC = "imu/data";
 static constexpr auto IMU_MAG_TOPIC = "imu/mag";
 static constexpr auto IMU_PRESSURE_TOPIC = "imu/pressure";
+static constexpr auto IMU_WHEEL_SPEED_TOPIC = "imu/wheel_speed";
 
 static constexpr auto GNSS1_LLH_POSITION_TOPIC = "gnss_1/llh_position";
 static constexpr auto GNSS1_VELOCITY_TOPIC = "gnss_1/velocity";

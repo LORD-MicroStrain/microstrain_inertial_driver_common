@@ -456,8 +456,17 @@ using ParamIntVector = std::vector<int32_t>;
 #define MICROSTRAIN_ERROR(NODE, ...) ROS_ERROR(__VA_ARGS__)
 #define MICROSTRAIN_FATAL(NOE, ...) ROS_FATAL(__VA_ARGS__)
 
-#define MICROSTRAIN_WARN_THROTTLE(NODE, PERIOD, ...) ROS_WARN_THROTTLE(PERIOD, __VA_ARGS__)
 #define MICROSTRAIN_DEBUG_THROTTLE(NODE, PERIOD, ...) ROS_DEBUG_THROTTLE(PERIOD, __VA_ARGS__)
+#define MICROSTRAIN_INFO_THROTTLE(NODE, PERIOD, ...) ROS_INFO_THROTTLE(PERIOD, __VA_ARGS__)
+#define MICROSTRAIN_WARN_THROTTLE(NODE, PERIOD, ...) ROS_WARN_THROTTLE(PERIOD, __VA_ARGS__)
+#define MICROSTRAIN_ERROR_THROTTLE(NODE, PERIOD, ...) ROS_ERROR_THROTTLE(PERIOD, __VA_ARGS__)
+#define MICROSTRAIN_FATAL_THROTTLE(NODE, PERIOD, ...) ROS_FATAL_THROTTLE(PERIOD, __VA_ARGS__)
+
+#define MICROSTRAIN_DEBUG_ONCE(NODE, ...) ROS_DEBUG_ONCE(__VA_ARGS__)
+#define MICROSTRAIN_INFO_ONCE(NODE, ...) ROS_INFO_ONCE(__VA_ARGS__)
+#define MICROSTRAIN_WARN_ONCE(NODE, ...) ROS_WARN_ONCE(__VA_ARGS__)
+#define MICROSTRAIN_ERROR_ONCE(NODE, ...) ROS_ERROR_ONCE(__VA_ARGS__)
+#define MICROSTRAIN_FATAL_ONCE(NOE, ...) ROS_FATAL_ONCE(__VA_ARGS__)
 
 // ROS1 functions
 
@@ -823,8 +832,20 @@ using ParamIntVector = std::vector<int64_t>;
 
 #define MICROSTRAIN_DEBUG_THROTTLE(NODE, PERIOD, ...)                                                                  \
   RCLCPP_DEBUG_THROTTLE(NODE->get_logger(), *NODE->get_clock(), PERIOD, __VA_ARGS__)
+#define MICROSTRAIN_INFO_THROTTLE(NODE, PERIOD, ...)                                                                  \
+  RCLCPP_INFO_THROTTLE(NODE->get_logger(), *NODE->get_clock(), PERIOD, __VA_ARGS__)
 #define MICROSTRAIN_WARN_THROTTLE(NODE, PERIOD, ...)                                                                  \
   RCLCPP_WARN_THROTTLE(NODE->get_logger(), *NODE->get_clock(), PERIOD, __VA_ARGS__)
+#define MICROSTRAIN_ERROR_THROTTLE(NODE, PERIOD, ...)                                                                  \
+  RCLCPP_ERROR_THROTTLE(NODE->get_logger(), *NODE->get_clock(), PERIOD, __VA_ARGS__)
+#define MICROSTRAIN_FATAL_THROTTLE(NODE, PERIOD, ...)                                                                  \
+  RCLCPP_FATAL_THROTTLE(NODE->get_logger(), *NODE->get_clock(), PERIOD, __VA_ARGS__)
+
+#define MICROSTRAIN_DEBUG_ONCE(NODE, ...) RCLCPP_DEBUG_ONCE(NODE->get_logger(), __VA_ARGS__)
+#define MICROSTRAIN_INFO_ONCE(NODE, ...) RCLCPP_INFO_ONCE(NODE->get_logger(), __VA_ARGS__)
+#define MICROSTRAIN_WARN_ONCE(NODE, ...) RCLCPP_WARN_ONCE(NODE->get_logger(), __VA_ARGS__)
+#define MICROSTRAIN_ERROR_ONCE(NODE, ...) RCLCPP_ERROR_ONCE(NODE->get_logger(), __VA_ARGS__)
+#define MICROSTRAIN_FATAL_ONCE(NODE, ...) RCLCPP_FATAL_ONCE(NODE->get_logger(), __VA_ARGS__)
 
 // ROS2 functions
 

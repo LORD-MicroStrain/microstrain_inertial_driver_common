@@ -67,6 +67,7 @@ bool Publishers::configure()
   imu_pub_->configure(node_, config_);
   mag_pub_->configure(node_, config_);
   pressure_pub_->configure(node_, config_);
+  wheel_speed_pub_->configure(node_, config_);
 
   for (const auto& pub : gnss_llh_position_pub_) pub->configure(node_, config_);
   for (const auto& pub : gnss_velocity_pub_) pub->configure(node_, config_);
@@ -105,6 +106,7 @@ bool Publishers::configure()
   imu_pub_->getMessage()->header.frame_id = config_->frame_id_;
   mag_pub_->getMessage()->header.frame_id = config_->frame_id_;
   pressure_pub_->getMessage()->header.frame_id = config_->frame_id_;
+  wheel_speed_pub_->getMessage()->header.frame_id = config_->odometer_frame_id_;
 
   for (int i = 0; i < gnss_llh_position_pub_.size(); i++) gnss_llh_position_pub_[i]->getMessage()->header.frame_id = config_->gnss_frame_id_[i];
   for (int i = 0; i < gnss_velocity_pub_.size(); i++) gnss_velocity_pub_[i]->getMessage()->header.frame_id = config_->gnss_frame_id_[i];
@@ -329,6 +331,7 @@ bool Publishers::configure()
   registerDataCallback<mip::data_sensor::CompQuaternion, &Publishers::handleSensorCompQuaternion>();
   registerDataCallback<mip::data_sensor::ScaledMag, &Publishers::handleSensorScaledMag>();
   registerDataCallback<mip::data_sensor::ScaledPressure, &Publishers::handleSensorScaledPressure>();
+  registerDataCallback<mip::data_sensor::OdometerData, &Publishers::handleSensorOdometerData>();
   registerDataCallback<mip::data_sensor::OverrangeStatus, &Publishers::handleSensorOverrangeStatus>();
 
   // GNSS1/2 callbacks
@@ -384,6 +387,7 @@ bool Publishers::activate()
   imu_pub_->activate();
   mag_pub_->activate();
   pressure_pub_->activate();
+  wheel_speed_pub_->activate();
 
   for (const auto& pub : gnss_llh_position_pub_) pub->activate();
   for (const auto& pub : gnss_velocity_pub_) pub->activate();
@@ -440,6 +444,7 @@ bool Publishers::deactivate()
   imu_pub_->deactivate();
   mag_pub_->deactivate();
   pressure_pub_->deactivate();
+  wheel_speed_pub_->deactivate();
 
   for (const auto& pub : gnss_llh_position_pub_) pub->deactivate();
   for (const auto& pub : gnss_velocity_pub_) pub->deactivate();
@@ -478,6 +483,7 @@ void Publishers::publish()
   imu_pub_->publish();
   mag_pub_->publish();
   pressure_pub_->publish();
+  wheel_speed_pub_->publish();
 
   for (const auto& pub : gnss_llh_position_pub_) pub->publish();
   for (const auto& pub : gnss_velocity_pub_) pub->publish();
@@ -719,6 +725,23 @@ void Publishers::handleSensorScaledPressure(const mip::data_sensor::ScaledPressu
   auto pressure_msg = pressure_pub_->getMessageToUpdate();
   updateHeaderTime(&(pressure_msg->header), descriptor_set, timestamp);
   pressure_msg->fluid_pressure = scaled_pressure.scaled_pressure * 100;
+}
+
+void Publishers::handleSensorOdometerData(const mip::data_sensor::OdometerData& odometer_data, const uint8_t descriptor_set, mip::Timestamp timestamp)
+{
+  auto wheel_speed_msg = wheel_speed_pub_->getMessageToUpdate();
+  updateHeaderTime(&(wheel_speed_msg->header), descriptor_set, timestamp);
+
+  if (odometer_data.valid_flags == 1)
+  {
+    wheel_speed_msg->twist.twist.linear.x = odometer_data.speed;
+    wheel_speed_msg->twist.covariance[0] = pow(odometer_data.uncertainty, 2);
+  }
+  else
+  {
+    MICROSTRAIN_WARN_ONCE(node_, "Wheel speed data is invalid. The odometer was likely not configured.");
+    MICROSTRAIN_WARN_ONCE(node_, "  If you want wheel speed, make sure to configure the 'Hardware Odometer Control' section of the params file");
+  }
 }
 
 void Publishers::handleSensorOverrangeStatus(const mip::data_sensor::OverrangeStatus& overrange_status, const uint8_t descriptor_set, mip::Timestamp timestamp)

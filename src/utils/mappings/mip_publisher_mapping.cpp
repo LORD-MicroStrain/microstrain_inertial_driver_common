@@ -226,6 +226,9 @@ const std::map<std::string, FieldWrapper::SharedPtrVec> MipPublisherMapping::sta
   {IMU_PRESSURE_TOPIC, {
     FieldWrapperType<mip::data_sensor::ScaledPressure>::initialize(),
   }},
+  {IMU_WHEEL_SPEED_TOPIC, {
+    FieldWrapperType<mip::data_sensor::OdometerData>::initialize(),
+  }},
 
   // GNSS1 topic mappings. Note that each of these topics will contain a field for both the GNSS and GNSS1 descriptor set
   {GNSS1_LLH_POSITION_TOPIC, {
@@ -364,9 +367,10 @@ const std::map<std::string, FieldWrapper::SharedPtrVec> MipPublisherMapping::sta
 const std::map<std::string, std::string> MipPublisherMapping::static_topic_to_data_rate_config_key_mapping_ =
 {
   // /imu* data rates
-  {IMU_DATA_TOPIC,     "imu_data_rate"},
-  {IMU_MAG_TOPIC,      "imu_mag_data_rate"},
-  {IMU_PRESSURE_TOPIC, "imu_pressure_data_rate"},
+  {IMU_DATA_TOPIC,        "imu_data_rate"},
+  {IMU_MAG_TOPIC,         "imu_mag_data_rate"},
+  {IMU_PRESSURE_TOPIC,    "imu_pressure_data_rate"},
+  {IMU_WHEEL_SPEED_TOPIC, "imu_wheel_speed_data_rate"},
 
   // GNSS/GNSS1 data rates
   {GNSS1_LLH_POSITION_TOPIC,  "gnss1_llh_position_data_rate"},
