@@ -75,6 +75,18 @@ class RosConnection : public mip::Connection
   bool configure(RosNodeType* config_node, RosMipDevice* device);
 
   /**
+   * \brief Gets whether or not this connection is parsing NMEA
+   * \return Whether or not this connection is parsing NMEA
+  */
+  bool shouldParseNmea() const;
+
+  /**
+   * \brief Configures the connection object to attempt to parse or not attempt to parse NMEA sentences
+   * \param enable Whether or not to enable NMEA parsing
+  */
+  void shouldParseNmea(bool enable);
+
+  /**
    * \brief Returns the parse timeout for this connection object
    * \return the parse timeout to use with this connection object
    */
@@ -113,7 +125,7 @@ class RosConnection : public mip::Connection
   bool should_record_;  /// Whether or not we should record binary data on this connection
   std::ofstream record_file_;  /// The file that the binary data should be recorded to
 
-  bool should_extract_nmea_;  /// Whether or not we should attempt to parse and extract NMEA sentences on this connection
+  bool should_parse_nmea_;  /// Whether or not we should attempt to parse and extract NMEA sentences on this connection
   std::string nmea_string_;  /// Cached data read from the port, used to extraxt NMEA messages
   std::vector<NMEASentenceMsg> nmea_msgs_;  /// List of NMEA messages received by this connection
 };

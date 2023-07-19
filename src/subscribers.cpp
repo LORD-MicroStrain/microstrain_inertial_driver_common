@@ -24,10 +24,9 @@ Subscribers::Subscribers(RosNodeType* node, Config* config)
 bool Subscribers::activate()
 {
   // Create a topic listener for external RTCM updates
-  if (config_->subscribe_rtcm_)
+  if (config_->ntrip_interface_enable_)
   {
-    MICROSTRAIN_INFO(node_, "Subscribed to %s for RTCM corrections", config_->rtcm_topic_.c_str());
-    rtcm_sub_ = createSubscriber<>(node_, config_->rtcm_topic_.c_str(), 1000, &Subscribers::rtcmCallback, this);
+    rtcm_sub_ = createSubscriber<>(node_, RTCM_TOPIC, 1000, &Subscribers::rtcmCallback, this);
   }
 
   // Create a topic listener for external speed updates
@@ -35,7 +34,7 @@ bool Subscribers::activate()
   {
     if (!config_->enable_hardware_odometer_)
     {
-      external_speed_sub_ = createSubscriber<>(node_, config_->external_speed_topic_.c_str(), 1000,
+      external_speed_sub_ = createSubscriber<>(node_, EXT_WHEEL_SPEED_TOPIC, 1000,
                                                 &Subscribers::externalSpeedCallback, this);
     }
     else

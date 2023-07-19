@@ -20,6 +20,10 @@
 namespace microstrain
 {
 
+constexpr auto RTCM_TOPIC = "rtcm";
+
+constexpr auto EXT_WHEEL_SPEED_TOPIC = "ext/wheel_speed";
+
 constexpr auto EXT_TIME_GPS_TOPIC = "ext/time/gps";
 constexpr auto EXT_TIME_TOPIC     = "ext/time";
 constexpr auto EXT_FIX_TOPIC      = "ext/fix";

@@ -53,11 +53,6 @@ bool Config::configure(RosNodeType* node)
   getParam<int>(node, "reconnect_attempts", reconnect_attempts_, 0);
   getParam<bool>(node, "configure_after_reconnect", configure_after_reconnect_, true);
 
-  // Device
-  getParam<bool>(node, "use_device_timestamp", use_device_timestamp_, false);
-  getParam<bool>(node, "use_ros_time", use_ros_time_, false);
-  getParam<bool>(node, "use_enu_frame", use_enu_frame_, false);
-
   // Frame ID config
   getParam<std::string>(node, "frame_id", frame_id_, "imu_link");
   getParam<std::string>(node, "target_frame_id", target_frame_id_, "base_link");
@@ -67,6 +62,7 @@ bool Config::configure(RosNodeType* node)
   getParam<std::string>(node, "gnss1_frame_id", gnss_frame_id_[GNSS1_ID], "gnss_1_antenna_link");
   getParam<std::string>(node, "gnss2_frame_id", gnss_frame_id_[GNSS2_ID], "gnss_2_antenna_link");
   getParam<std::string>(node, "odometer_frame_id", odometer_frame_id_, "odometer_link");
+  getParam<bool>(node, "use_enu_frame", use_enu_frame_, false);
 
   // tf config
   getParam<int32_t>(node, "tf_mode", tf_mode_, TF_MODE_GLOBAL);
@@ -91,7 +87,7 @@ bool Config::configure(RosNodeType* node)
 
   if (mount_to_frame_id_transform_vec.size() != 7)
   {
-    MICROSTRAIN_ERROR(node, "mount_to_frame_id_transform  is invalid. Should have 7 elements, but has %lu", mount_to_frame_id_transform_vec.size());
+    MICROSTRAIN_ERROR(node, "mount_to_frame_id_transform  is invalid. Should have 7 elements (x, y, z, i, j, k, w), but has %lu", mount_to_frame_id_transform_vec.size());
     return false;
   }
 
@@ -121,14 +117,10 @@ bool Config::configure(RosNodeType* node)
   // HARDWARE ODOM
   getParam<bool>(node, "enable_hardware_odometer", enable_hardware_odometer_, false);
 
-  // ROS TF control
-  getParam<bool>(node, "filter_vel_in_vehicle_frame", filter_vel_in_vehicle_frame_, false);
-
   // RTK/GQ7 specific
-  getParam<bool>(node, "rtk_dongle_enable", rtk_dongle_enable_, false);
-  getParam<bool>(node, "subscribe_rtcm", subscribe_rtcm_, false);
-  getParam<std::string>(node, "rtcm_topic", rtcm_topic_, std::string("/rtcm"));
-  getParam<bool>(node, "publish_nmea", publish_nmea_, false);
+  getParam<bool>(node, "rtk_dongle_enable", rtk_dongle_enable_, true);
+  getParam<bool>(node, "ntrip_interface_enable", ntrip_interface_enable_, false);
+  rtk_dongle_enable_ = rtk_dongle_enable_ || ntrip_interface_enable_;  // If the NTRIP interface is enabled, we will enable the RTK interface
 
   // FILTER
   std::vector<double> filter_speed_lever_arm_double(3, 0.0);
@@ -144,9 +136,6 @@ bool Config::configure(RosNodeType* node)
   getParam<bool>(node, "filter_enable_wheeled_vehicle_constraint", filter_enable_wheeled_vehicle_constraint_, false);
   getParam<bool>(node, "filter_enable_vertical_gyro_constraint", filter_enable_vertical_gyro_constraint_, false);
   getParam<bool>(node, "filter_enable_gnss_antenna_cal", filter_enable_gnss_antenna_cal_, false);
-  getParam<std::string>(node, "filter_external_gps_time_topic", external_gps_time_topic_,
-                         std::string("/external_gps_time"));
-  getParam<std::string>(node, "filter_external_speed_topic", external_speed_topic_, "/external_speed");
   getParam<bool>(node, "filter_use_compensated_accel", filter_use_compensated_accel_, true);
   getParam<std::vector<double>>(node, "filter_speed_lever_arm", filter_speed_lever_arm_double, DEFAULT_VECTOR);
   filter_speed_lever_arm_ = std::vector<float>(filter_speed_lever_arm_double.begin(), filter_speed_lever_arm_double.end());
@@ -204,44 +193,17 @@ bool Config::connectDevice(RosNodeType* node)
     return false;
 
   // Connect the aux port
-  if (rtk_dongle_enable_)
+  if (ntrip_interface_enable_)
   {
-    if (subscribe_rtcm_ || publish_nmea_)
+    aux_device_ = std::make_shared<RosMipDeviceAux>(node_);
+    if (!aux_device_->configure(node))
     {
-      aux_device_ = std::make_shared<RosMipDeviceAux>(node_);
-      if (!aux_device_->configure(node))
-      {
-        // Only return an error if we were expected to subscribe to RTCM.
-        if (subscribe_rtcm_)
-        {
-          return false;
-        }
-        else
-        {
-          MICROSTRAIN_WARN(node_, "Failed to open aux port, but we were not asked to subscribe to RTCM corrections, so this is not a fatal error");
-          MICROSTRAIN_WARN(node_, "  Note: We will not publish any NMEA sentences from the aux port.");
-          aux_device_ = nullptr;
-        }
-      }
-    }
-    else
-    {
-      MICROSTRAIN_INFO(node_, "Note: Not opening aux port since publish_nmea and subscribe_rtcm are both false");
-    }
-  }
-  else
-  {
-    MICROSTRAIN_INFO(node_, "Note: Not opening aux port because RTK dongle enable was not set to true.");
-    if (subscribe_rtcm_)
-    {
-      MICROSTRAIN_ERROR(node_, "Invalid configuration. In order to subscribe to RTCM, 'rtk_dongle_enable' must be set to true");
+      MICROSTRAIN_ERROR(node_, "Failed to open aux port");
       return false;
     }
-    else if (publish_nmea_)
-    {
-      MICROSTRAIN_INFO(node_, "Note: Not publishing NMEA from aux port despite 'publish_nmea' being set to true since 'rtk_donble_enable' is false");
-    }
+    aux_device_->shouldParseNmea(ntrip_interface_enable_);
   }
+
   return true;
 }
 
@@ -1155,6 +1117,9 @@ bool Config::populateNmeaMessageFormat(RosNodeType* config_node, const std::stri
     else
       MICROSTRAIN_INFO(node_, "Configuring %s NMEA sentence from the '%s' descriptor set to stream at %.04f hz", message_id_string.c_str(), descriptor_set_string.c_str(), data_rate);
     formats->push_back(format);
+
+    // Enable NMEA parsing on the main port
+    mip_device_->shouldParseNmea(true);
   }
   else
   {

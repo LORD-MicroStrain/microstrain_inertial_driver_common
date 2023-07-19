@@ -103,6 +103,18 @@ class RosMipDevice
   bool reconnect();
 
   /**
+   * \brief Gets whether or not this connection is parsing NMEA
+   * \return Whether or not this connection is parsing NMEA
+  */
+  bool shouldParseNmea() const;
+
+  /**
+   * \brief Configures the connection object to attempt to parse or not attempt to parse NMEA sentences
+   * \param enable Whether or not to enable NMEA parsing
+  */
+  void shouldParseNmea(bool enable);
+
+  /**
    * \brief Returns the NMEA messages collected by the connection, and clears the list of messages on the connection object
    * \return List of NMEA messages collected by the connection
    */

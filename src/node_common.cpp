@@ -88,7 +88,7 @@ void NodeCommon::parseAndPublishMain()
   }
 
   // Publish the NMEA messages
-  if (config_.publish_nmea_)
+  if (config_.mip_device_->shouldParseNmea())
   {
     for (auto& nmea_message : config_.mip_device_->nmeaMsgs())
     {
@@ -104,7 +104,7 @@ void NodeCommon::parseAndPublishAux()
   config_.aux_device_->device().update();
 
   // Publish the NMEA messages
-  if (config_.publish_nmea_)
+  if (config_.aux_device_->shouldParseNmea())
   {
     for (auto& nmea_message : config_.aux_device_->nmeaMsgs())
     {

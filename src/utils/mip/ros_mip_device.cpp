@@ -69,6 +69,20 @@ bool RosMipDevice::reconnect()
   return disconnect() && connect();
 }
 
+bool RosMipDevice::shouldParseNmea() const
+{
+  if (connection_ != nullptr)
+    return connection_->shouldParseNmea();
+  else
+    return false;
+}
+
+void RosMipDevice::shouldParseNmea(bool enable)
+{
+  if (connection_ != nullptr)
+    connection_->shouldParseNmea(enable);
+}
+
 std::vector<NMEASentenceMsg> RosMipDevice::nmeaMsgs()
 {
   return connection_->nmeaMsgs();

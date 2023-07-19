@@ -79,17 +79,8 @@ public:
   tf2::Matrix3x3 t_ned_to_enu_;
   tf2::Matrix3x3 t_ros_vehicle_to_microstrain_vehicle_;
 
-  // Flag for using device timestamp instead of PC received time
-  bool use_device_timestamp_;
-
-  // Flag for using ROS time instead of PC received time. If this is and use_device_timestamp_ is set, this will be preferred when setting message timestamps
-  bool use_ros_time_;
-
   // Whether to enable the hardware odometer through the GPIO pins
   bool enable_hardware_odometer_;
-
-  // Whether to publish the velocity in the vehicle frame
-  bool filter_vel_in_vehicle_frame_;
 
   // FILTER
   double gps_leap_seconds_;
@@ -135,17 +126,9 @@ public:
   bool subscribe_ext_pose_;
   bool subscribe_ext_heading_;
 
-  // Topic strings
-  std::string external_gps_time_topic_;
-  std::string external_speed_topic_;
-
   // RTK config
   bool rtk_dongle_enable_;
-
-  // Aux port nmea and RTCM config
-  bool publish_nmea_;
-  bool subscribe_rtcm_;
-  std::string rtcm_topic_;
+  bool ntrip_interface_enable_;
 
   // Static covariance vectors
   std::vector<double> imu_linear_cov_;
@@ -162,7 +145,6 @@ public:
   bool raw_file_include_support_data_;
   std::ofstream raw_file_;
   std::ofstream raw_file_aux_;
-
 
   // NMEA streaming parameters
   bool nmea_message_allow_duplicate_talker_ids_;

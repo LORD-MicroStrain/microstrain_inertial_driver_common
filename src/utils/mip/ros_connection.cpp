@@ -167,11 +167,17 @@ bool RosConnection::configure(RosNodeType* config_node, RosMipDevice* device)
       MICROSTRAIN_INFO(node_, "Raw binary datafile opened at %s", filename.c_str());
     }
   }
-
-  // Enable NMEA extraction if publish_nmea is true
-  getParam<bool>(config_node, "publish_nmea", should_extract_nmea_, false);
-
   return true;
+}
+
+bool RosConnection::shouldParseNmea() const
+{
+  return should_parse_nmea_;
+}
+
+void RosConnection::shouldParseNmea(bool enable)
+{
+  should_parse_nmea_ = enable;
 }
 
 mip::Timeout RosConnection::parseTimeout() const
@@ -207,7 +213,7 @@ bool RosConnection::recvFromDevice(uint8_t* buffer, size_t max_length, mip::Time
     *timestamp_out = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 
     // Parse NMEA sentences if we were asked to
-    if (should_extract_nmea_)
+    if (should_parse_nmea_)
       extractNmea(buffer, *count_out);
   }
   return success;

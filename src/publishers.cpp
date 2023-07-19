@@ -98,7 +98,7 @@ bool Publishers::configure()
   mip_filter_aiding_measurement_summary_pub_->configure(node_, config_);
   mip_filter_gnss_dual_antenna_status_pub_->configure(node_, config_);
 
-  if (config_->publish_nmea_)
+  if (config_->mip_device_->shouldParseNmea() || (config_->aux_device_ != nullptr && config_->aux_device_->shouldParseNmea()))
     nmea_sentence_pub_->configure(node_);
 
   // Frame ID configuration

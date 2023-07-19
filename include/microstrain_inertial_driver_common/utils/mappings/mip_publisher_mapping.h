@@ -68,7 +68,7 @@ static constexpr auto MIP_FILTER_MULTI_ANTENNA_OFFSET_CORRECTION_TOPIC = "mip/ek
 static constexpr auto MIP_FILTER_GNSS_DUAL_ANTENNA_STATUS_TOPIC = "mip/ekf/gnss_dual_antenna_status";
 static constexpr auto MIP_FILTER_AIDING_MEASUREMENT_SUMMARY_TOPIC = "mip/ekf/aiding_measurement_summary";
 
-static constexpr auto NMEA_SENTENCE_TOPIC = "nmea/sentence";
+static constexpr auto NMEA_SENTENCE_TOPIC = "nmea";
 
 // Some other constants
 static constexpr float FIELD_DATA_RATE_USE_DATA_CLASS = -1;
