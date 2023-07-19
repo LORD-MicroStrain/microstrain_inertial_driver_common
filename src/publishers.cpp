@@ -206,7 +206,7 @@ bool Publishers::configure()
     }
   }
 
-  // Configure the GNSS transforms
+  // Configure the static transforms
   if (config_->tf_mode_ != TF_MODE_OFF)
   {
     // Static antenna offsets
@@ -223,13 +223,22 @@ bool Publishers::configure()
       gnss_antenna_transform.header.stamp = rosTimeNow(node_);
       gnss_antenna_transform.header.frame_id = config_->frame_id_;
       gnss_antenna_transform.child_frame_id = config_->gnss_frame_id_[GNSS1_ID];
-      gnss_antenna_transform.transform.translation.x = gnss_antenna_offsets[0];
-      gnss_antenna_transform.transform.translation.y = gnss_antenna_offsets[1];
-      gnss_antenna_transform.transform.translation.z = gnss_antenna_offsets[2];
-      gnss_antenna_transform.transform.rotation.x = 0;
-      gnss_antenna_transform.transform.rotation.y = 0;
-      gnss_antenna_transform.transform.rotation.z = 0;
-      gnss_antenna_transform.transform.rotation.w = 1;
+      gnss_antenna_transform.transform.rotation = tf2::toMsg(tf2::Quaternion::getIdentity());
+
+      const tf2::Vector3 v_microstrain_vehicle_to_gnss_antenna(gnss_antenna_offsets[0], gnss_antenna_offsets[1], gnss_antenna_offsets[2]);
+      if (config_->use_enu_frame_)
+      {
+        const tf2::Vector3 v_ros_vehicle_to_gnss_antenna = config_->t_ros_vehicle_to_microstrain_vehicle_.inverse() * v_microstrain_vehicle_to_gnss_antenna;
+        gnss_antenna_transform.transform.translation.x = v_ros_vehicle_to_gnss_antenna.getX();
+        gnss_antenna_transform.transform.translation.y = v_ros_vehicle_to_gnss_antenna.getY();
+        gnss_antenna_transform.transform.translation.z = v_ros_vehicle_to_gnss_antenna.getZ();
+      }
+      else
+      {
+        gnss_antenna_transform.transform.translation.x = v_microstrain_vehicle_to_gnss_antenna.getX();
+        gnss_antenna_transform.transform.translation.y = v_microstrain_vehicle_to_gnss_antenna.getY();
+        gnss_antenna_transform.transform.translation.z = v_microstrain_vehicle_to_gnss_antenna.getZ();
+      }
     }
     else if (config_->mip_device_->supportsDescriptor(mip::commands_filter::DESCRIPTOR_SET, mip::commands_filter::CMD_MULTI_ANTENNA_OFFSET))
     {
@@ -244,13 +253,54 @@ bool Publishers::configure()
         gnss_antenna_transform.header.stamp = rosTimeNow(node_);
         gnss_antenna_transform.header.frame_id = config_->frame_id_;
         gnss_antenna_transform.child_frame_id = config_->gnss_frame_id_[gnss_id];
-        gnss_antenna_transform.transform.translation.x = gnss_antenna_offsets[0];
-        gnss_antenna_transform.transform.translation.y = gnss_antenna_offsets[1];
-        gnss_antenna_transform.transform.translation.z = gnss_antenna_offsets[2];
-        gnss_antenna_transform.transform.rotation.x = 0;
-        gnss_antenna_transform.transform.rotation.y = 0;
-        gnss_antenna_transform.transform.rotation.z = 0;
-        gnss_antenna_transform.transform.rotation.w = 1;
+        gnss_antenna_transform.transform.rotation = tf2::toMsg(tf2::Quaternion::getIdentity());
+
+        const tf2::Vector3 v_microstrain_vehicle_to_gnss_antenna(gnss_antenna_offsets[0], gnss_antenna_offsets[1], gnss_antenna_offsets[2]);
+        if (config_->use_enu_frame_)
+        {
+          const tf2::Vector3 v_ros_vehicle_to_gnss_antenna = config_->t_ros_vehicle_to_microstrain_vehicle_.inverse() * v_microstrain_vehicle_to_gnss_antenna;
+          gnss_antenna_transform.transform.translation.x = v_ros_vehicle_to_gnss_antenna.getX();
+          gnss_antenna_transform.transform.translation.y = v_ros_vehicle_to_gnss_antenna.getY();
+          gnss_antenna_transform.transform.translation.z = v_ros_vehicle_to_gnss_antenna.getZ();
+        }
+        else
+        {
+          gnss_antenna_transform.transform.translation.x = v_microstrain_vehicle_to_gnss_antenna.getX();
+          gnss_antenna_transform.transform.translation.y = v_microstrain_vehicle_to_gnss_antenna.getY();
+          gnss_antenna_transform.transform.translation.z = v_microstrain_vehicle_to_gnss_antenna.getZ();
+        }
+      }
+    }
+
+    // Static odometer offset
+    if (config_->mip_device_->supportsDescriptor(mip::commands_filter::DESCRIPTOR_SET, mip::commands_filter::CMD_SPEED_LEVER_ARM))
+    {
+      float speed_lever_arm[3];
+      if (!(mip_cmd_result = mip::commands_filter::readSpeedLeverArm(*(config_->mip_device_), 1, speed_lever_arm)))
+      {
+        MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to read Filter Speed Lever Arm required for odometer transform");
+        return false;
+      }
+
+      odometer_transform_msg_.header.stamp = rosTimeNow(node_);
+      odometer_transform_msg_.header.frame_id = config_->frame_id_;
+      odometer_transform_msg_.child_frame_id = config_->odometer_frame_id_;
+      odometer_transform_msg_.transform.rotation = tf2::toMsg(tf2::Quaternion::getIdentity());
+
+      // If running in the ENU frame, transform from our vehicle frame to the ROS vehicle frame
+      const tf2::Vector3 v_microstrain_vehicle_to_odometer(speed_lever_arm[0], speed_lever_arm[1], speed_lever_arm[2]);
+      if (config_->use_enu_frame_)
+      {
+        const tf2::Vector3 v_ros_vehicle_to_odometer = config_->t_ros_vehicle_to_microstrain_vehicle_.inverse() * v_microstrain_vehicle_to_odometer;
+        odometer_transform_msg_.transform.translation.x = v_ros_vehicle_to_odometer.getX();
+        odometer_transform_msg_.transform.translation.x = v_ros_vehicle_to_odometer.getY();
+        odometer_transform_msg_.transform.translation.x = v_ros_vehicle_to_odometer.getZ();
+      }
+      else
+      {
+        odometer_transform_msg_.transform.translation.x = v_microstrain_vehicle_to_odometer.getX();
+        odometer_transform_msg_.transform.translation.y = v_microstrain_vehicle_to_odometer.getY();
+        odometer_transform_msg_.transform.translation.z = v_microstrain_vehicle_to_odometer.getZ();
       }
     }
   }
@@ -378,6 +428,8 @@ bool Publishers::activate()
       static_transform_broadcaster_->sendTransform(gnss_antenna_transform_msg_[GNSS1_ID]);
     if (config_->mip_device_->supportsDescriptorSet(mip::data_gnss::MIP_GNSS2_DATA_DESC_SET))
       static_transform_broadcaster_->sendTransform(gnss_antenna_transform_msg_[GNSS2_ID]);
+    if (config_->mip_device_->supportsDescriptor(mip::commands_filter::DESCRIPTOR_SET, mip::commands_filter::CMD_SPEED_LEVER_ARM))
+      static_transform_broadcaster_->sendTransform(odometer_transform_msg_);
   }
 
   return true;

@@ -291,6 +291,7 @@ public:
 
   // Published transforms
   TransformStampedMsg gnss_antenna_transform_msg_[NUM_GNSS];
+  TransformStampedMsg odometer_transform_msg_;
   TransformStampedMsg earth_map_transform_msg_;
   TransformStampedMsg filter_relative_transform_msg_;
 
