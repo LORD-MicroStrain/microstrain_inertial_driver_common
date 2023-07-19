@@ -129,6 +129,9 @@ class RosMipDeviceMain : public RosMipDevice
    */
   uint16_t getDecimationFromHertz(const uint8_t descriptor_set, const float hertz, double* actual_hertz = nullptr);
 
+  // Expose some useful members, including the device information
+  mip::commands_base::BaseDeviceInfo device_info_;
+
  private:
   std::vector<uint8_t> supported_descriptor_sets_;  // Supported descriptor sets of the node
   std::vector<uint16_t> supported_descriptors_;  // Supported field descriptors of the node

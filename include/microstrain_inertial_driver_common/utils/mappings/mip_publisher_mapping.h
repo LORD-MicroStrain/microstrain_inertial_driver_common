@@ -44,6 +44,7 @@ static constexpr auto GNSS2_VELOCITY_ECEF_TOPIC = "gnss_2/velocity_ecef";
 static constexpr auto GNSS2_ODOMETRY_TOPIC = "gnss_2/odometry_earth";
 static constexpr auto GNSS2_TIME_REF_TOPIC = "gnss_2/time";
 
+static constexpr auto FILTER_HUMAN_READABLE_STATUS_TOPIC = "ekf/human_readable_status";
 static constexpr auto FILTER_IMU_DATA_TOPIC = "ekf/imu/data";
 static constexpr auto FILTER_LLH_POSITION_TOPIC = "ekf/llh_position";
 static constexpr auto FILTER_VELOCITY_TOPIC = "ekf/velocity";

@@ -247,12 +247,13 @@ public:
   Publisher<TimeReferenceMsg>::SharedPtrVec              gnss_time_pub_          = Publisher<TimeReferenceMsg>::initializeVec({GNSS1_TIME_REF_TOPIC, GNSS2_TIME_REF_TOPIC});
 
   // Filter publishers
-  Publisher<ImuMsg>::SharedPtr                            filter_imu_pub_            = Publisher<ImuMsg>::initialize(FILTER_IMU_DATA_TOPIC);
-  Publisher<NavSatFixMsg>::SharedPtr                      filter_llh_position_pub_   = Publisher<NavSatFixMsg>::initialize(FILTER_LLH_POSITION_TOPIC);
-  Publisher<OdometryMsg>::SharedPtr                       filter_odometry_earth_pub_ = Publisher<OdometryMsg>::initialize(FILTER_ODOMETRY_EARTH_TOPIC );
-  Publisher<OdometryMsg>::SharedPtr                       filter_odometry_map_pub_   = Publisher<OdometryMsg>::initialize(FILTER_ODOMETRY_MAP_TOPIC);
-  Publisher<TwistWithCovarianceStampedMsg>::SharedPtr     filter_velocity_pub_       = Publisher<TwistWithCovarianceStampedMsg>::initialize(FILTER_VELOCITY_TOPIC);
-  Publisher<TwistWithCovarianceStampedMsg>::SharedPtr     filter_velocity_ecef_pub_  = Publisher<TwistWithCovarianceStampedMsg>::initialize(FILTER_VELOCITY_ECEF_TOPIC);
+  Publisher<HumanReadableStatusMsg>::SharedPtr            filter_human_readable_status_pub_ = Publisher<HumanReadableStatusMsg>::initialize(FILTER_HUMAN_READABLE_STATUS_TOPIC);
+  Publisher<ImuMsg>::SharedPtr                            filter_imu_pub_                   = Publisher<ImuMsg>::initialize(FILTER_IMU_DATA_TOPIC);
+  Publisher<NavSatFixMsg>::SharedPtr                      filter_llh_position_pub_          = Publisher<NavSatFixMsg>::initialize(FILTER_LLH_POSITION_TOPIC);
+  Publisher<OdometryMsg>::SharedPtr                       filter_odometry_earth_pub_        = Publisher<OdometryMsg>::initialize(FILTER_ODOMETRY_EARTH_TOPIC );
+  Publisher<OdometryMsg>::SharedPtr                       filter_odometry_map_pub_          = Publisher<OdometryMsg>::initialize(FILTER_ODOMETRY_MAP_TOPIC);
+  Publisher<TwistWithCovarianceStampedMsg>::SharedPtr     filter_velocity_pub_              = Publisher<TwistWithCovarianceStampedMsg>::initialize(FILTER_VELOCITY_TOPIC);
+  Publisher<TwistWithCovarianceStampedMsg>::SharedPtr     filter_velocity_ecef_pub_         = Publisher<TwistWithCovarianceStampedMsg>::initialize(FILTER_VELOCITY_ECEF_TOPIC);
 
 
   // MIP Sensor (0x80) publishers

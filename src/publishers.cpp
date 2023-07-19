@@ -75,6 +75,7 @@ bool Publishers::configure()
   for (const auto& pub : gnss_odometry_pub_) pub->configure(node_, config_);
   for (const auto& pub : gnss_time_pub_) pub->configure(node_, config_);
 
+  filter_human_readable_status_pub_->configure(node_, config_);
   filter_imu_pub_->configure(node_, config_);
   filter_llh_position_pub_->configure(node_, config_);
   filter_velocity_pub_->configure(node_, config_);
@@ -395,6 +396,7 @@ bool Publishers::activate()
   for (const auto& pub : gnss_odometry_pub_) pub->activate();
   for (const auto& pub : gnss_time_pub_) pub->activate();
 
+  filter_human_readable_status_pub_->activate();
   filter_imu_pub_->activate();
   filter_llh_position_pub_->activate();
   filter_velocity_pub_->activate();
@@ -452,6 +454,7 @@ bool Publishers::deactivate()
   for (const auto& pub : gnss_odometry_pub_) pub->deactivate();
   for (const auto& pub : gnss_time_pub_) pub->deactivate();
 
+  filter_human_readable_status_pub_->deactivate();
   filter_imu_pub_->deactivate();
   filter_llh_position_pub_->deactivate();
   filter_odometry_earth_pub_->deactivate();
@@ -491,6 +494,7 @@ void Publishers::publish()
   for (const auto& pub : gnss_odometry_pub_) pub->publish();
   for (const auto& pub : gnss_time_pub_) pub->publish();
 
+  filter_human_readable_status_pub_->publish();
   filter_imu_pub_->publish();
   filter_llh_position_pub_->publish();
   filter_velocity_pub_->publish();
@@ -916,6 +920,13 @@ void Publishers::handleGnssFixInfo(const mip::data_gnss::FixInfo& fix_info, cons
     gnss_llh_position_msg->status.status = NavSatFixMsg::_status_type::STATUS_FIX;
   else
     gnss_llh_position_msg->status.status = NavSatFixMsg::_status_type::STATUS_NO_FIX;
+  
+  // Human readable status (not counted as updating)
+  auto filter_human_readable_status_msg = filter_human_readable_status_pub_->getMessage();
+  if ((filter_human_readable_status_msg->gnss_state == HumanReadableStatusMsg::GNSS_STATE_NO_FIX || filter_human_readable_status_msg->gnss_state == HumanReadableStatusMsg::GNSS_STATE_3D_FIX) && fix_info.fix_flags.sbasUsed())
+    filter_human_readable_status_msg->gnss_state = HumanReadableStatusMsg::GNSS_STATE_SBAS;
+  else if (filter_human_readable_status_msg->gnss_state == HumanReadableStatusMsg::GNSS_STATE_NO_FIX && fix_info.fix_type == mip::data_gnss::FixInfo::FixType::FIX_3D)
+    filter_human_readable_status_msg->gnss_state = HumanReadableStatusMsg::GNSS_STATE_3D_FIX;
 }
 
 void Publishers::handleGnssRfErrorDetection(const mip::data_gnss::RfErrorDetection& rf_error_detection, const uint8_t descriptor_set, mip::Timestamp timestamp)
@@ -1086,6 +1097,17 @@ void Publishers::handleFilterStatus(const mip::data_filter::Status& status, cons
   mip_filter_status_msg->status_flags_gq7_time_sync_warning = status.status_flags.gq7TimeSyncWarning();
   mip_filter_status_msg->status_flags_gq7_solution_error = status.status_flags.gq7SolutionError();
   mip_filter_status_pub_->publish(*mip_filter_status_msg);
+
+  // TODO: Populate the human readable status message
+  auto filter_human_readable_status_msg = filter_human_readable_status_pub_->getMessageToUpdate();
+  if (config_->mip_device_->device_info_.model_name == "") // Philo products
+  {
+
+  }
+  else if (config_->mip_device_->device_info_.model_name == "")  // Prospect producst
+  {
+
+  }
 }
 
 void Publishers::handleFilterEcefPos(const mip::data_filter::EcefPos& ecef_pos, const uint8_t descriptor_set, mip::Timestamp timestamp)
@@ -1453,25 +1475,13 @@ void Publishers::handleFilterGnssPosAidStatus(const mip::data_filter::GnssPosAid
   auto filter_llh_position_msg = filter_llh_position_pub_->getMessage();
 
   // Take the best out of the two receivers
-  bool status_set = false;
   const uint8_t gnss_index = gnss_pos_aid_status.receiver_id - 1;
   if (filter_llh_position_msg->status.status <= NavSatFixMsg::_status_type::STATUS_GBAS_FIX && mip_filter_gnss_position_aiding_status_msg->differential)
-  {
-    status_set = true;
     filter_llh_position_msg->status.status = NavSatFixMsg::_status_type::STATUS_GBAS_FIX;
-  }
   else if (filter_llh_position_msg->status.status <= NavSatFixMsg::_status_type::STATUS_SBAS_FIX && mip_gnss_fix_info_pub_[gnss_index]->getMessage()->sbas_used)
-  {
-    status_set = true;
     filter_llh_position_msg->status.status = NavSatFixMsg::_status_type::STATUS_SBAS_FIX;
-  }
   else if (filter_llh_position_msg->status.status <= NavSatFixMsg::_status_type::STATUS_FIX && !mip_filter_gnss_position_aiding_status_msg->no_fix)
-  {
-    status_set = true;
     filter_llh_position_msg->status.status = NavSatFixMsg::_status_type::STATUS_FIX;
-  }
-  if (!status_set)
-    filter_llh_position_msg->status.status = NavSatFixMsg::_status_type::STATUS_NO_FIX;
 }
 
 void Publishers::handleFilterMultiAntennaOffsetCorrection(const mip::data_filter::MultiAntennaOffsetCorrection& multi_antenna_offset_correction, const uint8_t descriptor_set, mip::Timestamp timestamp)
@@ -1532,6 +1542,10 @@ void Publishers::handleAfterPacket(const mip::Packet& packet, mip::Timestamp tim
   // Reset some shared descriptors. These are unique to the packets, and we do not want to cache them past this packet
   if (event_source_mapping_.find(packet.descriptorSet()) != event_source_mapping_.end())
     event_source_mapping_[packet.descriptorSet()].trigger_id = 0;
+  
+  // Reset some state in messages that need to have it reset
+  filter_human_readable_status_pub_->getMessage()->gnss_state = HumanReadableStatusMsg::GNSS_STATE_NO_FIX;
+  filter_llh_position_pub_->getMessage()->status.status = NavSatFixMsg::_status_type::STATUS_NO_FIX;
 }
 
 void Publishers::updateMicrostrainHeader(MicrostrainHeaderMsg* microstrain_header, uint8_t descriptor_set) const

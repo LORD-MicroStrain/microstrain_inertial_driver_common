@@ -408,18 +408,19 @@ gnss2_odometry_earth_data_rate : 0  # Rate of gnss_2/odometry_earth topic
 gnss2_time_data_rate           : 0  # Rate of gnss_2/time topic
 
 # The speed at which the individual Filter publishers will publish at.
-filter_imu_data_rate            : 0  # Rate of ekf/imu/data topic
-                                     # Note: Both filter_odometry_earth_data_rate and filter_odometry_map_data_rate depend on the contents of this message.
-                                     #       If either are set to a higher value, this message will be published at that rate.
-filter_llh_position_data_rate   : 0  # Rate of ekf/llh_position topic
-filter_velocity_data_rate       : 0  # Rate of ekf/velocity topic
-                                     # Note: filter_odometry_map_data_rate depends on the contents of this message.
-                                     #       If either are set to a higher value, this message will be published at that rate.
-filter_velocity_ecef_data_rate  : 0  # Rate of ekf/velocity_ecef topic
-                                     # Note: filter_odometry_earth_data_rate depends on the contents of this message.
-                                     #       If either are set to a higher value, this message will be published at that rate.
-filter_odometry_earth_data_rate : 10 # Rate of ekf/odometry_earth topic
-filter_odometry_map_data_rate   : 10 # Rate of ekf/odometry_map topic
+filter_human_readable_status_data_rate : 1  # Rate of ekf/human_readable_status
+filter_imu_data_rate                   : 0  # Rate of ekf/imu/data topic
+                                            # Note: Both filter_odometry_earth_data_rate and filter_odometry_map_data_rate depend on the contents of this message.
+                                            #       If either are set to a higher value, this message will be published at that rate.
+filter_llh_position_data_rate          : 0  # Rate of ekf/llh_position topic
+filter_velocity_data_rate              : 0  # Rate of ekf/velocity topic
+                                            # Note: filter_odometry_map_data_rate depends on the contents of this message.
+                                            #       If either are set to a higher value, this message will be published at that rate.
+filter_velocity_ecef_data_rate         : 0  # Rate of ekf/velocity_ecef topic
+                                            # Note: filter_odometry_earth_data_rate depends on the contents of this message.
+                                            #       If either are set to a higher value, this message will be published at that rate.
+filter_odometry_earth_data_rate        : 10 # Rate of ekf/odometry_earth topic
+filter_odometry_map_data_rate          : 10 # Rate of ekf/odometry_map topic
 
 # The speed at which the individual MIP publishers will publish at.
 mip_sensor_overrange_status_data_rate : 0  # Rate of mip/sensor/overrange_status topic

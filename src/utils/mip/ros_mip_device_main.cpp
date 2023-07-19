@@ -105,8 +105,7 @@ bool RosMipDeviceMain::configure(RosNodeType* config_node)
   }
 
   // Print the device info
-  mip::commands_base::BaseDeviceInfo device_info;
-  if (!(mip_cmd_result = getDeviceInfo(&device_info)))
+  if (!(mip_cmd_result = getDeviceInfo(&device_info_)))
   {
     MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Unable to read device info");
     return false;
@@ -116,10 +115,10 @@ bool RosMipDeviceMain::configure(RosNodeType* config_node)
     Model Name:       %s
     Serial Number:    %s
     Firmware Version: %s
-    #######################)", device_info.model_name, device_info.serial_number, firmwareVersionString(device_info.firmware_version).c_str());
+    #######################)", device_info_.model_name, device_info_.serial_number, firmwareVersionString(device_info_.firmware_version).c_str());
 
   // If the main name of the port contains "GNSS" it is likely we are talking to the aux port, so log a warning
-  if (std::string(device_info.model_name).find("GNSS") != std::string::npos)
+  if (std::string(device_info_.model_name).find("GNSS") != std::string::npos)
   {
     MICROSTRAIN_WARN(node_, "Note: The configured main port appears to actually be the aux port.");
     MICROSTRAIN_WARN(node_, "      Double check that the \"port\" option is configured to the main port of the device.");

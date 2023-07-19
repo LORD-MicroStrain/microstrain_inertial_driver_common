@@ -73,6 +73,7 @@ constexpr auto NUM_GNSS = 2;
 #include "mavros_msgs/RTCM.h"
 #include "nmea_msgs/Sentence.h"
 
+#include "microstrain_inertial_msgs/HumanReadableStatus.h"
 #include "microstrain_inertial_msgs/DualAntennaHeading.h"
 
 #include "microstrain_inertial_msgs/MicrostrainHeader.h"
@@ -183,6 +184,7 @@ constexpr auto NUM_GNSS = 2;
 #include "mavros_msgs/msg/rtcm.hpp"
 #include "nmea_msgs/msg/sentence.hpp"
 
+#include "microstrain_inertial_msgs/msg/human_readable_status.hpp"
 #include "microstrain_inertial_msgs/msg/dual_antenna_heading.hpp"
 
 #include "microstrain_inertial_msgs/msg/microstrain_header.hpp"
@@ -330,6 +332,7 @@ using MagneticFieldMsg = ::sensor_msgs::MagneticField;
 using TimeReferenceMsg = ::sensor_msgs::TimeReference;
 using NMEASentenceMsg = ::nmea_msgs::Sentence;
 
+using HumanReadableStatusMsg = ::microstrain_inertial_msgs::HumanReadableStatus;
 using DualAntennaHeadingMsg = ::microstrain_inertial_msgs::DualAntennaHeading;
 
 using MicrostrainHeaderMsg = ::microstrain_inertial_msgs::MicrostrainHeader;
@@ -698,6 +701,7 @@ using MagneticFieldMsg = ::sensor_msgs::msg::MagneticField;
 using TimeReferenceMsg = ::sensor_msgs::msg::TimeReference;
 using NMEASentenceMsg = ::nmea_msgs::msg::Sentence;
 
+using HumanReadableStatusMsg = ::microstrain_inertial_msgs::msg::HumanReadableStatus;
 using DualAntennaHeadingMsg = ::microstrain_inertial_msgs::msg::DualAntennaHeading;
 
 using MicrostrainHeaderMsg = ::microstrain_inertial_msgs::msg::MicrostrainHeader;

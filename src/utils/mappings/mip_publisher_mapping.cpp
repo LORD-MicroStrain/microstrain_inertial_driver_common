@@ -273,6 +273,14 @@ const std::map<std::string, FieldWrapper::SharedPtrVec> MipPublisherMapping::sta
   }},
 
   // Filter topic mappings
+  {FILTER_HUMAN_READABLE_STATUS_TOPIC, {
+    FieldWrapperType<mip::data_gnss::FixInfo, mip::data_gnss::DESCRIPTOR_SET>::initialize(),
+    FieldWrapperType<mip::data_gnss::FixInfo, mip::data_gnss::MIP_GNSS1_DATA_DESC_SET>::initialize(),
+    FieldWrapperType<mip::data_gnss::FixInfo, mip::data_gnss::MIP_GNSS2_DATA_DESC_SET>::initialize(),
+    FieldWrapperType<mip::data_filter::GnssPosAidStatus>::initialize(),
+    FieldWrapperType<mip::data_filter::GnssDualAntennaStatus>::initialize(),
+    FieldWrapperType<mip::data_filter::Status>::initialize(),
+  }},
   {FILTER_IMU_DATA_TOPIC, {
     FieldWrapperType<mip::data_filter::AttitudeQuaternion>::initialize(),
     FieldWrapperType<mip::data_filter::CompAngularRate>::initialize(),
@@ -387,12 +395,13 @@ const std::map<std::string, std::string> MipPublisherMapping::static_topic_to_da
   {GNSS2_TIME_REF_TOPIC,      "gnss2_time_data_rate"},
 
   // Filter data rates
-  {FILTER_IMU_DATA_TOPIC,       "filter_imu_data_rate"},
-  {FILTER_LLH_POSITION_TOPIC,   "filter_llh_position_data_rate"},
-  {FILTER_VELOCITY_TOPIC,       "filter_velocity_data_rate"},
-  {FILTER_VELOCITY_ECEF_TOPIC,  "filter_velocity_ecef_data_rate"},
-  {FILTER_ODOMETRY_EARTH_TOPIC, "filter_odometry_earth_data_rate"},
-  {FILTER_ODOMETRY_MAP_TOPIC,   "filter_odometry_map_data_rate"},
+  {FILTER_HUMAN_READABLE_STATUS_TOPIC, "filter_human_readable_status_data_rate"},
+  {FILTER_IMU_DATA_TOPIC,              "filter_imu_data_rate"},
+  {FILTER_LLH_POSITION_TOPIC,          "filter_llh_position_data_rate"},
+  {FILTER_VELOCITY_TOPIC,              "filter_velocity_data_rate"},
+  {FILTER_VELOCITY_ECEF_TOPIC,         "filter_velocity_ecef_data_rate"},
+  {FILTER_ODOMETRY_EARTH_TOPIC,        "filter_odometry_earth_data_rate"},
+  {FILTER_ODOMETRY_MAP_TOPIC,          "filter_odometry_map_data_rate"},
 
   // MIP sensor (0x80) data rates
   {MIP_SENSOR_OVERRANGE_STATUS_TOPIC, "mip_sensor_overrange_status_data_rate"},
