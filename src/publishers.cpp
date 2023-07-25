@@ -214,9 +214,13 @@ bool Publishers::deactivate()
 
 void Publishers::publish()
 {
-  // If the corresponding messages were updated, publish the transforms
-  if (filter_relative_odom_pub_ && filter_relative_odom_pub_->updated())
+  // If the transform was updated, publish it
+  if (filter_relative_transform_msg_translation_updated_ && filter_relative_transform_msg_rotation_updated_)
+  {
+    filter_relative_transform_msg_translation_updated_ = false;
+    filter_relative_transform_msg_rotation_updated_ = false;
     transform_broadcaster_->sendTransform(filter_relative_transform_msg_);
+  }
 
   imu_pub_->publish();
   mag_pub_->publish();
@@ -703,6 +707,7 @@ void Publishers::handleFilterAttitudeQuaternion(const mip::data_filter::Attitude
   filter_relative_odom_msg->pose.pose.orientation = filter_odom_msg->pose.pose.orientation;
 
   // Relative transform
+  filter_relative_transform_msg_rotation_updated_ = true;
   updateHeaderTime(&(filter_relative_transform_msg_.header), descriptor_set, timestamp);
   filter_relative_transform_msg_.transform.rotation = filter_odom_msg->pose.pose.orientation;
 
@@ -728,7 +733,7 @@ void Publishers::handleFilterEulerAnglesUncertainty(const mip::data_filter::Eule
 
   // Filter relative odometry message
   auto filter_relative_odom_msg = filter_relative_odom_pub_->getMessageToUpdate();
-  updateHeaderTime(&(filter_relative_transform_msg_.header), descriptor_set, timestamp);
+  updateHeaderTime(&(filter_relative_odom_msg->header), descriptor_set, timestamp);
   filter_relative_odom_msg->pose.covariance = filter_odom_msg->pose.covariance;
 }
 
@@ -762,7 +767,7 @@ void Publishers::handleFilterVelocityNed(const mip::data_filter::VelocityNed& ve
 
   // Filter relative odometry message
   auto filter_relative_odom_msg = filter_relative_odom_pub_->getMessageToUpdate();
-  updateHeaderTime(&(filter_relative_transform_msg_.header), descriptor_set, timestamp);
+  updateHeaderTime(&(filter_relative_odom_msg->header), descriptor_set, timestamp);
   filter_relative_odom_msg->twist.twist.linear = filter_odom_msg->twist.twist.linear;
 }
 
@@ -785,7 +790,7 @@ void Publishers::handleFilterVelocityNedUncertainty(const mip::data_filter::Velo
 
   // Filter relative odometry message
   auto filter_relative_odom_msg = filter_relative_odom_pub_->getMessageToUpdate();
-  updateHeaderTime(&(filter_relative_transform_msg_.header), descriptor_set, timestamp);
+  updateHeaderTime(&(filter_relative_odom_msg->header), descriptor_set, timestamp);
   filter_relative_odom_msg->twist.covariance = filter_odom_msg->twist.covariance;
 }
 
@@ -810,7 +815,7 @@ void Publishers::handleFilterCompAngularRate(const mip::data_filter::CompAngular
 
   // Filter relative odometry message
   auto filter_relative_odom_msg = filter_relative_odom_pub_->getMessageToUpdate();
-  updateHeaderTime(&(filter_relative_transform_msg_.header), descriptor_set, timestamp);
+  updateHeaderTime(&(filter_relative_odom_msg->header), descriptor_set, timestamp);
   filter_relative_odom_msg->twist.twist.angular = filter_odom_msg->twist.twist.angular;
 }
 
@@ -852,7 +857,7 @@ void Publishers::handleFilterRelPosNed(const mip::data_filter::RelPosNed& rel_po
 {
   // Filter relative odometry message
   auto filter_relative_odom_msg = filter_relative_odom_pub_->getMessageToUpdate();
-  updateHeaderTime(&(filter_relative_transform_msg_.header), descriptor_set, timestamp);
+  updateHeaderTime(&(filter_relative_odom_msg->header), descriptor_set, timestamp);
   if (config_->use_enu_frame_)
   {
     filter_relative_odom_msg->pose.pose.position.x = rel_pos_ned.relative_position[1];
@@ -867,6 +872,8 @@ void Publishers::handleFilterRelPosNed(const mip::data_filter::RelPosNed& rel_po
   }
 
   // Relative transform
+  filter_relative_transform_msg_translation_updated_ = true;
+  updateHeaderTime(&(filter_relative_transform_msg_.header), descriptor_set, timestamp);
   filter_relative_transform_msg_.transform.translation.x = filter_relative_odom_msg->pose.pose.position.x;
   filter_relative_transform_msg_.transform.translation.y = filter_relative_odom_msg->pose.pose.position.y;
   filter_relative_transform_msg_.transform.translation.z = filter_relative_odom_msg->pose.pose.position.z;
