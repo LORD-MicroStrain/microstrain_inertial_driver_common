@@ -8,6 +8,7 @@
 //
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
+#include <thread>
 #include <string>
 #include <iomanip>
 #include <algorithm>
@@ -44,7 +45,47 @@ void logCallbackProxy(void* user, mip_log_level level, const char* fmt, va_list 
 void NodeCommon::parseAndPublishMain()
 {
   // This should receive all packets, populate ROS messages and publish them as well
-  config_.mip_device_->device().update();
+  if (!config_.mip_device_->device().update())
+  {
+    MICROSTRAIN_ERROR(node_, "Unable to update device");
+
+    // Attempt a reconnect
+    bool reconnected = false;
+    int reconnect_attempt = 0;
+    while (reconnect_attempt++ < config_.reconnect_attempts_)
+    {
+      MICROSTRAIN_WARN(node_, "Reconnect attempt %d...", reconnect_attempt);
+      if (config_.mip_device_->reconnect())
+      {
+        MICROSTRAIN_INFO(node_, "Successfully reconnected to the device");
+        if (config_.configure_after_reconnect_)
+        {
+          MICROSTRAIN_INFO(node_, "Reconfiguring device...");
+          config_.mip_device_->disconnect();  // We will reconnect to the device in the configure call
+          if (!config_.configure(config_node_))
+            continue;
+        }
+
+        // Reactivate
+        if (!publishers_.configure())
+          continue;
+        if (!activate())
+          continue;
+
+        // Reconnected
+        reconnected = true;
+        break;
+      }
+
+      // Wait between attempts
+      std::this_thread::sleep_for(std::chrono::seconds(5));
+    }
+
+    if (!reconnected)
+    {
+      throw std::runtime_error("Device disconnected");
+    }
+  }
 
   // Publish the NMEA messages
   if (config_.publish_nmea_)
@@ -140,6 +181,10 @@ bool NodeCommon::configure(RosNodeType* config_node)
   if (timer_update_rate_hz_ <= 0)
     timer_update_rate_hz_ = 1.0;
   MICROSTRAIN_INFO(node_, "Setting spin rate to <%f> hz", timer_update_rate_hz_);
+
+  // Save the config node for later
+  config_node_ = config_node;
+
   return true;
 }
 
@@ -174,6 +219,7 @@ bool NodeCommon::activate()
     return false;
   }
 
+  MICROSTRAIN_INFO(node_, "Node activated");
   return true;
 }
 

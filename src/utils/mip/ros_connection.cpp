@@ -31,6 +31,30 @@ RosConnection::RosConnection(RosNodeType* node) : node_(node)
 {
 }
 
+bool RosConnection::isConnected()
+{
+  if (connection_)
+    return connection_->isConnected();
+  else
+    return false;
+}
+
+bool RosConnection::connect()
+{
+  if (connection_)
+    return connection_->connect();
+  else
+    return false;
+}
+
+bool RosConnection::disconnect()
+{
+  if (connection_)
+    return connection_->disconnect();
+  else
+    return false;
+}
+
 bool RosConnection::connect(RosNodeType* config_node, const std::string& port, const int32_t baudrate)
 {
   // Some convenient typedefs
@@ -88,6 +112,8 @@ bool RosConnection::connect(RosNodeType* config_node, const std::string& port, c
     MICROSTRAIN_ERROR(node_, "Failed to initialize the MIP connection: %s", e.what());
     return false;
   }
+  if (!connection_->connect())
+    return false;
 
   // TODO(robbiefish): Currently, using the mip_timeout_from_baudrate method results in too short of a timeout. For now, we can just use the longer timeouts, but it would be good to use shorter timeouts when possible
   // Different timeouts based on the type of connection (TCP/Serial)

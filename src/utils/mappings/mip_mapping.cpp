@@ -76,8 +76,8 @@ const std::map<std::string, mip::commands_3dm::NmeaMessage::MessageID> MipMappin
   {"VTG",  mip::commands_3dm::NmeaMessage::MessageID::VTG},
   {"HDT",  mip::commands_3dm::NmeaMessage::MessageID::HDT},
   {"ZDA",  mip::commands_3dm::NmeaMessage::MessageID::ZDA},
-  {"PRKA", mip::commands_3dm::NmeaMessage::MessageID::PRKA},
-  {"PRKR", mip::commands_3dm::NmeaMessage::MessageID::PRKR},
+  {"PKRA", mip::commands_3dm::NmeaMessage::MessageID::PKRA},
+  {"PKRR", mip::commands_3dm::NmeaMessage::MessageID::PKRR},
 };
 
 const std::map<std::string, mip::commands_3dm::NmeaMessage::TalkerID> MipMapping::nmea_message_string_talker_id_mapping_ =
@@ -97,8 +97,8 @@ const std::map<mip::commands_3dm::NmeaMessage::MessageID, bool> MipMapping::nmea
   {mip::commands_3dm::NmeaMessage::MessageID::VTG,  true},
   {mip::commands_3dm::NmeaMessage::MessageID::HDT,  true},
   {mip::commands_3dm::NmeaMessage::MessageID::ZDA,  true},
-  {mip::commands_3dm::NmeaMessage::MessageID::PRKA, false},
-  {mip::commands_3dm::NmeaMessage::MessageID::PRKR, false},
+  {mip::commands_3dm::NmeaMessage::MessageID::PKRA, false},
+  {mip::commands_3dm::NmeaMessage::MessageID::PKRR, false},
 };
 
 }  // namespace microstrain
