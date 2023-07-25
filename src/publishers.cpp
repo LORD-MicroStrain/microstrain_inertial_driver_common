@@ -47,6 +47,7 @@ bool Publishers::configure()
   filter_heading_pub_->configure(node_, config_);
   filter_heading_state_pub_->configure(node_, config_);
   filter_aiding_mesaurement_summary_pub_->configure(node_, config_);
+  filter_navsatfix_pub_->configure(node_, config_);
   filter_odom_pub_->configure(node_, config_);
   filter_imu_pub_->configure(node_, config_);
   gnss_dual_antenna_status_pub_->configure(node_, config_);
@@ -67,6 +68,7 @@ bool Publishers::configure()
   for (int i = 0; i < gnss_odom_pub_.size(); i++) gnss_odom_pub_[i]->getMessage()->header.frame_id = config_->gnss_frame_id_[i];
   for (int i = 0; i < gnss_time_pub_.size(); i++) gnss_time_pub_[i]->getMessage()->header.frame_id = config_->gnss_frame_id_[i];
 
+  filter_navsatfix_pub_->getMessage()->header.frame_id = config_->filter_frame_id_;
   filter_odom_pub_->getMessage()->header.frame_id = config_->filter_frame_id_;
   filter_odom_pub_->getMessage()->child_frame_id = config_->filter_child_frame_id_;
   filter_imu_pub_->getMessage()->header.frame_id = config_->filter_frame_id_;
@@ -80,6 +82,9 @@ bool Publishers::configure()
   std::copy(config_->imu_linear_cov_.begin(), config_->imu_linear_cov_.end(), imu_msg->linear_acceleration_covariance.begin());
   std::copy(config_->imu_angular_cov_.begin(), config_->imu_angular_cov_.end(), imu_msg->angular_velocity_covariance.begin());
   std::copy(config_->imu_orientation_cov_.begin(), config_->imu_orientation_cov_.end(), imu_msg->orientation_covariance.begin());
+
+  auto filter_navstafix_msg = filter_navsatfix_pub_->getMessage();
+  filter_navstafix_msg->position_covariance_type = NavSatFixMsg::COVARIANCE_TYPE_DIAGONAL_KNOWN;
 
   // Transform broadcaster setup
   transform_broadcaster_ = createTransformBroadcaster(node_);
@@ -173,6 +178,7 @@ bool Publishers::activate()
   filter_heading_pub_->activate();
   filter_heading_state_pub_->activate();
   filter_aiding_mesaurement_summary_pub_->activate();
+  filter_navsatfix_pub_->activate();
   filter_odom_pub_->activate();
   filter_relative_odom_pub_->activate();
   filter_imu_pub_->activate();
@@ -205,6 +211,7 @@ bool Publishers::deactivate()
   filter_heading_pub_->deactivate();
   filter_heading_state_pub_->deactivate();
   filter_aiding_mesaurement_summary_pub_->deactivate();
+  filter_navsatfix_pub_->deactivate();
   filter_odom_pub_->deactivate();
   filter_relative_odom_pub_->deactivate();
   filter_imu_pub_->deactivate();
@@ -243,6 +250,7 @@ void Publishers::publish()
   filter_heading_pub_->publish();
   filter_heading_state_pub_->publish();
   filter_aiding_mesaurement_summary_pub_->publish();
+  filter_navsatfix_pub_->publish();
   filter_odom_pub_->publish();
   filter_relative_odom_pub_->publish();
   filter_imu_pub_->publish();
@@ -634,6 +642,14 @@ void Publishers::handleFilterHeadingUpdateState(const mip::data_filter::HeadingU
 
 void Publishers::handleFilterPositionLlh(const mip::data_filter::PositionLlh& position_llh, const uint8_t descriptor_set, mip::Timestamp timestamp)
 {
+  // Filter navsatfix message
+  auto filter_navsatfix_msg = filter_navsatfix_pub_->getMessageToUpdate();
+  updateHeaderTime(&(filter_navsatfix_msg->header), descriptor_set, timestamp);
+  filter_navsatfix_msg->longitude = position_llh.longitude;
+  filter_navsatfix_msg->latitude = position_llh.latitude;
+  filter_navsatfix_msg->altitude = position_llh.ellipsoid_height;
+
+  // Filter odometry message
   auto filter_odom_msg = filter_odom_pub_->getMessageToUpdate();
   updateHeaderTime(&(filter_odom_msg->header), descriptor_set, timestamp);
   if (config_->use_enu_frame_)
@@ -651,6 +667,13 @@ void Publishers::handleFilterPositionLlh(const mip::data_filter::PositionLlh& po
 
 void Publishers::handleFilterPositionLlhUncertainty(const mip::data_filter::PositionLlhUncertainty& position_llh_uncertainty, const uint8_t descriptor_set, mip::Timestamp timestamp)
 {
+  // Filter navsatfix message
+  auto filter_navsatfix_msg = filter_navsatfix_pub_->getMessageToUpdate();
+  updateHeaderTime(&(filter_navsatfix_msg->header), descriptor_set, timestamp);
+  filter_navsatfix_msg->position_covariance[0] = pow(position_llh_uncertainty.east, 2);
+  filter_navsatfix_msg->position_covariance[4] = pow(position_llh_uncertainty.north, 2);
+  filter_navsatfix_msg->position_covariance[8] = pow(position_llh_uncertainty.down, 2);
+
   // Filter odometry message
   auto filter_odom_msg = filter_odom_pub_->getMessageToUpdate();
   updateHeaderTime(&(filter_odom_msg->header), descriptor_set, timestamp);
@@ -881,6 +904,7 @@ void Publishers::handleFilterRelPosNed(const mip::data_filter::RelPosNed& rel_po
 
 void Publishers::handleFilterGnssPosAidStatus(const mip::data_filter::GnssPosAidStatus& gnss_pos_aid_status, const uint8_t descriptor_set, mip::Timestamp timestamp)
 {
+  // GNSS position aiding status message
   if (gnss_aiding_status_pub_.size() < gnss_pos_aid_status.receiver_id)
     return;
 
@@ -902,6 +926,27 @@ void Publishers::handleFilterGnssPosAidStatus(const mip::data_filter::GnssPosAid
   gnss_aiding_status_msg->using_beidou = gnss_pos_aid_status.status & mip::data_filter::GnssAidStatusFlags::BEI_B1
                                       || gnss_pos_aid_status.status & mip::data_filter::GnssAidStatusFlags::BEI_B2
                                       || gnss_pos_aid_status.status & mip::data_filter::GnssAidStatusFlags::BEI_B3;
+
+  // Filter NavSatFix message
+  auto filter_navsatfix_msg = filter_navsatfix_pub_->getMessageToUpdate();
+  bool status_set = false;
+  if (filter_navsatfix_msg->status.status <= NavSatFixMsg::_status_type::STATUS_GBAS_FIX && gnss_aiding_status_msg->differential_corrections)
+  {
+    status_set = true;
+    filter_navsatfix_msg->status.status = NavSatFixMsg::_status_type::STATUS_GBAS_FIX;
+  }
+  else if (filter_navsatfix_msg->status.status <= NavSatFixMsg::_status_type::STATUS_SBAS_FIX && gnss_fix_info_pub_[gnss_index]->getMessage()->sbas_used)
+  {
+    status_set = true;
+    filter_navsatfix_msg->status.status = NavSatFixMsg::_status_type::STATUS_SBAS_FIX;
+  }
+  else if (filter_navsatfix_msg->status.status <= NavSatFixMsg::_status_type::STATUS_FIX && gnss_aiding_status_msg->has_position_fix)
+  {
+    status_set = true;
+    filter_navsatfix_msg->status.status = NavSatFixMsg::_status_type::STATUS_FIX;
+  }
+  if (!status_set)
+    filter_navsatfix_msg->status.status = NavSatFixMsg::_status_type::STATUS_NO_FIX;
 }
 
 void Publishers::handleFilterMultiAntennaOffsetCorrection(const mip::data_filter::MultiAntennaOffsetCorrection& multi_antenna_offset_correction, const uint8_t descriptor_set, mip::Timestamp timestamp)

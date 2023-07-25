@@ -56,6 +56,7 @@ static constexpr auto RTK_STATUS_V1_TOPIC = "rtk/status_v1";
 static constexpr auto FILTER_STATUS_TOPIC = "nav/status";
 static constexpr auto FILTER_HEADING_TOPIC = "nav/heading";
 static constexpr auto FILTER_HEADING_STATE_TOPIC = "nav/heading_state";
+static constexpr auto FILTER_NAVSATFIX_TOPIC = "nav/fix";
 static constexpr auto FILTER_ODOM_TOPIC = "nav/odom";
 static constexpr auto FILTER_IMU_DATA_TOPIC = "nav/filtered_imu/data";
 static constexpr auto FILTER_RELATIVE_ODOM_TOPIC = "nav/relative_pos/odom";
