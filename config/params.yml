@@ -114,9 +114,9 @@ imu_overrange_status_data_rate : -1  # Rate of imu/overrange_status topic
 
 # Static IMU message covariance values (the device does not generate these) 
 # Since internally these are std::vector we need to use the rosparam tags 
-imu_orientation_cov : [0.01, 0, 0, 0, 0.01, 0, 0, 0, 0.01]
-imu_linear_cov      : [0.01, 0, 0, 0, 0.01, 0, 0, 0, 0.01]
-imu_angular_cov     : [0.01, 0, 0, 0, 0.01, 0, 0, 0, 0.01]
+imu_orientation_cov : [0.01, 0.0, 0.0, 0.0, 0.01, 0.0, 0.0, 0.0, 0.01]
+imu_linear_cov      : [0.01, 0.0, 0.0, 0.0, 0.01, 0.0, 0.0, 0.0, 0.01]
+imu_angular_cov     : [0.01, 0.0, 0.0, 0.0, 0.01, 0.0, 0.0, 0.0, 0.01]
 
 # ****************************************************************** 
 # GNSS Settings (only applicable for devices with GNSS) 
@@ -390,7 +390,7 @@ filter_init_attitude : [0.0, 0.0, 0.0]
 filter_relative_position_config : False
 filter_relative_position_frame  : 2
 filter_relative_position_source : 1
-filter_relative_position_ref    : [0, 0, 0.01]
+filter_relative_position_ref    : [0.0, 0.0, 0.01]
 
 # (GQ7 only) Speed Lever Arm Configuration
 #   Lever Arm - In vehicle reference frame (meters)
