@@ -144,6 +144,16 @@ bool MipPublisherMapping::configure(RosNodeType* config_node)
     streamSharedDescriptor<mip::data_shared::ReferenceTimestamp>();
   }
 
+  // Stream RTK data if the RTK dongle is enabled
+  bool rtk_dongle_enable; getParam(config_node, "rtk_dongle_enable", rtk_dongle_enable, true);
+  if (rtk_dongle_enable)
+  {
+    MICROSTRAIN_DEBUG(node_, "Streaming descriptor 0x%02x%02x as an on demand descriptor (we will receive it at whatever rate the device does)", mip::data_gnss::MIP_GNSS3_DATA_DESC_SET, mip::data_gnss::RtkCorrectionsStatus::DESCRIPTOR_SET);
+    if (streamed_descriptors_mapping_.find(mip::data_gnss::MIP_GNSS3_DATA_DESC_SET) == streamed_descriptors_mapping_.end())
+      streamed_descriptors_mapping_[mip::data_gnss::MIP_GNSS3_DATA_DESC_SET] = {};
+    streamed_descriptors_mapping_[mip::data_gnss::MIP_GNSS3_DATA_DESC_SET].push_back({ mip::data_gnss::RtkCorrectionsStatus::FIELD_DESCRIPTOR, 1 });
+  }
+
   // Enable each of the descriptor sets and save the message format
   for (const auto& streamed_descriptor_mapping : streamed_descriptors_mapping_)
   {
@@ -349,11 +359,6 @@ const std::map<std::string, FieldWrapper::SharedPtrVec> MipPublisherMapping::sta
     FieldWrapperType<mip::data_gnss::RfErrorDetection, mip::data_gnss::MIP_GNSS2_DATA_DESC_SET>::initialize()
   }},
 
-  // MIP GNSS Corrections (0x93) topic mappings
-  {MIP_GNSS_CORRECTIONS_RTK_CORRECTIONS_STATUS_TOPIC, {
-    FieldWrapperType<mip::data_gnss::RtkCorrectionsStatus, mip::data_gnss::MIP_GNSS3_DATA_DESC_SET>::initialize(),
-  }},
-
   // MIP Filter (0x82) topic mappings
   {MIP_FILTER_STATUS_TOPIC, {
     FieldWrapperType<mip::data_filter::Status>::initialize(),
@@ -415,9 +420,6 @@ const std::map<std::string, std::string> MipPublisherMapping::static_topic_to_da
   {MIP_GNSS2_FIX_INFO_TOPIC,           "mip_gnss2_fix_info_data_rate"},
   {MIP_GNSS2_SBAS_INFO_TOPIC,          "mip_gnss2_sbas_info_data_rate"},
   {MIP_GNSS2_RF_ERROR_DETECTION_TOPIC, "mip_gnss2_rf_error_detection_data_rate"},
-
-  // MIP GNSS Corrections (0x93) data rates
-  {MIP_GNSS_CORRECTIONS_RTK_CORRECTIONS_STATUS_TOPIC, "mip_gnss_corrections_rtk_corrections_status_data_rate"},
 
   // MIP filter (0x82) data rates
   {MIP_FILTER_STATUS_TOPIC,                          "mip_filter_status_data_rate"},

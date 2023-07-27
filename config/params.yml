@@ -433,10 +433,6 @@ mip_gnss2_fix_info_data_rate           : 0  # Rate of mip/gnss_1/fix_info topic
 mip_gnss2_sbas_info_data_rate          : 0  # Rate of mip/gnss_2/sbas_info topic
 mip_gnss2_rf_error_detection_data_rate : 0  # Rate of mip/gnss_2/rf_error_detection
 
-# TODO: This should just be controlled by rtk_dongle_enable
-mip_gnss_corrections_rtk_corrections_status_data_rate : 0  # Rate of mip/gnss_corrections/rtk_corrections_status topic
-                                                           # Note : This is an on demand topic. If set to any other value than 0, this message will be published at whatever rate the device provides it
-
 mip_filter_status_data_rate                          : 0  # Rate of mip/filter/status topic
 mip_filter_gnss_position_aiding_status_data_rate     : 0  # Rate of mip/filter/gnss_aiding_status
                                                           # Note: filter_llh_position_data_rate depends on the contents of this message.
