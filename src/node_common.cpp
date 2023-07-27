@@ -92,7 +92,12 @@ void NodeCommon::parseAndPublishMain()
   {
     for (auto& nmea_message : config_.mip_device_->nmeaMsgs())
     {
-      //nmea_message.header.frame_id = config_.nmea_frame_id_;  // TODO: Assign the correct frame_id to the NMEA sentence
+      // Determine the right frame ID based on the talker ID
+      const std::string& talker_id_str = nmea_message.sentence.substr(1, 2);
+      if (config_.nmea_talker_id_to_frame_id_mapping_.find(talker_id_str) != config_.nmea_talker_id_to_frame_id_mapping_.end())
+        nmea_message.header.frame_id = config_.nmea_talker_id_to_frame_id_mapping_.at(talker_id_str);
+      else
+        nmea_message.header.frame_id = config_.frame_id_;
       publishers_.nmea_sentence_pub_->publish(nmea_message);
     }
   }

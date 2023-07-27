@@ -454,6 +454,11 @@ bool Config::configure3DM(RosNodeType* node)
       getParam<int32_t>(node, "gnss2_nmea_talker_id", gnss2_nmea_talker_id, 0);
       getParam<int32_t>(node, "filter_nmea_talker_id", filter_nmea_talker_id, 0);
 
+      // Save the talker IDs to a map so we can look up the right frame IDs
+      nmea_talker_id_to_frame_id_mapping_[MipMapping::nmeaFormatTalkerIdString(static_cast<mip::commands_3dm::NmeaMessage::TalkerID>(gnss1_nmea_talker_id))] = gnss_frame_id_[GNSS1_ID];
+      nmea_talker_id_to_frame_id_mapping_[MipMapping::nmeaFormatTalkerIdString(static_cast<mip::commands_3dm::NmeaMessage::TalkerID>(gnss2_nmea_talker_id))] = gnss_frame_id_[GNSS2_ID];
+      nmea_talker_id_to_frame_id_mapping_[MipMapping::nmeaFormatTalkerIdString(static_cast<mip::commands_3dm::NmeaMessage::TalkerID>(filter_nmea_talker_id))] = frame_id_;
+
       // Populate the NMEA message config options
       std::vector<mip::commands_3dm::NmeaMessage> formats;
       if (!populateNmeaMessageFormat(node, "imu_nmea_prkr_data_rate", mip::commands_3dm::NmeaMessage::TalkerID::IGNORED, mip::data_sensor::DESCRIPTOR_SET, mip::commands_3dm::NmeaMessage::MessageID::PKRR, &formats) ||

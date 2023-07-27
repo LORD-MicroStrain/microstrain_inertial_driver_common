@@ -149,6 +149,7 @@ public:
   // NMEA streaming parameters
   bool nmea_message_allow_duplicate_talker_ids_;
   float nmea_max_rate_hz_;
+  std::map<std::string, std::string> nmea_talker_id_to_frame_id_mapping_;
 
 private:
   /**
