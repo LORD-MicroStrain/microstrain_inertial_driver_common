@@ -152,7 +152,9 @@ bool RosConnection::configure(RosNodeType* config_node, RosMipDevice* device)
 
     std::string time_string(curr_time_buffer);
 
-    std::string filename = raw_file_directory + std::string("/") + device_info.model_name + std::string("_") +
+    if (raw_file_directory.back() != '/')
+      raw_file_directory += "/";
+    std::string filename = raw_file_directory + device_info.model_name + std::string("_") +
                            device_info.serial_number + std::string("_") + time_string + std::string(".bin");
 
     record_file_.open(filename, std::ios::out | std::ios::binary | std::ios::trunc);

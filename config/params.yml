@@ -66,7 +66,7 @@ raw_file_enable : False
 #       for serial data connections please ensure the baudrate is sufficient for the added data channels.     
 raw_file_include_support_data : False
 
-# The directory to store the raw data file (no trailing '/')
+# The directory to store the raw data file
 raw_file_directory : "/home/your_name"
 
 
@@ -82,7 +82,7 @@ raw_file_directory : "/home/your_name"
 #             Note: In order to use relative mode, you must configure filter_relative_position
 #             Transform will be published from earth_frame_id to map_frame_id using relative position configuration
 #             Transform between earth_frame_id and map_frame_id will also be published using rel_pos_configuration
-tf_mode : 1
+tf_mode : 0
 
 # Frame ID that most header.frame_id fields will be populated with.
 frame_id: "imu_link"
