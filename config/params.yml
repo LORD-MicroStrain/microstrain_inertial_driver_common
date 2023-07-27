@@ -75,7 +75,7 @@ raw_file_directory : "/home/your_name"
 # ****************************************************************** 
 
 # The mode in which we will publish transforms to the below frame IDs
-#     0 - No transforms will be published between any of the below frames
+#     0 - No transforms will be published between any of the non static frame ids. (if publish_mount_to_frame_id_transform is true, it will still be published)
 #     1 - Global mode:
 #             Transform will be published from earth_frame_id to target_frame_id containing global position
 #     2 - Relative mode:
@@ -408,7 +408,7 @@ gnss2_odometry_earth_data_rate : 0  # Rate of gnss_2/odometry_earth topic
 gnss2_time_data_rate           : 0  # Rate of gnss_2/time topic
 
 # The speed at which the individual Filter publishers will publish at.
-filter_human_readable_status_data_rate : 1  # Rate of ekf/human_readable_status
+filter_human_readable_status_data_rate : 1  # Rate of ekf/status
 filter_imu_data_rate                   : 0  # Rate of ekf/imu/data topic
                                             # Note: Both filter_odometry_earth_data_rate and filter_odometry_map_data_rate depend on the contents of this message.
                                             #       If either are set to a higher value, this message will be published at that rate.

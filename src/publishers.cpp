@@ -80,9 +80,10 @@ bool Publishers::configure()
   filter_llh_position_pub_->configure(node_, config_);
   filter_velocity_pub_->configure(node_, config_);
   filter_velocity_ecef_pub_->configure(node_, config_);
-  filter_odometry_earth_pub_->configure(node_, config_);
 
-  // Only publish relative odom if we support the relative position descriptor set
+  // Only publish odometry if we support the related position field
+  if (config_->mip_device_->supportsDescriptor(mip::data_filter::DESCRIPTOR_SET, mip::data_filter::EcefPos::FIELD_DESCRIPTOR) || config_->mip_device_->supportsDescriptor(mip::data_filter::DESCRIPTOR_SET, mip::data_filter::PositionLlh::FIELD_DESCRIPTOR))
+    filter_odometry_earth_pub_->configure(node_, config_);
   if (config_->mip_device_->supportsDescriptor(mip::data_filter::DESCRIPTOR_SET, mip::data_filter::RelPosNed::FIELD_DESCRIPTOR))
     filter_odometry_map_pub_->configure(node_, config_);
 
@@ -116,6 +117,7 @@ bool Publishers::configure()
   for (int i = 0; i < gnss_odometry_pub_.size(); i++) gnss_odometry_pub_[i]->getMessage()->child_frame_id = config_->earth_frame_id_;
   for (int i = 0; i < gnss_time_pub_.size(); i++) gnss_time_pub_[i]->getMessage()->header.frame_id = config_->gnss_frame_id_[i];
 
+  filter_human_readable_status_pub_->getMessage()->header.frame_id = config_->frame_id_;
   filter_imu_pub_->getMessage()->header.frame_id = config_->frame_id_;
   filter_llh_position_pub_->getMessage()->header.frame_id = config_->frame_id_;
   filter_velocity_pub_->getMessage()->header.frame_id = config_->frame_id_;
@@ -125,7 +127,7 @@ bool Publishers::configure()
   filter_odometry_map_pub_->getMessage()->header.frame_id = config_->map_frame_id_;
   filter_odometry_map_pub_->getMessage()->child_frame_id = config_->frame_id_;
 
-  // Other assorted static configuration
+  // Static covariance configuration
   auto imu_msg = imu_pub_->getMessage();
   auto mag_msg = mag_pub_->getMessage();
   std::copy(config_->imu_linear_cov_.begin(), config_->imu_linear_cov_.end(), imu_msg->linear_acceleration_covariance.begin());
@@ -135,6 +137,18 @@ bool Publishers::configure()
   pressure_pub_->getMessage()->variance = config_->imu_pressure_vairance_;
 
   supports_filter_ecef_ = config_->mip_device_->supportsDescriptor(mip::data_filter::DESCRIPTOR_SET, mip::data_filter::DATA_ECEF_POS);
+
+  // Human readable status message configuration
+  auto filter_human_readable_status_msg = filter_human_readable_status_pub_->getMessage();
+  filter_human_readable_status_msg->model_name = config_->mip_device_->device_info_.model_name;
+  filter_human_readable_status_msg->model_number = config_->mip_device_->device_info_.model_number;
+  filter_human_readable_status_msg->serial_number = config_->mip_device_->device_info_.serial_number;
+  filter_human_readable_status_msg->device_options = config_->mip_device_->device_info_.device_options;
+  filter_human_readable_status_msg->firmware_version = RosMipDevice::firmwareVersionString(config_->mip_device_->device_info_.firmware_version);
+  if (RosMipDevice::isPhilo(config_->mip_device_->device_info_))
+    filter_human_readable_status_msg->dual_antenna_fix_type = HumanReadableStatusMsg::UNSUPPORTED;
+  if (!config_->mip_device_->supportsDescriptorSet(mip::data_gnss::DESCRIPTOR_SET) && !config_->mip_device_->supportsDescriptorSet(mip::data_gnss::MIP_GNSS1_DATA_DESC_SET))
+    filter_human_readable_status_msg->gnss_state = HumanReadableStatusMsg::UNSUPPORTED;
 
   // Transform broadcaster setup
   static_transform_broadcaster_ = createStaticTransformBroadcaster(node_);
@@ -209,23 +223,50 @@ bool Publishers::configure()
     }
   }
 
-  // Configure the static transforms
-  if (config_->tf_mode_ != TF_MODE_OFF)
+  // Static antenna offsets
+  mip::CmdResult mip_cmd_result;
+  float gnss_antenna_offsets[3];
+  if (config_->mip_device_->supportsDescriptor(mip::commands_filter::DESCRIPTOR_SET, mip::commands_filter::CMD_ANTENNA_OFFSET))
   {
-    // Static antenna offsets
-    mip::CmdResult mip_cmd_result;
-    float gnss_antenna_offsets[3];
-    if (config_->mip_device_->supportsDescriptor(mip::commands_filter::DESCRIPTOR_SET, mip::commands_filter::CMD_ANTENNA_OFFSET))
+    if (!(mip_cmd_result = mip::commands_filter::readAntennaOffset(*(config_->mip_device_), gnss_antenna_offsets)))
     {
-      if (!(mip_cmd_result = mip::commands_filter::readAntennaOffset(*(config_->mip_device_), gnss_antenna_offsets)))
+      MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to read GNSS antenna offsets required for GNSS antenna transforms");
+      return false;
+    }
+    TransformStampedMsg& gnss_antenna_transform = gnss_antenna_transform_msg_[GNSS1_ID];
+    gnss_antenna_transform.header.stamp = rosTimeNow(node_);
+    gnss_antenna_transform.header.frame_id = config_->frame_id_;
+    gnss_antenna_transform.child_frame_id = config_->gnss_frame_id_[GNSS1_ID];
+    gnss_antenna_transform.transform.rotation = tf2::toMsg(tf2::Quaternion::getIdentity());
+
+    const tf2::Vector3 v_microstrain_vehicle_to_gnss_antenna(gnss_antenna_offsets[0], gnss_antenna_offsets[1], gnss_antenna_offsets[2]);
+    if (config_->use_enu_frame_)
+    {
+      const tf2::Vector3 v_ros_vehicle_to_gnss_antenna = config_->t_ros_vehicle_to_microstrain_vehicle_.inverse() * v_microstrain_vehicle_to_gnss_antenna;
+      gnss_antenna_transform.transform.translation.x = v_ros_vehicle_to_gnss_antenna.getX();
+      gnss_antenna_transform.transform.translation.y = v_ros_vehicle_to_gnss_antenna.getY();
+      gnss_antenna_transform.transform.translation.z = v_ros_vehicle_to_gnss_antenna.getZ();
+    }
+    else
+    {
+      gnss_antenna_transform.transform.translation.x = v_microstrain_vehicle_to_gnss_antenna.getX();
+      gnss_antenna_transform.transform.translation.y = v_microstrain_vehicle_to_gnss_antenna.getY();
+      gnss_antenna_transform.transform.translation.z = v_microstrain_vehicle_to_gnss_antenna.getZ();
+    }
+  }
+  else if (config_->mip_device_->supportsDescriptor(mip::commands_filter::DESCRIPTOR_SET, mip::commands_filter::CMD_MULTI_ANTENNA_OFFSET))
+  {
+    for (const uint8_t gnss_id : std::initializer_list<uint8_t>{GNSS1_ID, GNSS2_ID})
+    {
+      if (!(mip_cmd_result = mip::commands_filter::readMultiAntennaOffset(*(config_->mip_device_), gnss_id + 1, gnss_antenna_offsets)))
       {
         MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to read GNSS antenna offsets required for GNSS antenna transforms");
         return false;
       }
-      TransformStampedMsg& gnss_antenna_transform = gnss_antenna_transform_msg_[GNSS1_ID];
+      TransformStampedMsg& gnss_antenna_transform = gnss_antenna_transform_msg_[gnss_id];
       gnss_antenna_transform.header.stamp = rosTimeNow(node_);
       gnss_antenna_transform.header.frame_id = config_->frame_id_;
-      gnss_antenna_transform.child_frame_id = config_->gnss_frame_id_[GNSS1_ID];
+      gnss_antenna_transform.child_frame_id = config_->gnss_frame_id_[gnss_id];
       gnss_antenna_transform.transform.rotation = tf2::toMsg(tf2::Quaternion::getIdentity());
 
       const tf2::Vector3 v_microstrain_vehicle_to_gnss_antenna(gnss_antenna_offsets[0], gnss_antenna_offsets[1], gnss_antenna_offsets[2]);
@@ -243,68 +284,37 @@ bool Publishers::configure()
         gnss_antenna_transform.transform.translation.z = v_microstrain_vehicle_to_gnss_antenna.getZ();
       }
     }
-    else if (config_->mip_device_->supportsDescriptor(mip::commands_filter::DESCRIPTOR_SET, mip::commands_filter::CMD_MULTI_ANTENNA_OFFSET))
-    {
-      for (const uint8_t gnss_id : std::initializer_list<uint8_t>{GNSS1_ID, GNSS2_ID})
-      {
-        if (!(mip_cmd_result = mip::commands_filter::readMultiAntennaOffset(*(config_->mip_device_), gnss_id + 1, gnss_antenna_offsets)))
-        {
-          MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to read GNSS antenna offsets required for GNSS antenna transforms");
-          return false;
-        }
-        TransformStampedMsg& gnss_antenna_transform = gnss_antenna_transform_msg_[gnss_id];
-        gnss_antenna_transform.header.stamp = rosTimeNow(node_);
-        gnss_antenna_transform.header.frame_id = config_->frame_id_;
-        gnss_antenna_transform.child_frame_id = config_->gnss_frame_id_[gnss_id];
-        gnss_antenna_transform.transform.rotation = tf2::toMsg(tf2::Quaternion::getIdentity());
+  }
 
-        const tf2::Vector3 v_microstrain_vehicle_to_gnss_antenna(gnss_antenna_offsets[0], gnss_antenna_offsets[1], gnss_antenna_offsets[2]);
-        if (config_->use_enu_frame_)
-        {
-          const tf2::Vector3 v_ros_vehicle_to_gnss_antenna = config_->t_ros_vehicle_to_microstrain_vehicle_.inverse() * v_microstrain_vehicle_to_gnss_antenna;
-          gnss_antenna_transform.transform.translation.x = v_ros_vehicle_to_gnss_antenna.getX();
-          gnss_antenna_transform.transform.translation.y = v_ros_vehicle_to_gnss_antenna.getY();
-          gnss_antenna_transform.transform.translation.z = v_ros_vehicle_to_gnss_antenna.getZ();
-        }
-        else
-        {
-          gnss_antenna_transform.transform.translation.x = v_microstrain_vehicle_to_gnss_antenna.getX();
-          gnss_antenna_transform.transform.translation.y = v_microstrain_vehicle_to_gnss_antenna.getY();
-          gnss_antenna_transform.transform.translation.z = v_microstrain_vehicle_to_gnss_antenna.getZ();
-        }
-      }
+  // Static odometer offset
+  if (config_->mip_device_->supportsDescriptor(mip::commands_filter::DESCRIPTOR_SET, mip::commands_filter::CMD_SPEED_LEVER_ARM))
+  {
+    float speed_lever_arm[3];
+    if (!(mip_cmd_result = mip::commands_filter::readSpeedLeverArm(*(config_->mip_device_), 1, speed_lever_arm)))
+    {
+      MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to read Filter Speed Lever Arm required for odometer transform");
+      return false;
     }
 
-    // Static odometer offset
-    if (config_->mip_device_->supportsDescriptor(mip::commands_filter::DESCRIPTOR_SET, mip::commands_filter::CMD_SPEED_LEVER_ARM))
+    odometer_transform_msg_.header.stamp = rosTimeNow(node_);
+    odometer_transform_msg_.header.frame_id = config_->frame_id_;
+    odometer_transform_msg_.child_frame_id = config_->odometer_frame_id_;
+    odometer_transform_msg_.transform.rotation = tf2::toMsg(tf2::Quaternion::getIdentity());
+
+    // If running in the ENU frame, transform from our vehicle frame to the ROS vehicle frame
+    const tf2::Vector3 v_microstrain_vehicle_to_odometer(speed_lever_arm[0], speed_lever_arm[1], speed_lever_arm[2]);
+    if (config_->use_enu_frame_)
     {
-      float speed_lever_arm[3];
-      if (!(mip_cmd_result = mip::commands_filter::readSpeedLeverArm(*(config_->mip_device_), 1, speed_lever_arm)))
-      {
-        MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to read Filter Speed Lever Arm required for odometer transform");
-        return false;
-      }
-
-      odometer_transform_msg_.header.stamp = rosTimeNow(node_);
-      odometer_transform_msg_.header.frame_id = config_->frame_id_;
-      odometer_transform_msg_.child_frame_id = config_->odometer_frame_id_;
-      odometer_transform_msg_.transform.rotation = tf2::toMsg(tf2::Quaternion::getIdentity());
-
-      // If running in the ENU frame, transform from our vehicle frame to the ROS vehicle frame
-      const tf2::Vector3 v_microstrain_vehicle_to_odometer(speed_lever_arm[0], speed_lever_arm[1], speed_lever_arm[2]);
-      if (config_->use_enu_frame_)
-      {
-        const tf2::Vector3 v_ros_vehicle_to_odometer = config_->t_ros_vehicle_to_microstrain_vehicle_.inverse() * v_microstrain_vehicle_to_odometer;
-        odometer_transform_msg_.transform.translation.x = v_ros_vehicle_to_odometer.getX();
-        odometer_transform_msg_.transform.translation.x = v_ros_vehicle_to_odometer.getY();
-        odometer_transform_msg_.transform.translation.x = v_ros_vehicle_to_odometer.getZ();
-      }
-      else
-      {
-        odometer_transform_msg_.transform.translation.x = v_microstrain_vehicle_to_odometer.getX();
-        odometer_transform_msg_.transform.translation.y = v_microstrain_vehicle_to_odometer.getY();
-        odometer_transform_msg_.transform.translation.z = v_microstrain_vehicle_to_odometer.getZ();
-      }
+      const tf2::Vector3 v_ros_vehicle_to_odometer = config_->t_ros_vehicle_to_microstrain_vehicle_.inverse() * v_microstrain_vehicle_to_odometer;
+      odometer_transform_msg_.transform.translation.x = v_ros_vehicle_to_odometer.getX();
+      odometer_transform_msg_.transform.translation.x = v_ros_vehicle_to_odometer.getY();
+      odometer_transform_msg_.transform.translation.x = v_ros_vehicle_to_odometer.getZ();
+    }
+    else
+    {
+      odometer_transform_msg_.transform.translation.x = v_microstrain_vehicle_to_odometer.getX();
+      odometer_transform_msg_.transform.translation.y = v_microstrain_vehicle_to_odometer.getY();
+      odometer_transform_msg_.transform.translation.z = v_microstrain_vehicle_to_odometer.getZ();
     }
   }
 
@@ -421,22 +431,19 @@ bool Publishers::activate()
   nmea_sentence_pub_->activate();
 
   // Publish the static transforms
-  if (config_->tf_mode_ != TF_MODE_OFF)
-  {
-    if (config_->publish_mount_to_frame_id_transform_)
-      static_transform_broadcaster_->sendTransform(config_->mount_to_frame_id_transform_);
-    if (config_->tf_mode_ == TF_MODE_RELATIVE && static_earth_map_transform_)
-      static_transform_broadcaster_->sendTransform(earth_map_transform_msg_);
-    
-    // Static antenna offsets
-    // Note: If streaming the antenna offset correction topic, correct the offsets with them
-    if (config_->mip_device_->supportsDescriptorSet(mip::data_gnss::DESCRIPTOR_SET) || config_->mip_device_->supportsDescriptorSet(mip::data_gnss::MIP_GNSS1_DATA_DESC_SET))
-      static_transform_broadcaster_->sendTransform(gnss_antenna_transform_msg_[GNSS1_ID]);
-    if (config_->mip_device_->supportsDescriptorSet(mip::data_gnss::MIP_GNSS2_DATA_DESC_SET))
-      static_transform_broadcaster_->sendTransform(gnss_antenna_transform_msg_[GNSS2_ID]);
-    if (config_->mip_device_->supportsDescriptor(mip::commands_filter::DESCRIPTOR_SET, mip::commands_filter::CMD_SPEED_LEVER_ARM))
-      static_transform_broadcaster_->sendTransform(odometer_transform_msg_);
-  }
+  if (config_->publish_mount_to_frame_id_transform_)
+    static_transform_broadcaster_->sendTransform(config_->mount_to_frame_id_transform_);
+  if (config_->tf_mode_ == TF_MODE_RELATIVE && static_earth_map_transform_)
+    static_transform_broadcaster_->sendTransform(earth_map_transform_msg_);
+  
+  // Static antenna offsets
+  // Note: If streaming the antenna offset correction topic, correct the offsets with them
+  if (config_->mip_device_->supportsDescriptorSet(mip::data_gnss::DESCRIPTOR_SET) || config_->mip_device_->supportsDescriptorSet(mip::data_gnss::MIP_GNSS1_DATA_DESC_SET))
+    static_transform_broadcaster_->sendTransform(gnss_antenna_transform_msg_[GNSS1_ID]);
+  if (config_->mip_device_->supportsDescriptorSet(mip::data_gnss::MIP_GNSS2_DATA_DESC_SET))
+    static_transform_broadcaster_->sendTransform(gnss_antenna_transform_msg_[GNSS2_ID]);
+  if (config_->mip_device_->supportsDescriptor(mip::commands_filter::DESCRIPTOR_SET, mip::commands_filter::CMD_SPEED_LEVER_ARM))
+    static_transform_broadcaster_->sendTransform(odometer_transform_msg_);
 
   return true;
 }
@@ -1098,15 +1105,111 @@ void Publishers::handleFilterStatus(const mip::data_filter::Status& status, cons
   mip_filter_status_msg->status_flags_gq7_solution_error = status.status_flags.gq7SolutionError();
   mip_filter_status_pub_->publish(*mip_filter_status_msg);
 
-  // TODO: Populate the human readable status message
+  // Populate the human readable status message
   auto filter_human_readable_status_msg = filter_human_readable_status_pub_->getMessageToUpdate();
-  if (config_->mip_device_->device_info_.model_name == "") // Philo products
+  updateHeaderTime(&filter_human_readable_status_msg->header, descriptor_set, timestamp);
+  filter_human_readable_status_msg->status_flags.clear();
+  if (RosMipDevice::isPhilo(config_->mip_device_->device_info_))  // Philo products
   {
-
+    switch (status.filter_state)
+    {
+      case mip::data_filter::FilterMode::GX5_STARTUP:
+        filter_human_readable_status_msg->filter_state = HumanReadableStatusMsg::FILTER_STATE_GX5_STARTUP;
+        break;
+      case mip::data_filter::FilterMode::GX5_INIT:
+        filter_human_readable_status_msg->filter_state = HumanReadableStatusMsg::FILTER_STATE_GX5_INIT;
+        break;
+      case mip::data_filter::FilterMode::GX5_RUN_SOLUTION_VALID:
+        filter_human_readable_status_msg->filter_state = HumanReadableStatusMsg::FILTER_STATE_GX5_RUN_SOLUTION_VALID;
+        break;
+      case mip::data_filter::FilterMode::GX5_RUN_SOLUTION_ERROR:
+        filter_human_readable_status_msg->filter_state = HumanReadableStatusMsg::FILTER_STATE_GX5_RUN_SOLUTION_ERROR;
+        break;
+    }
+    if (status.status_flags.gx5InitNoAttitude())
+      filter_human_readable_status_msg->status_flags.push_back(HumanReadableStatusMsg::STATUS_FLAGS_GX5_INIT_NO_ATTITUDE);
+    if (status.status_flags.gx5InitNoPositionVelocity())
+      filter_human_readable_status_msg->status_flags.push_back(HumanReadableStatusMsg::STATUS_FLAGS_GX5_INIT_NO_POSITION_VELOCITY);
+    if (status.status_flags.gx5RunImuUnavailable())
+      filter_human_readable_status_msg->status_flags.push_back(HumanReadableStatusMsg::STATUS_FLAGS_GX5_RUN_IMU_UNAVAILABLE);
+    if (status.status_flags.gx5RunGpsUnavailable())
+      filter_human_readable_status_msg->status_flags.push_back(HumanReadableStatusMsg::STATUS_FLAGS_GX5_RUN_GPS_UNAVAILABLE);
+    if (status.status_flags.gx5RunMatrixSingularity())
+      filter_human_readable_status_msg->status_flags.push_back(HumanReadableStatusMsg::STATUS_FLAGS_GX5_RUN_MATRIX_SINGULARITY);
+    if (status.status_flags.gx5RunPositionCovarianceWarning())
+      filter_human_readable_status_msg->status_flags.push_back(HumanReadableStatusMsg::STATUS_FLAGS_GX5_RUN_POSITION_COVARIANCE_WARNING);
+    if (status.status_flags.gx5RunVelocityCovarianceWarning())
+      filter_human_readable_status_msg->status_flags.push_back(HumanReadableStatusMsg::STATUS_FLAGS_GX5_RUN_VELOCITY_COVARIANCE_WARNING);
+    if (status.status_flags.gx5RunAttitudeCovarianceWarning())
+      filter_human_readable_status_msg->status_flags.push_back(HumanReadableStatusMsg::STATUS_FLAGS_GX5_RUN_ATTITUDE_COVARIANCE_WARNING);
+    if (status.status_flags.gx5RunNanInSolutionWarning())
+      filter_human_readable_status_msg->status_flags.push_back(HumanReadableStatusMsg::STATUS_FLAGS_GX5_RUN_NAN_IN_SOLUTION_WARNING);
+    if (status.status_flags.gx5RunGyroBiasEstHighWarning())
+      filter_human_readable_status_msg->status_flags.push_back(HumanReadableStatusMsg::STATUS_FLAGS_GX5_RUN_GYRO_BIAS_EST_HIGH_WARNING);
+    if (status.status_flags.gx5RunAccelBiasEstHighWarning())
+      filter_human_readable_status_msg->status_flags.push_back(HumanReadableStatusMsg::STATUS_FLAGS_GX5_RUN_ACCEL_BIAS_EST_HIGH_WARNING);
+    if (status.status_flags.gx5RunGyroScaleFactorEstHighWarning())
+      filter_human_readable_status_msg->status_flags.push_back(HumanReadableStatusMsg::STATUS_FLAGS_GX5_RUN_GYRO_SCALE_FACTOR_EST_HIGH_WARNING);
+    if (status.status_flags.gx5RunAccelScaleFactorEstHighWarning())
+      filter_human_readable_status_msg->status_flags.push_back(HumanReadableStatusMsg::STATUS_FLAGS_GX5_RUN_ACCEL_SCALE_FACTOR_EST_HIGH_WARNING);
+    if (status.status_flags.gx5RunMagBiasEstHighWarning())
+      filter_human_readable_status_msg->status_flags.push_back(HumanReadableStatusMsg::STATUS_FLAGS_GX5_RUN_MAG_BIAS_EST_HIGH_WARNING);
+    if (status.status_flags.gx5RunAntOffsetCorrectionEstHighWarning())
+      filter_human_readable_status_msg->status_flags.push_back(HumanReadableStatusMsg::STATUS_FLAGS_GX5_RUN_ANT_OFFSET_CORRECTION_EST_HIGH_WARNING);
+    if (status.status_flags.gx5RunMagHardIronEstHighWarning())
+      filter_human_readable_status_msg->status_flags.push_back(HumanReadableStatusMsg::STATUS_FLAGS_GX5_RUN_MAG_HARD_IRON_EST_HIGH_WARNING);
+    if (status.status_flags.gx5RunMagSoftIronEstHighWarning())
+      filter_human_readable_status_msg->status_flags.push_back(HumanReadableStatusMsg::STATUS_FLAGS_GX5_RUN_MAG_SOFT_IRON_EST_HIGH_WARNING);
   }
-  else if (config_->mip_device_->device_info_.model_name == "")  // Prospect producst
+  else if (RosMipDevice::isProspect(config_->mip_device_->device_info_))  // Prospect products
   {
-
+    switch (status.filter_state)
+    {
+      case mip::data_filter::FilterMode::INIT:
+        filter_human_readable_status_msg->filter_state = HumanReadableStatusMsg::FILTER_STATE_GQ7_INIT;
+        break;
+      case mip::data_filter::FilterMode::VERT_GYRO:
+        filter_human_readable_status_msg->filter_state = HumanReadableStatusMsg::FILTER_STATE_GQ7_VERT_GYRO;
+        break;
+      case mip::data_filter::FilterMode::AHRS:
+        filter_human_readable_status_msg->filter_state = HumanReadableStatusMsg::FILTER_STATE_GQ7_AHRS;
+        break;
+      case mip::data_filter::FilterMode::FULL_NAV:
+        filter_human_readable_status_msg->filter_state = HumanReadableStatusMsg::FILTER_STATE_GQ7_FULL_NAV;
+        break;
+    }
+    switch (status.status_flags.gq7FilterCondition())
+    {
+      case 1:
+        filter_human_readable_status_msg->status_flags.push_back(HumanReadableStatusMsg::STATUS_FLAGS_GQ7_FILTER_CONDITION_STABLE);
+        break;
+      case 2:
+        filter_human_readable_status_msg->status_flags.push_back(HumanReadableStatusMsg::STATUS_FLAGS_GQ7_FILTER_CONDITION_CONVERGING);
+        break;
+      case 3:
+        filter_human_readable_status_msg->status_flags.push_back(HumanReadableStatusMsg::STATUS_FLAGS_GQ7_FILTER_CONDITION_UNSTABLE);
+        break;
+    }
+    if (status.status_flags.gq7RollPitchWarning())
+      filter_human_readable_status_msg->status_flags.push_back(HumanReadableStatusMsg::STATUS_FLAGS_GQ7_ROLL_PITCH_WARNING);
+    if (status.status_flags.gq7HeadingWarning())
+      filter_human_readable_status_msg->status_flags.push_back(HumanReadableStatusMsg::STATUS_FLAGS_GQ7_HEADING_WARNING);
+    if (status.status_flags.gq7PositionWarning())
+      filter_human_readable_status_msg->status_flags.push_back(HumanReadableStatusMsg::STATUS_FLAGS_GQ7_POSITION_WARNING);
+    if (status.status_flags.gq7VelocityWarning())
+      filter_human_readable_status_msg->status_flags.push_back(HumanReadableStatusMsg::STATUS_FLAGS_GQ7_VELOCITY_WARNING);
+    if (status.status_flags.gq7ImuBiasWarning())
+      filter_human_readable_status_msg->status_flags.push_back(HumanReadableStatusMsg::STATUS_FLAGS_GQ7_IMU_BIAS_WARNING);
+    if (status.status_flags.gq7GnssClkWarning())
+      filter_human_readable_status_msg->status_flags.push_back(HumanReadableStatusMsg::STATUS_FLAGS_GQ7_GNSS_CLK_WARNING);
+    if (status.status_flags.gq7AntennaLeverArmWarning())
+      filter_human_readable_status_msg->status_flags.push_back(HumanReadableStatusMsg::STATUS_FLAGS_GQ7_ANTENNA_LEVER_ARM_WARNING);
+    if (status.status_flags.gq7MountingTransformWarning())
+      filter_human_readable_status_msg->status_flags.push_back(HumanReadableStatusMsg::STATUS_FLAGS_GQ7_MOUNTING_TRANSFORM_WARNING);
+    if (status.status_flags.gq7TimeSyncWarning())
+      filter_human_readable_status_msg->status_flags.push_back(HumanReadableStatusMsg::STATUS_FLAGS_GQ7_TIME_SYNC_WARNING);
+    if (status.status_flags.gq7SolutionError())
+      filter_human_readable_status_msg->status_flags.push_back(HumanReadableStatusMsg::STATUS_FLAGS_GQ7_SOLUTION_ERROR);
   }
 }
 
@@ -1482,6 +1585,13 @@ void Publishers::handleFilterGnssPosAidStatus(const mip::data_filter::GnssPosAid
     filter_llh_position_msg->status.status = NavSatFixMsg::_status_type::STATUS_SBAS_FIX;
   else if (filter_llh_position_msg->status.status <= NavSatFixMsg::_status_type::STATUS_FIX && !mip_filter_gnss_position_aiding_status_msg->no_fix)
     filter_llh_position_msg->status.status = NavSatFixMsg::_status_type::STATUS_FIX;
+  
+  // Filter human readable status message (not counted as updating)
+  auto filter_human_readable_status_msg = filter_human_readable_status_pub_->getMessage();
+  if ((filter_human_readable_status_msg->gnss_state == HumanReadableStatusMsg::GNSS_STATE_RTK_FLOAT || filter_human_readable_status_msg->gnss_state == HumanReadableStatusMsg::GNSS_STATE_SBAS || filter_human_readable_status_msg->gnss_state == HumanReadableStatusMsg::GNSS_STATE_3D_FIX || filter_human_readable_status_msg->gnss_state == HumanReadableStatusMsg::GNSS_STATE_NO_FIX) && mip_filter_gnss_position_aiding_status_msg->integer_fix)
+    filter_human_readable_status_msg->gnss_state = HumanReadableStatusMsg::GNSS_STATE_RTK_FIXED;
+  else if ((filter_human_readable_status_msg->gnss_state == HumanReadableStatusMsg::GNSS_STATE_SBAS || filter_human_readable_status_msg->gnss_state == HumanReadableStatusMsg::GNSS_STATE_3D_FIX || filter_human_readable_status_msg->gnss_state == HumanReadableStatusMsg::GNSS_STATE_NO_FIX) && mip_filter_gnss_position_aiding_status_msg->differential)
+    filter_human_readable_status_msg->gnss_state = HumanReadableStatusMsg::GNSS_STATE_RTK_FIXED;
 }
 
 void Publishers::handleFilterMultiAntennaOffsetCorrection(const mip::data_filter::MultiAntennaOffsetCorrection& multi_antenna_offset_correction, const uint8_t descriptor_set, mip::Timestamp timestamp)
@@ -1503,18 +1613,28 @@ void Publishers::handleFilterMultiAntennaOffsetCorrection(const mip::data_filter
   transform_broadcaster_->sendTransform(gnss_antenna_transform);
 }
 
-void Publishers::handleFilterGnssDualAntennaStatus(const mip::data_filter::GnssDualAntennaStatus& mip_filter_gnss_dual_antenna_status, const uint8_t descriptor_set, mip::Timestamp timestamp)
+void Publishers::handleFilterGnssDualAntennaStatus(const mip::data_filter::GnssDualAntennaStatus& gnss_dual_antenna_status, const uint8_t descriptor_set, mip::Timestamp timestamp)
 {
+  // Filter GNSS Dual Antenna status
   auto mip_filter_gnss_dual_antenna_status_msg = mip_filter_gnss_dual_antenna_status_pub_->getMessage();
   updateMicrostrainHeader(&(mip_filter_gnss_dual_antenna_status_msg->header), descriptor_set);
-  mip_filter_gnss_dual_antenna_status_msg->time_of_week = mip_filter_gnss_dual_antenna_status.time_of_week;
-  mip_filter_gnss_dual_antenna_status_msg->heading = mip_filter_gnss_dual_antenna_status.heading;
-  mip_filter_gnss_dual_antenna_status_msg->heading_unc = mip_filter_gnss_dual_antenna_status.heading_unc;
-  mip_filter_gnss_dual_antenna_status_msg->fix_type = static_cast<uint8_t>(mip_filter_gnss_dual_antenna_status.fix_type);
-  mip_filter_gnss_dual_antenna_status_msg->status_flags_rcv_1_data_valid = mip_filter_gnss_dual_antenna_status.status_flags & mip::data_filter::GnssDualAntennaStatus::DualAntennaStatusFlags::RCV_1_DATA_VALID;
-  mip_filter_gnss_dual_antenna_status_msg->status_flags_rcv_2_data_valid = mip_filter_gnss_dual_antenna_status.status_flags & mip::data_filter::GnssDualAntennaStatus::DualAntennaStatusFlags::RCV_2_DATA_VALID;
-  mip_filter_gnss_dual_antenna_status_msg->status_flags_antenna_offsets_valid = mip_filter_gnss_dual_antenna_status.status_flags & mip::data_filter::GnssDualAntennaStatus::DualAntennaStatusFlags::ANTENNA_OFFSETS_VALID;
+  mip_filter_gnss_dual_antenna_status_msg->time_of_week = gnss_dual_antenna_status.time_of_week;
+  mip_filter_gnss_dual_antenna_status_msg->heading = gnss_dual_antenna_status.heading;
+  mip_filter_gnss_dual_antenna_status_msg->heading_unc = gnss_dual_antenna_status.heading_unc;
+  mip_filter_gnss_dual_antenna_status_msg->fix_type = static_cast<uint8_t>(gnss_dual_antenna_status.fix_type);
+  mip_filter_gnss_dual_antenna_status_msg->status_flags_rcv_1_data_valid = gnss_dual_antenna_status.status_flags.rcv1DataValid();
+  mip_filter_gnss_dual_antenna_status_msg->status_flags_rcv_2_data_valid = gnss_dual_antenna_status.status_flags.rcv2DataValid();
+  mip_filter_gnss_dual_antenna_status_msg->status_flags_antenna_offsets_valid = gnss_dual_antenna_status.status_flags.antennaOffsetsValid();
   mip_filter_gnss_dual_antenna_status_pub_->publish(*mip_filter_gnss_dual_antenna_status_msg);
+
+  // Filter Human Readable status
+  auto filter_human_readable_status_msg = filter_human_readable_status_pub_->getMessage();
+  if (gnss_dual_antenna_status.fix_type == mip::data_filter::GnssDualAntennaStatus::FixType::FIX_NONE)
+    filter_human_readable_status_msg->dual_antenna_fix_type = HumanReadableStatusMsg::DUAL_ANTENNA_FIX_TYPE_NONE;
+  if (gnss_dual_antenna_status.fix_type == mip::data_filter::GnssDualAntennaStatus::FixType::FIX_DA_FLOAT)
+    filter_human_readable_status_msg->dual_antenna_fix_type = HumanReadableStatusMsg::DUAL_ANTENNA_FIX_TYPE_FLOAT;
+  if (gnss_dual_antenna_status.fix_type == mip::data_filter::GnssDualAntennaStatus::FixType::FIX_DA_FIXED)
+    filter_human_readable_status_msg->dual_antenna_fix_type = HumanReadableStatusMsg::DUAL_ANTENNA_FIX_TYPE_FIXED;
 }
 
 void Publishers::handleFilterAidingMeasurementSummary(const mip::data_filter::AidingMeasurementSummary& aiding_measurement_summary, const uint8_t descriptor_set, mip::Timestamp timestamp)
@@ -1544,7 +1664,8 @@ void Publishers::handleAfterPacket(const mip::Packet& packet, mip::Timestamp tim
     event_source_mapping_[packet.descriptorSet()].trigger_id = 0;
   
   // Reset some state in messages that need to have it reset
-  filter_human_readable_status_pub_->getMessage()->gnss_state = HumanReadableStatusMsg::GNSS_STATE_NO_FIX;
+  if (filter_human_readable_status_pub_->getMessage()->gnss_state != HumanReadableStatusMsg::UNSUPPORTED)
+    filter_human_readable_status_pub_->getMessage()->gnss_state = HumanReadableStatusMsg::GNSS_STATE_NO_FIX;
   filter_llh_position_pub_->getMessage()->status.status = NavSatFixMsg::_status_type::STATUS_NO_FIX;
 }
 
@@ -1552,6 +1673,14 @@ void Publishers::updateMicrostrainHeader(MicrostrainHeaderMsg* microstrain_heade
 {
   // Update the ROS header with the ROS timestamp
   microstrain_header->header.stamp = rosTimeNow(node_);
+
+  // Default frame ID is determined by the descriptor set
+  if (descriptor_set == mip::data_gnss::DESCRIPTOR_SET || descriptor_set == mip::data_gnss::MIP_GNSS1_DATA_DESC_SET)
+    microstrain_header->header.frame_id = config_->gnss_frame_id_[GNSS1_ID];
+  else if (descriptor_set == mip::data_gnss::MIP_GNSS2_DATA_DESC_SET)
+    microstrain_header->header.frame_id = config_->gnss_frame_id_[GNSS2_ID];
+  else
+    microstrain_header->header.frame_id = config_->frame_id_;
 
   // Set the event source if it was set for this packet
   if (event_source_mapping_.find(descriptor_set) != event_source_mapping_.end())

@@ -223,6 +223,13 @@ bool Config::setupDevice(RosNodeType* node)
   if (!mip_publisher_mapping_->configure(node))
     return false;
 
+  // If the device has no way of obtaining a global position, disable global transform mode
+  if (tf_mode_ == TF_MODE_GLOBAL && !mip_device_->supportsDescriptor(mip::data_filter::DESCRIPTOR_SET, mip::data_filter::EcefPos::DESCRIPTOR_SET) && !mip_device_->supportsDescriptor(mip::data_filter::DESCRIPTOR_SET, mip::data_filter::PositionLlh::DESCRIPTOR_SET))
+  {
+    MICROSTRAIN_ERROR(node_, "Device does not support Global tf_mode as it has no way of obtaining global position");
+    return false;
+  }
+
   // Send commands to the device to configure it
   if (device_setup_)
   {

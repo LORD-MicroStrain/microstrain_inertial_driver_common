@@ -68,6 +68,20 @@ class RosMipDevice
   mip::DeviceInterface& device();
 
   /**
+   * \brief Determines if the given device info is from a prospect device
+   * \param device_info Populated and null terminated string version of the device info struct fetched from a device
+   * \return true if the device is a prospect device, false otherwise
+  */
+  static bool isProspect(const mip::commands_base::BaseDeviceInfo& device_info);
+
+  /**
+   * \brief Determines if the given device info is from a philo device
+   * \param device_info Populated and null terminated string version of the device info struct fetched from a device
+   * \return true if the device is a philo device, false otherwise
+  */
+  static bool isPhilo(const mip::commands_base::BaseDeviceInfo& device_info);
+
+  /**
    * \brief Sends data to the device
    * \param data Byte array to send to the device
    * \param data_len Length in bytes of the data array
