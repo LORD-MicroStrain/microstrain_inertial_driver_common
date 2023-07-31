@@ -141,11 +141,12 @@ bool Publishers::configure()
 
   // Human readable status message configuration
   auto filter_human_readable_status_msg = filter_human_readable_status_pub_->getMessage();
-  filter_human_readable_status_msg->model_name = config_->mip_device_->device_info_.model_name;
-  filter_human_readable_status_msg->model_number = config_->mip_device_->device_info_.model_number;
-  filter_human_readable_status_msg->serial_number = config_->mip_device_->device_info_.serial_number;
-  filter_human_readable_status_msg->device_options = config_->mip_device_->device_info_.device_options;
-  filter_human_readable_status_msg->firmware_version = RosMipDevice::firmwareVersionString(config_->mip_device_->device_info_.firmware_version);
+  filter_human_readable_status_msg->device_info.firmware_version = RosMipDevice::firmwareVersionString(config_->mip_device_->device_info_.firmware_version);
+  filter_human_readable_status_msg->device_info.model_name = config_->mip_device_->device_info_.model_name;
+  filter_human_readable_status_msg->device_info.model_number = config_->mip_device_->device_info_.model_number;
+  filter_human_readable_status_msg->device_info.serial_number = config_->mip_device_->device_info_.serial_number;
+  filter_human_readable_status_msg->device_info.lot_number = config_->mip_device_->device_info_.lot_number;
+  filter_human_readable_status_msg->device_info.device_options = config_->mip_device_->device_info_.device_options;
   if (RosMipDevice::isPhilo(config_->mip_device_->device_info_))
     filter_human_readable_status_msg->dual_antenna_fix_type = HumanReadableStatusMsg::UNSUPPORTED;
   if (!config_->mip_device_->supportsDescriptorSet(mip::data_gnss::DESCRIPTOR_SET) && !config_->mip_device_->supportsDescriptorSet(mip::data_gnss::MIP_GNSS1_DATA_DESC_SET))
@@ -760,16 +761,16 @@ void Publishers::handleSensorOverrangeStatus(const mip::data_sensor::OverrangeSt
 {
   auto mip_sensor_overrange_status_msg = mip_sensor_overrange_status_pub_->getMessage();
   updateMicrostrainHeader(&(mip_sensor_overrange_status_msg->header), descriptor_set);
-  mip_sensor_overrange_status_msg->status_accel_x = overrange_status.status.accelX();
-  mip_sensor_overrange_status_msg->status_accel_y = overrange_status.status.accelY();
-  mip_sensor_overrange_status_msg->status_accel_z = overrange_status.status.accelZ();
-  mip_sensor_overrange_status_msg->status_gyro_x = overrange_status.status.gyroX();
-  mip_sensor_overrange_status_msg->status_gyro_y = overrange_status.status.gyroY();
-  mip_sensor_overrange_status_msg->status_gyro_z = overrange_status.status.gyroZ();
-  mip_sensor_overrange_status_msg->status_mag_x = overrange_status.status.magX();
-  mip_sensor_overrange_status_msg->status_mag_y = overrange_status.status.magY();
-  mip_sensor_overrange_status_msg->status_mag_z = overrange_status.status.magZ();
-  mip_sensor_overrange_status_msg->status_press = overrange_status.status.press();
+  mip_sensor_overrange_status_msg->status.accel_x = overrange_status.status.accelX();
+  mip_sensor_overrange_status_msg->status.accel_y = overrange_status.status.accelY();
+  mip_sensor_overrange_status_msg->status.accel_z = overrange_status.status.accelZ();
+  mip_sensor_overrange_status_msg->status.gyro_x = overrange_status.status.gyroX();
+  mip_sensor_overrange_status_msg->status.gyro_y = overrange_status.status.gyroY();
+  mip_sensor_overrange_status_msg->status.gyro_z = overrange_status.status.gyroZ();
+  mip_sensor_overrange_status_msg->status.mag_x = overrange_status.status.magX();
+  mip_sensor_overrange_status_msg->status.mag_y = overrange_status.status.magY();
+  mip_sensor_overrange_status_msg->status.mag_z = overrange_status.status.magZ();
+  mip_sensor_overrange_status_msg->status.press = overrange_status.status.press();
   mip_sensor_overrange_status_pub_->publish(*mip_sensor_overrange_status_msg);
 }
 
@@ -914,8 +915,8 @@ void Publishers::handleGnssFixInfo(const mip::data_gnss::FixInfo& fix_info, cons
   updateMicrostrainHeader(&(mip_gnss_fix_info_msg->header), descriptor_set);
   mip_gnss_fix_info_msg->fix_type = static_cast<uint8_t>(fix_info.fix_type);
   mip_gnss_fix_info_msg->num_sv = fix_info.num_sv;
-  mip_gnss_fix_info_msg->sbas_used = fix_info.fix_flags & mip::data_gnss::FixInfo::FixFlags::SBAS_USED;
-  mip_gnss_fix_info_msg->dngss_used = fix_info.fix_flags & mip::data_gnss::FixInfo::FixFlags::DGNSS_USED;
+  mip_gnss_fix_info_msg->fix_flags.sbas_used = fix_info.fix_flags & mip::data_gnss::FixInfo::FixFlags::SBAS_USED;
+  mip_gnss_fix_info_msg->fix_flags.dgnss_used = fix_info.fix_flags & mip::data_gnss::FixInfo::FixFlags::DGNSS_USED;
   mip_gnss_fix_info_pub_[gnss_index]->publish(*mip_gnss_fix_info_msg);
 
   // GNSS fix message (not counted as updating)
@@ -986,10 +987,10 @@ void Publishers::handleGnssSbasInfo(const mip::data_gnss::SbasInfo& sbas_info, c
   mip_gnss_sbas_info_msg->sbas_system = static_cast<uint8_t>(sbas_info.sbas_system);
   mip_gnss_sbas_info_msg->sbas_id = sbas_info.sbas_id;
   mip_gnss_sbas_info_msg->count = sbas_info.count;
-  mip_gnss_sbas_info_msg->status_range_available = sbas_info.sbas_status.rangeAvailable();
-  mip_gnss_sbas_info_msg->status_corrections_available = sbas_info.sbas_status.correctionsAvailable();
-  mip_gnss_sbas_info_msg->status_integrity_available = sbas_info.sbas_status.integrityAvailable();
-  mip_gnss_sbas_info_msg->status_test_mode = sbas_info.sbas_status.testMode();
+  mip_gnss_sbas_info_msg->sbas_status.range_available = sbas_info.sbas_status.rangeAvailable();
+  mip_gnss_sbas_info_msg->sbas_status.corrections_available = sbas_info.sbas_status.correctionsAvailable();
+  mip_gnss_sbas_info_msg->sbas_status.integrity_available = sbas_info.sbas_status.integrityAvailable();
+  mip_gnss_sbas_info_msg->sbas_status.test_mode = sbas_info.sbas_status.testMode();
   mip_gnss_sbas_info_pub_[gnss_index]->publish(*mip_gnss_sbas_info_msg);
 }
 
@@ -1012,22 +1013,22 @@ void Publishers::handleRtkCorrectionsStatus(const mip::data_gnss::RtkCorrections
       mip_gnss_corrections_rtk_corrections_status_msg->time_of_week = rtk_corrections_status.time_of_week;
       mip_gnss_corrections_rtk_corrections_status_msg->week_number = rtk_corrections_status.week_number;
 
-      mip_gnss_corrections_rtk_corrections_status_msg->epoch_status_antenna_location_received = rtk_corrections_status.epoch_status.antennaLocationReceived();
-      mip_gnss_corrections_rtk_corrections_status_msg->epoch_status_antenna_description_received = rtk_corrections_status.epoch_status.antennaDescriptionReceived();
-      mip_gnss_corrections_rtk_corrections_status_msg->epoch_status_gps_received = rtk_corrections_status.epoch_status.gpsReceived();
-      mip_gnss_corrections_rtk_corrections_status_msg->epoch_status_glonass_received = rtk_corrections_status.epoch_status.glonassReceived();
-      mip_gnss_corrections_rtk_corrections_status_msg->epoch_status_dongle_status_read_failed = rtk_corrections_status.epoch_status.dongleStatusReadFailed();
+      mip_gnss_corrections_rtk_corrections_status_msg->epoch_status.antenna_location_received = rtk_corrections_status.epoch_status.antennaLocationReceived();
+      mip_gnss_corrections_rtk_corrections_status_msg->epoch_status.antenna_description_received = rtk_corrections_status.epoch_status.antennaDescriptionReceived();
+      mip_gnss_corrections_rtk_corrections_status_msg->epoch_status.gps_received = rtk_corrections_status.epoch_status.gpsReceived();
+      mip_gnss_corrections_rtk_corrections_status_msg->epoch_status.glonass_received = rtk_corrections_status.epoch_status.glonassReceived();
+      mip_gnss_corrections_rtk_corrections_status_msg->epoch_status.dongle_status_read_failed = rtk_corrections_status.epoch_status.dongleStatusReadFailed();
 
-      mip_gnss_corrections_rtk_corrections_status_msg->dongle_status_modem_state = dongle_status.modemState();
-      mip_gnss_corrections_rtk_corrections_status_msg->dongle_status_connection_type = dongle_status.connectionType();
-      mip_gnss_corrections_rtk_corrections_status_msg->dongle_status_rssi = -1 * dongle_status.rssi();
-      mip_gnss_corrections_rtk_corrections_status_msg->dongle_status_signal_quality = dongle_status.signalQuality();
-      mip_gnss_corrections_rtk_corrections_status_msg->dongle_status_tower_change_indicator = dongle_status.towerChangeIndicator();
-      mip_gnss_corrections_rtk_corrections_status_msg->dongle_status_nmea_timeout_flag = dongle_status.nmeaTimeout();
-      mip_gnss_corrections_rtk_corrections_status_msg->dongle_status_server_timeout_flag = dongle_status.serverTimeout();
-      mip_gnss_corrections_rtk_corrections_status_msg->dongle_status_rtcm_timeout_flag = dongle_status.correctionsTimeout();
-      mip_gnss_corrections_rtk_corrections_status_msg->dongle_status_device_out_of_range_flag = dongle_status.deviceOutOfRange();
-      mip_gnss_corrections_rtk_corrections_status_msg->dongle_status_corrections_unavailable_flag = dongle_status.correctionsUnavailable();
+      mip_gnss_corrections_rtk_corrections_status_msg->dongle_status.modem_state = dongle_status.modemState();
+      mip_gnss_corrections_rtk_corrections_status_msg->dongle_status.connection_type = dongle_status.connectionType();
+      mip_gnss_corrections_rtk_corrections_status_msg->dongle_status.rssi = -1 * dongle_status.rssi();
+      mip_gnss_corrections_rtk_corrections_status_msg->dongle_status.signal_quality = dongle_status.signalQuality();
+      mip_gnss_corrections_rtk_corrections_status_msg->dongle_status.tower_change_indicator = dongle_status.towerChangeIndicator();
+      mip_gnss_corrections_rtk_corrections_status_msg->dongle_status.nmea_timeout_flag = dongle_status.nmeaTimeout();
+      mip_gnss_corrections_rtk_corrections_status_msg->dongle_status.server_timeout_flag = dongle_status.serverTimeout();
+      mip_gnss_corrections_rtk_corrections_status_msg->dongle_status.rtcm_timeout_flag = dongle_status.correctionsTimeout();
+      mip_gnss_corrections_rtk_corrections_status_msg->dongle_status.device_out_of_range_flag = dongle_status.deviceOutOfRange();
+      mip_gnss_corrections_rtk_corrections_status_msg->dongle_status.corrections_unavailable_flag = dongle_status.correctionsUnavailable();
 
       mip_gnss_corrections_rtk_corrections_status_msg->gps_correction_latency = rtk_corrections_status.gps_correction_latency;
       mip_gnss_corrections_rtk_corrections_status_msg->glonass_correction_latency = rtk_corrections_status.glonass_correction_latency;
@@ -1075,35 +1076,35 @@ void Publishers::handleFilterStatus(const mip::data_filter::Status& status, cons
   mip_filter_status_msg->dynamics_mode = static_cast<uint16_t>(status.dynamics_mode);
 
   // Populate both the philo and prospect flags, it is up to the customer to determine which device they have
-  mip_filter_status_msg->status_flags_gx5_init_no_attitude = status.status_flags.gx5InitNoAttitude();
-  mip_filter_status_msg->status_flags_gx5_init_no_position_velocity = status.status_flags.gx5InitNoPositionVelocity();
-  mip_filter_status_msg->status_flags_gx5_run_imu_unavailable = status.status_flags.gx5RunImuUnavailable();
-  mip_filter_status_msg->status_flags_gx5_run_gps_unavailable = status.status_flags.gx5RunGpsUnavailable();
-  mip_filter_status_msg->status_flags_gx5_run_matrix_singularity = status.status_flags.gx5RunMatrixSingularity();
-  mip_filter_status_msg->status_flags_gx5_run_position_covariance_warning = status.status_flags.gx5RunPositionCovarianceWarning();
-  mip_filter_status_msg->status_flags_gx5_run_velocity_covariance_warning = status.status_flags.gx5RunVelocityCovarianceWarning();
-  mip_filter_status_msg->status_flags_gx5_run_attitude_covariance_warning = status.status_flags.gx5RunAttitudeCovarianceWarning();
-  mip_filter_status_msg->status_flags_gx5_run_nan_in_solution_warning = status.status_flags.gx5RunNanInSolutionWarning();
-  mip_filter_status_msg->status_flags_gx5_run_gyro_bias_est_high_warning = status.status_flags.gx5RunGyroBiasEstHighWarning();
-  mip_filter_status_msg->status_flags_gx5_run_accel_bias_est_high_warning = status.status_flags.gx5RunAccelBiasEstHighWarning();
-  mip_filter_status_msg->status_flags_gx5_run_gyro_scale_factor_est_high_warning = status.status_flags.gx5RunGyroScaleFactorEstHighWarning();
-  mip_filter_status_msg->status_flags_gx5_run_accel_scale_factor_est_high_warning = status.status_flags.gx5RunAccelScaleFactorEstHighWarning();
-  mip_filter_status_msg->status_flags_gx5_run_mag_bias_est_high_warning = status.status_flags.gx5RunMagBiasEstHighWarning();
-  mip_filter_status_msg->status_flags_gx5_run_ant_offset_correction_est_high_warning = status.status_flags.gx5RunAntOffsetCorrectionEstHighWarning();
-  mip_filter_status_msg->status_flags_gx5_run_mag_hard_iron_est_high_warning = status.status_flags.gx5RunMagHardIronEstHighWarning();
-  mip_filter_status_msg->status_flags_gx5_run_mag_soft_iron_est_high_warning = status.status_flags.gx5RunMagSoftIronEstHighWarning();
+  mip_filter_status_msg->gx5_status_flags.init_no_attitude = status.status_flags.gx5InitNoAttitude();
+  mip_filter_status_msg->gx5_status_flags.init_no_position_velocity = status.status_flags.gx5InitNoPositionVelocity();
+  mip_filter_status_msg->gx5_status_flags.run_imu_unavailable = status.status_flags.gx5RunImuUnavailable();
+  mip_filter_status_msg->gx5_status_flags.run_gps_unavailable = status.status_flags.gx5RunGpsUnavailable();
+  mip_filter_status_msg->gx5_status_flags.run_matrix_singularity = status.status_flags.gx5RunMatrixSingularity();
+  mip_filter_status_msg->gx5_status_flags.run_position_covariance_warning = status.status_flags.gx5RunPositionCovarianceWarning();
+  mip_filter_status_msg->gx5_status_flags.run_velocity_covariance_warning = status.status_flags.gx5RunVelocityCovarianceWarning();
+  mip_filter_status_msg->gx5_status_flags.run_attitude_covariance_warning = status.status_flags.gx5RunAttitudeCovarianceWarning();
+  mip_filter_status_msg->gx5_status_flags.run_nan_in_solution_warning = status.status_flags.gx5RunNanInSolutionWarning();
+  mip_filter_status_msg->gx5_status_flags.run_gyro_bias_est_high_warning = status.status_flags.gx5RunGyroBiasEstHighWarning();
+  mip_filter_status_msg->gx5_status_flags.run_accel_bias_est_high_warning = status.status_flags.gx5RunAccelBiasEstHighWarning();
+  mip_filter_status_msg->gx5_status_flags.run_gyro_scale_factor_est_high_warning = status.status_flags.gx5RunGyroScaleFactorEstHighWarning();
+  mip_filter_status_msg->gx5_status_flags.run_accel_scale_factor_est_high_warning = status.status_flags.gx5RunAccelScaleFactorEstHighWarning();
+  mip_filter_status_msg->gx5_status_flags.run_mag_bias_est_high_warning = status.status_flags.gx5RunMagBiasEstHighWarning();
+  mip_filter_status_msg->gx5_status_flags.run_ant_offset_correction_est_high_warning = status.status_flags.gx5RunAntOffsetCorrectionEstHighWarning();
+  mip_filter_status_msg->gx5_status_flags.run_mag_hard_iron_est_high_warning = status.status_flags.gx5RunMagHardIronEstHighWarning();
+  mip_filter_status_msg->gx5_status_flags.run_mag_soft_iron_est_high_warning = status.status_flags.gx5RunMagSoftIronEstHighWarning();
 
-  mip_filter_status_msg->status_flags_gq7_filter_condition = status.status_flags.gq7FilterCondition();
-  mip_filter_status_msg->status_flags_gq7_roll_pitch_warning = status.status_flags.gq7RollPitchWarning();
-  mip_filter_status_msg->status_flags_gq7_heading_warning = status.status_flags.gq7HeadingWarning();
-  mip_filter_status_msg->status_flags_gq7_position_warning = status.status_flags.gq7PositionWarning();
-  mip_filter_status_msg->status_flags_gq7_velocity_warning = status.status_flags.gq7VelocityWarning();
-  mip_filter_status_msg->status_flags_gq7_imu_bias_warning = status.status_flags.gq7ImuBiasWarning();
-  mip_filter_status_msg->status_flags_gq7_gnss_clk_warning = status.status_flags.gq7GnssClkWarning();
-  mip_filter_status_msg->status_flags_gq7_antenna_lever_arm_warning = status.status_flags.gq7AntennaLeverArmWarning();
-  mip_filter_status_msg->status_flags_gq7_mounting_transform_warning = status.status_flags.gq7MountingTransformWarning();
-  mip_filter_status_msg->status_flags_gq7_time_sync_warning = status.status_flags.gq7TimeSyncWarning();
-  mip_filter_status_msg->status_flags_gq7_solution_error = status.status_flags.gq7SolutionError();
+  mip_filter_status_msg->gq7_status_flags.filter_condition = status.status_flags.gq7FilterCondition();
+  mip_filter_status_msg->gq7_status_flags.roll_pitch_warning = status.status_flags.gq7RollPitchWarning();
+  mip_filter_status_msg->gq7_status_flags.heading_warning = status.status_flags.gq7HeadingWarning();
+  mip_filter_status_msg->gq7_status_flags.position_warning = status.status_flags.gq7PositionWarning();
+  mip_filter_status_msg->gq7_status_flags.velocity_warning = status.status_flags.gq7VelocityWarning();
+  mip_filter_status_msg->gq7_status_flags.imu_bias_warning = status.status_flags.gq7ImuBiasWarning();
+  mip_filter_status_msg->gq7_status_flags.gnss_clk_warning = status.status_flags.gq7GnssClkWarning();
+  mip_filter_status_msg->gq7_status_flags.antenna_lever_arm_warning = status.status_flags.gq7AntennaLeverArmWarning();
+  mip_filter_status_msg->gq7_status_flags.mounting_transform_warning = status.status_flags.gq7MountingTransformWarning();
+  mip_filter_status_msg->gq7_status_flags.time_sync_warning = status.status_flags.gq7TimeSyncWarning();
+  mip_filter_status_msg->gq7_status_flags.solution_error = status.status_flags.gq7SolutionError();
   mip_filter_status_pub_->publish(*mip_filter_status_msg);
 
   // Populate the human readable status message
@@ -1557,22 +1558,22 @@ void Publishers::handleFilterGnssPosAidStatus(const mip::data_filter::GnssPosAid
   updateMicrostrainHeader(&(mip_filter_gnss_position_aiding_status_msg->header), descriptor_set);
   mip_filter_gnss_position_aiding_status_msg->receiver_id = gnss_pos_aid_status.receiver_id;
   mip_filter_gnss_position_aiding_status_msg->time_of_week = gnss_pos_aid_status.time_of_week;
-  mip_filter_gnss_position_aiding_status_msg->tight_coupling = gnss_pos_aid_status.status.tightCoupling();
-  mip_filter_gnss_position_aiding_status_msg->differential = gnss_pos_aid_status.status.differential();
-  mip_filter_gnss_position_aiding_status_msg->integer_fix = gnss_pos_aid_status.status.integerFix();
-  mip_filter_gnss_position_aiding_status_msg->gps_l1 = gnss_pos_aid_status.status.gpsL1();
-  mip_filter_gnss_position_aiding_status_msg->gps_l2 = gnss_pos_aid_status.status.gpsL2();
-  mip_filter_gnss_position_aiding_status_msg->gps_l5 = gnss_pos_aid_status.status.gpsL5();
-  mip_filter_gnss_position_aiding_status_msg->glo_l1 = gnss_pos_aid_status.status.gloL1();
-  mip_filter_gnss_position_aiding_status_msg->glo_l2 = gnss_pos_aid_status.status.gloL2();
-  mip_filter_gnss_position_aiding_status_msg->gal_e1 = gnss_pos_aid_status.status.galE1();
-  mip_filter_gnss_position_aiding_status_msg->gal_e5 = gnss_pos_aid_status.status.galE5();
-  mip_filter_gnss_position_aiding_status_msg->gal_e6 = gnss_pos_aid_status.status.galE6();
-  mip_filter_gnss_position_aiding_status_msg->bei_b1 = gnss_pos_aid_status.status.beiB1();
-  mip_filter_gnss_position_aiding_status_msg->bei_b2 = gnss_pos_aid_status.status.beiB2();
-  mip_filter_gnss_position_aiding_status_msg->bei_b3 = gnss_pos_aid_status.status.beiB3();
-  mip_filter_gnss_position_aiding_status_msg->no_fix = gnss_pos_aid_status.status.noFix();
-  mip_filter_gnss_position_aiding_status_msg->config_error = gnss_pos_aid_status.status.configError();
+  mip_filter_gnss_position_aiding_status_msg->status.tight_coupling = gnss_pos_aid_status.status.tightCoupling();
+  mip_filter_gnss_position_aiding_status_msg->status.differential = gnss_pos_aid_status.status.differential();
+  mip_filter_gnss_position_aiding_status_msg->status.integer_fix = gnss_pos_aid_status.status.integerFix();
+  mip_filter_gnss_position_aiding_status_msg->status.gps_l1 = gnss_pos_aid_status.status.gpsL1();
+  mip_filter_gnss_position_aiding_status_msg->status.gps_l2 = gnss_pos_aid_status.status.gpsL2();
+  mip_filter_gnss_position_aiding_status_msg->status.gps_l5 = gnss_pos_aid_status.status.gpsL5();
+  mip_filter_gnss_position_aiding_status_msg->status.glo_l1 = gnss_pos_aid_status.status.gloL1();
+  mip_filter_gnss_position_aiding_status_msg->status.glo_l2 = gnss_pos_aid_status.status.gloL2();
+  mip_filter_gnss_position_aiding_status_msg->status.gal_e1 = gnss_pos_aid_status.status.galE1();
+  mip_filter_gnss_position_aiding_status_msg->status.gal_e5 = gnss_pos_aid_status.status.galE5();
+  mip_filter_gnss_position_aiding_status_msg->status.gal_e6 = gnss_pos_aid_status.status.galE6();
+  mip_filter_gnss_position_aiding_status_msg->status.bei_b1 = gnss_pos_aid_status.status.beiB1();
+  mip_filter_gnss_position_aiding_status_msg->status.bei_b2 = gnss_pos_aid_status.status.beiB2();
+  mip_filter_gnss_position_aiding_status_msg->status.bei_b3 = gnss_pos_aid_status.status.beiB3();
+  mip_filter_gnss_position_aiding_status_msg->status.no_fix = gnss_pos_aid_status.status.noFix();
+  mip_filter_gnss_position_aiding_status_msg->status.config_error = gnss_pos_aid_status.status.configError();
   mip_filter_gnss_position_aiding_status_pub_->publish(*mip_filter_gnss_position_aiding_status_msg);
 
   // Filter fix message (not counted as updating)
@@ -1580,18 +1581,18 @@ void Publishers::handleFilterGnssPosAidStatus(const mip::data_filter::GnssPosAid
 
   // Take the best out of the two receivers
   const uint8_t gnss_index = gnss_pos_aid_status.receiver_id - 1;
-  if (filter_llh_position_msg->status.status <= NavSatFixMsg::_status_type::STATUS_GBAS_FIX && mip_filter_gnss_position_aiding_status_msg->differential)
+  if (filter_llh_position_msg->status.status <= NavSatFixMsg::_status_type::STATUS_GBAS_FIX && mip_filter_gnss_position_aiding_status_msg->status.differential)
     filter_llh_position_msg->status.status = NavSatFixMsg::_status_type::STATUS_GBAS_FIX;
-  else if (filter_llh_position_msg->status.status <= NavSatFixMsg::_status_type::STATUS_SBAS_FIX && mip_gnss_fix_info_pub_[gnss_index]->getMessage()->sbas_used)
+  else if (filter_llh_position_msg->status.status <= NavSatFixMsg::_status_type::STATUS_SBAS_FIX && mip_gnss_fix_info_pub_[gnss_index]->getMessage()->fix_flags.sbas_used)
     filter_llh_position_msg->status.status = NavSatFixMsg::_status_type::STATUS_SBAS_FIX;
-  else if (filter_llh_position_msg->status.status <= NavSatFixMsg::_status_type::STATUS_FIX && !mip_filter_gnss_position_aiding_status_msg->no_fix)
+  else if (filter_llh_position_msg->status.status <= NavSatFixMsg::_status_type::STATUS_FIX && !mip_filter_gnss_position_aiding_status_msg->status.no_fix)
     filter_llh_position_msg->status.status = NavSatFixMsg::_status_type::STATUS_FIX;
   
   // Filter human readable status message (not counted as updating)
   auto filter_human_readable_status_msg = filter_human_readable_status_pub_->getMessage();
-  if ((filter_human_readable_status_msg->gnss_state == HumanReadableStatusMsg::GNSS_STATE_RTK_FLOAT || filter_human_readable_status_msg->gnss_state == HumanReadableStatusMsg::GNSS_STATE_SBAS || filter_human_readable_status_msg->gnss_state == HumanReadableStatusMsg::GNSS_STATE_3D_FIX || filter_human_readable_status_msg->gnss_state == HumanReadableStatusMsg::GNSS_STATE_NO_FIX) && mip_filter_gnss_position_aiding_status_msg->integer_fix)
+  if ((filter_human_readable_status_msg->gnss_state == HumanReadableStatusMsg::GNSS_STATE_RTK_FLOAT || filter_human_readable_status_msg->gnss_state == HumanReadableStatusMsg::GNSS_STATE_SBAS || filter_human_readable_status_msg->gnss_state == HumanReadableStatusMsg::GNSS_STATE_3D_FIX || filter_human_readable_status_msg->gnss_state == HumanReadableStatusMsg::GNSS_STATE_NO_FIX) && mip_filter_gnss_position_aiding_status_msg->status.integer_fix)
     filter_human_readable_status_msg->gnss_state = HumanReadableStatusMsg::GNSS_STATE_RTK_FIXED;
-  else if ((filter_human_readable_status_msg->gnss_state == HumanReadableStatusMsg::GNSS_STATE_SBAS || filter_human_readable_status_msg->gnss_state == HumanReadableStatusMsg::GNSS_STATE_3D_FIX || filter_human_readable_status_msg->gnss_state == HumanReadableStatusMsg::GNSS_STATE_NO_FIX) && mip_filter_gnss_position_aiding_status_msg->differential)
+  else if ((filter_human_readable_status_msg->gnss_state == HumanReadableStatusMsg::GNSS_STATE_SBAS || filter_human_readable_status_msg->gnss_state == HumanReadableStatusMsg::GNSS_STATE_3D_FIX || filter_human_readable_status_msg->gnss_state == HumanReadableStatusMsg::GNSS_STATE_NO_FIX) && mip_filter_gnss_position_aiding_status_msg->status.differential)
     filter_human_readable_status_msg->gnss_state = HumanReadableStatusMsg::GNSS_STATE_RTK_FIXED;
 }
 
@@ -1623,9 +1624,10 @@ void Publishers::handleFilterGnssDualAntennaStatus(const mip::data_filter::GnssD
   mip_filter_gnss_dual_antenna_status_msg->heading = gnss_dual_antenna_status.heading;
   mip_filter_gnss_dual_antenna_status_msg->heading_unc = gnss_dual_antenna_status.heading_unc;
   mip_filter_gnss_dual_antenna_status_msg->fix_type = static_cast<uint8_t>(gnss_dual_antenna_status.fix_type);
-  mip_filter_gnss_dual_antenna_status_msg->status_flags_rcv_1_data_valid = gnss_dual_antenna_status.status_flags.rcv1DataValid();
-  mip_filter_gnss_dual_antenna_status_msg->status_flags_rcv_2_data_valid = gnss_dual_antenna_status.status_flags.rcv2DataValid();
-  mip_filter_gnss_dual_antenna_status_msg->status_flags_antenna_offsets_valid = gnss_dual_antenna_status.status_flags.antennaOffsetsValid();
+  mip_filter_gnss_dual_antenna_status_msg->status_flags.rcv_1_data_valid = gnss_dual_antenna_status.status_flags.rcv1DataValid();
+  mip_filter_gnss_dual_antenna_status_msg->status_flags.rcv_2_data_valid = gnss_dual_antenna_status.status_flags.rcv2DataValid();
+  mip_filter_gnss_dual_antenna_status_msg->status_flags.antenna_offsets_valid = gnss_dual_antenna_status.status_flags.antennaOffsetsValid();
+  mip_filter_gnss_dual_antenna_status_msg->valid_flags = gnss_dual_antenna_status.valid_flags;
   mip_filter_gnss_dual_antenna_status_pub_->publish(*mip_filter_gnss_dual_antenna_status_msg);
 
   // Filter Human Readable status
@@ -1646,12 +1648,12 @@ void Publishers::handleFilterAidingMeasurementSummary(const mip::data_filter::Ai
   mip_filter_aiding_measurement_summary_msg->source = aiding_measurement_summary.source;
   mip_filter_aiding_measurement_summary_msg->type = static_cast<uint8_t>(aiding_measurement_summary.type);
 
-  mip_filter_aiding_measurement_summary_msg->indicator_enabled = aiding_measurement_summary.indicator.enabled();
-  mip_filter_aiding_measurement_summary_msg->indicator_used = aiding_measurement_summary.indicator.used();
-  mip_filter_aiding_measurement_summary_msg->indicator_residual_high_warning = aiding_measurement_summary.indicator.residualHighWarning();
-  mip_filter_aiding_measurement_summary_msg->indicator_sample_time_warning = aiding_measurement_summary.indicator.sampleTimeWarning();
-  mip_filter_aiding_measurement_summary_msg->indicator_configuration_error = aiding_measurement_summary.indicator.configurationError();
-  mip_filter_aiding_measurement_summary_msg->indicator_max_num_meas_exceeded = aiding_measurement_summary.indicator.maxNumMeasExceeded();
+  mip_filter_aiding_measurement_summary_msg->indicator.enabled = aiding_measurement_summary.indicator.enabled();
+  mip_filter_aiding_measurement_summary_msg->indicator.used = aiding_measurement_summary.indicator.used();
+  mip_filter_aiding_measurement_summary_msg->indicator.residual_high_warning = aiding_measurement_summary.indicator.residualHighWarning();
+  mip_filter_aiding_measurement_summary_msg->indicator.sample_time_warning = aiding_measurement_summary.indicator.sampleTimeWarning();
+  mip_filter_aiding_measurement_summary_msg->indicator.configuration_error = aiding_measurement_summary.indicator.configurationError();
+  mip_filter_aiding_measurement_summary_msg->indicator.max_num_meas_exceeded = aiding_measurement_summary.indicator.maxNumMeasExceeded();
   mip_filter_aiding_measurement_summary_pub_->publish(*mip_filter_aiding_measurement_summary_msg);
 }
 
