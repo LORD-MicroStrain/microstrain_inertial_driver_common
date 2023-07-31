@@ -380,10 +380,10 @@ private:
 
   /**
    * \brief Updates the microstrain header contained in all MIP specific custom messages
-   * \param microstrain_header The header to update
+   * \param mip_header The header to update
    * \param descriptor_set The descriptor set that the message comes from
   */
-  void updateMicrostrainHeader(MicrostrainHeaderMsg* microstrain_header, uint8_t descriptor_set) const;
+  void updateMipHeader(MipHeaderMsg* mip_header, uint8_t descriptor_set) const;
 
   /**
    * \brief Updates the header's timestamp to the type of timestamp based on the node's configuration

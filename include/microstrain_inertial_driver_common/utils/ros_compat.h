@@ -76,7 +76,7 @@ constexpr auto NUM_GNSS = 2;
 #include "microstrain_inertial_msgs/HumanReadableStatus.h"
 #include "microstrain_inertial_msgs/DualAntennaHeading.h"
 
-#include "microstrain_inertial_msgs/MicrostrainHeader.h"
+#include "microstrain_inertial_msgs/MipHeader.h"
 #include "microstrain_inertial_msgs/MipSensorOverrangeStatus.h"
 #include "microstrain_inertial_msgs/MipGnssFixInfo.h"
 #include "microstrain_inertial_msgs/MipGnssSbasInfo.h"
@@ -187,7 +187,7 @@ constexpr auto NUM_GNSS = 2;
 #include "microstrain_inertial_msgs/msg/human_readable_status.hpp"
 #include "microstrain_inertial_msgs/msg/dual_antenna_heading.hpp"
 
-#include "microstrain_inertial_msgs/msg/microstrain_header.hpp"
+#include "microstrain_inertial_msgs/msg/mip_header.hpp"
 #include "microstrain_inertial_msgs/msg/mip_sensor_overrange_status.hpp"
 #include "microstrain_inertial_msgs/msg/mip_gnss_fix_info.hpp"
 #include "microstrain_inertial_msgs/msg/mip_gnss_sbas_info.hpp"
@@ -335,7 +335,7 @@ using NMEASentenceMsg = ::nmea_msgs::Sentence;
 using HumanReadableStatusMsg = ::microstrain_inertial_msgs::HumanReadableStatus;
 using DualAntennaHeadingMsg = ::microstrain_inertial_msgs::DualAntennaHeading;
 
-using MicrostrainHeaderMsg = ::microstrain_inertial_msgs::MicrostrainHeader;
+using MipHeaderMsg = ::microstrain_inertial_msgs::MipHeader;
 using MipSensorOverrangeStatusMsg = ::microstrain_inertial_msgs::MipSensorOverrangeStatus;
 using MipGnssFixInfoMsg = ::microstrain_inertial_msgs::MipGnssFixInfo;
 using MipGnssSbasInfoMsg = ::microstrain_inertial_msgs::MipGnssSbasInfo;
@@ -704,7 +704,7 @@ using NMEASentenceMsg = ::nmea_msgs::msg::Sentence;
 using HumanReadableStatusMsg = ::microstrain_inertial_msgs::msg::HumanReadableStatus;
 using DualAntennaHeadingMsg = ::microstrain_inertial_msgs::msg::DualAntennaHeading;
 
-using MicrostrainHeaderMsg = ::microstrain_inertial_msgs::msg::MicrostrainHeader;
+using MipHeaderMsg = ::microstrain_inertial_msgs::msg::MipHeader;
 using MipSensorOverrangeStatusMsg = ::microstrain_inertial_msgs::msg::MipSensorOverrangeStatus;
 using MipGnssFixInfoMsg = ::microstrain_inertial_msgs::msg::MipGnssFixInfo;
 using MipGnssSbasInfoMsg = ::microstrain_inertial_msgs::msg::MipGnssSbasInfo;
