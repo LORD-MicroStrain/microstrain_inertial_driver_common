@@ -39,7 +39,7 @@ mip::DeviceInterface& RosMipDevice::device()
 
 bool RosMipDevice::isProspect(const mip::commands_base::BaseDeviceInfo& device_info)
 {
-  constexpr std::array prospect_models = {
+  constexpr std::array<const char*, 3> prospect_models = {
     "GQ7", "CV7", "GV7"
   };
   const std::string& model_name = device_info.model_name;
@@ -53,7 +53,7 @@ bool RosMipDevice::isProspect(const mip::commands_base::BaseDeviceInfo& device_i
 
 bool RosMipDevice::isPhilo(const mip::commands_base::BaseDeviceInfo& device_info)
 {
-  constexpr std::array philo_models = {
+  constexpr std::array<const char*, 9> philo_models = {
     "GX5", "CV5", "CX5",
     "GX4", "CV4", "CX4",
     "GX3", "CV3", "CX3",
