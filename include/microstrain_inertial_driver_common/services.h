@@ -45,6 +45,17 @@ public:
   bool configure();
 
   // Service functions. Too many to document
+  bool mipBaseGetDeviceInformation(MipBaseGetDeviceInformationSrv::Request& req, MipBaseGetDeviceInformationSrv::Response& res);
+
+  bool mip3dmCaptureGyroBias(Mip3dmCaptureGyroBiasSrv::Request& req, Mip3dmCaptureGyroBiasSrv::Response& res);
+  bool mip3dmDeviceSettingsSave(EmptySrv::Request& req, EmptySrv::Response& res);
+  bool mip3dmDeviceSettingsLoad(EmptySrv::Request& req, EmptySrv::Response& res);
+
+  bool mipFilterReset(EmptySrv::Request& req, EmptySrv::Response& res);
+
+  /*
+
+  // Service functions. Too many to document
   bool deviceReport(DeviceReportServiceMsg::Request& req, DeviceReportServiceMsg::Response& res);
   bool getBasicStatus(TriggerServiceMsg::Request& req, TriggerServiceMsg::Response& res);
   bool getDiagnosticReport(TriggerServiceMsg::Request& req, TriggerServiceMsg::Response& res);
@@ -162,6 +173,7 @@ public:
 
   bool setFilterSpeedLeverArm(SetFilterSpeedLeverArmServiceMsg::Request& req,
                                 SetFilterSpeedLeverArmServiceMsg::Response& res);
+  */
 
 private:
   /**
@@ -190,6 +202,15 @@ private:
   RosNodeType* node_;
   Config* config_;
 
+  RosServiceType<MipBaseGetDeviceInformationSrv>::SharedPtr mip_base_get_device_information_service_;
+
+  RosServiceType<Mip3dmCaptureGyroBiasSrv>::SharedPtr mip_3dm_capture_gyro_bias_service_;
+  RosServiceType<EmptySrv>::SharedPtr mip_3dm_device_settings_save_service_;
+  RosServiceType<EmptySrv>::SharedPtr mip_3dm_device_settings_load_service_;
+
+  RosServiceType<EmptySrv>::SharedPtr mip_filter_reset_service_;
+
+  /*
   // Pointers to the services that this class will hold onto
   RosServiceType<TriggerServiceMsg>::SharedPtr get_basic_status_service_;
   RosServiceType<TriggerServiceMsg>::SharedPtr get_diagnostic_report_service_;
@@ -251,6 +272,7 @@ private:
   RosServiceType<SetRelativePositionReferenceServiceMsg>::SharedPtr set_relative_position_reference_service_;
   RosServiceType<GetRelativePositionReferenceServiceMsg>::SharedPtr get_relative_position_reference_service_;
   RosServiceType<SetFilterSpeedLeverArmServiceMsg>::SharedPtr set_filter_speed_lever_arm_service_;
+  */
 };
 
 template<typename ServiceType>

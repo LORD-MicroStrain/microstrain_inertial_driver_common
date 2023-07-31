@@ -93,6 +93,8 @@ constexpr auto NUM_GNSS = 2;
 #include "std_srvs/Empty.h"
 #include "std_srvs/Trigger.h"
 
+#include "microstrain_inertial_msgs/MipBaseGetDeviceInformation.h"
+
 #include "microstrain_inertial_msgs/SetAccelBias.h"
 #include "microstrain_inertial_msgs/GetAccelBias.h"
 #include "microstrain_inertial_msgs/SetGyroBias.h"
@@ -207,6 +209,9 @@ constexpr auto NUM_GNSS = 2;
 #endif
 
 #include "microstrain_inertial_msgs/msg/input_speed_measurement.hpp"
+
+#include "microstrain_inertial_msgs/srv/mip_base_get_device_information.hpp"
+#include "microstrain_inertial_msgs/srv/mip3dm_capture_gyro_bias.hpp"
 
 #include "microstrain_inertial_msgs/srv/set_accel_bias.hpp"
 #include "microstrain_inertial_msgs/srv/get_accel_bias.hpp"
@@ -738,8 +743,11 @@ using InputSpeedMeasurementSubType = ::rclcpp::Subscription<InputSpeedMeasuremen
 using RTCMSubType = rclcpp::Subscription<RTCMMsg>::SharedPtr;
 
 // ROS2 Service Message Types
-using TriggerServiceMsg = std_srvs::srv::Trigger;
-using EmptyServiceMsg = std_srvs::srv::Empty;
+using TriggerSrv = std_srvs::srv::Trigger;
+using EmptySrv = std_srvs::srv::Empty;
+
+using MipBaseGetDeviceInformationSrv = microstrain_inertial_msgs::srv::MipBaseGetDeviceInformation;
+using Mip3dmCaptureGyroBiasSrv = microstrain_inertial_msgs::srv::Mip3dmCaptureGyroBias;
 
 using SetAccelBiasServiceMsg = microstrain_inertial_msgs::srv::SetAccelBias;
 using GetAccelBiasServiceMsg = microstrain_inertial_msgs::srv::GetAccelBias;
