@@ -94,6 +94,7 @@ constexpr auto NUM_GNSS = 2;
 #include "std_srvs/Trigger.h"
 
 #include "microstrain_inertial_msgs/MipBaseGetDeviceInformation.h"
+#include "microstrain_inertial_msgs/Mip3dmCaptureGyroBias.h"
 
 #include "microstrain_inertial_msgs/SetAccelBias.h"
 #include "microstrain_inertial_msgs/GetAccelBias.h"
@@ -368,8 +369,11 @@ using InputSpeedMeasurementMsg = ::microstrain_inertial_msgs::InputSpeedMeasurem
 using RTCMMsg = ::mavros_msgs::RTCM;
 
 // ROS1 Service Message Types
-using TriggerServiceMsg = std_srvs::Trigger;
-using EmptyServiceMsg = std_srvs::Empty;
+using TriggerSrv = std_srvs::Trigger;
+using EmptySrv = std_srvs::Empty;
+
+using MipBaseGetDeviceInformationSrv = ::microstrain_inertial_msgs::MipBaseGetDeviceInformation;
+using Mip3dmCaptureGyroBiasSrv = ::microstrain_inertial_msgs::Mip3dmCaptureGyroBias;
 
 using SetAccelBiasServiceMsg = ::microstrain_inertial_msgs::SetAccelBias;
 using GetAccelBiasServiceMsg = ::microstrain_inertial_msgs::GetAccelBias;
