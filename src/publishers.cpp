@@ -1016,6 +1016,7 @@ void Publishers::handleRtkCorrectionsStatus(const mip::data_gnss::RtkCorrections
       mip_gnss_corrections_rtk_corrections_status_msg->epoch_status.antenna_location_received = rtk_corrections_status.epoch_status.antennaLocationReceived();
       mip_gnss_corrections_rtk_corrections_status_msg->epoch_status.antenna_description_received = rtk_corrections_status.epoch_status.antennaDescriptionReceived();
       mip_gnss_corrections_rtk_corrections_status_msg->epoch_status.gps_received = rtk_corrections_status.epoch_status.gpsReceived();
+      mip_gnss_corrections_rtk_corrections_status_msg->epoch_status.galileo_received = rtk_corrections_status.epoch_status.galileoReceived();
       mip_gnss_corrections_rtk_corrections_status_msg->epoch_status.glonass_received = rtk_corrections_status.epoch_status.glonassReceived();
       mip_gnss_corrections_rtk_corrections_status_msg->epoch_status.dongle_status_read_failed = rtk_corrections_status.epoch_status.dongleStatusReadFailed();
 
