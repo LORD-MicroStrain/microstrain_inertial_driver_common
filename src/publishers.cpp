@@ -733,9 +733,6 @@ void Publishers::handleFilterAttitudeQuaternion(const mip::data_filter::Attitude
   filter_relative_transform_msg_rotation_updated_ = true;
   updateHeaderTime(&(filter_relative_transform_msg_.header), descriptor_set, timestamp);
   filter_relative_transform_msg_.transform.rotation = filter_odom_msg->pose.pose.orientation;
-
-  // Save the quaternion for later
-  filter_attitude_quaternion_ = tf2::Quaternion(attitude_quaternion.q[1], attitude_quaternion.q[2], attitude_quaternion.q[3], attitude_quaternion.q[0]);
 }
 
 void Publishers::handleFilterEulerAnglesUncertainty(const mip::data_filter::EulerAnglesUncertainty& euler_angles_uncertainty, const uint8_t descriptor_set, mip::Timestamp timestamp)
@@ -781,11 +778,13 @@ void Publishers::handleFilterVelocityNed(const mip::data_filter::VelocityNed& ve
   // If we are publishing velocity in the vehicle frame, rotate the velocity using the attitude
   if (config_->filter_vel_in_vehicle_frame_)
   {
-    const tf2::Vector3 filter_current_vel(filter_odom_msg->twist.twist.linear.x, filter_odom_msg->twist.twist.linear.y, filter_odom_msg->twist.twist.linear.z);
-    const tf2::Vector3 filter_rotated_vel = tf2::quatRotate(filter_attitude_quaternion_.inverse(), filter_current_vel);
-    filter_odom_msg->twist.twist.linear.x = filter_rotated_vel.getX();
-    filter_odom_msg->twist.twist.linear.y = filter_rotated_vel.getY();
-    filter_odom_msg->twist.twist.linear.z = filter_rotated_vel.getZ();
+    // Rotate the velocity to the sensor frame
+    const tf2::Quaternion q_nedenu_to_imu(filter_odom_msg->pose.pose.orientation.x, filter_odom_msg->pose.pose.orientation.y, filter_odom_msg->pose.pose.orientation.z, filter_odom_msg->pose.pose.orientation.w);
+    const tf2::Vector3 v_nedenu_velocity(filter_odom_msg->twist.twist.linear.x, filter_odom_msg->twist.twist.linear.y, filter_odom_msg->twist.twist.linear.z);
+    const tf2::Vector3 v_imu_velocity = tf2::quatRotate(q_nedenu_to_imu.inverse(), v_nedenu_velocity);
+    filter_odom_msg->twist.twist.linear.x = v_imu_velocity.getX();
+    filter_odom_msg->twist.twist.linear.y = v_imu_velocity.getY();
+    filter_odom_msg->twist.twist.linear.z = v_imu_velocity.getZ();
   }
 
   // Filter relative odometry message

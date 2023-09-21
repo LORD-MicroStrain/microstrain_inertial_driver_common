@@ -279,6 +279,7 @@ gps_leap_seconds                       : 18.0
 #      Notes: This subscription will be disabled if enable_hardware_odometer is set to true
 filter_external_speed_topic : "/external_speed"
 
+# NOTE: This actually rotates the velocity into the sensor frame, not the vehicle frame.
 # Velocity frame control.
 #      If set to false, the velocity will be reported in the NED/ENU frame
 #      If set to true, the velocity will be reported in the vehicle frame
