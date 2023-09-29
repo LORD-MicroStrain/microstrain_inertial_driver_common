@@ -32,6 +32,14 @@ static constexpr auto TF_MODE_OFF = 0;
 static constexpr auto TF_MODE_GLOBAL = 1;
 static constexpr auto TF_MODE_RELATIVE = 2;
 
+static constexpr auto REL_POS_SOURCE_BASE_STATION = 0;
+static constexpr auto REL_POS_SOURCE_MANUAL = 1;
+static constexpr auto REL_POS_SOURCE_AUTO = 2;
+static constexpr auto REL_POS_SOURCE_EXTERNAL = 3;
+
+static constexpr auto REL_POS_FRAME_ECEF = 1;
+static constexpr auto REL_POS_FRAME_LLH = 2;
+
 const std::vector<double> DEFAULT_MATRIX = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
 const std::vector<double> DEFAULT_VECTOR = { 0.0, 0.0, 0.0 };
 const std::vector<double> DEFAULT_QUATERNION = { 0.0, 0.0, 0.0, 0.0 };
@@ -96,6 +104,9 @@ public:
   bool filter_enable_gnss_antenna_cal_;
   bool filter_use_compensated_accel_;
   bool filter_relative_pos_config_;
+  int filter_relative_pos_frame_;
+  int filter_relative_pos_source_;
+  std::vector<double> filter_relative_pos_ref_;
   std::vector<float> filter_speed_lever_arm_;
 
   // Frame id configuration
@@ -115,6 +126,11 @@ public:
 
   // Configured static transforms
   TransformStampedMsg mount_to_frame_id_transform_;
+
+  // Transform between earth and IMU, may be configured at config time, or changed at runtime
+  bool earth_to_map_transform_valid_ = false;
+  bool earth_to_map_transform_updated_ = false;
+  TransformStampedMsg earth_to_map_transform_;
 
   // Subscriber settings
   bool subscribe_ext_fix_;

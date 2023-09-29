@@ -64,7 +64,7 @@ raw_file_enable : False
 # Note: We recommend only enabling this feature when specifically requested by Microstrain.
 #       Including this feature increases communication bandwidth requirements significantly...
 #       for serial data connections please ensure the baudrate is sufficient for the added data channels.     
-raw_file_include_support_data : False
+raw_file_include_support_data : True
 
 # The directory to store the raw data file
 raw_file_directory : "/home/your_name"
@@ -82,7 +82,7 @@ raw_file_directory : "/home/your_name"
 #             Note: In order to use relative mode, you must configure filter_relative_position
 #             Transform will be published from earth_frame_id to map_frame_id using relative position configuration
 #             Transform between earth_frame_id and map_frame_id will also be published using rel_pos_configuration
-tf_mode : 0
+tf_mode : 1
 
 # Frame ID that most header.frame_id fields will be populated with.
 frame_id: "imu_link"
@@ -147,6 +147,7 @@ rtk_dongle_enable : True
 
 # (GQ7 Only) Allow the node to receive RTCM messages on the /rtcm topic and publish NMEA sentences from the aux port on /nmea.
 #            It is suggested to use https://github.com/LORD-MicroStrain/ntrip_client with this interface
+# Note: This will require the aux_port configuration to be valid and pointing to a valid aux port
 ntrip_interface_enable : False
 
 # ****************************************************************** 
@@ -172,6 +173,7 @@ filter_enable_external_heading_aiding : False
 #         Bit 0 - Dual-antenna GNSS
 #         Bit 1 - GNSS kinematic (requires motion, e.g. a GNSS velocity)
 #         Bit 2 - Magnetometer
+#         Bit 3 - External Heading (first valid external heading will be used to initialize the filter)
 #
 #     Reference frame =
 #         1 - WGS84 Earth-fixed, earth centered (ECEF) position, velocity, attitude
@@ -191,12 +193,14 @@ filter_init_attitude : [0.0, 0.0, 0.0]
 #     Source =
 #         0 - Position will be reported relative to the base station. filter_relative_position_ref will be ignored
 #         1 - Position will be reported relative to filter_relative_position_ref
+#         2 - Position will be reported relative to the first position reported by the device after it enters full nav. filter_relative_position_ref will be ignored
+#         3 - We will wait for a transform to be made available between earth_frame_id and map_frame_id and use that as the relative position reference. filter_relative_position_ref will be ignored
 #
 #     Reference position - Units provided by reference frame (ECEF - meters, LLH - deg, deg, meters)
-# Note: prior to firmware version 1.0.06 this command will fail for non-positive heights.  1.0.06 fixes this)
+# Note: The source selected here will determine the transform published between earth_frame_id and map_frame_id when running in relative transform mode
 filter_relative_position_config : False
 filter_relative_position_frame  : 2
-filter_relative_position_source : 1
+filter_relative_position_source : 2
 filter_relative_position_ref    : [0.0, 0.0, 0.01]
 
 # (GQ7 Only) Reference point lever arm offset control.
@@ -274,7 +278,7 @@ gps_leap_seconds                       : 18.0
 
 # (GQ7 only) Speed Lever Arm Configuration
 #   Lever Arm - In vehicle reference frame (meters)
-filter_speed_lever_arm : [0.0, 0.0, 0.0]
+filter_speed_lever_arm : [0.0, 0.5, -1.0]
 
 # (All, except GQ7, CV7, -10, and -15 products) Heading Source 0 = None, 1 = magnetic, 2 = GNSS velocity (note: see manual for limitations)  
 # Note: For the GQ7, this setting has no effect. See filter_auto_heading_alignment_selector

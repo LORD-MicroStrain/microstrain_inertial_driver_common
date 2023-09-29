@@ -282,20 +282,15 @@ public:
   TransformBroadcasterType transform_broadcaster_ = nullptr;
 
   // Will be set to true when pose information is updated, and reset to false when the transform is published
-  bool ecef_transform_position_updated_ = false;
-  bool ecef_transform_attitude_updated_ = false;
-  bool relative_transform_position_updated_ = false;
-  bool relative_transform_attitude_updated_ = false;
-  bool earth_map_transform_updated_ = false;
-
-  // Whether or not the earth to map transform will be static, or updated every iteration
-  bool static_earth_map_transform_;
+  bool earth_to_imu_link_transform_translation_updated_ = false;
+  bool earth_to_imu_link_transform_attitude_updated_ = false;
+  bool map_to_imu_link_transform_translation_updated_ = false;
+  bool map_to_imu_link_transform_attitude_updated_ = false;
 
   // Published transforms
-  TransformStampedMsg gnss_antenna_transform_msg_[NUM_GNSS];
-  TransformStampedMsg odometer_transform_msg_;
-  TransformStampedMsg earth_map_transform_msg_;
-  TransformStampedMsg filter_relative_transform_msg_;
+  TransformStampedMsg imu_link_to_gnss_antenna_link_transform_[NUM_GNSS];
+  TransformStampedMsg imu_link_to_odometer_link_transform_;
+  TransformStampedMsg map_to_imu_link_transform_;
 
 private:
   /**
@@ -304,7 +299,7 @@ private:
    * \param descriptor_set The descriptor set to register the packet callback for
    * \param after_fields Whether this callback should be triggered before or after the field callbacks
    */
-  template<void (Publishers::*Callback)(const mip::Packet&, mip::Timestamp)>
+  template<void (Publishers::*Callback)(const mip::PacketRef&, mip::Timestamp)>
   void registerPacketCallback(const uint8_t descriptor_set = mip::C::MIP_DISPATCH_ANY_DESCRIPTOR, bool after_fields = true);
 
   /**
@@ -365,7 +360,6 @@ private:
   void handleFilterCompAngularRate(const mip::data_filter::CompAngularRate& comp_angular_rate, const uint8_t descriptor_set, mip::Timestamp timestamp);
   void handleFilterCompAccel(const mip::data_filter::CompAccel& comp_accel, const uint8_t descriptor_set, mip::Timestamp timestamp);
   void handleFilterLinearAccel(const mip::data_filter::LinearAccel& linear_accel, const uint8_t descriptor_set, mip::Timestamp timestamp);
-  void handleFilterRelPosNed(const mip::data_filter::RelPosNed& rel_pos_ned, const uint8_t descriptor_set, mip::Timestamp timestamp);
   void handleFilterGnssPosAidStatus(const mip::data_filter::GnssPosAidStatus& gnss_pos_aid_status, const uint8_t descriptor_set, mip::Timestamp timestamp);
   void handleFilterMultiAntennaOffsetCorrection(const mip::data_filter::MultiAntennaOffsetCorrection& multi_antenna_offset_correction, const uint8_t descriptor_set, mip::Timestamp timestamp);
   void handleFilterGnssDualAntennaStatus(const mip::data_filter::GnssDualAntennaStatus& gnss_dual_antenna_status, const uint8_t descriptor_set, mip::Timestamp timestamp);
@@ -376,7 +370,7 @@ private:
    * \param packet The packet that was processed
    * \param timestamp The timestamp of when the packet was received
   */
-  void handleAfterPacket(const mip::Packet& packet, mip::Timestamp timestamp);
+  void handleAfterPacket(const mip::PacketRef& packet, mip::Timestamp timestamp);
 
   /**
    * \brief Updates the microstrain header contained in all MIP specific custom messages
@@ -427,7 +421,7 @@ private:
   TransformListenerType transform_listener_;
 };
 
-template<void (Publishers::*Callback)(const mip::Packet&, mip::Timestamp)>
+template<void (Publishers::*Callback)(const mip::PacketRef&, mip::Timestamp)>
 void Publishers::registerPacketCallback(const uint8_t descriptor_set, bool after_fields)
 {
   // Regsiter a handler for the callback

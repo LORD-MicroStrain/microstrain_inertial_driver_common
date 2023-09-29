@@ -11,6 +11,8 @@
 #ifndef MICROSTRAIN_INERTIAL_DRIVER_COMMON_SUBSCRIBERS_H
 #define MICROSTRAIN_INERTIAL_DRIVER_COMMON_SUBSCRIBERS_H
 
+#include <array>
+
 #include "microstrain_inertial_driver_common/utils/ros_compat.h"
 #include "microstrain_inertial_driver_common/utils/clock_bias_monitor.h"
 #include "microstrain_inertial_driver_common/config.h"
@@ -26,11 +28,11 @@ constexpr auto EXT_WHEEL_SPEED_TOPIC = "ext/wheel_speed";
 
 constexpr auto EXT_TIME_GPS_TOPIC = "ext/time/gps";
 constexpr auto EXT_TIME_TOPIC     = "ext/time";
-constexpr auto EXT_FIX_TOPIC      = "ext/fix";
-constexpr auto EXT_VEL_NED_TOPIC  = "ext/vel/ned";
-constexpr auto EXT_VEL_ENU_TOPIC  = "ext/vel/enu";
-constexpr auto EXT_VEL_ECEF_TOPIC = "ext/vel/ecef";
-constexpr auto EXT_VEL_BODY_TOPIC = "ext/vel/body";
+constexpr auto EXT_FIX_TOPIC      = "ext/llh_position";
+constexpr auto EXT_VEL_NED_TOPIC  = "ext/velocity_ned";
+constexpr auto EXT_VEL_ENU_TOPIC  = "ext/velocity_enu";
+constexpr auto EXT_VEL_ECEF_TOPIC = "ext/velocity_ecef";
+constexpr auto EXT_VEL_BODY_TOPIC = "ext/velocity_body";
 constexpr auto EXT_PRESSURE_TOPIC = "ext/pressure";
 constexpr auto EXT_POSE_TOPIC     = "ext/pose";
 constexpr auto EXT_HEADING_TOPIC  = "ext/heading";
@@ -108,6 +110,8 @@ public:
 private:
   bool populateAidingTime(const RosHeaderType& header, const std::string& topic, mip::commands_aiding::Time* time);
 
+  uint8_t getSensorIdFromFrameId(const std::string& frame_id);
+
   // Node Information
   RosNodeType* node_;
   Config* config_;
@@ -116,8 +120,16 @@ private:
   std::string gps_time_frame_id_ = "";
   ClockBiasMonitor ros_time_to_gps_time_clock_bias_monitor_ = ClockBiasMonitor(0.9, 1);
 
+  // External frame IDs, the index of the string is the sensor ID
+  uint16_t external_frame_ids_size_;
+  std::array<std::string, 256> external_frame_ids_;
+
   // Mapping between different sensor times and ROS time
   std::map<std::string, ClockBiasMonitor> device_time_to_ros_time_clock_bias_monitors_;
+
+  // TF2 buffer lookup class
+  TransformBufferType transform_buffer_;
+  TransformListenerType transform_listener_;
 };
 
 }  // namespace microstrain

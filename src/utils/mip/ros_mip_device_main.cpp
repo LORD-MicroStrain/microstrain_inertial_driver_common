@@ -18,6 +18,7 @@
 
 #include "mip/mip.hpp"
 #include "mip/mip_all.hpp"
+#include "mip/definitions/commands_aiding.hpp"
 
 #include "microstrain_inertial_driver_common/utils/mip/ros_mip_device_main.h"
 
@@ -123,6 +124,19 @@ bool RosMipDeviceMain::configure(RosNodeType* config_node)
     MICROSTRAIN_WARN(node_, "Note: The configured main port appears to actually be the aux port.");
     MICROSTRAIN_WARN(node_, "      Double check that the \"port\" option is configured to the main port of the device.");
     MICROSTRAIN_WARN(node_, "      The node should start as usual, but no data will be published, and most services will not work.");
+  }
+
+  // Determine the number of valid external Frame IDs
+  if (supportsDescriptor(mip::commands_aiding::DESCRIPTOR_SET, mip::commands_aiding::ReferenceFrame::FIELD_DESCRIPTOR))
+  {
+    while (max_external_frame_ids_++ < 256)
+    {
+      float t[3], r[4];
+      mip::commands_aiding::ReferenceFrame::Format fmt;
+      if (!mip::commands_aiding::readReferenceFrame(*this, max_external_frame_ids_, &fmt, t, r))
+        break;
+    }
+    MICROSTRAIN_DEBUG(node_, "Reference frames from 0 -> %u are supported", max_external_frame_ids_);
   }
 
   // Configure the connection with a working device

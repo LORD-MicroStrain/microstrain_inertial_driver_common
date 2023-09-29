@@ -19,6 +19,9 @@ constexpr auto SECS_PER_WEEK = (60L * 60 * 24 * 7);
 Subscribers::Subscribers(RosNodeType* node, Config* config)
   : node_(node), config_(config)
 {
+  // Initialize the transform buffer and listener ahead of time
+  transform_buffer_ = createTransformBuffer(node_);
+  transform_listener_ = createTransformListener(transform_buffer_);
 }
 
 bool Subscribers::activate()
@@ -44,27 +47,27 @@ bool Subscribers::activate()
   }
 
   // Setup the external measurement subscribers
-  if (config_->subscribe_ext_fix_ && config_->mip_device_->supportsDescriptor(mip::commands_aiding::DESCRIPTOR_SET, mip::commands_aiding::CMD_LLH_POS))
+  if (config_->subscribe_ext_fix_ && config_->mip_device_->supportsDescriptor(mip::commands_aiding::DESCRIPTOR_SET, mip::commands_aiding::CMD_POS_LLH))
   {
     MICROSTRAIN_INFO(node_, "Subscribing to %s for external GPS position", EXT_FIX_TOPIC);
     external_gnss_position_sub_ = createSubscriber<>(node_, EXT_FIX_TOPIC, 1000, &Subscribers::externalGnssPositionCallback, this);
   }
-  if (config_->subscribe_ext_vel_ned_ && config_->mip_device_->supportsDescriptor(mip::commands_aiding::DESCRIPTOR_SET, mip::commands_aiding::CMD_NED_VEL))
+  if (config_->subscribe_ext_vel_ned_ && config_->mip_device_->supportsDescriptor(mip::commands_aiding::DESCRIPTOR_SET, mip::commands_aiding::CMD_VEL_NED))
   {
     MICROSTRAIN_INFO(node_, "Subscribing to %s for external GPS Velocity in the NED frame", EXT_VEL_NED_TOPIC);
     external_gnss_vel_ned_sub_ = createSubscriber<>(node_, EXT_VEL_NED_TOPIC, 1000, &Subscribers::externalGnssVelNedCallback, this);
   }
-  if (config_->subscribe_ext_vel_enu_ && config_->mip_device_->supportsDescriptor(mip::commands_aiding::DESCRIPTOR_SET, mip::commands_aiding::CMD_NED_VEL))
+  if (config_->subscribe_ext_vel_enu_ && config_->mip_device_->supportsDescriptor(mip::commands_aiding::DESCRIPTOR_SET, mip::commands_aiding::CMD_VEL_NED))
   {
     MICROSTRAIN_INFO(node_, "Subscribing to %s for external GPS Velocity in the ENU frame", EXT_VEL_ENU_TOPIC);
     external_gnss_vel_enu_sub_ = createSubscriber<>(node_, EXT_VEL_ENU_TOPIC, 1000, &Subscribers::externalGnssVelEnuCallback, this);
   }
-  if (config_->subscribe_ext_vel_ecef_ && config_->mip_device_->supportsDescriptor(mip::commands_aiding::DESCRIPTOR_SET, mip::commands_aiding::CMD_ECEF_VEL))
+  if (config_->subscribe_ext_vel_ecef_ && config_->mip_device_->supportsDescriptor(mip::commands_aiding::DESCRIPTOR_SET, mip::commands_aiding::CMD_VEL_ECEF))
   {
     MICROSTRAIN_INFO(node_, "Subscribing to %s for external GPS Velocity in the ECEF frame", EXT_VEL_ECEF_TOPIC);
     external_gnss_vel_ecef_sub_ = createSubscriber<>(node_, EXT_VEL_ECEF_TOPIC, 1000, &Subscribers::externalGnssVelEcefCallback, this);
   }
-  if (config_->subscribe_ext_vel_body_ && config_->mip_device_->supportsDescriptor(mip::commands_aiding::DESCRIPTOR_SET, mip::commands_aiding::CMD_ODOM_VEL))
+  if (config_->subscribe_ext_vel_body_ && config_->mip_device_->supportsDescriptor(mip::commands_aiding::DESCRIPTOR_SET, mip::commands_aiding::CMD_VEL_ODOM))
   {
     MICROSTRAIN_INFO(node_, "Subscribing to %s for external Velocity in the Body frame", EXT_VEL_BODY_TOPIC);
     external_body_vel_sub_ = createSubscriber<>(node_, EXT_VEL_BODY_TOPIC, 1000, &Subscribers::externalBodyVelCallback, this);
@@ -175,10 +178,17 @@ void Subscribers::externalGnssPositionCallback(const NavSatFixMsg& fix)
 {
   // Fill out the time for the message
   mip::commands_aiding::LlhPos llh_pos;
+  llh_pos.time.timebase = mip::commands_aiding::Time::Timebase::TIME_OF_ARRIVAL;  // TODO: This should use populateAidingTime instead
+  /*
   if (!populateAidingTime(fix.header, EXT_FIX_TOPIC, &llh_pos.time))
     return;
+  */
 
-  // TODO: Do sensor_id stuff
+  // Get the sensor ID from the frame ID
+  if ((llh_pos.sensor_id = getSensorIdFromFrameId(fix.header.frame_id)) == 0)
+    return;
+  
+  // TODO: Don't process if status is not FIX or above
 
   // If the message has no uncertainty, we can't process it
   if (fix.position_covariance_type == NavSatFixMsg::COVARIANCE_TYPE_UNKNOWN)
@@ -220,10 +230,15 @@ void Subscribers::externalGnssVelNedCallback(const TwistWithCovarianceStampedMsg
 
   // Fill out the time for the message
   mip::commands_aiding::NedVel ned_vel;
+  ned_vel.time.timebase = mip::commands_aiding::Time::Timebase::TIME_OF_ARRIVAL;  // TODO: This should use populateAidingTime instead
+  /*
   if (!populateAidingTime(gnss_vel.header, EXT_VEL_NED_TOPIC, &ned_vel.time))
     return;
+  */
 
-  // TODO: Do sensor_id stuff
+  // Get the sensor ID from the frame ID
+  if ((ned_vel.sensor_id = getSensorIdFromFrameId(gnss_vel.header.frame_id)) == 0)
+    return;
 
   // Fill out the rest of the message and send it
   if (gnss_vel.twist.covariance[0] != 0)
@@ -261,10 +276,15 @@ void Subscribers::externalGnssVelEnuCallback(const TwistWithCovarianceStampedMsg
 
   // Fill out the time for the message
   mip::commands_aiding::NedVel ned_vel;
+  ned_vel.time.timebase = mip::commands_aiding::Time::Timebase::TIME_OF_ARRIVAL;  // TODO: This should use populateAidingTime instead
+  /*
   if (!populateAidingTime(gnss_vel.header, EXT_VEL_NED_TOPIC, &ned_vel.time))
     return;
+  */
 
-  // TODO: Do sensor_id stuff
+  // Get the sensor ID from the frame ID
+  if ((ned_vel.sensor_id = getSensorIdFromFrameId(gnss_vel.header.frame_id)) == 0)
+    return;
 
   // Fill out the rest of the message and send it
   if (gnss_vel.twist.covariance[7] != 0)
@@ -438,6 +458,68 @@ bool Subscribers::populateAidingTime(const RosHeaderType& header, const std::str
   time->timebase = mip::commands_aiding::Time::Timebase::INTERNAL_REFERENCE;
   time->nanoseconds = static_cast<uint64_t>(time_secs * 1000000000);
   return true;
+}
+
+uint8_t Subscribers::getSensorIdFromFrameId(const std::string& frame_id)
+{
+  const auto& frame_id_iter = std::find(external_frame_ids_.begin(), external_frame_ids_.end(), frame_id);
+  if (frame_id_iter != external_frame_ids_.end())
+  {
+    // Looks like we already configured this frame_id, so just grab the index
+    return frame_id_iter - external_frame_ids_.begin();
+  }
+  else
+  {
+    // If we have reached 256 IDs, we can't do anything
+    if (external_frame_ids_size_ >= config_->mip_device_->max_external_frame_ids_)
+    {
+      MICROSTRAIN_WARN_THROTTLE(node_, 10, "%u Sensor IDs have already been configured, we will not be able to configure %s", config_->mip_device_->max_external_frame_ids_, frame_id.c_str());
+      return 0;
+    }
+    else
+    {
+      // Attempt to find the transform from ROS
+      std::string tf_error_string;
+      RosTimeType frame_time; setRosTime(&frame_time, 0, 0);
+      if (transform_buffer_->canTransform(frame_id, config_->frame_id_, frame_time, RosDurationType(0, 0), &tf_error_string))
+      {
+        // Populate the reference frame command from the transform
+        const auto& transform = transform_buffer_->lookupTransform(frame_id, config_->frame_id_, frame_time);
+        mip::commands_aiding::ReferenceFrame reference_frame;
+        reference_frame.format = mip::commands_aiding::ReferenceFrame::Format::QUATERNION;
+        reference_frame.frame_id = external_frame_ids_size_ + 1;
+        reference_frame.function = mip::FunctionSelector::WRITE;
+        reference_frame.translation = {
+          static_cast<float>(transform.transform.translation.x),
+          static_cast<float>(transform.transform.translation.y),
+          static_cast<float>(transform.transform.translation.z)
+        };
+        reference_frame.rotation = {
+          static_cast<float>(transform.transform.rotation.w),
+          static_cast<float>(transform.transform.rotation.x),
+          static_cast<float>(transform.transform.rotation.y),
+          static_cast<float>(transform.transform.rotation.z)
+        };
+
+        // Attempt to send the command
+        mip::CmdResult mip_cmd_result;
+        if (!(mip_cmd_result = config_->mip_device_->device().runCommand<mip::commands_aiding::ReferenceFrame>(reference_frame)))
+        {
+          MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to send aiding LLH position aiding command");
+          return 0;
+        }
+
+        // Looks like everything is set up, append the frame ID and return it's index
+        external_frame_ids_[++external_frame_ids_size_] = frame_id;
+        return external_frame_ids_size_;
+      }
+      else
+      {
+        MICROSTRAIN_WARN_THROTTLE(node_, 10, "Unable to determine transform from %s to %s: %s", config_->frame_id_.c_str(), frame_id.c_str(), tf_error_string.c_str());
+        return 0;
+      }
+    }
+  }
 }
 
 }  // namespace microstrain

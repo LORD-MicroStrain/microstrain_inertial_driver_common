@@ -261,6 +261,10 @@ bool Services::mipFilterReset(EmptySrv::Request& req, EmptySrv::Response& res)
     MICROSTRAIN_DEBUG(node_, "Reset filter");
   else
     MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to reset filter");
+  
+  // If we are using auto relative position config, reset that flag
+  if (config_->filter_relative_pos_source_ == REL_POS_SOURCE_AUTO)
+    config_->earth_to_map_transform_valid_ = false;
 
   return !!mip_cmd_result;
 }

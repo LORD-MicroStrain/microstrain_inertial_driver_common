@@ -14,6 +14,7 @@
 #include <vector>
 #include <algorithm>
 
+#include "microstrain_inertial_driver_common/config.h"
 #include "microstrain_inertial_driver_common/utils/mappings/mip_publisher_mapping.h"
 
 namespace microstrain
@@ -148,10 +149,26 @@ bool MipPublisherMapping::configure(RosNodeType* config_node)
   bool rtk_dongle_enable; getParam(config_node, "rtk_dongle_enable", rtk_dongle_enable, true);
   if (rtk_dongle_enable)
   {
-    MICROSTRAIN_DEBUG(node_, "Streaming descriptor 0x%02x%02x as an on demand descriptor (we will receive it at whatever rate the device does)", mip::data_gnss::MIP_GNSS3_DATA_DESC_SET, mip::data_gnss::RtkCorrectionsStatus::DESCRIPTOR_SET);
-    if (streamed_descriptors_mapping_.find(mip::data_gnss::MIP_GNSS3_DATA_DESC_SET) == streamed_descriptors_mapping_.end())
-      streamed_descriptors_mapping_[mip::data_gnss::MIP_GNSS3_DATA_DESC_SET] = {};
-    streamed_descriptors_mapping_[mip::data_gnss::MIP_GNSS3_DATA_DESC_SET].push_back({ mip::data_gnss::RtkCorrectionsStatus::FIELD_DESCRIPTOR, 1 });
+    if (mip_device_->supportsDescriptor(mip::data_gnss::MIP_GNSS3_DATA_DESC_SET, mip::data_gnss::DATA_RTK_CORRECTIONS_STATUS))
+    {
+      MICROSTRAIN_DEBUG(node_, "Streaming descriptor 0x%02x%02x as an on demand descriptor (we will receive it at whatever rate the device does)", mip::data_gnss::MIP_GNSS3_DATA_DESC_SET, mip::data_gnss::RtkCorrectionsStatus::FIELD_DESCRIPTOR);
+      if (streamed_descriptors_mapping_.find(mip::data_gnss::MIP_GNSS3_DATA_DESC_SET) == streamed_descriptors_mapping_.end())
+        streamed_descriptors_mapping_[mip::data_gnss::MIP_GNSS3_DATA_DESC_SET] = {};
+      streamed_descriptors_mapping_[mip::data_gnss::MIP_GNSS3_DATA_DESC_SET].push_back({ mip::data_gnss::RtkCorrectionsStatus::FIELD_DESCRIPTOR, 1 });
+    }
+  }
+
+  // If the relative position mode is based on the base station, stream that information
+  int filter_relative_pos_source; getParam(config_node, "filter_relative_position_source", filter_relative_pos_source, REL_POS_SOURCE_AUTO);
+  if (filter_relative_pos_source == REL_POS_SOURCE_BASE_STATION)
+  {
+    if (mip_device_->supportsDescriptor(mip::data_gnss::MIP_GNSS3_DATA_DESC_SET, mip::data_gnss::DATA_RTK_CORRECTIONS_STATUS))
+    {
+      MICROSTRAIN_DEBUG(node_, "Streaming descriptor 0x%02x%02x as an on demand descriptor (we will receive it at whatever rate the device does)", mip::data_gnss::MIP_GNSS3_DATA_DESC_SET, mip::data_gnss::BaseStationInfo::FIELD_DESCRIPTOR);
+      if (streamed_descriptors_mapping_.find(mip::data_gnss::MIP_GNSS3_DATA_DESC_SET) == streamed_descriptors_mapping_.end())
+        streamed_descriptors_mapping_[mip::data_gnss::MIP_GNSS3_DATA_DESC_SET] = {};
+      streamed_descriptors_mapping_[mip::data_gnss::MIP_GNSS3_DATA_DESC_SET].push_back({ mip::data_gnss::BaseStationInfo::FIELD_DESCRIPTOR, 1 });
+    }
   }
 
   // Enable each of the descriptor sets and save the message format
@@ -322,7 +339,7 @@ const std::map<std::string, FieldWrapper::SharedPtrVec> MipPublisherMapping::sta
     FieldWrapperType<mip::data_filter::CompAngularRate>::initialize(),
   }},
   {FILTER_ODOMETRY_MAP_TOPIC, {
-    FieldWrapperType<mip::data_filter::RelPosNed>::initialize(),
+    FieldWrapperType<mip::data_filter::EcefPos>::initialize(),
     FieldWrapperType<mip::data_filter::PositionLlhUncertainty>::initialize(),
     FieldWrapperType<mip::data_filter::AttitudeQuaternion>::initialize(),
     FieldWrapperType<mip::data_filter::EulerAnglesUncertainty>::initialize(),

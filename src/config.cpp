@@ -14,10 +14,13 @@
 #include <memory>
 #include <algorithm>
 
+#include <GeographicLib/Geocentric.hpp>
+
 #include "mip/mip_version.h"
 #include "mip/definitions/commands_base.hpp"
 #include "mip/definitions/commands_3dm.hpp"
 #include "mip/definitions/commands_gnss.hpp"
+#include "mip/definitions/commands_aiding.hpp"
 #include "mip/definitions/data_sensor.hpp"
 #include "mip/definitions/data_gnss.hpp"
 #include "mip/definitions/data_filter.hpp"
@@ -125,6 +128,9 @@ bool Config::configure(RosNodeType* node)
   // FILTER
   std::vector<double> filter_speed_lever_arm_double(3, 0.0);
   getParam<bool>(node, "filter_relative_position_config", filter_relative_pos_config_, false);
+  getParam<int>(node, "filter_relative_position_source", filter_relative_pos_source_, 2);
+  getParam<int32_t>(node, "filter_relative_position_frame", filter_relative_pos_frame_, 2);
+  getParam<std::vector<double>>(node, "filter_relative_position_ref", filter_relative_pos_ref_, DEFAULT_VECTOR);
   getParam<double>(node, "gps_leap_seconds", gps_leap_seconds_, 18.0);
   getParam<bool>(node, "filter_enable_gnss_heading_aiding", filter_enable_gnss_heading_aiding_, true);
   getParam<bool>(node, "filter_enable_gnss_pos_vel_aiding", filter_enable_gnss_pos_vel_aiding_, true);
@@ -224,7 +230,7 @@ bool Config::setupDevice(RosNodeType* node)
     return false;
 
   // If the device has no way of obtaining a global position, disable global transform mode
-  if (tf_mode_ == TF_MODE_GLOBAL && !mip_device_->supportsDescriptor(mip::data_filter::DESCRIPTOR_SET, mip::data_filter::EcefPos::DESCRIPTOR_SET) && !mip_device_->supportsDescriptor(mip::data_filter::DESCRIPTOR_SET, mip::data_filter::PositionLlh::DESCRIPTOR_SET))
+  if (tf_mode_ == TF_MODE_GLOBAL && !mip_device_->supportsDescriptor(mip::data_filter::DESCRIPTOR_SET, mip::data_filter::EcefPos::FIELD_DESCRIPTOR) && !mip_device_->supportsDescriptor(mip::data_filter::DESCRIPTOR_SET, mip::data_filter::PositionLlh::FIELD_DESCRIPTOR))
   {
     MICROSTRAIN_ERROR(node_, "Device does not support Global tf_mode as it has no way of obtaining global position");
     return false;
@@ -398,6 +404,20 @@ bool Config::configure3DM(RosNodeType* node)
         MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to configure factory streaming channels");
         return false;
       }
+
+      // Also enable aiding command echo when collecting a factory support binary
+      if (mip_device_->supportsDescriptor(mip::commands_aiding::DESCRIPTOR_SET, mip::commands_aiding::AidingEchoControl::FIELD_DESCRIPTOR))
+      {
+        if (!(mip_cmd_result = mip::commands_aiding::writeAidingEchoControl(*mip_device_, mip::commands_aiding::AidingEchoControl::Mode::RESPONSE)))
+        {
+          MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to configure aiding echo control");
+          return false;
+        }
+      }
+      else
+      {
+        MICROSTRAIN_DEBUG(node_, "Device does not support aiding echo control");
+      }
     }
     else
     {
@@ -556,9 +576,6 @@ bool Config::configureFilter(RosNodeType* node)
   std::vector<double> filter_init_position_double(3, 0.0);
   std::vector<double> filter_init_velocity_double(3, 0.0);
   std::vector<double> filter_init_attitude_double(3, 0.0);
-  int filter_relative_position_frame;
-  int filter_relative_position_source;
-  std::vector<double> filter_relative_position_ref_double(3, 0.0);
   double filter_gnss_antenna_cal_max_offset;
   std::vector<double> filter_lever_arm_offset_double(3, 0.0);
   getParam<int32_t>(node, "filter_adaptive_level", filter_adaptive_level, 2);
@@ -569,9 +586,6 @@ bool Config::configureFilter(RosNodeType* node)
   getParam<std::vector<double>>(node, "filter_init_position", filter_init_position_double, DEFAULT_VECTOR);
   getParam<std::vector<double>>(node, "filter_init_velocity", filter_init_velocity_double, DEFAULT_VECTOR);
   getParam<std::vector<double>>(node, "filter_init_attitude", filter_init_attitude_double, DEFAULT_VECTOR);
-  getParam<int32_t>(node, "filter_relative_position_frame", filter_relative_position_frame, 2);
-  getParam<int32_t>(node, "filter_relative_position_source", filter_relative_position_source, 1);
-  getParam<std::vector<double>>(node, "filter_relative_position_ref", filter_relative_position_ref_double, DEFAULT_VECTOR);
   getParam<double>(node, "filter_gnss_antenna_cal_max_offset", filter_gnss_antenna_cal_max_offset, 0.1);
   getParam<std::vector<double>>(node, "filter_lever_arm_offset", filter_lever_arm_offset_double, DEFAULT_VECTOR);
 
@@ -590,8 +604,6 @@ bool Config::configureFilter(RosNodeType* node)
   std::vector<float> filter_init_velocity(filter_init_velocity_double.begin(), filter_init_velocity_double.end());
   std::vector<float> filter_init_attitude(filter_init_attitude_double.begin(), filter_init_attitude_double.end());
 
-  std::vector<double> filter_relative_position_ref(filter_relative_position_ref_double.begin(), filter_relative_position_ref_double.end());
-
   std::vector<float> filter_sensor2vehicle_frame_transformation_euler(filter_sensor2vehicle_frame_transformation_euler_double.begin(), filter_sensor2vehicle_frame_transformation_euler_double.end());
   std::vector<float> filter_sensor2vehicle_frame_transformation_matrix(filter_sensor2vehicle_frame_transformation_matrix_double.begin(), filter_sensor2vehicle_frame_transformation_matrix_double.end());
   std::vector<float> filter_sensor2vehicle_frame_transformation_quaternion(filter_sensor2vehicle_frame_transformation_quaternion_double.begin(), filter_sensor2vehicle_frame_transformation_quaternion_double.end());
@@ -605,8 +617,8 @@ bool Config::configureFilter(RosNodeType* node)
   if (mip_device_->supportsDescriptor(descriptor_set, mip::commands_filter::CMD_DECLINATION_SOURCE))
   {
     // If the declination source is none, set the declination to 0
-    const auto declination_source_enum = static_cast<mip::commands_filter::FilterMagDeclinationSource>(declination_source);
-    if (declination_source_enum == mip::commands_filter::FilterMagDeclinationSource::NONE)
+    const auto declination_source_enum = static_cast<mip::commands_filter::FilterMagParamSource>(declination_source);
+    if (declination_source_enum == mip::commands_filter::FilterMagParamSource::NONE)
       declination = 0;
 
     MICROSTRAIN_INFO(node_, "Setting Declination Source to %d %f", declination_source, declination);
@@ -750,40 +762,8 @@ bool Config::configureFilter(RosNodeType* node)
     MICROSTRAIN_INFO(node_, "Note: The device does not support the filter aiding command.");
   }
 
-  // Set the filter relative position frame settings
-  if (mip_device_->supportsDescriptor(descriptor_set, mip::commands_filter::CMD_REL_POS_CONFIGURATION))
-  {
-    if (filter_relative_pos_config_)
-    {
-      MICROSTRAIN_INFO(node_, "Setting relative position to: [%f, %f, %f], ref frame = %d",
-          filter_relative_position_ref[0], filter_relative_position_ref[1], filter_relative_position_ref[2], filter_relative_position_frame);
-      if (!(mip_cmd_result = mip::commands_filter::writeRelPosConfiguration(*mip_device_, filter_relative_position_source, static_cast<mip::commands_filter::FilterReferenceFrame>(filter_relative_position_frame), filter_relative_position_ref.data())))
-      {
-        MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to configure relative position settings");
-        return false;
-      }
-    }
-    else if (tf_mode_ == TF_MODE_RELATIVE && device_setup_)
-    {
-      MICROSTRAIN_ERROR(node_, "Relative position not configured. Please set relative position configuration if you want to use relative transform mode");
-      return false;
-    }
-    else
-    {
-      MICROSTRAIN_INFO(node_, "Note: Not configuring filter relative position");
-    }
-  }
-  else if (tf_mode_ == TF_MODE_RELATIVE)
-  {
-    MICROSTRAIN_ERROR(node_, "Relative position not currently supported by this device.");
-    return false;
-  }
-  else
-  {
-    MICROSTRAIN_INFO(node_, "Note: The device does not support the relative position configuration command");
-  }
-
   // Set the filter speed lever arm
+  // TODO: We need to handle this with the ROS transforms
   if (mip_device_->supportsDescriptor(descriptor_set, mip::commands_filter::CMD_SPEED_LEVER_ARM))
   {
     MICROSTRAIN_INFO(node_, "Setting speed lever arm to: [%f, %f, %f]", filter_speed_lever_arm_[0], filter_speed_lever_arm_[1], filter_speed_lever_arm_[2]);

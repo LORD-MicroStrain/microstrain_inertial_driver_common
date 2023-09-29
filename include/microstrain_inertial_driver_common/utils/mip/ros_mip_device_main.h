@@ -132,6 +132,9 @@ class RosMipDeviceMain : public RosMipDevice
   // Expose some useful members, including the device information
   mip::commands_base::BaseDeviceInfo device_info_;
 
+  // Number of frame IDs supported by this device
+  uint16_t max_external_frame_ids_ = 0;
+
  private:
   std::vector<uint8_t> supported_descriptor_sets_;  // Supported descriptor sets of the node
   std::vector<uint16_t> supported_descriptors_;  // Supported field descriptors of the node

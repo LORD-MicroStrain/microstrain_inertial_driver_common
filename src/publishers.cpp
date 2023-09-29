@@ -83,9 +83,10 @@ bool Publishers::configure()
 
   // Only publish odometry if we support the related position field
   if (config_->mip_device_->supportsDescriptor(mip::data_filter::DESCRIPTOR_SET, mip::data_filter::EcefPos::FIELD_DESCRIPTOR) || config_->mip_device_->supportsDescriptor(mip::data_filter::DESCRIPTOR_SET, mip::data_filter::PositionLlh::FIELD_DESCRIPTOR))
+  {
     filter_odometry_earth_pub_->configure(node_, config_);
-  if (config_->mip_device_->supportsDescriptor(mip::data_filter::DESCRIPTOR_SET, mip::data_filter::RelPosNed::FIELD_DESCRIPTOR))
     filter_odometry_map_pub_->configure(node_, config_);
+  }
 
   mip_sensor_overrange_status_pub_->configure(node_, config_);
 
@@ -128,6 +129,12 @@ bool Publishers::configure()
   filter_odometry_map_pub_->getMessage()->header.frame_id = config_->map_frame_id_;
   filter_odometry_map_pub_->getMessage()->child_frame_id = config_->frame_id_;
 
+  config_->earth_to_map_transform_.header.frame_id = config_->earth_frame_id_;
+  config_->earth_to_map_transform_.child_frame_id = config_->map_frame_id_;
+
+  map_to_imu_link_transform_.header.frame_id = config_->map_frame_id_;
+  map_to_imu_link_transform_.child_frame_id = config_->frame_id_;
+
   // Static covariance configuration
   auto imu_msg = imu_pub_->getMessage();
   auto mag_msg = mag_pub_->getMessage();
@@ -156,73 +163,39 @@ bool Publishers::configure()
   static_transform_broadcaster_ = createStaticTransformBroadcaster(node_);
   transform_broadcaster_ = createTransformBroadcaster(node_);
 
-  // Get the relative position configuration so we can publish the transform between earth and map if we need to
-  if (config_->tf_mode_ == TF_MODE_RELATIVE)
+  // If the source is manual, set up our transform here
+  if (config_->filter_relative_pos_config_ && config_->filter_relative_pos_source_ == REL_POS_SOURCE_MANUAL)
   {
-    if (config_->mip_device_->supportsDescriptor(mip::commands_filter::DESCRIPTOR_SET, mip::commands_filter::CMD_REL_POS_CONFIGURATION))
+    // Set the translation from config
+    config_->earth_to_map_transform_.header.stamp = rosTimeNow(node_);
+    if (config_->filter_relative_pos_frame_ == REL_POS_FRAME_ECEF)
     {
-      mip::CmdResult mip_cmd_result;
-      uint8_t rel_pos_source;
-      mip::commands_filter::FilterReferenceFrame rel_pos_frame;
-      double rel_pos_coordinates[3];
-      if (!(mip_cmd_result = mip::commands_filter::readRelPosConfiguration(*(config_->mip_device_), &rel_pos_source, &rel_pos_frame, rel_pos_coordinates)))
-      {
-        MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to read relative position configuration");
-        return false;
-      }
-
-      if (rel_pos_source == 0)  // Relative position will be reported relative to the base station
-      {
-        // Stream the base station info at 2 hertz so we can publish the earth to map transform
-        MICROSTRAIN_DEBUG(node_, "Streaming RTK base station info data at 2 hertz");
-        if (!(mip_cmd_result = config_->mip_device_->streamDescriptor(mip::data_gnss::MIP_GNSS3_DATA_DESC_SET, mip::data_gnss::DATA_BASE_STATION_INFO, 1)))
-        {
-          MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to stream RTK base station info required for earth to map transform");
-          return false;
-        }
-        static_earth_map_transform_ = false;
-      }
-      else if (rel_pos_source == 1)  // Relative position will be reported relative to the returned coordinates
-      {
-        if (rel_pos_frame == mip::commands_filter::FilterReferenceFrame::ECEF)
-        {
-          earth_map_transform_msg_.transform.translation.x = rel_pos_coordinates[0];
-          earth_map_transform_msg_.transform.translation.y = rel_pos_coordinates[1];
-          earth_map_transform_msg_.transform.translation.z = rel_pos_coordinates[2];
-        }
-        else if (rel_pos_frame == mip::commands_filter::FilterReferenceFrame::LLH)
-        {
-          geocentric_converter_.Forward(rel_pos_coordinates[0], rel_pos_coordinates[1], rel_pos_coordinates[2],
-            earth_map_transform_msg_.transform.translation.x, earth_map_transform_msg_.transform.translation.y, earth_map_transform_msg_.transform.translation.z);
-        }
-
-        // Get the lat lon and alt since that's the only way I know how to get the rotation
-        double lat, lon, alt;
-        geocentric_converter_.Reverse(earth_map_transform_msg_.transform.translation.x, earth_map_transform_msg_.transform.translation.y, earth_map_transform_msg_.transform.translation.z, lat, lon, alt);
-        if (config_->use_enu_frame_)
-          earth_map_transform_msg_.transform.rotation = tf2::toMsg(ecefToEnuTransformQuat(lat, lon));
-        else
-          earth_map_transform_msg_.transform.rotation = tf2::toMsg(ecefToNedTransformQuat(lat, lon));
-
-        earth_map_transform_msg_.header.stamp = rosTimeNow(node_);
-
-        static_earth_map_transform_ = true;
-      }
-      else
-      {
-        MICROSTRAIN_ERROR(node_, "Unsupported relative position configuration %d. Unable to publish relative transform", rel_pos_source);
-        return false;
-      }
-
-      // Fill in the remaining info
-      earth_map_transform_msg_.header.frame_id = config_->earth_frame_id_;
-      earth_map_transform_msg_.child_frame_id = config_->map_frame_id_;
+      config_->earth_to_map_transform_.transform.translation.x = config_->filter_relative_pos_ref_[0];
+      config_->earth_to_map_transform_.transform.translation.y = config_->filter_relative_pos_ref_[1];
+      config_->earth_to_map_transform_.transform.translation.z = config_->filter_relative_pos_ref_[2];
+    }
+    else if (config_->filter_relative_pos_frame_ == REL_POS_FRAME_LLH)
+    {
+      geocentric_converter_.Forward(config_->filter_relative_pos_ref_[0], config_->filter_relative_pos_ref_[1], config_->filter_relative_pos_ref_[2],
+          config_->earth_to_map_transform_.transform.translation.x, config_->earth_to_map_transform_.transform.translation.y, config_->earth_to_map_transform_.transform.translation.z);
     }
     else
     {
-      MICROSTRAIN_ERROR(node_, "This device does not support the relative position configuration command. Unable to publish relative transforms");
+      MICROSTRAIN_ERROR(node_, "Invalid filter_relative_pos_frame %d", config_->filter_relative_pos_frame_);
       return false;
     }
+
+    // Determine the rotation from ECEF to NED/ENU for this position
+    double lat, lon, alt;
+    geocentric_converter_.Reverse(config_->earth_to_map_transform_.transform.translation.x, config_->earth_to_map_transform_.transform.translation.y, config_->earth_to_map_transform_.transform.translation.z, lat, lon, alt);
+    if (config_->use_enu_frame_)
+      config_->earth_to_map_transform_.transform.rotation = tf2::toMsg(ecefToEnuTransformQuat(lat, lon));
+    else
+      config_->earth_to_map_transform_.transform.rotation = tf2::toMsg(ecefToNedTransformQuat(lat, lon));
+    
+    // Note that the data is valid so we can publish it on activate
+    config_->earth_to_map_transform_valid_ = true;
+    config_->earth_to_map_transform_updated_ = true;
   }
 
   // Static antenna offsets
@@ -235,7 +208,7 @@ bool Publishers::configure()
       MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to read GNSS antenna offsets required for GNSS antenna transforms");
       return false;
     }
-    TransformStampedMsg& gnss_antenna_transform = gnss_antenna_transform_msg_[GNSS1_ID];
+    TransformStampedMsg& gnss_antenna_transform = imu_link_to_gnss_antenna_link_transform_[GNSS1_ID];
     gnss_antenna_transform.header.stamp = rosTimeNow(node_);
     gnss_antenna_transform.header.frame_id = config_->frame_id_;
     gnss_antenna_transform.child_frame_id = config_->gnss_frame_id_[GNSS1_ID];
@@ -265,7 +238,7 @@ bool Publishers::configure()
         MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to read GNSS antenna offsets required for GNSS antenna transforms");
         return false;
       }
-      TransformStampedMsg& gnss_antenna_transform = gnss_antenna_transform_msg_[gnss_id];
+      TransformStampedMsg& gnss_antenna_transform = imu_link_to_gnss_antenna_link_transform_[gnss_id];
       gnss_antenna_transform.header.stamp = rosTimeNow(node_);
       gnss_antenna_transform.header.frame_id = config_->frame_id_;
       gnss_antenna_transform.child_frame_id = config_->gnss_frame_id_[gnss_id];
@@ -298,25 +271,25 @@ bool Publishers::configure()
       return false;
     }
 
-    odometer_transform_msg_.header.stamp = rosTimeNow(node_);
-    odometer_transform_msg_.header.frame_id = config_->frame_id_;
-    odometer_transform_msg_.child_frame_id = config_->odometer_frame_id_;
-    odometer_transform_msg_.transform.rotation = tf2::toMsg(tf2::Quaternion::getIdentity());
+    imu_link_to_odometer_link_transform_.header.stamp = rosTimeNow(node_);
+    imu_link_to_odometer_link_transform_.header.frame_id = config_->frame_id_;
+    imu_link_to_odometer_link_transform_.child_frame_id = config_->odometer_frame_id_;
+    imu_link_to_odometer_link_transform_.transform.rotation = tf2::toMsg(tf2::Quaternion::getIdentity());
 
     // If running in the ENU frame, transform from our vehicle frame to the ROS vehicle frame
     const tf2::Vector3 v_microstrain_vehicle_to_odometer(speed_lever_arm[0], speed_lever_arm[1], speed_lever_arm[2]);
     if (config_->use_enu_frame_)
     {
       const tf2::Vector3 v_ros_vehicle_to_odometer = config_->t_ros_vehicle_to_microstrain_vehicle_.inverse() * v_microstrain_vehicle_to_odometer;
-      odometer_transform_msg_.transform.translation.x = v_ros_vehicle_to_odometer.getX();
-      odometer_transform_msg_.transform.translation.x = v_ros_vehicle_to_odometer.getY();
-      odometer_transform_msg_.transform.translation.x = v_ros_vehicle_to_odometer.getZ();
+      imu_link_to_odometer_link_transform_.transform.translation.x = v_ros_vehicle_to_odometer.getX();
+      imu_link_to_odometer_link_transform_.transform.translation.x = v_ros_vehicle_to_odometer.getY();
+      imu_link_to_odometer_link_transform_.transform.translation.x = v_ros_vehicle_to_odometer.getZ();
     }
     else
     {
-      odometer_transform_msg_.transform.translation.x = v_microstrain_vehicle_to_odometer.getX();
-      odometer_transform_msg_.transform.translation.y = v_microstrain_vehicle_to_odometer.getY();
-      odometer_transform_msg_.transform.translation.z = v_microstrain_vehicle_to_odometer.getZ();
+      imu_link_to_odometer_link_transform_.transform.translation.x = v_microstrain_vehicle_to_odometer.getX();
+      imu_link_to_odometer_link_transform_.transform.translation.y = v_microstrain_vehicle_to_odometer.getY();
+      imu_link_to_odometer_link_transform_.transform.translation.z = v_microstrain_vehicle_to_odometer.getZ();
     }
   }
 
@@ -384,7 +357,6 @@ bool Publishers::configure()
   registerDataCallback<mip::data_filter::CompAngularRate, &Publishers::handleFilterCompAngularRate>();
   registerDataCallback<mip::data_filter::CompAccel, &Publishers::handleFilterCompAccel>();
   registerDataCallback<mip::data_filter::LinearAccel, &Publishers::handleFilterLinearAccel>();
-  registerDataCallback<mip::data_filter::RelPosNed, &Publishers::handleFilterRelPosNed>();
   registerDataCallback<mip::data_filter::GnssPosAidStatus, &Publishers::handleFilterGnssPosAidStatus>();
   registerDataCallback<mip::data_filter::MultiAntennaOffsetCorrection, &Publishers::handleFilterMultiAntennaOffsetCorrection>();
   registerDataCallback<mip::data_filter::GnssDualAntennaStatus, &Publishers::handleFilterGnssDualAntennaStatus>();
@@ -433,20 +405,27 @@ bool Publishers::activate()
   nmea_sentence_pub_->activate();
 
   // Publish the static transforms
-  if (config_->publish_mount_to_frame_id_transform_)
-    static_transform_broadcaster_->sendTransform(config_->mount_to_frame_id_transform_);
-  if (config_->tf_mode_ == TF_MODE_RELATIVE && static_earth_map_transform_)
-    static_transform_broadcaster_->sendTransform(earth_map_transform_msg_);
-  
-  // Static antenna offsets
-  // Note: If streaming the antenna offset correction topic, correct the offsets with them
-  if (config_->mip_device_->supportsDescriptorSet(mip::data_gnss::DESCRIPTOR_SET) || config_->mip_device_->supportsDescriptorSet(mip::data_gnss::MIP_GNSS1_DATA_DESC_SET))
-    static_transform_broadcaster_->sendTransform(gnss_antenna_transform_msg_[GNSS1_ID]);
-  if (config_->mip_device_->supportsDescriptorSet(mip::data_gnss::MIP_GNSS2_DATA_DESC_SET))
-    static_transform_broadcaster_->sendTransform(gnss_antenna_transform_msg_[GNSS2_ID]);
-  if (config_->mip_device_->supportsDescriptor(mip::commands_filter::DESCRIPTOR_SET, mip::commands_filter::CMD_SPEED_LEVER_ARM))
-    static_transform_broadcaster_->sendTransform(odometer_transform_msg_);
-
+  if (config_->tf_mode_ != TF_MODE_OFF)
+  {
+    if (config_->publish_mount_to_frame_id_transform_)
+      static_transform_broadcaster_->sendTransform(config_->mount_to_frame_id_transform_);
+    if (config_->tf_mode_ == TF_MODE_RELATIVE && config_->earth_to_map_transform_updated_)
+    {
+      static_transform_broadcaster_->sendTransform(config_->earth_to_map_transform_);
+      config_->earth_to_map_transform_updated_ = false;
+    }
+    
+    // TODO: Handle dynamic earth to map transforms and transform the incoming data to the local frame
+    
+    // Static antenna offsets
+    // Note: If streaming the antenna offset correction topic, correct the offsets with them
+    if (config_->mip_device_->supportsDescriptorSet(mip::data_gnss::DESCRIPTOR_SET) || config_->mip_device_->supportsDescriptorSet(mip::data_gnss::MIP_GNSS1_DATA_DESC_SET))
+      static_transform_broadcaster_->sendTransform(imu_link_to_gnss_antenna_link_transform_[GNSS1_ID]);
+    if (config_->mip_device_->supportsDescriptorSet(mip::data_gnss::MIP_GNSS2_DATA_DESC_SET))
+      static_transform_broadcaster_->sendTransform(imu_link_to_gnss_antenna_link_transform_[GNSS2_ID]);
+    if (config_->mip_device_->supportsDescriptor(mip::commands_filter::DESCRIPTOR_SET, mip::commands_filter::CMD_SPEED_LEVER_ARM))
+      static_transform_broadcaster_->sendTransform(imu_link_to_odometer_link_transform_);
+  }
   return true;
 }
 
@@ -514,7 +493,7 @@ void Publishers::publish()
   // Publish the dynamic transforms after the messages have been filled out
   std::string tf_error_string;
   RosTimeType frame_time; setRosTime(&frame_time, 0, 0);
-  if (config_->tf_mode_ == TF_MODE_GLOBAL && ecef_transform_position_updated_ && ecef_transform_attitude_updated_)
+  if (config_->tf_mode_ == TF_MODE_GLOBAL && earth_to_imu_link_transform_translation_updated_ && earth_to_imu_link_transform_attitude_updated_)
   {
     if (transform_buffer_->canTransform(config_->target_frame_id_, config_->frame_id_, frame_time, RosDurationType(0, 0), &tf_error_string))
     {
@@ -543,36 +522,30 @@ void Publishers::publish()
 
       // Publish and reset the booleans
       transform_broadcaster_->sendTransform(earth_target_transform);
-      ecef_transform_position_updated_ = false;
-      ecef_transform_attitude_updated_ = false;
+      earth_to_imu_link_transform_translation_updated_ = false;
+      earth_to_imu_link_transform_attitude_updated_ = false;
     }
     else
     {
       MICROSTRAIN_WARN_THROTTLE(node_, 2, "Unable to lookup transform from %s to %s: %s", config_->target_frame_id_.c_str(), config_->frame_id_.c_str(), tf_error_string.c_str());
     }
   }
-  else if (config_->tf_mode_ == TF_MODE_RELATIVE && relative_transform_position_updated_ && relative_transform_attitude_updated_)
+  else if (config_->tf_mode_ == TF_MODE_RELATIVE && map_to_imu_link_transform_translation_updated_ && map_to_imu_link_transform_attitude_updated_)
   {
     if (transform_buffer_->canTransform(config_->target_frame_id_, config_->frame_id_, frame_time, RosDurationType(0, 0), &tf_error_string))
     {
-      TransformStampedMsg map_target_transform, map_imu_link_transform;
+      TransformStampedMsg map_target_transform;
       const auto& imu_link_target_transform = transform_buffer_->lookupTransform(config_->target_frame_id_, config_->frame_id_, frame_time, RosDurationType(0, 0));
 
-      const auto& filter_odometry_map_msg = filter_odometry_map_pub_->getMessage();
-      map_imu_link_transform.transform.translation.x = filter_odometry_map_msg->pose.pose.position.x;
-      map_imu_link_transform.transform.translation.y = filter_odometry_map_msg->pose.pose.position.y;
-      map_imu_link_transform.transform.translation.z = filter_odometry_map_msg->pose.pose.position.z;
-      map_imu_link_transform.transform.rotation = filter_odometry_map_msg->pose.pose.orientation;
+      tf2::doTransform(map_to_imu_link_transform_, map_target_transform, imu_link_target_transform);
 
-      tf2::doTransform(map_imu_link_transform, map_target_transform, imu_link_target_transform);
-
-      map_target_transform.header.stamp = filter_odometry_map_msg->header.stamp;      
+      map_target_transform.header.stamp = map_to_imu_link_transform_.header.stamp;
       map_target_transform.header.frame_id = config_->map_frame_id_;
       map_target_transform.child_frame_id = config_->target_frame_id_;
 
       transform_broadcaster_->sendTransform(map_target_transform);
-      relative_transform_position_updated_ = false;
-      relative_transform_attitude_updated_ = false;
+      map_to_imu_link_transform_translation_updated_ = false;
+      map_to_imu_link_transform_attitude_updated_ = false;
     }
     else
     {
@@ -582,9 +555,12 @@ void Publishers::publish()
 
   if (config_->tf_mode_ != TF_MODE_OFF)
   {
-    // Only publish the earth to map transform now if it is not static
-    if (!static_earth_map_transform_ && earth_map_transform_updated_)
-      transform_broadcaster_->sendTransform(earth_map_transform_msg_);
+    if (config_->earth_to_map_transform_updated_)
+    {
+      // Send as a static transform since the transform should get updated pretty rarely
+      static_transform_broadcaster_->sendTransform(config_->earth_to_map_transform_);
+      config_->earth_to_map_transform_updated_ = false;
+    }
   }
 }
 
@@ -1043,20 +1019,27 @@ void Publishers::handleRtkCorrectionsStatus(const mip::data_gnss::RtkCorrections
 
 void Publishers::handleRtkBaseStationInfo(const mip::data_gnss::BaseStationInfo& base_station_info, const uint8_t descriptor_set, mip::Timestamp timestamp)
 {
-  // Update the earth to map transform
-  updateHeaderTime(&(earth_map_transform_msg_.header), descriptor_set, timestamp);
-  earth_map_transform_msg_.transform.translation.x = base_station_info.ecef_pos[0];
-  earth_map_transform_msg_.transform.translation.y = base_station_info.ecef_pos[1];
-  earth_map_transform_msg_.transform.translation.z = base_station_info.ecef_pos[2];
+  // Only update the earth to map transform if it has changed
+  if (base_station_info.ecef_pos[0] != config_->earth_to_map_transform_.transform.translation.x || base_station_info.ecef_pos[1] != config_->earth_to_map_transform_.transform.translation.y || base_station_info.ecef_pos[2] != config_->earth_to_map_transform_.transform.translation.z)
+  {
+    updateHeaderTime(&(config_->earth_to_map_transform_.header), descriptor_set, timestamp);
+    config_->earth_to_map_transform_.transform.translation.x = base_station_info.ecef_pos[0];
+    config_->earth_to_map_transform_.transform.translation.y = base_station_info.ecef_pos[1];
+    config_->earth_to_map_transform_.transform.translation.z = base_station_info.ecef_pos[2];
 
-  // Find the rotation between ECEF and the ENU/NED frame
-  double lat, lon, alt;
-  geocentric_converter_.Reverse(earth_map_transform_msg_.transform.translation.x, earth_map_transform_msg_.transform.translation.y, earth_map_transform_msg_.transform.translation.z, lat, lon, alt);
-  if (config_->use_enu_frame_)
-    earth_map_transform_msg_.transform.rotation = tf2::toMsg(ecefToEnuTransformQuat(lat, lon));
-  else
-    earth_map_transform_msg_.transform.rotation = tf2::toMsg(ecefToNedTransformQuat(lat, lon));
-  earth_map_transform_updated_ = true;
+    // Find the rotation between ECEF and the ENU/NED frame
+    double lat, lon, alt;
+    geocentric_converter_.Reverse(config_->earth_to_map_transform_.transform.translation.x, config_->earth_to_map_transform_.transform.translation.y, config_->earth_to_map_transform_.transform.translation.z, lat, lon, alt);
+    if (config_->use_enu_frame_)
+      config_->earth_to_map_transform_.transform.rotation = tf2::toMsg(ecefToEnuTransformQuat(lat, lon));
+    else
+      config_->earth_to_map_transform_.transform.rotation = tf2::toMsg(ecefToNedTransformQuat(lat, lon));
+    
+    MICROSTRAIN_INFO_THROTTLE(node_, 10, "Base station info received, relative position will now be published relative to the following position");
+    MICROSTRAIN_INFO_THROTTLE(node_, 10, "  LLH: [%f, %f, %f]", lat, lon, alt);
+    config_->earth_to_map_transform_valid_ = true;
+    config_->earth_to_map_transform_updated_ = true;
+  }
 }
 
 void Publishers::handleFilterTimestamp(const mip::data_filter::Timestamp& filter_timestamp, const uint8_t descriptor_set, mip::Timestamp timestamp)
@@ -1224,10 +1207,83 @@ void Publishers::handleFilterEcefPos(const mip::data_filter::EcefPos& ecef_pos, 
   filter_odometry_earth_msg->pose.pose.position.y = ecef_pos.position_ecef[1];
   filter_odometry_earth_msg->pose.pose.position.z = ecef_pos.position_ecef[2];
 
-  // TODO: Calculate the map -> imu_link transform manually using this measurement for devices that do not support it
+  // If the earth to map transform is not valid and we entered full navigation mode, populate the transform with this position
+  const bool full_nav =
+  (
+    (RosMipDevice::isPhilo(config_->mip_device_->device_info_) && mip_filter_status_pub_->getMessage()->filter_state == MipFilterStatusMsg::FILTER_STATE_GX5_RUN_SOLUTION_VALID) ||
+    (RosMipDevice::isProspect(config_->mip_device_->device_info_) && mip_filter_status_pub_->getMessage()->filter_state == MipFilterStatusMsg::FILTER_STATE_GQ7_FULL_NAV)
+  );
+  if (!config_->earth_to_map_transform_valid_ && config_->filter_relative_pos_source_ == REL_POS_SOURCE_AUTO && full_nav)
+  {
+    updateHeaderTime(&(config_->earth_to_map_transform_.header), descriptor_set, timestamp);
+    config_->earth_to_map_transform_.transform.translation.x = ecef_pos.position_ecef[0];
+    config_->earth_to_map_transform_.transform.translation.y = ecef_pos.position_ecef[1];
+    config_->earth_to_map_transform_.transform.translation.z = ecef_pos.position_ecef[2];
+
+    // Find the rotation between ECEF and the ENU/NED frame
+    double lat, lon, alt;
+    geocentric_converter_.Reverse(config_->earth_to_map_transform_.transform.translation.x, config_->earth_to_map_transform_.transform.translation.y, config_->earth_to_map_transform_.transform.translation.z, lat, lon, alt);
+    if (config_->use_enu_frame_)
+      config_->earth_to_map_transform_.transform.rotation = tf2::toMsg(ecefToEnuTransformQuat(lat, lon));
+    else
+      config_->earth_to_map_transform_.transform.rotation = tf2::toMsg(ecefToNedTransformQuat(lat, lon));
+    
+    MICROSTRAIN_INFO_THROTTLE(node_, 10, "Full nav achieved. Relative position will be reported relative to the following position");
+    MICROSTRAIN_INFO_THROTTLE(node_, 10, "  LLH: [%f, %f, %f]", lat, lon, alt);
+    config_->earth_to_map_transform_valid_ = true;
+    config_->earth_to_map_transform_updated_ = true;
+  }
+
+  // If the map odometry message is enabled and we have relative position configuration attempt to transform the global position to the map frame
+  if (filter_odometry_map_pub_->dataRate() > 0 && config_->filter_relative_pos_config_)
+  {
+    // Check if we can get the earth to map transform from the TF tree, if not see if we have a valid transform in memory
+    std::string tf_error_string;
+    RosTimeType frame_time; setRosTime(&frame_time, 0, 0);
+    geometry_msgs::TransformStamped earth_to_map_transform;
+    if (config_->filter_relative_pos_source_ == REL_POS_SOURCE_EXTERNAL && transform_buffer_->canTransform(config_->earth_frame_id_, config_->map_frame_id_, frame_time, &tf_error_string))
+      earth_to_map_transform = transform_buffer_->lookupTransform(config_->earth_frame_id_, config_->map_frame_id_, frame_time);
+    else if (config_->filter_relative_pos_source_ != REL_POS_SOURCE_EXTERNAL && config_->earth_to_map_transform_valid_)
+      earth_to_map_transform = config_->earth_to_map_transform_;
+    
+    // Check if we have a valid transform
+    if (earth_to_map_transform.header.frame_id == config_->earth_frame_id_ && earth_to_map_transform.child_frame_id == config_->map_frame_id_)
+    {
+      // Rotate the position vector from earth -> imu to map -> imu
+      tf2::Vector3 v_earth_to_imu(ecef_pos.position_ecef[0], ecef_pos.position_ecef[1], ecef_pos.position_ecef[2]);
+      tf2::Transform t_earth_to_map;
+      tf2::fromMsg(earth_to_map_transform.transform, t_earth_to_map);
+      const tf2::Vector3 v_map_to_imu = t_earth_to_map.inverse() * v_earth_to_imu;
+
+      // Fill in the map odometry message
+      // Note that since the earth to map transform already puts us in either NED or ENU automatically there is no need to swap the values here
+      auto filter_odometry_map_msg = filter_odometry_map_pub_->getMessageToUpdate();
+      updateHeaderTime(&(filter_odometry_map_msg->header), descriptor_set, timestamp);
+      filter_odometry_map_msg->pose.pose.position.x = v_map_to_imu.x();
+      filter_odometry_map_msg->pose.pose.position.y = v_map_to_imu.y();
+      filter_odometry_map_msg->pose.pose.position.z = v_map_to_imu.z();
+
+      // Fill in the map to imu link transform
+      map_to_imu_link_transform_.header.stamp = filter_odometry_map_msg->header.stamp;
+      map_to_imu_link_transform_.transform.translation = tf2::toMsg(v_map_to_imu);
+      map_to_imu_link_transform_translation_updated_ = true;
+    }
+    else if (config_->filter_relative_pos_source_ == REL_POS_SOURCE_BASE_STATION)
+    {
+      MICROSTRAIN_WARN_THROTTLE(node_, 10, "Base station info not received yet, unable to publish relative position...");
+    }
+    else if (config_->filter_relative_pos_source_ == REL_POS_SOURCE_AUTO)
+    {
+      MICROSTRAIN_WARN_THROTTLE(node_, 10, "Sensor not in full nav mode yet, unable to publish relative position...");
+    }
+    else if (config_->filter_relative_pos_source_ == REL_POS_SOURCE_EXTERNAL)
+    {
+      MICROSTRAIN_WARN_THROTTLE(node_, 10, "No valid transform from %s to %s: %s", config_->earth_frame_id_.c_str(), config_->map_frame_id_.c_str(), tf_error_string.c_str());
+    }
+  }
 
   // Note that we are ready to publish the ECEF transform
-  ecef_transform_position_updated_ = true;
+  earth_to_imu_link_transform_translation_updated_ = true;
 }
 
 void Publishers::handleFilterEcefPosUncertainty(const mip::data_filter::EcefPosUncertainty& ecef_pos_uncertainty, const uint8_t descriptor_set, mip::Timestamp timestamp)
@@ -1340,14 +1396,14 @@ void Publishers::handleFilterAttitudeQuaternion(const mip::data_filter::Attitude
   filter_odometry_map_msg->pose.pose.orientation = filter_imu_msg->orientation;
 
   // Relative transform
-  updateHeaderTime(&(filter_relative_transform_msg_.header), descriptor_set, timestamp);
-  filter_relative_transform_msg_.transform.rotation = filter_imu_msg->orientation;
+  updateHeaderTime(&(map_to_imu_link_transform_.header), descriptor_set, timestamp);
+  map_to_imu_link_transform_.transform.rotation = filter_imu_msg->orientation;
 
   // ECEF transform updated
-  ecef_transform_attitude_updated_ = true;
+  earth_to_imu_link_transform_attitude_updated_ = true;
 
   // Relative transform updated
-  relative_transform_attitude_updated_ = true;
+  map_to_imu_link_transform_attitude_updated_ = true;
 }
 
 void Publishers::handleFilterEulerAnglesUncertainty(const mip::data_filter::EulerAnglesUncertainty& euler_angles_uncertainty, const uint8_t descriptor_set, mip::Timestamp timestamp)
@@ -1402,9 +1458,9 @@ void Publishers::handleFilterVelocityNed(const mip::data_filter::VelocityNed& ve
   auto filter_odometry_map_msg = filter_odometry_map_pub_->getMessage();
 
   // Rotate the velocity to the sensor frame
-  const tf2::Quaternion q_map_to_imu(filter_odometry_map_msg->pose.pose.orientation.x, filter_odometry_map_msg->pose.pose.orientation.y, filter_odometry_map_msg->pose.pose.orientation.z, filter_odometry_map_msg->pose.pose.orientation.w);
-  const tf2::Vector3 v_map_velocity(filter_velocity_msg->twist.twist.linear.x, filter_velocity_msg->twist.twist.linear.y, filter_velocity_msg->twist.twist.linear.z);
-  const tf2::Vector3 v_imu_velocity = tf2::quatRotate(q_map_to_imu.inverse(), v_map_velocity);
+  const tf2::Quaternion q_nedenu_to_imu(filter_odometry_map_msg->pose.pose.orientation.x, filter_odometry_map_msg->pose.pose.orientation.y, filter_odometry_map_msg->pose.pose.orientation.z, filter_odometry_map_msg->pose.pose.orientation.w);
+  const tf2::Vector3 v_nedenu_velocity(filter_velocity_msg->twist.twist.linear.x, filter_velocity_msg->twist.twist.linear.y, filter_velocity_msg->twist.twist.linear.z);
+  const tf2::Vector3 v_imu_velocity = tf2::quatRotate(q_nedenu_to_imu.inverse(), v_nedenu_velocity);
   filter_odometry_map_msg->twist.twist.linear.x = v_imu_velocity.getX();
   filter_odometry_map_msg->twist.twist.linear.y = v_imu_velocity.getY();
   filter_odometry_map_msg->twist.twist.linear.z = v_imu_velocity.getZ();
@@ -1428,7 +1484,7 @@ void Publishers::handleFilterVelocityNedUncertainty(const mip::data_filter::Velo
   filter_velocity_msg->twist.covariance[14] = pow(velocity_ned_uncertainty.down, 2);
 
   // Filter relative odometry message (not counted as opening)
-  auto filter_odometry_map_msg = filter_odometry_map_pub_->getMessageToUpdate();
+  auto filter_odometry_map_msg = filter_odometry_map_pub_->getMessage();
   filter_odometry_map_msg->twist.covariance = filter_velocity_msg->twist.covariance;
 }
 
@@ -1525,33 +1581,6 @@ void Publishers::handleFilterLinearAccel(const mip::data_filter::LinearAccel& li
   }
 }
 
-void Publishers::handleFilterRelPosNed(const mip::data_filter::RelPosNed& rel_pos_ned, const uint8_t descriptor_set, mip::Timestamp timestamp)
-{
-  // Filter relative odometry message
-  auto filter_odometry_map_msg = filter_odometry_map_pub_->getMessageToUpdate();
-  updateHeaderTime(&(filter_odometry_map_msg->header), descriptor_set, timestamp);
-  if (config_->use_enu_frame_)
-  {
-    filter_odometry_map_msg->pose.pose.position.x = rel_pos_ned.relative_position[1];
-    filter_odometry_map_msg->pose.pose.position.y = rel_pos_ned.relative_position[0];
-    filter_odometry_map_msg->pose.pose.position.z = -rel_pos_ned.relative_position[2];
-  }
-  else
-  {
-    filter_odometry_map_msg->pose.pose.position.x = rel_pos_ned.relative_position[0];
-    filter_odometry_map_msg->pose.pose.position.y = rel_pos_ned.relative_position[1];
-    filter_odometry_map_msg->pose.pose.position.z = rel_pos_ned.relative_position[2];
-  }
-
-  // Relative transform
-  filter_relative_transform_msg_.transform.translation.x = filter_odometry_map_msg->pose.pose.position.x;
-  filter_relative_transform_msg_.transform.translation.y = filter_odometry_map_msg->pose.pose.position.y;
-  filter_relative_transform_msg_.transform.translation.z = filter_odometry_map_msg->pose.pose.position.z;
-
-  // Relative transform updated
-  relative_transform_position_updated_ = true;
-}
-
 void Publishers::handleFilterGnssPosAidStatus(const mip::data_filter::GnssPosAidStatus& gnss_pos_aid_status, const uint8_t descriptor_set, mip::Timestamp timestamp)
 {
   // Filter GNSS position aiding status
@@ -1608,7 +1637,7 @@ void Publishers::handleFilterMultiAntennaOffsetCorrection(const mip::data_filter
   mip_filter_multi_antenna_offset_correction_pub_->publish(*mip_filter_multi_antenna_offset_correction_msg);
 
   // Update the GNSS transform
-  TransformStampedMsg gnss_antenna_transform = gnss_antenna_transform_msg_[multi_antenna_offset_correction.receiver_id - 1];
+  TransformStampedMsg gnss_antenna_transform = imu_link_to_gnss_antenna_link_transform_[multi_antenna_offset_correction.receiver_id - 1];
   gnss_antenna_transform.header.stamp = rosTimeNow(node_);
   gnss_antenna_transform.transform.translation.x += multi_antenna_offset_correction.offset[0];
   gnss_antenna_transform.transform.translation.y += multi_antenna_offset_correction.offset[1];
@@ -1658,7 +1687,7 @@ void Publishers::handleFilterAidingMeasurementSummary(const mip::data_filter::Ai
   mip_filter_aiding_measurement_summary_pub_->publish(*mip_filter_aiding_measurement_summary_msg);
 }
 
-void Publishers::handleAfterPacket(const mip::Packet& packet, mip::Timestamp timestamp)
+void Publishers::handleAfterPacket(const mip::PacketRef& packet, mip::Timestamp timestamp)
 {
   // Right now, we don't have to do much, just publish everything
   publish();
