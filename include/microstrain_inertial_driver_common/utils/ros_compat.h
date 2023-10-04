@@ -95,7 +95,6 @@ constexpr auto NUM_GNSS = 2;
 
 #include "microstrain_inertial_msgs/MipBaseGetDeviceInformation.h"
 #include "microstrain_inertial_msgs/Mip3dmCaptureGyroBias.h"
-#include "microstrain_inertial_msgs/MipFilterRelPosConfigurationWrite.h"
 
 #include "microstrain_inertial_msgs/SetAccelBias.h"
 #include "microstrain_inertial_msgs/GetAccelBias.h"

@@ -176,6 +176,13 @@ void Subscribers::externalTimeCallback(const TimeReferenceMsg& time)
 
 void Subscribers::externalGnssPositionCallback(const NavSatFixMsg& fix)
 {
+  // Throw away messages that do not have a valid fix
+  if (fix.status.status == NavSatFixMsg::_status_type::STATUS_NO_FIX)
+  {
+    MICROSTRAIN_WARN_THROTTLE(node_, 10, "Received LLH position with invalid fix. Ignoring");
+    return;
+  }
+
   // Fill out the time for the message
   mip::commands_aiding::LlhPos llh_pos;
   llh_pos.time.timebase = mip::commands_aiding::Time::Timebase::TIME_OF_ARRIVAL;  // TODO: This should use populateAidingTime instead
