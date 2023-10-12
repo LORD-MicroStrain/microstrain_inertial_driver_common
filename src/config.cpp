@@ -71,17 +71,11 @@ bool Config::configure(RosNodeType* node)
   getParam<int32_t>(node, "tf_mode", tf_mode_, TF_MODE_GLOBAL);
   getParam<bool>(node, "publish_mount_to_frame_id_transform", publish_mount_to_frame_id_transform_, true);
 
-  // If using the NED frame, append that to the frame IDs
+  // If using the NED frame, append that to the map frame ID
   if (!use_enu_frame_)
   {
     constexpr char ned_suffix[] = "_ned";
-    frame_id_ += ned_suffix;
-    target_frame_id_ += ned_suffix;
-    mount_frame_id_ += ned_suffix;
     map_frame_id_ += ned_suffix;
-    for (int i = 0; i < NUM_GNSS; i++)
-      gnss_frame_id_[i] += ned_suffix;
-    odometer_frame_id_ += ned_suffix;
   }
 
   // Configure the static transforms

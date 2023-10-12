@@ -8,6 +8,8 @@
 //
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
+#include "microstrain_inertial_driver_common/utils/geo_utils.h"
+
 #include "microstrain_inertial_driver_common/subscribers.h"
 
 namespace microstrain
@@ -488,10 +490,16 @@ uint8_t Subscribers::getSensorIdFromFrameId(const std::string& frame_id)
       // Attempt to find the transform from ROS
       std::string tf_error_string;
       RosTimeType frame_time; setRosTime(&frame_time, 0, 0);
-      if (transform_buffer_->canTransform(frame_id, config_->frame_id_, frame_time, RosDurationType(0, 0), &tf_error_string))
+      if (transform_buffer_->canTransform(config_->frame_id_, frame_id, frame_time, RosDurationType(0, 0), &tf_error_string))
       {
-        // Populate the reference frame command from the transform
-        const auto& transform = transform_buffer_->lookupTransform(frame_id, config_->frame_id_, frame_time);
+        // Populate the reference frame command from the transform. Convert from ROS vehicle frame to Microstrain vehicle frame if operating in enu mode
+        auto transform = transform_buffer_->lookupTransform(config_->frame_id_, frame_id, frame_time);
+        if (config_->use_enu_frame_)
+        {
+          tf2::Transform tf2_transorm, ros_vehicle_to_microstrain_vehicle(config_->t_ros_vehicle_to_microstrain_vehicle_);
+          tf2::fromMsg(transform.transform, tf2_transorm);
+          transform.transform = tf2::toMsg(ros_vehicle_to_microstrain_vehicle * tf2_transorm);
+        }
         mip::commands_aiding::ReferenceFrame reference_frame;
         reference_frame.format = mip::commands_aiding::ReferenceFrame::Format::QUATERNION;
         reference_frame.frame_id = external_frame_ids_size_ + 1;
@@ -507,6 +515,15 @@ uint8_t Subscribers::getSensorIdFromFrameId(const std::string& frame_id)
           static_cast<float>(transform.transform.rotation.y),
           static_cast<float>(transform.transform.rotation.z)
         };
+
+        // This is a little expensive to do for debug, but should only happen rarely
+        const tf2::Quaternion q(transform.transform.rotation.x, transform.transform.rotation.y, transform.transform.rotation.z, transform.transform.rotation.w);
+        const tf2::Matrix3x3 m(q);
+        double r, p, y;
+        m.getRPY(r, p, y);
+        MICROSTRAIN_DEBUG(node_, "Associating MIP frame %u with ROS frame %s", reference_frame.frame_id, frame_id.c_str());
+        MICROSTRAIN_DEBUG(node_, "  Front (meters): %f, Right (meters): %f, Down (meters): %f", transform.transform.translation.x, transform.transform.translation.y, transform.transform.translation.z);
+        MICROSTRAIN_DEBUG(node_, "  Roll (degrees): %f, Pitch (degrees): %f, Yaw (degrees): %f", r * 180 / M_PI, p * 180 / M_PI, y * 180 / M_PI);
 
         // Attempt to send the command
         mip::CmdResult mip_cmd_result;

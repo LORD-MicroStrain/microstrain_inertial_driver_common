@@ -18,6 +18,8 @@
 #include <memory>
 #include <fstream>
 
+#include <GeographicLib/Geocentric.hpp>
+
 #include "mip/definitions/commands_filter.hpp"
 
 #include "microstrain_inertial_driver_common/utils/ros_compat.h"
@@ -108,6 +110,9 @@ public:
   int filter_relative_pos_source_;
   std::vector<double> filter_relative_pos_ref_;
   std::vector<float> filter_speed_lever_arm_;
+
+  // Ecef to LLH converter
+  GeographicLib::Geocentric geocentric_converter_ = GeographicLib::Geocentric::WGS84();
 
   // Frame id configuration
   std::string frame_id_;

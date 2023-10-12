@@ -213,7 +213,6 @@ constexpr auto NUM_GNSS = 2;
 
 #include "microstrain_inertial_msgs/srv/mip_base_get_device_information.hpp"
 #include "microstrain_inertial_msgs/srv/mip3dm_capture_gyro_bias.hpp"
-#include "microstrain_inertial_msgs/srv/mip_filter_rel_pos_configuration_write.hpp"
 
 #include "microstrain_inertial_msgs/srv/set_accel_bias.hpp"
 #include "microstrain_inertial_msgs/srv/get_accel_bias.hpp"
