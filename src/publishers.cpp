@@ -162,7 +162,6 @@ bool Publishers::configure()
     
     // Note that the data is valid so we can publish it on activate
     config_->earth_to_map_transform_valid_ = true;
-    config_->earth_to_map_transform_updated_ = true;
   }
 
   // Static antenna offsets
@@ -376,11 +375,8 @@ bool Publishers::activate()
   {
     if (config_->publish_mount_to_frame_id_transform_)
       static_transform_broadcaster_->sendTransform(config_->mount_to_frame_id_transform_);
-    if (config_->tf_mode_ == TF_MODE_RELATIVE && config_->earth_to_map_transform_updated_)
-    {
+    if (config_->filter_relative_pos_config_ && config_->filter_relative_pos_source_ == REL_POS_SOURCE_MANUAL)
       static_transform_broadcaster_->sendTransform(config_->earth_to_map_transform_);
-      config_->earth_to_map_transform_updated_ = false;
-    }
     
     // Static antenna offsets
     // Note: If streaming the antenna offset correction topic, correct the offsets with them
@@ -985,7 +981,12 @@ void Publishers::handleRtkCorrectionsStatus(const mip::data_gnss::RtkCorrections
 void Publishers::handleRtkBaseStationInfo(const mip::data_gnss::BaseStationInfo& base_station_info, const uint8_t descriptor_set, mip::Timestamp timestamp)
 {
   // Only update the earth to map transform if it has changed
-  if (config_->filter_relative_pos_source_ == REL_POS_SOURCE_BASE_STATION && (base_station_info.ecef_pos[0] != config_->earth_to_map_transform_.transform.translation.x || base_station_info.ecef_pos[1] != config_->earth_to_map_transform_.transform.translation.y || base_station_info.ecef_pos[2] != config_->earth_to_map_transform_.transform.translation.z))
+  const bool changed = (
+    base_station_info.ecef_pos[0] != config_->earth_to_map_transform_.transform.translation.x ||
+    base_station_info.ecef_pos[1] != config_->earth_to_map_transform_.transform.translation.y ||
+    base_station_info.ecef_pos[2] != config_->earth_to_map_transform_.transform.translation.z
+  );
+  if (config_->filter_relative_pos_source_ == REL_POS_SOURCE_BASE_STATION && changed)
   {
     updateHeaderTime(&(config_->earth_to_map_transform_.header), descriptor_set, timestamp);
     config_->earth_to_map_transform_.transform.translation.x = base_station_info.ecef_pos[0];
@@ -1204,10 +1205,10 @@ void Publishers::handleFilterEcefPos(const mip::data_filter::EcefPos& ecef_pos, 
   {
     // Check if we can get the earth to map transform from the TF tree, if not see if we have a valid transform in memory
     std::string tf_error_string;
-    RosTimeType frame_time; setRosTime(&frame_time, 0, 0);
+    RosTimeType frame_time = filter_odometry_earth_msg->header.stamp;
     TransformStampedMsg earth_to_map_transform;
-    if (config_->filter_relative_pos_source_ == REL_POS_SOURCE_EXTERNAL && transform_buffer_->canTransform(config_->earth_frame_id_, config_->map_frame_id_, frame_time, RosDurationType(0, 0), &tf_error_string))
-      earth_to_map_transform = transform_buffer_->lookupTransform(config_->earth_frame_id_, config_->map_frame_id_, frame_time);
+    if (config_->filter_relative_pos_source_ == REL_POS_SOURCE_EXTERNAL && transform_buffer_->canTransform(config_->map_frame_id_, config_->earth_frame_id_, frame_time, RosDurationType(0, 0), &tf_error_string))
+      earth_to_map_transform = transform_buffer_->lookupTransform(config_->map_frame_id_, config_->earth_frame_id_, frame_time);
     else if (config_->filter_relative_pos_source_ != REL_POS_SOURCE_EXTERNAL && config_->earth_to_map_transform_valid_)
       earth_to_map_transform = config_->earth_to_map_transform_;
     
