@@ -371,22 +371,19 @@ bool Publishers::activate()
   nmea_sentence_pub_->activate();
 
   // Publish the static transforms
-  if (config_->tf_mode_ != TF_MODE_OFF)
-  {
-    if (config_->publish_mount_to_frame_id_transform_)
-      static_transform_broadcaster_->sendTransform(config_->mount_to_frame_id_transform_);
-    if (config_->filter_relative_pos_config_ && config_->filter_relative_pos_source_ == REL_POS_SOURCE_MANUAL)
-      static_transform_broadcaster_->sendTransform(config_->earth_to_map_transform_);
-    
-    // Static antenna offsets
-    // Note: If streaming the antenna offset correction topic, correct the offsets with them
-    if (config_->mip_device_->supportsDescriptorSet(mip::data_gnss::DESCRIPTOR_SET) || config_->mip_device_->supportsDescriptorSet(mip::data_gnss::MIP_GNSS1_DATA_DESC_SET))
-      static_transform_broadcaster_->sendTransform(imu_link_to_gnss_antenna_link_transform_[GNSS1_ID]);
-    if (config_->mip_device_->supportsDescriptorSet(mip::data_gnss::MIP_GNSS2_DATA_DESC_SET))
-      static_transform_broadcaster_->sendTransform(imu_link_to_gnss_antenna_link_transform_[GNSS2_ID]);
-    if (config_->mip_device_->supportsDescriptor(mip::commands_filter::DESCRIPTOR_SET, mip::commands_filter::CMD_SPEED_LEVER_ARM))
-      static_transform_broadcaster_->sendTransform(imu_link_to_odometer_link_transform_);
-  }
+  if (config_->tf_mode_ != TF_MODE_OFF && config_->filter_relative_pos_config_ && config_->filter_relative_pos_source_ == REL_POS_SOURCE_MANUAL)
+    static_transform_broadcaster_->sendTransform(config_->earth_to_map_transform_);
+  if (config_->publish_mount_to_frame_id_transform_)
+    static_transform_broadcaster_->sendTransform(config_->mount_to_frame_id_transform_);
+  
+  // Static antenna offsets
+  // Note: If streaming the antenna offset correction topic, correct the offsets with them
+  if (config_->mip_device_->supportsDescriptorSet(mip::data_gnss::DESCRIPTOR_SET) || config_->mip_device_->supportsDescriptorSet(mip::data_gnss::MIP_GNSS1_DATA_DESC_SET))
+    static_transform_broadcaster_->sendTransform(imu_link_to_gnss_antenna_link_transform_[GNSS1_ID]);
+  if (config_->mip_device_->supportsDescriptorSet(mip::data_gnss::MIP_GNSS2_DATA_DESC_SET))
+    static_transform_broadcaster_->sendTransform(imu_link_to_gnss_antenna_link_transform_[GNSS2_ID]);
+  if (config_->mip_device_->supportsDescriptor(mip::commands_filter::DESCRIPTOR_SET, mip::commands_filter::CMD_SPEED_LEVER_ARM))
+    static_transform_broadcaster_->sendTransform(imu_link_to_odometer_link_transform_);
   return true;
 }
 
@@ -1193,7 +1190,7 @@ void Publishers::handleFilterEcefPos(const mip::data_filter::EcefPos& ecef_pos, 
       config_->earth_to_map_transform_.transform.rotation = tf2::toMsg(ecefToEnuTransformQuat(lat, lon));
     else
       config_->earth_to_map_transform_.transform.rotation = tf2::toMsg(ecefToNedTransformQuat(lat, lon));
-    
+
     MICROSTRAIN_INFO_THROTTLE(node_, 10, "Full nav achieved. Relative position will be reported relative to the following position");
     MICROSTRAIN_INFO_THROTTLE(node_, 10, "  LLH: [%f, %f, %f]", lat, lon, alt);
     config_->earth_to_map_transform_valid_ = true;
@@ -1207,8 +1204,8 @@ void Publishers::handleFilterEcefPos(const mip::data_filter::EcefPos& ecef_pos, 
     std::string tf_error_string;
     RosTimeType frame_time = filter_odometry_earth_msg->header.stamp;
     TransformStampedMsg earth_to_map_transform;
-    if (config_->filter_relative_pos_source_ == REL_POS_SOURCE_EXTERNAL && transform_buffer_->canTransform(config_->map_frame_id_, config_->earth_frame_id_, frame_time, RosDurationType(0, 0), &tf_error_string))
-      earth_to_map_transform = transform_buffer_->lookupTransform(config_->map_frame_id_, config_->earth_frame_id_, frame_time);
+    if (config_->filter_relative_pos_source_ == REL_POS_SOURCE_EXTERNAL && transform_buffer_->canTransform(config_->earth_frame_id_, config_->map_frame_id_, frame_time, RosDurationType(0, 0), &tf_error_string))
+      earth_to_map_transform = transform_buffer_->lookupTransform(config_->earth_frame_id_, config_->map_frame_id_, frame_time);
     else if (config_->filter_relative_pos_source_ != REL_POS_SOURCE_EXTERNAL && config_->earth_to_map_transform_valid_)
       earth_to_map_transform = config_->earth_to_map_transform_;
     
@@ -1216,22 +1213,22 @@ void Publishers::handleFilterEcefPos(const mip::data_filter::EcefPos& ecef_pos, 
     if (earth_to_map_transform.header.frame_id == config_->earth_frame_id_ && earth_to_map_transform.child_frame_id == config_->map_frame_id_)
     {
       // Rotate the position vector from earth -> imu to map -> imu
-      tf2::Vector3 v_earth_to_imu(ecef_pos.position_ecef[0], ecef_pos.position_ecef[1], ecef_pos.position_ecef[2]);
+      tf2::Vector3 v_imu_in_earth_frame(ecef_pos.position_ecef[0], ecef_pos.position_ecef[1], ecef_pos.position_ecef[2]);
       tf2::Transform t_earth_to_map;
       tf2::fromMsg(earth_to_map_transform.transform, t_earth_to_map);
-      const tf2::Vector3 v_map_to_imu = t_earth_to_map.inverse() * v_earth_to_imu;
+      const tf2::Vector3 v_imu_in_map_frame = t_earth_to_map.inverse() * v_imu_in_earth_frame;
 
       // Fill in the map odometry message
       // Note that since the earth to map transform already puts us in either NED or ENU automatically there is no need to swap the values here
       auto filter_odometry_map_msg = filter_odometry_map_pub_->getMessageToUpdate();
       updateHeaderTime(&(filter_odometry_map_msg->header), descriptor_set, timestamp);
-      filter_odometry_map_msg->pose.pose.position.x = v_map_to_imu.x();
-      filter_odometry_map_msg->pose.pose.position.y = v_map_to_imu.y();
-      filter_odometry_map_msg->pose.pose.position.z = v_map_to_imu.z();
+      filter_odometry_map_msg->pose.pose.position.x = v_imu_in_map_frame.x();
+      filter_odometry_map_msg->pose.pose.position.y = v_imu_in_map_frame.y();
+      filter_odometry_map_msg->pose.pose.position.z = v_imu_in_map_frame.z();
 
       // Fill in the map to imu link transform
       map_to_imu_link_transform_.header.stamp = filter_odometry_map_msg->header.stamp;
-      map_to_imu_link_transform_.transform.translation = tf2::toMsg(v_map_to_imu);
+      map_to_imu_link_transform_.transform.translation = tf2::toMsg(v_imu_in_map_frame);
       map_to_imu_link_transform_translation_updated_ = true;
     }
     else if (config_->filter_relative_pos_source_ == REL_POS_SOURCE_BASE_STATION)

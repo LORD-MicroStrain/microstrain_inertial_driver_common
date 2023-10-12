@@ -75,13 +75,13 @@ raw_file_directory : "/home/your_name"
 # ****************************************************************** 
 
 # The mode in which we will publish transforms to the below frame IDs
-#     0 - No transforms will be published between any of the non static frame ids. (if publish_mount_to_frame_id_transform is true, it will still be published)
+#     0 - No transforms will be published between any of the non static frame ids. (if publish_mount_to_frame_id_transform is true, it will still be published, and so will the antenna and odometer transforms)
 #     1 - Global mode:
 #             Transform will be published from earth_frame_id to target_frame_id containing global position
 #     2 - Relative mode:
 #             Note: In order to use relative mode, you must configure filter_relative_position
 #             Transform will be published from earth_frame_id to map_frame_id using relative position configuration
-#             Transform between earth_frame_id and map_frame_id will also be published using rel_pos_configuration
+#             Transform between map_frame_id and target_frame_id will be published using position information reported by the device
 tf_mode : 1
 
 # Frame ID that most header.frame_id fields will be populated with.
