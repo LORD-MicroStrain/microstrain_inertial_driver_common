@@ -347,6 +347,9 @@ const std::map<std::string, FieldWrapper::SharedPtrVec> MipPublisherMapping::sta
     FieldWrapperType<mip::data_filter::VelocityNedUncertainty>::initialize(),
     FieldWrapperType<mip::data_filter::CompAngularRate>::initialize(),
   }},
+  {FILTER_DUAL_ANTENNA_HEADING_TOPIC, {
+    FieldWrapperType<mip::data_filter::GnssDualAntennaStatus>::initialize(),
+  }},
 
   // MIP sensor (0x80) topic mappings
   {MIP_SENSOR_OVERRANGE_STATUS_TOPIC, {
@@ -424,6 +427,7 @@ const std::map<std::string, std::string> MipPublisherMapping::static_topic_to_da
   {FILTER_VELOCITY_ECEF_TOPIC,         "filter_velocity_ecef_data_rate"},
   {FILTER_ODOMETRY_EARTH_TOPIC,        "filter_odometry_earth_data_rate"},
   {FILTER_ODOMETRY_MAP_TOPIC,          "filter_odometry_map_data_rate"},
+  {FILTER_DUAL_ANTENNA_HEADING_TOPIC,  "filter_dual_antenna_heading_data_rate"},
 
   // MIP sensor (0x80) data rates
   {MIP_SENSOR_OVERRANGE_STATUS_TOPIC, "mip_sensor_overrange_status_data_rate"},

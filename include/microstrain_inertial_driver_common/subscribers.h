@@ -26,16 +26,15 @@ constexpr auto RTCM_TOPIC = "rtcm";
 
 constexpr auto EXT_WHEEL_SPEED_TOPIC = "ext/wheel_speed";
 
-constexpr auto EXT_TIME_GPS_TOPIC = "ext/time/gps";
-constexpr auto EXT_TIME_TOPIC     = "ext/time";
-constexpr auto EXT_FIX_TOPIC      = "ext/llh_position";
-constexpr auto EXT_VEL_NED_TOPIC  = "ext/velocity_ned";
-constexpr auto EXT_VEL_ENU_TOPIC  = "ext/velocity_enu";
-constexpr auto EXT_VEL_ECEF_TOPIC = "ext/velocity_ecef";
-constexpr auto EXT_VEL_BODY_TOPIC = "ext/velocity_body";
-constexpr auto EXT_PRESSURE_TOPIC = "ext/pressure";
-constexpr auto EXT_POSE_TOPIC     = "ext/pose";
-constexpr auto EXT_HEADING_TOPIC  = "ext/heading";
+constexpr auto EXT_TIME_TOPIC         = "ext/time";
+constexpr auto EXT_FIX_TOPIC          = "ext/llh_position";
+constexpr auto EXT_VEL_NED_TOPIC      = "ext/velocity_ned";
+constexpr auto EXT_VEL_ENU_TOPIC      = "ext/velocity_enu";
+constexpr auto EXT_VEL_ECEF_TOPIC     = "ext/velocity_ecef";
+constexpr auto EXT_VEL_BODY_TOPIC     = "ext/velocity_body";
+constexpr auto EXT_PRESSURE_TOPIC     = "ext/pressure";
+constexpr auto EXT_HEADING_NED_TOPIC  = "ext/heading_ned";
+constexpr auto EXT_HEADING_ENU_TOPIC  = "ext/heading_enu";
 
 /**
  * Contains subscribers and the functions they call
@@ -61,24 +60,17 @@ public:
    */
   bool activate();
 
-  /**
-   * \brief Accepts external speed measurement to set speed on the device
-   * \param speed  Message containing the external speed measurement
-   */
-  void externalSpeedCallback(const InputSpeedMeasurementMsg& speed);
-
-  void externalTimeGpsCallback(const TimeReferenceMsg& time);
+  // External aiding measurement callbacks
   void externalTimeCallback(const TimeReferenceMsg& time);
-
   void externalGnssPositionCallback(const NavSatFixMsg& fix);
-  void externalGnssVelNedCallback(const TwistWithCovarianceStampedMsg& gnss_vel);
-  void externalGnssVelEnuCallback(const TwistWithCovarianceStampedMsg& gnss_vel);
-  void externalGnssVelEcefCallback(const TwistWithCovarianceStampedMsg& gnss_ecef_vel);
+  void externalVelNedCallback(const TwistWithCovarianceStampedMsg& vel);
+  void externalVelEnuCallback(const TwistWithCovarianceStampedMsg& vel);
+  void externalVelEcefCallback(const TwistWithCovarianceStampedMsg& vel);
   void externalWheelSpeedCallback(const TwistWithCovarianceStampedMsg& wheel_speed);
-  void externalBodyVelCallback(const TwistWithCovarianceStampedMsg& body_vel);
+  void externalVelBodyCallback(const TwistWithCovarianceStampedMsg& vel);
   void externalPressureCallback(const FluidPressureMsg& pressure);
-  void externalPoseCallback(const PoseWithCovarianceStampedMsg& pose);
-  void externalHeadingCallback(const DualAntennaHeadingMsg& heading);
+  void externalHeadingNedCallback(const PoseWithCovarianceStampedMsg& heading);
+  void externalHeadingEnuCallback(const PoseWithCovarianceStampedMsg& heading);
 
   /**
    * \brief Accepts RTCM corrections from a ROS topic
@@ -86,46 +78,29 @@ public:
    */
   void rtcmCallback(const RTCMMsg& rtcm);
 
-  // External GNSS subscriber
-  RosSubType<TimeReferenceMsg>::SharedPtr external_gps_time_sub_;
-
-  // External speed subscriber
-  RosSubType<InputSpeedMeasurementMsg>::SharedPtr external_speed_sub_;
-
   // External aiding measurement subscribers
-  RosSubType<TimeReferenceMsg>::SharedPtr                   external_time_gps_sub_;
-  RosSubType<TimeReferenceMsg>::SharedPtr                   external_time_sub_;
-  RosSubType<NavSatFixMsg>::SharedPtr                       external_gnss_position_sub_;
-  RosSubType<TwistWithCovarianceStampedMsg>::SharedPtr      external_gnss_vel_ned_sub_;
-  RosSubType<TwistWithCovarianceStampedMsg>::SharedPtr      external_gnss_vel_enu_sub_;
-  RosSubType<TwistWithCovarianceStampedMsg>::SharedPtr      external_gnss_vel_ecef_sub_;
-  RosSubType<TwistWithCovarianceStampedMsg>::SharedPtr      external_body_vel_sub_;
-  RosSubType<FluidPressureMsg>::SharedPtr                   external_pressure_sub_;
-  RosSubType<PoseWithCovarianceStampedMsg>::SharedPtr       external_pose_sub_;
-  RosSubType<DualAntennaHeadingMsg>::SharedPtr              external_heading_sub_;
+  RosSubType<TimeReferenceMsg>::SharedPtr              external_time_sub_;
+  RosSubType<NavSatFixMsg>::SharedPtr                  external_gnss_position_sub_;
+  RosSubType<TwistWithCovarianceStampedMsg>::SharedPtr external_vel_ned_sub_;
+  RosSubType<TwistWithCovarianceStampedMsg>::SharedPtr external_vel_enu_sub_;
+  RosSubType<TwistWithCovarianceStampedMsg>::SharedPtr external_vel_ecef_sub_;
+  RosSubType<TwistWithCovarianceStampedMsg>::SharedPtr external_vel_body_sub_;
+  RosSubType<PoseWithCovarianceStampedMsg>::SharedPtr  external_heading_ned_sub_;
+  RosSubType<PoseWithCovarianceStampedMsg>::SharedPtr  external_heading_enu_sub_;
 
   // RTCM subscriber
   RosSubType<RTCMMsg>::SharedPtr rtcm_sub_;
 
 private:
-  bool populateAidingTime(const RosHeaderType& header, const std::string& topic, mip::commands_aiding::Time* time);
-
   uint8_t getSensorIdFromFrameId(const std::string& frame_id);
 
   // Node Information
   RosNodeType* node_;
   Config* config_;
 
-  // Clock bias monitor from ROS time to GPS time
-  std::string gps_time_frame_id_ = "";
-  ClockBiasMonitor ros_time_to_gps_time_clock_bias_monitor_ = ClockBiasMonitor(0.9, 1);
-
   // External frame IDs, the index of the string is the sensor ID
   uint16_t external_frame_ids_size_;
   std::array<std::string, 256> external_frame_ids_;
-
-  // Mapping between different sensor times and ROS time
-  std::map<std::string, ClockBiasMonitor> device_time_to_ros_time_clock_bias_monitors_;
 
   // TF2 buffer lookup class
   TransformBufferType transform_buffer_;

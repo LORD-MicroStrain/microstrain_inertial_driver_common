@@ -138,14 +138,14 @@ public:
   TransformStampedMsg earth_to_map_transform_;
 
   // Subscriber settings
+  bool subscribe_ext_time_;
   bool subscribe_ext_fix_;
   bool subscribe_ext_vel_ned_;
   bool subscribe_ext_vel_enu_;
   bool subscribe_ext_vel_ecef_;
   bool subscribe_ext_vel_body_;
-  bool subscribe_ext_pressure_;
-  bool subscribe_ext_pose_;
-  bool subscribe_ext_heading_;
+  bool subscribe_ext_heading_ned_;
+  bool subscribe_ext_heading_enu_;
 
   // RTK config
   bool rtk_dongle_enable_;

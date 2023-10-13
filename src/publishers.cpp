@@ -47,6 +47,7 @@ bool Publishers::configure()
   filter_llh_position_pub_->configure(node_, config_);
   filter_velocity_pub_->configure(node_, config_);
   filter_velocity_ecef_pub_->configure(node_, config_);
+  filter_dual_antenna_heading_pub_->configure(node_, config_);
 
   // Only publish odometry if we support the related position field
   if (config_->mip_device_->supportsDescriptor(mip::data_filter::DESCRIPTOR_SET, mip::data_filter::EcefPos::FIELD_DESCRIPTOR) || config_->mip_device_->supportsDescriptor(mip::data_filter::DESCRIPTOR_SET, mip::data_filter::PositionLlh::FIELD_DESCRIPTOR))
@@ -95,6 +96,7 @@ bool Publishers::configure()
   filter_odometry_earth_pub_->getMessage()->child_frame_id = config_->earth_frame_id_;
   filter_odometry_map_pub_->getMessage()->header.frame_id = config_->map_frame_id_;
   filter_odometry_map_pub_->getMessage()->child_frame_id = config_->frame_id_;
+  filter_dual_antenna_heading_pub_->getMessage()->header.frame_id = config_->frame_id_;
 
   config_->earth_to_map_transform_.header.frame_id = config_->earth_frame_id_;
   config_->earth_to_map_transform_.child_frame_id = config_->map_frame_id_;
@@ -353,6 +355,7 @@ bool Publishers::activate()
   filter_velocity_ecef_pub_->activate();
   filter_odometry_earth_pub_->activate();
   filter_odometry_map_pub_->activate();
+  filter_dual_antenna_heading_pub_->activate();
 
   mip_sensor_overrange_status_pub_->activate();
 
@@ -405,6 +408,7 @@ bool Publishers::deactivate()
   filter_llh_position_pub_->deactivate();
   filter_odometry_earth_pub_->deactivate();
   filter_odometry_map_pub_->deactivate();
+  filter_dual_antenna_heading_pub_->deactivate();
 
   mip_sensor_overrange_status_pub_->deactivate();
 
@@ -447,6 +451,7 @@ void Publishers::publish()
   filter_velocity_ecef_pub_->publish();
   filter_odometry_earth_pub_->publish();
   filter_odometry_map_pub_->publish();
+  filter_dual_antenna_heading_pub_->publish();
 
   // Publish the dynamic transforms after the messages have been filled out
   std::string tf_error_string;
@@ -1632,6 +1637,23 @@ void Publishers::handleFilterMultiAntennaOffsetCorrection(const mip::data_filter
 
 void Publishers::handleFilterGnssDualAntennaStatus(const mip::data_filter::GnssDualAntennaStatus& gnss_dual_antenna_status, const uint8_t descriptor_set, mip::Timestamp timestamp)
 {
+  // Filter Dual Antenna Status (pose version)
+  auto filter_dual_antenna_heading_msg = filter_dual_antenna_heading_pub_->getMessageToUpdate();
+  updateHeaderTime(&(filter_dual_antenna_heading_msg->header), descriptor_set, timestamp);
+  tf2::Quaternion q_dual_antenna_heading_wrt_ned;
+  q_dual_antenna_heading_wrt_ned.setRPY(0, 0, gnss_dual_antenna_status.heading);
+  if (config_->use_enu_frame_)
+  {
+    tf2::Quaternion q_enu_to_ned;
+    config_->t_ned_to_enu_.getRotation(q_enu_to_ned);
+    filter_dual_antenna_heading_msg->pose.pose.orientation = tf2::toMsg(q_enu_to_ned * q_dual_antenna_heading_wrt_ned);
+  }
+  else
+  {
+    filter_dual_antenna_heading_msg->pose.pose.orientation = tf2::toMsg(q_dual_antenna_heading_wrt_ned);
+  }
+  filter_dual_antenna_heading_msg->pose.covariance[35] = gnss_dual_antenna_status.heading_unc;
+
   // Filter GNSS Dual Antenna status
   auto mip_filter_gnss_dual_antenna_status_msg = mip_filter_gnss_dual_antenna_status_pub_->getMessage();
   updateMipHeader(&(mip_filter_gnss_dual_antenna_status_msg->header), descriptor_set);

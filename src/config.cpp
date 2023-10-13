@@ -141,14 +141,14 @@ bool Config::configure(RosNodeType* node)
   filter_speed_lever_arm_ = std::vector<float>(filter_speed_lever_arm_double.begin(), filter_speed_lever_arm_double.end());
 
   // Subscribers
+  getParam<bool>(node, "subscribe_ext_time", subscribe_ext_time_, false);
   getParam<bool>(node, "subscribe_ext_fix", subscribe_ext_fix_, false);
   getParam<bool>(node, "subscribe_ext_vel_ned", subscribe_ext_vel_ned_, false);
   getParam<bool>(node, "subscribe_ext_vel_enu", subscribe_ext_vel_enu_, false);
   getParam<bool>(node, "subscribe_ext_vel_ecef", subscribe_ext_vel_ecef_, false);
   getParam<bool>(node, "subscribe_ext_vel_body", subscribe_ext_vel_body_, false);
-  getParam<bool>(node, "subscribe_ext_pressure", subscribe_ext_pressure_, false);
-  getParam<bool>(node, "subscribe_ext_pose", subscribe_ext_pose_, false);
-  getParam<bool>(node, "subscribe_ext_heading", subscribe_ext_heading_, false);
+  getParam<bool>(node, "subscribe_ext_heading_ned", subscribe_ext_heading_ned_, false);
+  getParam<bool>(node, "subscribe_ext_heading_enu", subscribe_ext_heading_enu_, false);
 
   // NMEA streaming
   getParam<bool>(node, "nmea_message_allow_duplicate_talker_ids", nmea_message_allow_duplicate_talker_ids_, false);
@@ -757,7 +757,6 @@ bool Config::configureFilter(RosNodeType* node)
   }
 
   // Set the filter speed lever arm
-  // TODO: We need to handle this with the ROS transforms
   if (mip_device_->supportsDescriptor(descriptor_set, mip::commands_filter::CMD_SPEED_LEVER_ARM))
   {
     MICROSTRAIN_INFO(node_, "Setting speed lever arm to: [%f, %f, %f]", filter_speed_lever_arm_[0], filter_speed_lever_arm_[1], filter_speed_lever_arm_[2]);

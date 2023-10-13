@@ -51,6 +51,7 @@ static constexpr auto FILTER_VELOCITY_TOPIC = "ekf/velocity";
 static constexpr auto FILTER_VELOCITY_ECEF_TOPIC = "ekf/velocity_ecef";
 static constexpr auto FILTER_ODOMETRY_EARTH_TOPIC  = "ekf/odometry_earth";
 static constexpr auto FILTER_ODOMETRY_MAP_TOPIC = "ekf/odometry_map";
+static constexpr auto FILTER_DUAL_ANTENNA_HEADING_TOPIC = "ekf/dual_antenna_heading";
 
 static constexpr auto MIP_SENSOR_OVERRANGE_STATUS_TOPIC = "mip/sensor/overrange_status";
 

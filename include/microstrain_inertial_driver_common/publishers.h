@@ -252,6 +252,7 @@ public:
   Publisher<OdometryMsg>::SharedPtr                       filter_odometry_map_pub_          = Publisher<OdometryMsg>::initialize(FILTER_ODOMETRY_MAP_TOPIC);
   Publisher<TwistWithCovarianceStampedMsg>::SharedPtr     filter_velocity_pub_              = Publisher<TwistWithCovarianceStampedMsg>::initialize(FILTER_VELOCITY_TOPIC);
   Publisher<TwistWithCovarianceStampedMsg>::SharedPtr     filter_velocity_ecef_pub_         = Publisher<TwistWithCovarianceStampedMsg>::initialize(FILTER_VELOCITY_ECEF_TOPIC);
+  Publisher<PoseWithCovarianceStampedMsg>::SharedPtr      filter_dual_antenna_heading_pub_  = Publisher<PoseWithCovarianceStampedMsg>::initialize(FILTER_DUAL_ANTENNA_HEADING_TOPIC);
 
 
   // MIP Sensor (0x80) publishers

@@ -206,6 +206,8 @@ filter_relative_position_ref    : [0.0, 0.0, 0.01]
 # (GQ7 Only) Reference point lever arm offset control.
 # Note: This offset will affect the position and velocity measurements in the following topics: nav/odometry, nav/relative_pos/odometry
 # Note: This offset is in the vehicle reference frame.
+# Note: This can cause strange behavior when also using the ROS transform tree.
+#       It is recommended to not use this if you want to use the ROS transform tree unless you really know what you are doing
 filter_lever_arm_offset: [0.0, 0.0, 0.0]
 
 # (GQ7 only) Wheeled Vehicle Constraint Control
@@ -243,6 +245,8 @@ filter_pps_source : 1
 #       The different options are provided as a convenience.
 #       Support for matrix and quaternion options is firmware version dependent (GQ7 supports Quaternion as of firmware 1.0.07)
 #       Quaternion order is [i, j, k, w]
+# Note: This can cause strange behavior when also using the ROS transform tree.
+#       It is recommended to not use this if you want to use the ROS transform tree unless you really know what you are doing
 filter_sensor2vehicle_frame_selector : 1
 filter_sensor2vehicle_frame_transformation_euler      : [0.0, 0.0, 0.0]
 filter_sensor2vehicle_frame_transformation_matrix     : [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0]
@@ -425,6 +429,9 @@ filter_velocity_ecef_data_rate         : 0  # Rate of ekf/velocity_ecef topic
                                             #       If either are set to a higher value, this message will be published at that rate.
 filter_odometry_earth_data_rate        : 10 # Rate of ekf/odometry_earth topic
 filter_odometry_map_data_rate          : 10 # Rate of ekf/odometry_map topic
+filter_dual_antenna_heading_data_rate  : 0  # Rate of ekf/dual_antenna_heading topic
+                                            # Note: mip_filter_gnss_position_aiding_status_data_rate depends on the contents of this message.
+                                            #       If either are set to a higher value, this message will be published at that rate.
 
 # The speed at which the individual MIP publishers will publish at.
 mip_sensor_overrange_status_data_rate : 0  # Rate of mip/sensor/overrange_status topic
@@ -442,7 +449,10 @@ mip_filter_gnss_position_aiding_status_data_rate     : 0  # Rate of mip/filter/g
                                                           # Note: filter_llh_position_data_rate depends on the contents of this message.
                                                           #       If it is set to a higher value, this message will be published at that rate.
 mip_filter_multi_antenna_offset_correction_data_rate : 0  # Rate of mip/filter/multi_antenna_offset_correction
+                                                          # Note: This message will also affect the frequency that the transform between frame_id and gnss_1/2_frame_id are published
 mip_filter_gnss_dual_antenna_status_data_rate        : 0  # Rate of mip/filter/gnss_dual_antenna_status
+                                                          # Note: filter_dual_antenna_heading_data_rate depends on the contents of this message.
+                                                          #       If either are set to a higher value, this message will be published at that rate.
 mip_filter_aiding_measurement_summary_data_rate      : 0  # Rate of mip/filter/aiding_measurement_summary topic
 
 
@@ -517,11 +527,11 @@ filter_nmea_hdt_data_rate: 0
 filter_nmea_prka_data_rate: 0  # Note that this message_id will not have any talker ID on it since it is proprietary and can only come from the filter descriptor set
 
 # External aiding measurement configuration
-subscribe_ext_fix      : False
-subscribe_ext_vel_ned  : False
-subscribe_ext_vel_enu  : False
-subscribe_ext_vel_ecef : False
-subscribe_ext_vel_body : False
-subscribe_ext_pressure : False
-subscribe_ext_pose     : False
-subscribe_ext_heading  : False
+subscribe_ext_time        : False
+subscribe_ext_fix         : False
+subscribe_ext_vel_ned     : False
+subscribe_ext_vel_enu     : False
+subscribe_ext_vel_ecef    : False
+subscribe_ext_vel_body    : False
+subscribe_ext_heading_ned : False
+subscribe_ext_heading_enu : False
