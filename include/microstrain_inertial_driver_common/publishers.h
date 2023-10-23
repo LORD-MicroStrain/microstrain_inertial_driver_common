@@ -16,6 +16,8 @@
 #include <vector>
 #include <string>
 
+#include <Eigen/Geometry>
+
 #include "mip/mip_all.hpp"
 
 #include "microstrain_inertial_driver_common/utils/ros_compat.h"
@@ -290,6 +292,15 @@ public:
   TransformStampedMsg imu_link_to_gnss_antenna_link_transform_[NUM_GNSS];
   TransformStampedMsg imu_link_to_odometer_link_transform_;
   TransformStampedMsg map_to_imu_link_transform_;
+
+  Eigen::Quaterniond q_;
+
+  // Transforms
+  tf2::Transform t_ecef_to_ned_tangent_plane_;
+  bool t_ecef_to_ned_tangent_plane_valid_ = false;
+  tf2::Transform t_ned_tangent_plane_to_microstrain_vehicle_;
+  bool t_ned_tangent_plane_to_microstrain_vehicle_translation_updated_ = false;
+  bool t_ned_tangent_plane_to_microstrain_vehicle_rotation_updated_ = false;
 
 private:
   /**

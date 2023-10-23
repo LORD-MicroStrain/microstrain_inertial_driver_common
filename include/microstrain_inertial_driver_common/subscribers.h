@@ -22,19 +22,16 @@
 namespace microstrain
 {
 
-constexpr auto RTCM_TOPIC = "rtcm";
+static constexpr auto RTCM_TOPIC = "rtcm";
 
-constexpr auto EXT_WHEEL_SPEED_TOPIC = "ext/wheel_speed";
-
-constexpr auto EXT_TIME_TOPIC         = "ext/time";
-constexpr auto EXT_FIX_TOPIC          = "ext/llh_position";
-constexpr auto EXT_VEL_NED_TOPIC      = "ext/velocity_ned";
-constexpr auto EXT_VEL_ENU_TOPIC      = "ext/velocity_enu";
-constexpr auto EXT_VEL_ECEF_TOPIC     = "ext/velocity_ecef";
-constexpr auto EXT_VEL_BODY_TOPIC     = "ext/velocity_body";
-constexpr auto EXT_PRESSURE_TOPIC     = "ext/pressure";
-constexpr auto EXT_HEADING_NED_TOPIC  = "ext/heading_ned";
-constexpr auto EXT_HEADING_ENU_TOPIC  = "ext/heading_enu";
+static constexpr auto EXT_TIME_TOPIC         = "ext/time";
+static constexpr auto EXT_FIX_TOPIC          = "ext/llh_position";
+static constexpr auto EXT_VEL_NED_TOPIC      = "ext/velocity_ned";
+static constexpr auto EXT_VEL_ENU_TOPIC      = "ext/velocity_enu";
+static constexpr auto EXT_VEL_ECEF_TOPIC     = "ext/velocity_ecef";
+static constexpr auto EXT_VEL_BODY_TOPIC     = "ext/velocity_body";
+static constexpr auto EXT_HEADING_NED_TOPIC  = "ext/heading_ned";
+static constexpr auto EXT_HEADING_ENU_TOPIC  = "ext/heading_enu";
 
 /**
  * Contains subscribers and the functions they call

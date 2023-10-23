@@ -70,7 +70,7 @@ constexpr auto NUM_GNSS = 2;
 #include "std_msgs/Bool.h"
 #include "std_msgs/String.h"
 #include "tf2_geometry_msgs/tf2_geometry_msgs.h"
-#include "mavros_msgs/RTCM.h"
+#include "rtcm_msgs/Message"
 #include "nmea_msgs/Sentence.h"
 
 #include "microstrain_inertial_msgs/HumanReadableStatus.h"
@@ -127,7 +127,7 @@ constexpr auto NUM_GNSS = 2;
 #include "std_srvs/srv/trigger.hpp"
 #include "std_msgs/msg/bool.hpp"
 #include "std_msgs/msg/string.hpp"
-#include "mavros_msgs/msg/rtcm.hpp"
+#include "rtcm_msgs/msg/message.hpp"
 #include "nmea_msgs/msg/sentence.hpp"
 
 #include "microstrain_inertial_msgs/msg/human_readable_status.hpp"
@@ -248,7 +248,7 @@ using TransformBroadcasterType = std::shared_ptr<::tf2_ros::TransformBroadcaster
 // ROS1 Subscriber Message Types
 using BoolMsg = ::std_msgs::Bool;
 using TimeReferenceMsg = ::sensor_msgs::TimeReference;
-using RTCMMsg = ::mavros_msgs::RTCM;
+using RTCMMsg = ::rtcm_msgs::Message;
 
 // ROS1 Service Message Types
 using TriggerSrv = std_srvs::Trigger;
@@ -535,7 +535,7 @@ using TransformBroadcasterType = std::shared_ptr<::tf2_ros::TransformBroadcaster
 // ROS2 Subscriber Message Types
 using BoolMsg = ::std_msgs::msg::Bool;
 using TimeReferenceMsg = ::sensor_msgs::msg::TimeReference;
-using RTCMMsg = ::mavros_msgs::msg::RTCM;
+using RTCMMsg = ::rtcm_msgs::msg::Message;
 
 // ROS2 Service Message Types
 using TriggerSrv = std_srvs::srv::Trigger;

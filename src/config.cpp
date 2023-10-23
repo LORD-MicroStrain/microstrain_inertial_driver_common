@@ -42,7 +42,9 @@ bool Config::configure(RosNodeType* node)
 {
   // Initialize some default and static config
   t_ned_to_enu_ = tf2::Matrix3x3(0, 1, 0, 1, 0, 0, 0, 0, -1);
-  t_ros_vehicle_to_microstrain_vehicle_ = tf2::Matrix3x3(1, 0, 0, 0, -1, 0, 0, 0, -1);
+  t_ros_vehicle_to_microstrain_vehicle_ = tf2::Matrix3x3(1, 0,  0,
+                                                         0, -1, 0,
+                                                         0, 0, -1);
 
   ///
   /// Generic configuration used by the rest of the driver
@@ -389,42 +391,45 @@ bool Config::configure3DM(RosNodeType* node)
   }
 
   // Support channel setup
-  if (mip_device_->supportsDescriptor(descriptor_set, mip::commands_3dm::CMD_CONFIGURE_FACTORY_STREAMING))
+  if (raw_file_enable_)
   {
-    if (raw_file_include_support_data_)
+    if (mip_device_->supportsDescriptor(descriptor_set, mip::commands_3dm::CMD_CONFIGURE_FACTORY_STREAMING))
     {
-      if (!(mip_cmd_result = mip::commands_3dm::factoryStreaming(*mip_device_, mip::commands_3dm::FactoryStreaming::Action::MERGE, 0)))
+      if (raw_file_include_support_data_)
       {
-        MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to configure factory streaming channels");
-        return false;
-      }
-
-      // Also enable aiding command echo when collecting a factory support binary
-      if (mip_device_->supportsDescriptor(mip::commands_aiding::DESCRIPTOR_SET, mip::commands_aiding::AidingEchoControl::FIELD_DESCRIPTOR))
-      {
-        if (!(mip_cmd_result = mip::commands_aiding::writeAidingEchoControl(*mip_device_, mip::commands_aiding::AidingEchoControl::Mode::RESPONSE)))
+        if (!(mip_cmd_result = mip::commands_3dm::factoryStreaming(*mip_device_, mip::commands_3dm::FactoryStreaming::Action::MERGE, 0)))
         {
-          MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to configure aiding echo control");
+          MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to configure factory streaming channels");
           return false;
+        }
+
+        // Also enable aiding command echo when collecting a factory support binary
+        if (mip_device_->supportsDescriptor(mip::commands_aiding::DESCRIPTOR_SET, mip::commands_aiding::AidingEchoControl::FIELD_DESCRIPTOR))
+        {
+          if (!(mip_cmd_result = mip::commands_aiding::writeAidingEchoControl(*mip_device_, mip::commands_aiding::AidingEchoControl::Mode::RESPONSE)))
+          {
+            MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to configure aiding echo control");
+            return false;
+          }
+        }
+        else
+        {
+          MICROSTRAIN_DEBUG(node_, "Device does not support aiding echo control");
         }
       }
       else
       {
-        MICROSTRAIN_DEBUG(node_, "Device does not support aiding echo control");
+        MICROSTRAIN_INFO(node_, "Not configuring factory streaming channels");
       }
     }
     else
     {
-      MICROSTRAIN_INFO(node_, "Not configuring factory streaming channels");
-    }
-  }
-  else
-  {
-    MICROSTRAIN_INFO(node_, "Note: The device does not support the factory streaming channels setup command");
-    if (raw_file_include_support_data_)
-    {
-      MICROSTRAIN_ERROR(node_, "Could not configure support data even though it was requested. Exiting...");
-      return false;
+      MICROSTRAIN_INFO(node_, "Note: The device does not support the factory streaming channels setup command");
+      if (raw_file_include_support_data_)
+      {
+        MICROSTRAIN_ERROR(node_, "Could not configure support data even though it was requested. Exiting...");
+        return false;
+      }
     }
   }
 

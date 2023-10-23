@@ -44,6 +44,36 @@ MipPublisherMapping::MipPublisherMapping(RosNodeType* node, const std::shared_pt
         if (std::find(topic_info.descriptor_sets.begin(), topic_info.descriptor_sets.end(), descriptor_set) == topic_info.descriptor_sets.end())
           topic_info.descriptor_sets.push_back(descriptor_set);
       }
+      else if (descriptor_set == mip::data_filter::DESCRIPTOR_SET && field_descriptor == mip::data_filter::EcefPos::FIELD_DESCRIPTOR)
+      {
+        // Special handling for filtered ECEF position. We can convert LLH to ECEF, so if the device does not support ECEF, try to add LLH
+        if (mip_device_->supportsDescriptor(descriptor_set, mip::data_filter::PositionLlh::FIELD_DESCRIPTOR))
+        {
+          // Add the descriptor to the mapping for the topic
+          if (topic_info_mapping_.find(topic) == topic_info_mapping_.end())
+            topic_info_mapping_[topic] = MipPublisherMappingInfo();
+
+          auto& topic_info = topic_info_mapping_[topic];
+          topic_info.descriptors.push_back({descriptor_set, mip::data_filter::PositionLlh::FIELD_DESCRIPTOR});
+          if (std::find(topic_info.descriptor_sets.begin(), topic_info.descriptor_sets.end(), descriptor_set) == topic_info.descriptor_sets.end())
+            topic_info.descriptor_sets.push_back(descriptor_set);
+        }
+      }
+      else if (descriptor_set == mip::data_filter::DESCRIPTOR_SET && field_descriptor == mip::data_filter::EcefPosUncertainty::FIELD_DESCRIPTOR)
+      {
+        // Special handling for filtered ECEF position. We can convert LLH to ECEF, so if the device does not support ECEF, try to add LLH
+        if (mip_device_->supportsDescriptor(descriptor_set, mip::data_filter::PositionLlhUncertainty::FIELD_DESCRIPTOR))
+        {
+          // Add the descriptor to the mapping for the topic
+          if (topic_info_mapping_.find(topic) == topic_info_mapping_.end())
+            topic_info_mapping_[topic] = MipPublisherMappingInfo();
+
+          auto& topic_info = topic_info_mapping_[topic];
+          topic_info.descriptors.push_back({descriptor_set, mip::data_filter::PositionLlhUncertainty::FIELD_DESCRIPTOR});
+          if (std::find(topic_info.descriptor_sets.begin(), topic_info.descriptor_sets.end(), descriptor_set) == topic_info.descriptor_sets.end())
+            topic_info.descriptor_sets.push_back(descriptor_set);
+        }
+      }
       else if (mip_device_->supportsDescriptorSet(descriptor_set))
       {
         MICROSTRAIN_DEBUG(node_, "Note: The device does not support field 0x%02x%02x associated with topic %s", descriptor_set, field_descriptor, topic.c_str());
