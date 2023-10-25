@@ -303,6 +303,8 @@ const std::map<std::string, FieldWrapper::SharedPtrVec> MipPublisherMapping::sta
   {GNSS1_ODOMETRY_TOPIC, {
     FieldWrapperType<mip::data_gnss::PosEcef, mip::data_gnss::DESCRIPTOR_SET>::initialize(),
     FieldWrapperType<mip::data_gnss::PosEcef, mip::data_gnss::MIP_GNSS1_DATA_DESC_SET>::initialize(),
+    FieldWrapperType<mip::data_gnss::VelNed, mip::data_gnss::DESCRIPTOR_SET>::initialize(),
+    FieldWrapperType<mip::data_gnss::VelNed, mip::data_gnss::MIP_GNSS1_DATA_DESC_SET>::initialize(),
     FieldWrapperType<mip::data_gnss::VelEcef, mip::data_gnss::DESCRIPTOR_SET>::initialize(),
     FieldWrapperType<mip::data_gnss::VelEcef, mip::data_gnss::MIP_GNSS1_DATA_DESC_SET>::initialize(),
   }},
@@ -323,6 +325,7 @@ const std::map<std::string, FieldWrapper::SharedPtrVec> MipPublisherMapping::sta
   }},
   {GNSS2_ODOMETRY_TOPIC, {
     FieldWrapperType<mip::data_gnss::PosEcef, mip::data_gnss::MIP_GNSS2_DATA_DESC_SET>::initialize(),
+    FieldWrapperType<mip::data_gnss::VelNed, mip::data_gnss::MIP_GNSS2_DATA_DESC_SET>::initialize(),
     FieldWrapperType<mip::data_gnss::VelEcef, mip::data_gnss::MIP_GNSS2_DATA_DESC_SET>::initialize(),
   }},
   {GNSS2_TIME_REF_TOPIC, {

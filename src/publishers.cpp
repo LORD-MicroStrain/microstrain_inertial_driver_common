@@ -1505,18 +1505,11 @@ void Publishers::handleFilterAttitudeQuaternion(const mip::data_filter::Attitude
 
   // Gonna need to do a lot of math below, so turn the quaternion into a tf2 quaternion
   tf2::Quaternion q_microstrain_body_frame_wrt_ned(attitude_quaternion.q[1], attitude_quaternion.q[2], attitude_quaternion.q[3], attitude_quaternion.q[0]);
-  //tf2::Quaternion q_microstrain_body_frame_wrt_ned(0.7071068, 0, 0, 0.7071068);
-  
-  //q_ = Eigen::Quaterniond(attitude_quaternion.q[0], attitude_quaternion.q[1], attitude_quaternion.q[2], attitude_quaternion.q[3]);
-  //q_ = Eigen::Quaterniond(0.7071068, 0.7071068, 0, 0);
 
   // TODO: Take this out when the bug in the CV7-INS is fixed
   if (config_->mip_device_->device_info_.model_name == std::string("3DMCV7-INS"))
     q_microstrain_body_frame_wrt_ned = q_microstrain_body_frame_wrt_ned.inverse();
   
-  //t_ned_tangent_plane_to_microstrain_vehicle_.setRotation(q_microstrain_body_frame_wrt_ned);
-  //t_ned_tangent_plane_to_microstrain_vehicle_rotation_updated_ = true;
-
   // Filtered IMU message
   auto filter_imu_msg = filter_imu_pub_->getMessageToUpdate();
   updateHeaderTime(&(filter_imu_msg->header), descriptor_set, timestamp);
@@ -1525,28 +1518,8 @@ void Publishers::handleFilterAttitudeQuaternion(const mip::data_filter::Attitude
     tf2::Quaternion q_enu_to_ned;
     config_->t_ned_to_enu_.getRotation(q_enu_to_ned);
 
-    //q_microstrain_body_frame_wrt_ned = tf2::Quaternion(0, 0, 0, 1);
-
     const tf2::Quaternion q_ros_body_frame_wrt_enu = q_microstrain_vehicle_to_ros_vehicle * q_microstrain_body_frame_wrt_ned * q_enu_to_ned;
-    //const tf2::Quaternion q_ros_body_frame_wrt_enu = q_enu_to_ned.inverse() * q_microstrain_body_frame_wrt_ned.inverse() * q_microstrain_vehicle_to_ros_vehicle.inverse();
     filter_imu_msg->orientation = tf2::toMsg(q_ros_body_frame_wrt_enu);
-
-    /*
-    tf2::Matrix3x3 m;
-    double r, p, y;
-    m = tf2::Matrix3x3(q_microstrain_body_frame_wrt_ned);
-    m.getRPY(r, p, y);
-    MICROSTRAIN_INFO_ONCE(node_, "Microstrain body WRT NED      -- R: %f, P: %f, Y: %f", r * 180 / M_PI, p * 180 / M_PI, y * 180 / M_PI);
-    m = tf2::Matrix3x3(q_microstrain_vehicle_to_ros_vehicle);
-    m.getRPY(r, p, y);
-    MICROSTRAIN_INFO_ONCE(node_, "Microstrain body -> ROS body  -- R: %f, P: %f, Y: %f", r * 180 / M_PI, p * 180 / M_PI, y * 180 / M_PI);
-    m = tf2::Matrix3x3(q_enu_to_ned);
-    m.getRPY(r, p, y);
-    MICROSTRAIN_INFO_ONCE(node_, "ENU -> NED                    -- R: %f, P: %f, Y: %f", r * 180 / M_PI, p * 180 / M_PI, y * 180 / M_PI);
-    m = tf2::Matrix3x3(q_ros_body_frame_wrt_enu);
-    m.getRPY(r, p, y);
-    MICROSTRAIN_INFO_ONCE(node_, "ROS Body WRT ENU              -- R: %f, P: %f, Y: %f", r * 180 / M_PI, p * 180 / M_PI, y * 180 / M_PI);
-    */
   }
   else
   {
