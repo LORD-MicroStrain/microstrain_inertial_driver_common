@@ -70,11 +70,10 @@ constexpr auto NUM_GNSS = 2;
 #include "std_msgs/Bool.h"
 #include "std_msgs/String.h"
 #include "tf2_geometry_msgs/tf2_geometry_msgs.h"
-#include "rtcm_msgs/Message"
+#include "rtcm_msgs/Message.h"
 #include "nmea_msgs/Sentence.h"
 
 #include "microstrain_inertial_msgs/HumanReadableStatus.h"
-#include "microstrain_inertial_msgs/DualAntennaHeading.h"
 
 #include "microstrain_inertial_msgs/MipHeader.h"
 #include "microstrain_inertial_msgs/MipSensorOverrangeStatus.h"

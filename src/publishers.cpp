@@ -20,7 +20,7 @@ constexpr auto USTRAIN_G =
     9.80665;  // from section 5.1.1 in
               // https://www.microstrain.com/sites/default/files/3dm-gx5-25_dcp_manual_8500-0065_reference_document.pdf
 
-std::array<double, 9UL> getTranslationCovarianceFromCovariance(const std::array<double, 36UL>& covariance)
+NavSatFixMsg::_position_covariance_type getTranslationCovarianceFromCovariance(const PoseWithCovarianceStampedMsg::_pose_type::_covariance_type& covariance)
 {
   return
   {
@@ -30,7 +30,7 @@ std::array<double, 9UL> getTranslationCovarianceFromCovariance(const std::array<
   };
 }
 
-void setTranslationCovarianceOnCovariance(std::array<double, 36UL>* covariance, const std::array<double, 9UL>& translation_covariance)
+void setTranslationCovarianceOnCovariance(PoseWithCovarianceStampedMsg::_pose_type::_covariance_type* covariance, const NavSatFixMsg::_position_covariance_type& translation_covariance)
 {
   (*covariance)[0] = translation_covariance[0];
   (*covariance)[1] = translation_covariance[1];
@@ -43,7 +43,7 @@ void setTranslationCovarianceOnCovariance(std::array<double, 36UL>* covariance, 
   (*covariance)[14] = translation_covariance[8];
 }
 
-std::array<double, 9UL> getRotationCovarianceFromCovariance(const std::array<double, 36UL>& covariance)
+ImuMsg::_orientation_covariance_type getRotationCovarianceFromCovariance(const PoseWithCovarianceStampedMsg::_pose_type::_covariance_type& covariance)
 {
   return
   {
@@ -53,7 +53,7 @@ std::array<double, 9UL> getRotationCovarianceFromCovariance(const std::array<dou
   };
 }
 
-void setRotationCovarianceOnCovariance(std::array<double, 36UL>* covariance, const std::array<double, 9UL>& rotation_covariance)
+void setRotationCovarianceOnCovariance(PoseWithCovarianceStampedMsg::_pose_type::_covariance_type* covariance, const ImuMsg::_orientation_covariance_type& rotation_covariance)
 {
   (*covariance)[21] = rotation_covariance[0];
   (*covariance)[22] = rotation_covariance[1];
