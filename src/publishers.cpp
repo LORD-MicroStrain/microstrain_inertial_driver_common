@@ -20,6 +20,51 @@ constexpr auto USTRAIN_G =
     9.80665;  // from section 5.1.1 in
               // https://www.microstrain.com/sites/default/files/3dm-gx5-25_dcp_manual_8500-0065_reference_document.pdf
 
+std::array<double, 9UL> getTranslationCovarianceFromCovariance(const std::array<double, 36UL>& covariance)
+{
+  return
+  {
+    covariance[0],  covariance[1],  covariance[2],
+    covariance[6],  covariance[7],  covariance[8],
+    covariance[12], covariance[13], covariance[14]
+  };
+}
+
+void setTranslationCovarianceOnCovariance(std::array<double, 36UL>* covariance, const std::array<double, 9UL>& translation_covariance)
+{
+  (*covariance)[0] = translation_covariance[0];
+  (*covariance)[1] = translation_covariance[1];
+  (*covariance)[2] = translation_covariance[2];
+  (*covariance)[6] = translation_covariance[3];
+  (*covariance)[7] = translation_covariance[4];
+  (*covariance)[8] = translation_covariance[5];
+  (*covariance)[12] = translation_covariance[6];
+  (*covariance)[13] = translation_covariance[7];
+  (*covariance)[14] = translation_covariance[8];
+}
+
+std::array<double, 9UL> getRotationCovarianceFromCovariance(const std::array<double, 36UL>& covariance)
+{
+  return
+  {
+    covariance[21], covariance[22], covariance[23],
+    covariance[27], covariance[28], covariance[29],
+    covariance[33], covariance[34], covariance[35]
+  };
+}
+
+void setRotationCovarianceOnCovariance(std::array<double, 36UL>* covariance, const std::array<double, 9UL>& rotation_covariance)
+{
+  (*covariance)[21] = rotation_covariance[0];
+  (*covariance)[22] = rotation_covariance[1];
+  (*covariance)[23] = rotation_covariance[2];
+  (*covariance)[27] = rotation_covariance[3];
+  (*covariance)[28] = rotation_covariance[4];
+  (*covariance)[29] = rotation_covariance[5];
+  (*covariance)[33] = rotation_covariance[6];
+  (*covariance)[34] = rotation_covariance[7];
+  (*covariance)[35] = rotation_covariance[8];
+}
 
 Publishers::Publishers(RosNodeType* node, Config* config)
   : node_(node), config_(config)
@@ -525,148 +570,6 @@ void Publishers::publish()
       config_->earth_to_map_transform_updated_ = false;
     }
   }
-
-  /*
-  if (t_ned_tangent_plane_to_microstrain_vehicle_rotation_updated_ && t_ned_tangent_plane_to_microstrain_vehicle_translation_updated_)
-  {
-    //t_ned_tangent_plane_to_microstrain_vehicle_.setOrigin(tf2::Vector3(1, 2, 3));
-    //t_ned_tangent_plane_to_microstrain_vehicle_.setRotation(tf2::Quaternion(0, 0, 0, 1));
-
-    tf2::Matrix3x3 m;
-    tf2::Vector3 v, v_ned;
-    double r, p, y;
-    m = tf2::Matrix3x3(t_ned_tangent_plane_to_microstrain_vehicle_.getRotation());
-    m.getRPY(r, p, y);
-    v = v_ned = t_ned_tangent_plane_to_microstrain_vehicle_.getOrigin();
-    MICROSTRAIN_INFO(node_, "GQ7 TF2");
-    MICROSTRAIN_INFO(node_, "N: %f, E: %f, D: %f", v.x(), v.y(), v.z());
-    MICROSTRAIN_INFO(node_, "R: %f, P: %f, Y: %f", r * 180 / M_PI, p * 180 / M_PI, y * 180 / M_PI);
-
-    // If using ENU, rotate the transform
-    if (config_->use_enu_frame_)
-    {
-      tf2::Transform t_microstrain_vehicle_to_ros_vehicle, t_enu_to_ned;
-      t_microstrain_vehicle_to_ros_vehicle.setBasis(config_->t_ros_vehicle_to_microstrain_vehicle_.inverse());
-      t_enu_to_ned.setBasis(config_->t_ned_to_enu_.inverse());
-      t_ned_tangent_plane_to_microstrain_vehicle_ = t_microstrain_vehicle_to_ros_vehicle.inverse() * t_ned_tangent_plane_to_microstrain_vehicle_ * t_enu_to_ned.inverse();
-    }
-
-    //auto t_enu_to_ned = config_->t_ned_to_enu_.inverse();
-    //auto t_microstrain_to_ros = config_->t_ros_vehicle_to_microstrain_vehicle_.inverse();
-
-    m = tf2::Matrix3x3(t_ned_tangent_plane_to_microstrain_vehicle_.getRotation());
-    m.getRPY(r, p, y);
-    v = t_ned_tangent_plane_to_microstrain_vehicle_.getOrigin();
-    MICROSTRAIN_INFO(node_, "GQ7 TF2");
-    MICROSTRAIN_INFO(node_, "E: %f, N: %f, U: %f", v.x(), v.y(), v.z());
-    MICROSTRAIN_INFO(node_, "R: %f, P: %f, Y: %f", r * 180 / M_PI, p * 180 / M_PI, y * 180 / M_PI);
-
-    Eigen::Matrix3d r_ros_to_microstrain, r_ned_to_enu;
-    r_ros_to_microstrain <<
-      1,  0,  0,
-      0, -1,  0,
-      0,  0, -1;
-    r_ned_to_enu <<
-      0, 1,  0,
-      1, 0,  0,
-      0, 0, -1;
-    auto r_microstrain_to_ros = r_ros_to_microstrain.inverse();
-    auto r_enu_to_ned = r_ned_to_enu.inverse();
-    auto m_ned = q_.matrix();
-
-    Eigen::Matrix4d e_ned_to_microstrain, e_microstrain_to_ros, e_enu_to_ned;
-    e_ned_to_microstrain <<
-      m_ned(0, 0), m_ned(0, 1), m_ned(0, 2), v_ned.x(),
-      m_ned(1, 0), m_ned(1, 1), m_ned(1, 2), v_ned.y(),
-      m_ned(2, 0), m_ned(2, 1), m_ned(2, 2), v_ned.z(),
-      0, 0, 0, 1;
-    e_enu_to_ned <<
-      r_enu_to_ned(0, 0), r_enu_to_ned(0, 1), r_enu_to_ned(0, 2), 0,
-      r_enu_to_ned(1, 0), r_enu_to_ned(1, 1), r_enu_to_ned(1, 2), 0,
-      r_enu_to_ned(2, 0), r_enu_to_ned(2, 1), r_enu_to_ned(2, 2), 0,
-      0,                  0,                  0,                  1;
-    e_microstrain_to_ros <<
-      r_microstrain_to_ros(0, 0), r_microstrain_to_ros(0, 1), r_microstrain_to_ros(0, 2), 0,
-      r_microstrain_to_ros(1, 0), r_microstrain_to_ros(1, 1), r_microstrain_to_ros(1, 2), 0,
-      r_microstrain_to_ros(2, 0), r_microstrain_to_ros(2, 1), r_microstrain_to_ros(2, 2), 0,
-      0,                          0,                          0,                          1;
-
-    Eigen::Matrix4d e_enu_to_ros = e_microstrain_to_ros * e_ned_to_microstrain * e_enu_to_ned;
-    //Eigen::Matrix4d e_enu_to_ros = e_microstrain_to_ros * e_ned_to_microstrain;
-
-    Eigen::Vector3d e_enu_to_ros_translation;
-    Eigen::Matrix3d e_enu_to_ros_rotation;
-    e_enu_to_ros_translation <<
-      e_enu_to_ros(0, 3), e_enu_to_ros(1, 3), e_enu_to_ros(2, 3);
-    e_enu_to_ros_rotation <<
-      e_enu_to_ros(0, 0), e_enu_to_ros(0, 1), e_enu_to_ros(0, 2),
-      e_enu_to_ros(1, 0), e_enu_to_ros(1, 1), e_enu_to_ros(1, 2),
-      e_enu_to_ros(2, 0), e_enu_to_ros(2, 1), e_enu_to_ros(2, 2);
-    Eigen::Quaterniond e_enu_to_ros_rotation_quaternion(e_enu_to_ros_rotation);
-    Eigen::Vector3d e_enu_to_ros_rotation_euler = e_enu_to_ros_rotation.eulerAngles(0, 1, 2);
-
-    MICROSTRAIN_INFO(node_, "GQ7");
-    MICROSTRAIN_INFO(node_, "E: %f, N: %f, U: %f", e_enu_to_ros_translation(0), e_enu_to_ros_translation(1), e_enu_to_ros_translation(2));
-    MICROSTRAIN_INFO(node_, "R: %f, P: %f, Y: %f", e_enu_to_ros_rotation_euler(0) * 180 / M_PI, e_enu_to_ros_rotation_euler(1) * 180 / M_PI, e_enu_to_ros_rotation_euler(2) * 180 / M_PI);
-
-    auto filter_odometry_map_msg = filter_odometry_map_pub_->getMessageToUpdate();
-    filter_odometry_map_msg->pose.pose.position.x = e_enu_to_ros_translation(0);
-    filter_odometry_map_msg->pose.pose.position.y = e_enu_to_ros_translation(1);
-    filter_odometry_map_msg->pose.pose.position.z = e_enu_to_ros_translation(2);
-    filter_odometry_map_msg->pose.pose.orientation.x = e_enu_to_ros_rotation_quaternion.x();
-    filter_odometry_map_msg->pose.pose.orientation.y = e_enu_to_ros_rotation_quaternion.y();
-    filter_odometry_map_msg->pose.pose.orientation.z = e_enu_to_ros_rotation_quaternion.z();
-    filter_odometry_map_msg->pose.pose.orientation.w = e_enu_to_ros_rotation_quaternion.w();
-    filter_odometry_map_pub_->publish();
-
-    const auto& imu_link_target_transform = transform_buffer_->lookupTransform(config_->frame_id_, config_->target_frame_id_, frame_time, RosDurationType(0, 0));
-    Eigen::Vector3d e_ros_to_base_translation;
-    e_ros_to_base_translation <<
-      imu_link_target_transform.transform.translation.x, imu_link_target_transform.transform.translation.y, imu_link_target_transform.transform.translation.z;
-    Eigen::Quaterniond e_ros_to_base_rotation_quaternion(imu_link_target_transform.transform.rotation.w, imu_link_target_transform.transform.rotation.x, imu_link_target_transform.transform.rotation.y, imu_link_target_transform.transform.rotation.z);
-    Eigen::Matrix3d e_ros_to_base_rotation = e_ros_to_base_rotation_quaternion.matrix();
-
-    Eigen::Matrix4d e_ros_to_base;
-    e_ros_to_base <<
-      e_ros_to_base_rotation(0, 0), e_ros_to_base_rotation(0, 1), e_ros_to_base_rotation(0, 2), e_ros_to_base_translation(0),
-      e_ros_to_base_rotation(1, 0), e_ros_to_base_rotation(1, 1), e_ros_to_base_rotation(1, 2), e_ros_to_base_translation(1),
-      e_ros_to_base_rotation(2, 0), e_ros_to_base_rotation(2, 1), e_ros_to_base_rotation(2, 2), e_ros_to_base_translation(2),
-      0,                            0,                            0,                            1;
-    
-    Eigen::Matrix4d e_enu_to_base = e_ros_to_base * e_enu_to_ros;
-    Eigen::Vector3d e_enu_to_base_translation;
-    Eigen::Matrix3d e_enu_to_base_rotation;
-    e_enu_to_base_translation <<
-      e_enu_to_base(0, 3), e_enu_to_base(1, 3), e_enu_to_base(2, 3);
-    e_enu_to_base_rotation <<
-      e_enu_to_base(0, 0), e_enu_to_base(0, 1), e_enu_to_base(0, 2),
-      e_enu_to_base(1, 0), e_enu_to_base(1, 1), e_enu_to_base(1, 2),
-      e_enu_to_base(2, 0), e_enu_to_base(2, 1), e_enu_to_base(2, 2);
-    Eigen::Quaterniond e_enu_to_base_rotation_quaternion(e_enu_to_base_rotation);
-    Eigen::Vector3d e_enu_to_base_rotation_euler = e_enu_to_base_rotation.eulerAngles(0, 1, 2);
-
-    MICROSTRAIN_INFO(node_, "Base Link");
-    MICROSTRAIN_INFO(node_, "E: %f, N: %f, U: %f", e_enu_to_base_translation(0), e_enu_to_base_translation(1), e_enu_to_base_translation(2));
-    MICROSTRAIN_INFO(node_, "R: %f, P: %f, Y: %f", e_enu_to_base_rotation_euler(0) * 180 / M_PI, e_enu_to_base_rotation_euler(1) * 180 / M_PI, e_enu_to_base_rotation_euler(2) * 180 / M_PI);
-
-    TransformStampedMsg transform;
-    transform.header.stamp = rosTimeNow(node_);
-    transform.header.frame_id = config_->map_frame_id_;
-    transform.child_frame_id = config_->target_frame_id_;
-    transform.transform.translation.x = e_enu_to_base_translation(0);
-    transform.transform.translation.y = e_enu_to_base_translation(1);
-    transform.transform.translation.z = e_enu_to_base_translation(2);
-    transform.transform.rotation.x = e_enu_to_base_rotation_quaternion.x();
-    transform.transform.rotation.y = e_enu_to_base_rotation_quaternion.y();
-    transform.transform.rotation.z = e_enu_to_base_rotation_quaternion.z();
-    transform.transform.rotation.w = e_enu_to_base_rotation_quaternion.w();
-    transform_broadcaster_->sendTransform(transform);
-
-    t_ned_tangent_plane_to_microstrain_vehicle_translation_updated_ = false;
-    t_ned_tangent_plane_to_microstrain_vehicle_rotation_updated_ = false;
-    MICROSTRAIN_INFO(node_, " ");
-  }
-  */
 }
 
 void Publishers::handleSharedEventSource(const mip::data_shared::EventSource& event_source, const uint8_t descriptor_set, mip::Timestamp timestamp)
@@ -1338,23 +1241,6 @@ void Publishers::handleFilterEcefPos(const mip::data_filter::EcefPos& ecef_pos, 
     else
       config_->earth_to_map_transform_.transform.rotation = tf2::toMsg(ecefToNedTransformQuat(lat, lon));
     
-    /*
-    config_->geocentric_converter_.Reverse(ecef_pos.position_ecef[0], ecef_pos.position_ecef[1], ecef_pos.position_ecef[2], lat, lon, alt);
-    t_ecef_to_ned_tangent_plane_.setOrigin(tf2::Vector3(ecef_pos.position_ecef[0], ecef_pos.position_ecef[1], ecef_pos.position_ecef[2]));
-    t_ecef_to_ned_tangent_plane_.setRotation(ecefToNedTransformQuat(lat, lon));
-    t_ecef_to_ned_tangent_plane_valid_ = true;
-
-    tf2::Vector3 v;
-    tf2::Matrix3x3 m;
-    double r, p, y;
-    v = t_ecef_to_ned_tangent_plane_.getOrigin();
-    m = tf2::Matrix3x3(t_ecef_to_ned_tangent_plane_.getRotation());
-    m.getRPY(r, p, y);
-    MICROSTRAIN_INFO(node_, "Transform from ECEF to NED tangent plane:");
-    MICROSTRAIN_INFO(node_, "  X: %f, Y: %f, Z: %f", v.x(), v.y(), v.z());
-    MICROSTRAIN_INFO(node_, "  R: %f, P: %f, Y: %f", r * 180 / M_PI, p * 180 / M_PI, y * 180 / M_PI);
-    */
-
     MICROSTRAIN_INFO_THROTTLE(node_, 10, "Full nav achieved. Relative position will be reported relative to the following position");
     MICROSTRAIN_INFO_THROTTLE(node_, 10, "  LLH: [%f, %f, %f]", lat, lon, alt);
     config_->earth_to_map_transform_valid_ = true;
@@ -1381,15 +1267,6 @@ void Publishers::handleFilterEcefPos(const mip::data_filter::EcefPos& ecef_pos, 
       tf2::Transform t_earth_to_map;
       tf2::fromMsg(earth_to_map_transform.transform, t_earth_to_map);
       const tf2::Vector3 v_imu_in_map_frame = t_earth_to_map.inverse() * v_imu_in_earth_frame;
-
-      /*
-      if (t_ecef_to_ned_tangent_plane_valid_)
-      {
-        MICROSTRAIN_INFO(node_, "X: %f, Y: %f, Z: %f", v_imu_in_earth_frame.x(), v_imu_in_earth_frame.y(), v_imu_in_earth_frame.z());
-        t_ned_tangent_plane_to_microstrain_vehicle_.setOrigin(t_ecef_to_ned_tangent_plane_.inverse() * v_imu_in_earth_frame);
-        t_ned_tangent_plane_to_microstrain_vehicle_translation_updated_ = true;
-      }
-      */
 
       // Fill in the map odometry message
       // Note that since the earth to map transform already puts us in either NED or ENU automatically there is no need to swap the values here
@@ -1451,47 +1328,53 @@ void Publishers::handleFilterPositionLlh(const mip::data_filter::PositionLlh& po
 
 void Publishers::handleFilterPositionLlhUncertainty(const mip::data_filter::PositionLlhUncertainty& position_llh_uncertainty, const uint8_t descriptor_set, mip::Timestamp timestamp)
 {
+  // If we have to rotate the covariance, it is easier to do when uncertaintty is in a covariance matrix.
+  // NOTE: The rotation between the microstrain vehicle and ROS vehicle is essentially the same for covariance.
+  //       Since all it does is negate the y and z axis, but that gets squared anyways.
+  const double n = pow(position_llh_uncertainty.north, 2);
+  const double e = pow(position_llh_uncertainty.east, 2);
+  const double d = pow(position_llh_uncertainty.down, 2);
+  const PoseWithCovarianceStampedMsg::_pose_type::_covariance_type ned_frame_covariance =
+  {
+    n, 0, 0, 0, 0, 0,
+    0, e, 0, 0, 0, 0,
+    0, 0, d, 0, 0, 0,
+    0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0
+  };
+
   // Filter fix message
   auto filter_llh_position_msg = filter_llh_position_pub_->getMessageToUpdate();
   updateHeaderTime(&(filter_llh_position_msg->header), descriptor_set, timestamp);
   filter_llh_position_msg->position_covariance_type = NavSatFixMsg::COVARIANCE_TYPE_DIAGONAL_KNOWN;
   if (config_->use_enu_frame_)
   {
-    filter_llh_position_msg->position_covariance[0] = pow(position_llh_uncertainty.north, 2);
-    filter_llh_position_msg->position_covariance[4] = pow(position_llh_uncertainty.east, 2);
+    filter_llh_position_msg->position_covariance[0] = e;
+    filter_llh_position_msg->position_covariance[4] = n;
   }
   else
   {
-    filter_llh_position_msg->position_covariance[0] = pow(position_llh_uncertainty.east, 2);
-    filter_llh_position_msg->position_covariance[4] = pow(position_llh_uncertainty.north, 2);
+    filter_llh_position_msg->position_covariance[0] = n;
+    filter_llh_position_msg->position_covariance[4] = e;
   }
-  filter_llh_position_msg->position_covariance[8] = pow(position_llh_uncertainty.down, 2);
+  filter_llh_position_msg->position_covariance[8] = d;
 
   // Filter relative odometry message (not counted as updating)
   auto filter_odometry_map_msg = filter_odometry_map_pub_->getMessage();
-  if (config_->use_enu_frame_)
-  {
-    filter_odometry_map_msg->pose.covariance[0] = pow(position_llh_uncertainty.east, 2);
-    filter_odometry_map_msg->pose.covariance[7] = pow(position_llh_uncertainty.north, 2);
-  }
-  else
-  {
-    filter_odometry_map_msg->pose.covariance[0] = pow(position_llh_uncertainty.north, 2);
-    filter_odometry_map_msg->pose.covariance[7] = pow(position_llh_uncertainty.east, 2);
-  }
-  filter_odometry_map_msg->pose.covariance[14] = pow(position_llh_uncertainty.down, 2);
+  setTranslationCovarianceOnCovariance(&filter_odometry_map_msg->pose.covariance, getTranslationCovarianceFromCovariance(ned_frame_covariance));
 
   // If the device does not support ECEF uncertainty, rotate this uncertainty into the ECEF frame and process it
   if (!supports_filter_ecef_)
   {
-    const tf2::Vector3 v_ned_uncertainty(position_llh_uncertainty.north, position_llh_uncertainty.east, position_llh_uncertainty.down);
-    const tf2::Vector3 v_ecef_uncertainty = ecefToNedTransform(filter_llh_position_msg->latitude, filter_llh_position_msg->longitude).inverse() * v_ned_uncertainty;
+    const tf2::Transform ned_to_ecef_transform(ecefToNedTransform(filter_llh_position_msg->latitude, filter_llh_position_msg->longitude));
+    const PoseWithCovarianceStampedMsg::_pose_type::_covariance_type ecef_frame_covariance = tf2::transformCovariance(ned_frame_covariance, ned_to_ecef_transform);
     mip::data_filter::EcefPosUncertainty ecef_pos_uncertainty;
     ecef_pos_uncertainty.pos_uncertainty =
     {
-      static_cast<float>(v_ecef_uncertainty.x()),
-      static_cast<float>(v_ecef_uncertainty.y()),
-      static_cast<float>(v_ecef_uncertainty.z()),
+      static_cast<float>(sqrt(ecef_frame_covariance[0])),
+      static_cast<float>(sqrt(ecef_frame_covariance[7])),
+      static_cast<float>(sqrt(ecef_frame_covariance[14])),
     };
     handleFilterEcefPosUncertainty(ecef_pos_uncertainty, descriptor_set, timestamp); 
   }
@@ -1506,10 +1389,6 @@ void Publishers::handleFilterAttitudeQuaternion(const mip::data_filter::Attitude
   // Gonna need to do a lot of math below, so turn the quaternion into a tf2 quaternion
   tf2::Quaternion q_microstrain_body_frame_wrt_ned(attitude_quaternion.q[1], attitude_quaternion.q[2], attitude_quaternion.q[3], attitude_quaternion.q[0]);
 
-  // TODO: Take this out when the bug in the CV7-INS is fixed
-  if (config_->mip_device_->device_info_.model_name == std::string("3DMCV7-INS"))
-    q_microstrain_body_frame_wrt_ned = q_microstrain_body_frame_wrt_ned.inverse();
-  
   // Filtered IMU message
   auto filter_imu_msg = filter_imu_pub_->getMessageToUpdate();
   updateHeaderTime(&(filter_imu_msg->header), descriptor_set, timestamp);
@@ -1517,8 +1396,7 @@ void Publishers::handleFilterAttitudeQuaternion(const mip::data_filter::Attitude
   {
     tf2::Quaternion q_enu_to_ned;
     config_->t_ned_to_enu_.getRotation(q_enu_to_ned);
-
-    const tf2::Quaternion q_ros_body_frame_wrt_enu = q_microstrain_vehicle_to_ros_vehicle * q_microstrain_body_frame_wrt_ned * q_enu_to_ned;
+    const tf2::Quaternion q_ros_body_frame_wrt_enu = q_enu_to_ned * q_microstrain_body_frame_wrt_ned * q_microstrain_vehicle_to_ros_vehicle;
     filter_imu_msg->orientation = tf2::toMsg(q_ros_body_frame_wrt_enu);
   }
   else
@@ -1562,32 +1440,42 @@ void Publishers::handleFilterAttitudeQuaternion(const mip::data_filter::Attitude
 
 void Publishers::handleFilterEulerAnglesUncertainty(const mip::data_filter::EulerAnglesUncertainty& euler_angles_uncertainty, const uint8_t descriptor_set, mip::Timestamp timestamp)
 {
+  // If we have to rotate the covariance, it is easier to do when uncertaintty is in a covariance matrix.
+  // NOTE: The rotation between the microstrain vehicle and ROS vehicle is essentially the same for covariance.
+  //       Since all it does is negate the y and z axis, but that gets squared anyways.
+  const double r = pow(euler_angles_uncertainty.roll, 2);
+  const double p = pow(euler_angles_uncertainty.pitch, 2);
+  const double y = pow(euler_angles_uncertainty.yaw, 2);
+  const PoseWithCovarianceStampedMsg::_pose_type::_covariance_type microstrain_vehicle_frame_covariance =
+  {
+    0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0,
+    0, 0, 0, r, 0, 0,
+    0, 0, 0, 0, p, 0,
+    0, 0, 0, 0, 0, y
+  };
+
   // Filtered IMU message
   auto filter_imu_msg = filter_imu_pub_->getMessageToUpdate();
   updateHeaderTime(&(filter_imu_msg->header), descriptor_set, timestamp);
-  if (config_->use_enu_frame_)
-  {
-    filter_imu_msg->orientation_covariance[0] = pow(euler_angles_uncertainty.pitch, 2);
-    filter_imu_msg->orientation_covariance[4] = pow(euler_angles_uncertainty.roll, 2);
-  }
-  else
-  {
-    filter_imu_msg->orientation_covariance[0] = pow(euler_angles_uncertainty.roll, 2);
-    filter_imu_msg->orientation_covariance[4] = pow(euler_angles_uncertainty.pitch, 2);
-  }
-  filter_imu_msg->orientation_covariance[8] = pow(euler_angles_uncertainty.yaw, 2);
+  filter_imu_msg->orientation_covariance = getRotationCovarianceFromCovariance(microstrain_vehicle_frame_covariance);
 
   // Filter odometry message (not counted as updating)
   auto filter_odometry_earth_msg = filter_odometry_earth_pub_->getMessage();
-  filter_odometry_earth_msg->pose.covariance[21] = filter_imu_msg->orientation_covariance[0];
-  filter_odometry_earth_msg->pose.covariance[28] = filter_imu_msg->orientation_covariance[4];
-  filter_odometry_earth_msg->pose.covariance[35] = filter_imu_msg->orientation_covariance[8];
+
+  // Rotate the microstrain covariance matrix into ECEF.
+  // NOTE: We view the NED frame and microstrain vehicle frame as the same here since there is no transform between them.
+  double lat, lon, height;
+  config_->geocentric_converter_.Reverse(filter_odometry_earth_msg->pose.pose.position.x, filter_odometry_earth_msg->pose.pose.position.y, filter_odometry_earth_msg->pose.pose.position.z, lat, lon, height);
+  const tf2::Transform ned_to_ecef_transform(ecefToNedTransform(lat, lon));
+  const PoseWithCovarianceStampedMsg::_pose_type::_covariance_type ecef_frame_covariance = tf2::transformCovariance(microstrain_vehicle_frame_covariance, ned_to_ecef_transform);
+  setRotationCovarianceOnCovariance(&filter_odometry_earth_msg->pose.covariance, getRotationCovarianceFromCovariance(ecef_frame_covariance));
+  
 
   // Filter relative odometry message (not counted as updating)
   auto filter_odometry_map_msg = filter_odometry_map_pub_->getMessage();
-  filter_odometry_map_msg->pose.covariance[21] = filter_imu_msg->orientation_covariance[0];
-  filter_odometry_map_msg->pose.covariance[28] = filter_imu_msg->orientation_covariance[4];
-  filter_odometry_map_msg->pose.covariance[35] = filter_imu_msg->orientation_covariance[8];
+  setRotationCovarianceOnCovariance(&filter_odometry_map_msg->pose.covariance, getRotationCovarianceFromCovariance(microstrain_vehicle_frame_covariance));
 }
 
 void Publishers::handleFilterVelocityNed(const mip::data_filter::VelocityNed& velocity_ned, const uint8_t descriptor_set, mip::Timestamp timestamp)
@@ -1637,10 +1525,14 @@ void Publishers::handleFilterVelocityNedUncertainty(const mip::data_filter::Velo
   }
   filter_velocity_msg->twist.covariance[14] = pow(velocity_ned_uncertainty.down, 2);
 
-  // Filter relative odometry message (not counted as opening)
-  // TODO: Should this covariance be rotated?
+  // Filter relative odometry message (not counted as updating)
+  // NOTE: The rotation between the microstrain vehicle and ROS vehicle is essentially the same for covariance.
+  //       Since all it does is negate the y and z axis, but that gets squared anyways.
+  // NOTE: We view the NED frame and microstrain vehicle frame as the same here since there is no transform between them.
   auto filter_odometry_map_msg = filter_odometry_map_pub_->getMessage();
-  filter_odometry_map_msg->twist.covariance = filter_velocity_msg->twist.covariance;
+  filter_odometry_map_msg->twist.covariance[21] = pow(velocity_ned_uncertainty.north, 2);
+  filter_odometry_map_msg->twist.covariance[28] = pow(velocity_ned_uncertainty.east, 2);
+  filter_odometry_map_msg->twist.covariance[35] = pow(velocity_ned_uncertainty.down, 2);
 }
 
 void Publishers::handleFilterEcefVelocity(const mip::data_filter::EcefVel& ecef_vel, const uint8_t descriptor_set, mip::Timestamp timestamp)
