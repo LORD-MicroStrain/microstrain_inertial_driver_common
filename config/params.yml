@@ -82,6 +82,7 @@ raw_file_directory : "/home/your_name"
 #             Note: In order to use relative mode, you must configure filter_relative_position
 #             Transform will be published from earth_frame_id to map_frame_id using relative position configuration
 #             Transform between map_frame_id and target_frame_id will be published using position information reported by the device
+# for more information, see: https://wiki.ros.org/microstrain_inertial_driver/transforms
 tf_mode : 0
 
 # Frame ID that most header.frame_id fields will be populated with.
@@ -112,6 +113,7 @@ mount_to_frame_id_transform          : [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0] # [ x
 #
 # Note: It is strongly recommended to leave this as True if you plan to integrate with other ROS tools
 # Note: If this is set to false, all "*_frame_id" variables will have "_ned" appended to them by the driver.
+# For more information, see: https://wiki.ros.org/microstrain_inertial_driver/use_enu_frame
 use_enu_frame : True
 
 
@@ -198,6 +200,7 @@ filter_init_attitude : [0.0, 0.0, 0.0]
 #
 #     Reference position - Units provided by reference frame (ECEF - meters, LLH - deg, deg, meters)
 # Note: The source selected here will determine the transform published between earth_frame_id and map_frame_id when running in relative transform mode
+# For more information, see: https://wiki.ros.org/microstrain_inertial_driver/relative_position_configuration
 filter_relative_position_config : False
 filter_relative_position_frame  : 2
 filter_relative_position_source : 2
