@@ -121,22 +121,32 @@ use_enu_frame : True
 # GNSS Settings (only applicable for devices with GNSS) 
 # ****************************************************************** 
 
+# Antenna #1 lever arm offset source
+#     0 - Disabled:  We will not configure the antenna offset, or publish it as a transform
+#     1 - Manual:    We will use the provided vector to configure the device, and publish it as the transform between frame_id and gnss1_frame_id
+#     2 - Transform: We will lookup the transform between frame_id and gnss1_frame_id and use it to configure the device. We will ignore gns1_antenna_offset
 # Antenna #1 lever arm offset vector
 #     For GQ7 - in the vehicle frame wrt IMU origin (meters)
 #     For all other models - in the IMU frame wrt IMU origin (meters)
 # Note: Make this as accurate as possible for good performance
-gnss1_antenna_offset : [0.0, -0.7, -1.0]
+gnss1_antenna_offset_source : 1
+gnss1_antenna_offset        : [0.0, -0.7, -1.0]
 
 
 # ****************************************************************** 
 # GNSS2 Settings (only applicable for multi-GNSS systems (e.g. GQ7) )
 # ****************************************************************** 
 
+# Antenna #2 lever arm offset source
+#     0 - Disabled:  We will not configure the antenna offset, or publish it as a transform
+#     1 - Manual:    We will use the provided vector to configure the device, and publish it as the transform between frame_id and gnss2_frame_id
+#     2 - Transform: We will lookup the transform between frame_id and gnss2_frame_id and use it to configure the device. We will ignore gns2_antenna_offset
 # Antenna #2 lever arm offset vector
 #     For GQ7 - in the vehicle frame wrt IMU origin (meters)
 #     For all other models - in the IMU frame wrt IMU origin (meters)
 # Note: Make this as accurate as possible for good performance
-gnss2_antenna_offset : [0.0, 0.7, -1.0]
+gnss2_antenna_offset_source : 1
+gnss2_antenna_offset        : [0.0, 0.7, -1.0]
 
 
 # ****************************************************************** 

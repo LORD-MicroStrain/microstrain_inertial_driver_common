@@ -426,10 +426,12 @@ bool Publishers::activate()
   
   // Static antenna offsets
   // Note: If streaming the antenna offset correction topic, correct the offsets with them
-  if (config_->mip_device_->supportsDescriptorSet(mip::data_gnss::DESCRIPTOR_SET) || config_->mip_device_->supportsDescriptorSet(mip::data_gnss::MIP_GNSS1_DATA_DESC_SET))
-    static_transform_broadcaster_->sendTransform(imu_link_to_gnss_antenna_link_transform_[GNSS1_ID]);
-  if (config_->mip_device_->supportsDescriptorSet(mip::data_gnss::MIP_GNSS2_DATA_DESC_SET))
-    static_transform_broadcaster_->sendTransform(imu_link_to_gnss_antenna_link_transform_[GNSS2_ID]);
+  if (config_->gnss_antenna_offset_source_[GNSS1_ID] == GNSS_ANTENNA_OFFSET_SOURCE_MANUAL)
+    if (config_->mip_device_->supportsDescriptorSet(mip::data_gnss::DESCRIPTOR_SET) || config_->mip_device_->supportsDescriptorSet(mip::data_gnss::MIP_GNSS1_DATA_DESC_SET))
+      static_transform_broadcaster_->sendTransform(imu_link_to_gnss_antenna_link_transform_[GNSS1_ID]);
+  if (config_->gnss_antenna_offset_source_[GNSS2_ID] == GNSS_ANTENNA_OFFSET_SOURCE_MANUAL)
+    if (config_->mip_device_->supportsDescriptorSet(mip::data_gnss::MIP_GNSS2_DATA_DESC_SET))
+      static_transform_broadcaster_->sendTransform(imu_link_to_gnss_antenna_link_transform_[GNSS2_ID]);
   if (config_->mip_device_->supportsDescriptor(mip::commands_filter::DESCRIPTOR_SET, mip::commands_filter::CMD_SPEED_LEVER_ARM))
     static_transform_broadcaster_->sendTransform(imu_link_to_odometer_link_transform_);
   return true;

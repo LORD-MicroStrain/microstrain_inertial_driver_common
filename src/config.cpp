@@ -36,6 +36,10 @@ namespace microstrain
 Config::Config(RosNodeType* node) : node_(node)
 {
   nmea_max_rate_hz_ = 0;
+
+  // Initialize the transform buffer and listener ahead of time
+  transform_buffer_ = createTransformBuffer(node_);
+  transform_listener_ = createTransformListener(transform_buffer_);
 }
 
 bool Config::configure(RosNodeType* node)
@@ -110,6 +114,8 @@ bool Config::configure(RosNodeType* node)
 
   // GNSS 1/2
   std::vector<double> gnss_antenna_offset_double[NUM_GNSS];
+  getParam<int>(node, "gnss1_antenna_offset_source", gnss_antenna_offset_source_[GNSS1_ID], GNSS_ANTENNA_OFFSET_SOURCE_MANUAL);
+  getParam<int>(node, "gnss2_antenna_offset_source", gnss_antenna_offset_source_[GNSS2_ID], GNSS_ANTENNA_OFFSET_SOURCE_MANUAL);
   getParam<std::vector<double>>(node, "gnss1_antenna_offset", gnss_antenna_offset_double[GNSS1_ID], DEFAULT_VECTOR);
   getParam<std::vector<double>>(node, "gnss2_antenna_offset", gnss_antenna_offset_double[GNSS2_ID], DEFAULT_VECTOR);
 
@@ -632,33 +638,88 @@ bool Config::configureFilter(RosNodeType* node)
     MICROSTRAIN_INFO(node_, "Note: Device does not support the declination source command.");
   }
 
+  // If either antenna offset is configured with the transform selector, lookup the transform in the tf tree
+  // Give the application several seconds to find the transform, otherwise exit
+  constexpr int32_t seconds_to_wait = 10;
+  for (int i = 0; i < NUM_GNSS; i++)
+  {
+    if (gnss_antenna_offset_source_[i] == GNSS_ANTENNA_OFFSET_SOURCE_TRANSFORM)
+    {
+      std::string tf_error_string;
+      RosTimeType frame_time; setRosTime(&frame_time, 0, 0);
+      if (transform_buffer_->canTransform(frame_id_, gnss_frame_id_[i], frame_time, RosDurationType(seconds_to_wait, 0), &tf_error_string))
+      {
+        // If not using the enu frame, this can be plugged directly into the device, otherwise rotate it from the ROS body frame to our body frame
+        auto gnss_antenna_transform = transform_buffer_->lookupTransform(frame_id_, gnss_frame_id_[i], frame_time);
+        if (use_enu_frame_)
+        {
+          tf2::Vector3 v_gnss_antenna_to_ros_body_frame;
+          tf2::fromMsg(gnss_antenna_transform.transform.translation, v_gnss_antenna_to_ros_body_frame);
+          gnss_antenna_transform.transform.translation = tf2::toMsg(t_ros_vehicle_to_microstrain_vehicle_ * v_gnss_antenna_to_ros_body_frame);
+        }
+
+        // Override the antenna offset with the result from the transform tree
+        gnss_antenna_offset_[i][0] = gnss_antenna_transform.transform.translation.x;
+        gnss_antenna_offset_[i][1] = gnss_antenna_transform.transform.translation.y;
+        gnss_antenna_offset_[i][2] = gnss_antenna_transform.transform.translation.z;
+      }
+      else
+      {
+        MICROSTRAIN_ERROR(node_, "Waited for %u seconds and was unable to lookup transform from %s to %s", seconds_to_wait, frame_id_.c_str(), gnss_frame_id_[i].c_str());
+        MICROSTRAIN_ERROR(node_, "  Err: %s", tf_error_string.c_str());
+        return false;
+      }
+    }
+  }
+
   // GNSS 1/2 antenna offsets
   if (mip_device_->supportsDescriptor(descriptor_set, mip::commands_filter::CMD_ANTENNA_OFFSET))
   {
-    MICROSTRAIN_INFO(node_, "Setting single antenna offset to [%f, %f, %f]",
-        gnss_antenna_offset_[GNSS1_ID][0], gnss_antenna_offset_[GNSS1_ID][1], gnss_antenna_offset_[GNSS1_ID][2]);
-    if (!(mip_cmd_result = mip::commands_filter::writeAntennaOffset(*mip_device_, gnss_antenna_offset_[GNSS1_ID].data())))
+    if (gnss_antenna_offset_source_[GNSS1_ID] != GNSS_ANTENNA_OFFSET_SOURCE_OFF)
     {
-      MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Cound not set single antenna offset");
-      return false;
+      MICROSTRAIN_INFO(node_, "Setting single antenna offset to [%f, %f, %f]",
+          gnss_antenna_offset_[GNSS1_ID][0], gnss_antenna_offset_[GNSS1_ID][1], gnss_antenna_offset_[GNSS1_ID][2]);
+      if (!(mip_cmd_result = mip::commands_filter::writeAntennaOffset(*mip_device_, gnss_antenna_offset_[GNSS1_ID].data())))
+      {
+        MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Cound not set single antenna offset");
+        return false;
+      }
+    }
+    else
+    {
+      MICROSTRAIN_INFO(node_, "Not configuring single antenna offset because gnss1_antenna_offset_source is %d", GNSS_ANTENNA_OFFSET_SOURCE_OFF);
     }
   }
   else if (mip_device_->supportsDescriptor(descriptor_set, mip::commands_filter::CMD_MULTI_ANTENNA_OFFSET))
   {
-    MICROSTRAIN_INFO(node_, "Setting GNSS1 antenna offset to [%f, %f, %f]",
-        gnss_antenna_offset_[GNSS1_ID][0], gnss_antenna_offset_[GNSS1_ID][1], gnss_antenna_offset_[GNSS1_ID][2]);
-    if (!(mip_cmd_result = mip::commands_filter::writeMultiAntennaOffset(*mip_device_, GNSS1_ID + 1, gnss_antenna_offset_[GNSS1_ID].data())))
+    if (gnss_antenna_offset_source_[GNSS1_ID] != GNSS_ANTENNA_OFFSET_SOURCE_OFF)
     {
-      MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Could not set multi antenna offset for GNSS1");
-      return false;
+      MICROSTRAIN_INFO(node_, "Setting GNSS1 antenna offset to [%f, %f, %f]",
+          gnss_antenna_offset_[GNSS1_ID][0], gnss_antenna_offset_[GNSS1_ID][1], gnss_antenna_offset_[GNSS1_ID][2]);
+      if (!(mip_cmd_result = mip::commands_filter::writeMultiAntennaOffset(*mip_device_, GNSS1_ID + 1, gnss_antenna_offset_[GNSS1_ID].data())))
+      {
+        MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Could not set multi antenna offset for GNSS1");
+        return false;
+      }
+    }
+    else
+    {
+      MICROSTRAIN_INFO(node_, "Not configuring GNSS1 antenna offset because gnss1_antenna_offset_source is %d", GNSS_ANTENNA_OFFSET_SOURCE_OFF);
     }
 
-    MICROSTRAIN_INFO(node_, "Setting GNSS2 antenna offset to [%f, %f, %f]",
-        gnss_antenna_offset_[GNSS2_ID][0], gnss_antenna_offset_[GNSS2_ID][1], gnss_antenna_offset_[GNSS2_ID][2]);
-    if (!(mip_cmd_result = mip::commands_filter::writeMultiAntennaOffset(*mip_device_, GNSS2_ID + 1, gnss_antenna_offset_[GNSS2_ID].data())))
+    if (gnss_antenna_offset_source_[GNSS2_ID] != GNSS_ANTENNA_OFFSET_SOURCE_OFF)
     {
-      MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Could not set multi antenna offset for GNSS2");
-      return false;
+      MICROSTRAIN_INFO(node_, "Setting GNSS2 antenna offset to [%f, %f, %f]",
+          gnss_antenna_offset_[GNSS2_ID][0], gnss_antenna_offset_[GNSS2_ID][1], gnss_antenna_offset_[GNSS2_ID][2]);
+      if (!(mip_cmd_result = mip::commands_filter::writeMultiAntennaOffset(*mip_device_, GNSS2_ID + 1, gnss_antenna_offset_[GNSS2_ID].data())))
+      {
+        MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Could not set multi antenna offset for GNSS2");
+        return false;
+      }
+    }
+    else
+    {
+      MICROSTRAIN_INFO(node_, "Not configuring GNSS2 antenna offset because gnss2_antenna_offset_source is %d", GNSS_ANTENNA_OFFSET_SOURCE_OFF);
     }
   }
   else

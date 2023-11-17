@@ -34,6 +34,10 @@ static constexpr auto TF_MODE_OFF = 0;
 static constexpr auto TF_MODE_GLOBAL = 1;
 static constexpr auto TF_MODE_RELATIVE = 2;
 
+static constexpr auto GNSS_ANTENNA_OFFSET_SOURCE_OFF = 0;
+static constexpr auto GNSS_ANTENNA_OFFSET_SOURCE_MANUAL = 1;
+static constexpr auto GNSS_ANTENNA_OFFSET_SOURCE_TRANSFORM = 2;
+
 static constexpr auto REL_POS_SOURCE_BASE_STATION = 0;
 static constexpr auto REL_POS_SOURCE_MANUAL = 1;
 static constexpr auto REL_POS_SOURCE_AUTO = 2;
@@ -159,6 +163,7 @@ public:
   double imu_pressure_vairance_;
 
   // Gnss antenna offsets
+  int gnss_antenna_offset_source_[NUM_GNSS];
   std::vector<float> gnss_antenna_offset_[NUM_GNSS];
 
   // Raw data file parameters
@@ -244,6 +249,10 @@ private:
 
   // Handle to the ROS node
   RosNodeType* node_;
+
+  // TF2 buffer lookup class
+  TransformBufferType transform_buffer_;
+  TransformListenerType transform_listener_;
 };  // Config class
 
 }  // namespace microstrain
