@@ -489,14 +489,12 @@ bool Config::configure3DM(RosNodeType* node)
 
 bool Config::configureGNSS(RosNodeType* node)
 {
-  bool gnss_gps_enable;
-  bool gnss_glonass_enable;
-  bool gnss_galileo_enable;
-  bool gnss_beidou_enable;
-  getParam<bool>(node, "gnss_gps_enable", gnss_gps_enable, true);
-  getParam<bool>(node, "gnss_glonass_enable", gnss_glonass_enable, true);
-  getParam<bool>(node, "gnss_galileo_enable", gnss_galileo_enable, true);
-  getParam<bool>(node, "gnss_beidou_enable", gnss_beidou_enable, true);
+  bool gnss_glonass_enable_bool;
+  bool gnss_galileo_enable_bool;
+  bool gnss_beidou_enable_bool;
+  getParam<bool>(node, "gnss_glonass_enable", gnss_glonass_enable_bool, true);
+  getParam<bool>(node, "gnss_galileo_enable", gnss_galileo_enable_bool, true);
+  getParam<bool>(node, "gnss_beidou_enable", gnss_beidou_enable_bool, true);
 
   mip::CmdResult mip_cmd_result;
   const uint8_t descriptor_set = mip::commands_gnss::DESCRIPTOR_SET;
@@ -520,9 +518,12 @@ bool Config::configureGNSS(RosNodeType* node)
   // GNSS Signal confiuration
   if (mip_device_->supportsDescriptor(descriptor_set, mip::commands_gnss::CMD_SIGNAL_CONFIGURATION))
   {
+    uint8_t gnss_gps_enable = 3;
+    uint8_t gnss_glonass_enable = gnss_glonass_enable_bool ? 3 : 0;
+    uint8_t gnss_galileo_enable = gnss_galileo_enable_bool ? 3 : 0;
+    uint8_t gnss_beidou_enable = gnss_beidou_enable_bool ? 3 : 0;
     uint8_t reserved[4];
     MICROSTRAIN_INFO(node_, "Setting GNSS Signal Configuration to:");
-    MICROSTRAIN_INFO(node_, "  gps_enable = %d", gnss_gps_enable);
     MICROSTRAIN_INFO(node_, "  glonass_enable = %d", gnss_glonass_enable);
     MICROSTRAIN_INFO(node_, "  galileo_enable = %d", gnss_galileo_enable);
     MICROSTRAIN_INFO(node_, "  beidou_enable = %d", gnss_beidou_enable);
