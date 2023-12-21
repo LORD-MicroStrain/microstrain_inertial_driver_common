@@ -489,6 +489,15 @@ bool Config::configure3DM(RosNodeType* node)
 
 bool Config::configureGNSS(RosNodeType* node)
 {
+  bool gnss_gps_enable;
+  bool gnss_glonass_enable;
+  bool gnss_galileo_enable;
+  bool gnss_beidou_enable;
+  getParam<bool>(node, "gnss_gps_enable", gnss_gps_enable, true);
+  getParam<bool>(node, "gnss_glonass_enable", gnss_glonass_enable, true);
+  getParam<bool>(node, "gnss_galileo_enable", gnss_galileo_enable, true);
+  getParam<bool>(node, "gnss_beidou_enable", gnss_beidou_enable, true);
+
   mip::CmdResult mip_cmd_result;
   const uint8_t descriptor_set = mip::commands_gnss::DESCRIPTOR_SET;
 
@@ -506,6 +515,26 @@ bool Config::configureGNSS(RosNodeType* node)
   else
   {
     MICROSTRAIN_INFO(node_, "Note: Device does not support the RTK dongle config command");
+  }
+
+  // GNSS Signal confiuration
+  if (mip_device_->supportsDescriptor(descriptor_set, mip::commands_gnss::CMD_SIGNAL_CONFIGURATION))
+  {
+    uint8_t reserved[4];
+    MICROSTRAIN_INFO(node_, "Setting GNSS Signal Configuration to:");
+    MICROSTRAIN_INFO(node_, "  gps_enable = %d", gnss_gps_enable);
+    MICROSTRAIN_INFO(node_, "  glonass_enable = %d", gnss_glonass_enable);
+    MICROSTRAIN_INFO(node_, "  galileo_enable = %d", gnss_galileo_enable);
+    MICROSTRAIN_INFO(node_, "  beidou_enable = %d", gnss_beidou_enable);
+    if (!(mip_cmd_result = mip::commands_gnss::writeSignalConfiguration(*mip_device_, gnss_gps_enable, gnss_glonass_enable, gnss_galileo_enable, gnss_beidou_enable, reserved)))
+    {
+      MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to write GNSS Signal configuration");
+      return false;
+    }
+  }
+  else
+  {
+    MICROSTRAIN_INFO(node_, "Note: Device does not support Siangle Config command");
   }
 
   return true;
