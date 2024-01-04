@@ -283,24 +283,29 @@ public:
   TransformBroadcasterType transform_broadcaster_ = nullptr;
 
   // Will be set to true when pose information is updated, and reset to false when the transform is published
-  bool earth_to_imu_link_transform_translation_updated_ = false;
-  bool earth_to_imu_link_transform_attitude_updated_ = false;
-  bool map_to_imu_link_transform_translation_updated_ = false;
-  bool map_to_imu_link_transform_attitude_updated_ = false;
+  bool imu_link_to_earth_transform_translation_updated_ = false;
+  bool imu_link_to_earth_transform_attitude_updated_ = false;
+  bool imu_link_to_map_transform_translation_updated_ = false;
+  bool imu_link_to_map_transform_attitude_updated_ = false;
+
+  // Transforms that will be updated on each iteation
+  tf2::Stamped<tf2::Transform> imu_link_to_earth_transform_tf_stamped_;
+  tf2::Stamped<tf2::Transform> imu_link_to_map_transform_tf_stamped_;
 
   // Published transforms
-  TransformStampedMsg imu_link_to_gnss_antenna_link_transform_[NUM_GNSS];
-  TransformStampedMsg imu_link_to_odometer_link_transform_;
-  TransformStampedMsg map_to_imu_link_transform_;
-
-  Eigen::Quaterniond q_;
+  TransformStampedMsg gnss_antenna_link_to_imu_link_transform_[NUM_GNSS];
+  TransformStampedMsg odometer_link_to_imu_link_transform_;
 
   // Transforms
+  // TODO: Pick up here. Use the new naming scheme and check if these names are even right.
+  //       After that fix all of the other tf2 instances
+  /*
   tf2::Transform t_ecef_to_ned_tangent_plane_;
   bool t_ecef_to_ned_tangent_plane_valid_ = false;
   tf2::Transform t_ned_tangent_plane_to_microstrain_vehicle_;
   bool t_ned_tangent_plane_to_microstrain_vehicle_translation_updated_ = false;
   bool t_ned_tangent_plane_to_microstrain_vehicle_rotation_updated_ = false;
+  */
 
 private:
   /**

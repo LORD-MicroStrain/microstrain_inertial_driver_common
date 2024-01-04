@@ -45,10 +45,16 @@ Config::Config(RosNodeType* node) : node_(node)
 bool Config::configure(RosNodeType* node)
 {
   // Initialize some default and static config
-  t_ned_to_enu_ = tf2::Matrix3x3(0, 1, 0, 1, 0, 0, 0, 0, -1);
-  t_ros_vehicle_to_microstrain_vehicle_ = tf2::Matrix3x3(1, 0,  0,
-                                                         0, -1, 0,
-                                                         0, 0, -1);
+  ned_to_enu_transform_tf_ = tf2::Transform(tf2::Matrix3x3(
+    0, 1, 0,
+    1, 0, 0,
+    0, 0, -1
+  ));
+  ros_vehicle_to_microstrain_vehicle_transform_tf_ = tf2::Transform(tf2::Matrix3x3(
+    1,  0,  0,
+    0, -1,  0,
+    0,  0, -1
+  ));
 
   ///
   /// Generic configuration used by the rest of the driver
@@ -650,18 +656,26 @@ bool Config::configureFilter(RosNodeType* node)
       if (transform_buffer_->canTransform(frame_id_, gnss_frame_id_[i], frame_time, RosDurationType(seconds_to_wait, 0), &tf_error_string))
       {
         // If not using the enu frame, this can be plugged directly into the device, otherwise rotate it from the ROS body frame to our body frame
-        auto gnss_antenna_transform = transform_buffer_->lookupTransform(frame_id_, gnss_frame_id_[i], frame_time);
+        geometry_msgs::TransformStamped gnss_antenna_to_microstrain_vehicle_transform;
         if (use_enu_frame_)
         {
-          tf2::Vector3 v_gnss_antenna_to_ros_body_frame;
-          tf2::fromMsg(gnss_antenna_transform.transform.translation, v_gnss_antenna_to_ros_body_frame);
-          gnss_antenna_transform.transform.translation = tf2::toMsg(t_ros_vehicle_to_microstrain_vehicle_ * v_gnss_antenna_to_ros_body_frame);
+          const auto& gnss_antenna_to_ros_vehicle_transform = transform_buffer_->lookupTransform(frame_id_, gnss_frame_id_[i], frame_time);
+
+          tf2::Transform gnss_antenna_to_ros_vehicle_transform_tf;
+          tf2::fromMsg(gnss_antenna_to_ros_vehicle_transform.transform, gnss_antenna_to_ros_vehicle_transform_tf);
+
+          const auto& gnss_antenna_to_microstrain_vehicle_transform_tf = ros_vehicle_to_microstrain_vehicle_transform_tf_ * gnss_antenna_to_ros_vehicle_transform_tf;
+          gnss_antenna_to_microstrain_vehicle_transform.transform = tf2::toMsg(gnss_antenna_to_microstrain_vehicle_transform_tf);
+        }
+        else
+        {
+          gnss_antenna_to_microstrain_vehicle_transform = transform_buffer_->lookupTransform(frame_id_, gnss_frame_id_[i], frame_time);
         }
 
         // Override the antenna offset with the result from the transform tree
-        gnss_antenna_offset_[i][0] = gnss_antenna_transform.transform.translation.x;
-        gnss_antenna_offset_[i][1] = gnss_antenna_transform.transform.translation.y;
-        gnss_antenna_offset_[i][2] = gnss_antenna_transform.transform.translation.z;
+        gnss_antenna_offset_[i][0] = gnss_antenna_to_microstrain_vehicle_transform.transform.translation.x;
+        gnss_antenna_offset_[i][1] = gnss_antenna_to_microstrain_vehicle_transform.transform.translation.y;
+        gnss_antenna_offset_[i][2] = gnss_antenna_to_microstrain_vehicle_transform.transform.translation.z;
       }
       else
       {

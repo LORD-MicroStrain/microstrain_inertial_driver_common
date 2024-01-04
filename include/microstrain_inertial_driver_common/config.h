@@ -90,8 +90,9 @@ public:
 
   // Info for converting to the ENU frame
   bool use_enu_frame_;
-  tf2::Matrix3x3 t_ned_to_enu_;
-  tf2::Matrix3x3 t_ros_vehicle_to_microstrain_vehicle_;
+
+  tf2::Transform ned_to_enu_transform_tf_;
+  tf2::Transform ros_vehicle_to_microstrain_vehicle_transform_tf_;
 
   // Whether to enable the hardware odometer through the GPIO pins
   bool enable_hardware_odometer_;
@@ -137,9 +138,9 @@ public:
   TransformStampedMsg mount_to_frame_id_transform_;
 
   // Transform between earth and IMU, may be configured at config time, or changed at runtime
-  bool earth_to_map_transform_valid_ = false;
-  bool earth_to_map_transform_updated_ = false;
-  TransformStampedMsg earth_to_map_transform_;
+  bool map_to_earth_transform_valid_ = false;
+  bool map_to_earth_transform_updated_ = false;
+  TransformStampedMsg map_to_earth_transform_;
 
   // Subscriber settings
   bool subscribe_ext_time_;

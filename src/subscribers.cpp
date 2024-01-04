@@ -328,11 +328,13 @@ void Subscribers::externalHeadingEnuCallback(const PoseWithCovarianceStampedMsg&
 
   // Convert the quaternion to RPY and rotate it to NED
   double r, p, y;
+  /*
   tf2::Quaternion q;
   tf2::fromMsg(heading.pose.pose.orientation, q);
   tf2::Matrix3x3 m(q);
   m = config_->t_ned_to_enu_.inverse() * m;
   m.getRPY(r, p, y);
+  */
 
   // Fill out the rest of the message and send it
   true_heading.valid_flags = 0xFFFF;
@@ -378,6 +380,7 @@ uint8_t Subscribers::getSensorIdFromFrameId(const std::string& frame_id)
     }
     else
     {
+      /*
       // Attempt to find the transform from ROS
       std::string tf_error_string;
       RosTimeType frame_time; setRosTime(&frame_time, 0, 0);
@@ -433,6 +436,7 @@ uint8_t Subscribers::getSensorIdFromFrameId(const std::string& frame_id)
         MICROSTRAIN_WARN_THROTTLE(node_, 10, "Unable to determine transform from %s to %s: %s", config_->frame_id_.c_str(), frame_id.c_str(), tf_error_string.c_str());
         return 0;
       }
+      */
     }
   }
 }
