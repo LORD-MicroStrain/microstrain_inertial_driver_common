@@ -1374,7 +1374,7 @@ void Publishers::handleFilterAttitudeQuaternion(const mip::data_filter::Attitude
   config_->geocentric_converter_.Reverse(filter_odometry_earth_msg->pose.pose.position.x, filter_odometry_earth_msg->pose.pose.position.y, filter_odometry_earth_msg->pose.pose.position.z, lat, lon, alt);
 
   // Put the orientation into the ECEF frame for our earth messages
-  const tf2::Transform ned_to_microstrain_vehicle_transform_tf(tf2::Quaternion(attitude_quaternion.q[1], attitude_quaternion.q[2], attitude_quaternion.q[2], attitude_quaternion.q[0]));
+  const tf2::Transform ned_to_microstrain_vehicle_transform_tf(tf2::Quaternion(attitude_quaternion.q[1], attitude_quaternion.q[2], attitude_quaternion.q[3], attitude_quaternion.q[0]));
   if (config_->use_enu_frame_)
   {
     const tf2::Transform earth_to_enu_transform_tf(ecefToEnuTransform(lat, lon));
