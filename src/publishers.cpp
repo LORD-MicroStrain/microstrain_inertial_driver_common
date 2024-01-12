@@ -1249,22 +1249,22 @@ void Publishers::handleFilterEcefPos(const mip::data_filter::EcefPos& ecef_pos, 
     // Check if we have a valid transform
     if (map_to_earth_transform.header.frame_id == config_->earth_frame_id_ && map_to_earth_transform.child_frame_id == config_->map_frame_id_)
     {
-      tf2::Transform imu_to_earth_transform_tf(tf2::Quaternion::getIdentity(), tf2::Vector3(ecef_pos.position_ecef[0], ecef_pos.position_ecef[1], ecef_pos.position_ecef[2]));
       tf2::Transform map_to_earth_transform_tf;
       tf2::fromMsg(map_to_earth_transform.transform, map_to_earth_transform_tf);
-      const tf2::Transform imu_to_map_transform_tf = map_to_earth_transform_tf.inverse() * imu_to_earth_transform_tf;
+      const tf2::Vector3 imu_in_earth_frame_vector_tf(ecef_pos.position_ecef[0], ecef_pos.position_ecef[1], ecef_pos.position_ecef[2]);
+      const tf2::Vector3 imu_in_map_frame_vector_tf = map_to_earth_transform_tf.inverse() * imu_in_earth_frame_vector_tf;
 
       // Fill in the map odometry message
       // Note that since the earth to map transform already puts us in either NED or ENU automatically there is no need to swap the values here
       auto filter_odometry_map_msg = filter_odometry_map_pub_->getMessageToUpdate();
       updateHeaderTime(&(filter_odometry_map_msg->header), descriptor_set, timestamp);
-      filter_odometry_map_msg->pose.pose.position.x = imu_to_map_transform_tf.getOrigin().getX();
-      filter_odometry_map_msg->pose.pose.position.y = imu_to_map_transform_tf.getOrigin().getY();
-      filter_odometry_map_msg->pose.pose.position.z = imu_to_map_transform_tf.getOrigin().getZ();
+      filter_odometry_map_msg->pose.pose.position.x = imu_in_map_frame_vector_tf.getX();
+      filter_odometry_map_msg->pose.pose.position.y = imu_in_map_frame_vector_tf.getY();
+      filter_odometry_map_msg->pose.pose.position.z = imu_in_map_frame_vector_tf.getZ();
 
       // Fill in the map to imu link transform
       imu_link_to_map_transform_tf_stamped_.stamp_ = rosTimeNow(node_);
-      imu_link_to_map_transform_tf_stamped_.setOrigin(imu_to_map_transform_tf.getOrigin());
+      imu_link_to_map_transform_tf_stamped_.setOrigin(imu_in_map_frame_vector_tf);
       imu_link_to_map_transform_translation_updated_ = true;
     }
     else if (config_->filter_relative_pos_source_ == REL_POS_SOURCE_BASE_STATION)
