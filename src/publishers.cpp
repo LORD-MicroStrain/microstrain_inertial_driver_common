@@ -1374,18 +1374,18 @@ void Publishers::handleFilterAttitudeQuaternion(const mip::data_filter::Attitude
   config_->geocentric_converter_.Reverse(filter_odometry_earth_msg->pose.pose.position.x, filter_odometry_earth_msg->pose.pose.position.y, filter_odometry_earth_msg->pose.pose.position.z, lat, lon, alt);
 
   // Put the orientation into the ECEF frame for our earth messages
-  const tf2::Transform ned_to_microstrain_vehicle_transform_tf(tf2::Quaternion(attitude_quaternion.q[1], attitude_quaternion.q[2], attitude_quaternion.q[3], attitude_quaternion.q[0]));
+  const tf2::Transform microstrain_vehicle_to_ned_transform_tf(tf2::Quaternion(attitude_quaternion.q[1], attitude_quaternion.q[2], attitude_quaternion.q[3], attitude_quaternion.q[0]));
   if (config_->use_enu_frame_)
   {
     const tf2::Transform earth_to_enu_transform_tf(ecefToEnuTransform(lat, lon));
-    const tf2::Transform ros_vehicle_to_earth_transform_tf = earth_to_enu_transform_tf.inverse() * config_->ned_to_enu_transform_tf_ * ned_to_microstrain_vehicle_transform_tf.inverse() * config_->ros_vehicle_to_microstrain_vehicle_transform_tf_;
+    const tf2::Transform ros_vehicle_to_earth_transform_tf = earth_to_enu_transform_tf.inverse() * config_->ned_to_enu_transform_tf_ * microstrain_vehicle_to_ned_transform_tf * config_->ros_vehicle_to_microstrain_vehicle_transform_tf_;
     imu_link_to_earth_transform_tf_stamped_.setBasis(ros_vehicle_to_earth_transform_tf.getBasis());
     filter_odometry_earth_msg->pose.pose.orientation = tf2::toMsg(ros_vehicle_to_earth_transform_tf.getRotation());
   }
   else
   {
     const tf2::Transform earth_to_ned_transform_tf(ecefToNedTransform(lat, lon));
-    const tf2::Transform microstrain_vehicle_to_earth_transform_tf = earth_to_ned_transform_tf.inverse() * ned_to_microstrain_vehicle_transform_tf.inverse();
+    const tf2::Transform microstrain_vehicle_to_earth_transform_tf = earth_to_ned_transform_tf.inverse() * microstrain_vehicle_to_ned_transform_tf;
     imu_link_to_earth_transform_tf_stamped_.setBasis(microstrain_vehicle_to_earth_transform_tf.getBasis());
     filter_odometry_earth_msg->pose.pose.orientation = tf2::toMsg(microstrain_vehicle_to_earth_transform_tf.getRotation());
   }
@@ -1402,14 +1402,13 @@ void Publishers::handleFilterAttitudeQuaternion(const mip::data_filter::Attitude
   // Put the orientation into the NED/ENU frame for our map messages
   if (config_->use_enu_frame_)
   {
-    const tf2::Transform ros_vehicle_to_enu_transform_tf = config_->ned_to_enu_transform_tf_ * ned_to_microstrain_vehicle_transform_tf.inverse() * config_->ros_vehicle_to_microstrain_vehicle_transform_tf_;
+    const tf2::Transform ros_vehicle_to_enu_transform_tf = config_->ned_to_enu_transform_tf_ * microstrain_vehicle_to_ned_transform_tf * config_->ros_vehicle_to_microstrain_vehicle_transform_tf_;
     imu_link_to_map_transform_tf_stamped_.setBasis(ros_vehicle_to_enu_transform_tf.getBasis());
     filter_odometry_map_msg->pose.pose.orientation = tf2::toMsg(ros_vehicle_to_enu_transform_tf.getRotation());
     filter_imu_msg->orientation = tf2::toMsg(ros_vehicle_to_enu_transform_tf.getRotation());
   }
   else
   {
-    const tf2::Transform microstrain_vehicle_to_ned_transform_tf = ned_to_microstrain_vehicle_transform_tf.inverse();
     imu_link_to_map_transform_tf_stamped_.setBasis(microstrain_vehicle_to_ned_transform_tf.getBasis());
     filter_odometry_map_msg->pose.pose.orientation = tf2::toMsg(microstrain_vehicle_to_ned_transform_tf.getRotation());
     filter_imu_msg->orientation = tf2::toMsg(microstrain_vehicle_to_ned_transform_tf.getRotation());
