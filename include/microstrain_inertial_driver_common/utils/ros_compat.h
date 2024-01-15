@@ -48,6 +48,7 @@ constexpr auto NUM_GNSS = 2;
 #include "ros/ros.h"
 
 #include "tf2_ros/buffer.h"
+#include "tf2_ros/buffer_interface.h"
 #include "tf2_ros/transform_listener.h"
 #include "tf2_ros/static_transform_broadcaster.h"
 #include "tf2_ros/transform_broadcaster.h"
@@ -102,6 +103,7 @@ constexpr auto NUM_GNSS = 2;
 #include "rclcpp_lifecycle/lifecycle_publisher.hpp"
 
 #include "tf2_ros/buffer.h"
+#include "tf2_ros/buffer_interface.h"
 #include "tf2_ros/transform_listener.h"
 #include "tf2_ros/static_transform_broadcaster.h"
 #include "tf2_ros/transform_broadcaster.h"
@@ -154,6 +156,21 @@ constexpr auto NUM_GNSS = 2;
 #include "microstrain_inertial_msgs/srv/mip3dm_capture_gyro_bias.hpp"
 #else
 #error "Unsupported ROS version. -DMICROSTRAIN_ROS_VERSION must be set to 1 or 2"
+#endif
+
+
+#if MICROSTRAIN_ROS_VERSION == 1
+namespace tf2_ros
+{
+inline ::ros::Time fromMsg(const ::ros::Time& time)
+{
+  return time;
+}
+inline ::ros::Time toMsg(const ::ros::Time& time)
+{
+  return time;
+}
+}
 #endif
 
 namespace microstrain
@@ -642,7 +659,9 @@ void getParam(RosNodeType* node, const std::string& param_name, ConfigType& para
   else
   {
     rcl_interfaces::msg::ParameterDescriptor descriptor;
+#if not defined MICROSTRAIN_FOXY
     descriptor.dynamic_typing = true;
+#endif
     param_val = node->declare_parameter(param_name, rclcpp::ParameterValue{default_val}, descriptor).get<ConfigType>();
   }
 }
@@ -653,7 +672,9 @@ void setParam(RosNodeType* node, const std::string& param_name, const ConfigType
   if (!node->has_parameter(param_name))
   {
     rcl_interfaces::msg::ParameterDescriptor descriptor;
+#if not defined MICROSTRAIN_FOXY
     descriptor.dynamic_typing = true;
+#endif
     node->declare_parameter(param_name, rclcpp::ParameterValue{}, descriptor);
   }
 

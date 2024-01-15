@@ -511,7 +511,7 @@ void Publishers::publish()
       const tf2::Transform& target_to_earth_transform_tf = imu_link_to_earth_transform_tf_stamped_ * imu_link_to_target_transform_tf.inverse();
 
       TransformStampedMsg target_to_earth_transform;
-      target_to_earth_transform.header.stamp = imu_link_to_earth_transform_tf_stamped_.stamp_;
+      target_to_earth_transform.header.stamp = tf2_ros::toMsg(imu_link_to_earth_transform_tf_stamped_.stamp_);
       target_to_earth_transform.header.frame_id = config_->earth_frame_id_;
       target_to_earth_transform.child_frame_id = config_->target_frame_id_;
       target_to_earth_transform.transform = tf2::toMsg(target_to_earth_transform_tf);
@@ -538,7 +538,7 @@ void Publishers::publish()
       const tf2::Transform& target_to_map_transform_tf = imu_link_to_map_transform_tf_stamped_ * imu_link_to_target_transform_tf.inverse();
 
       TransformStampedMsg target_to_map_transform;
-      target_to_map_transform.header.stamp = imu_link_to_map_transform_tf_stamped_.stamp_;
+      target_to_map_transform.header.stamp = tf2_ros::toMsg(imu_link_to_map_transform_tf_stamped_.stamp_);
       target_to_map_transform.header.frame_id = config_->map_frame_id_;
       target_to_map_transform.child_frame_id = config_->target_frame_id_;
       target_to_map_transform.transform = tf2::toMsg(target_to_map_transform_tf);
@@ -1205,7 +1205,7 @@ void Publishers::handleFilterEcefPos(const mip::data_filter::EcefPos& ecef_pos, 
 
   // Update the global transform
   imu_link_to_earth_transform_translation_updated_ = true;
-  imu_link_to_earth_transform_tf_stamped_.stamp_ = filter_odometry_earth_msg->header.stamp;
+  imu_link_to_earth_transform_tf_stamped_.stamp_ = tf2_ros::fromMsg(filter_odometry_earth_msg->header.stamp);
   imu_link_to_earth_transform_tf_stamped_.setOrigin(tf2::Vector3(ecef_pos.position_ecef[0], ecef_pos.position_ecef[1], ecef_pos.position_ecef[2]));
 
   // If the earth to map transform is not valid and we entered full navigation mode, populate the transform with this position
@@ -1264,7 +1264,7 @@ void Publishers::handleFilterEcefPos(const mip::data_filter::EcefPos& ecef_pos, 
       filter_odometry_map_msg->pose.pose.position.z = imu_to_map_transform_tf.getOrigin().getZ();
 
       // Fill in the map to imu link transform
-      imu_link_to_map_transform_tf_stamped_.stamp_ = rosTimeNow(node_);
+      imu_link_to_map_transform_tf_stamped_.stamp_ = tf2_ros::fromMsg(rosTimeNow(node_));
       imu_link_to_map_transform_tf_stamped_.setOrigin(imu_to_map_transform_tf.getOrigin());
       imu_link_to_map_transform_translation_updated_ = true;
     }
@@ -1389,7 +1389,7 @@ void Publishers::handleFilterAttitudeQuaternion(const mip::data_filter::Attitude
     imu_link_to_earth_transform_tf_stamped_.setBasis(microstrain_vehicle_to_earth_transform_tf.getBasis());
     filter_odometry_earth_msg->pose.pose.orientation = tf2::toMsg(microstrain_vehicle_to_earth_transform_tf.getRotation());
   }
-  imu_link_to_earth_transform_tf_stamped_.stamp_ = rosTimeNow(node_);
+  imu_link_to_earth_transform_tf_stamped_.stamp_ = tf2_ros::fromMsg(rosTimeNow(node_));
   imu_link_to_earth_transform_attitude_updated_ = true;
 
   // Filtered IMU message
@@ -1413,7 +1413,7 @@ void Publishers::handleFilterAttitudeQuaternion(const mip::data_filter::Attitude
     filter_odometry_map_msg->pose.pose.orientation = tf2::toMsg(microstrain_vehicle_to_ned_transform_tf.getRotation());
     filter_imu_msg->orientation = tf2::toMsg(microstrain_vehicle_to_ned_transform_tf.getRotation());
   }
-  imu_link_to_map_transform_tf_stamped_.stamp_ = rosTimeNow(node_);
+  imu_link_to_map_transform_tf_stamped_.stamp_ = tf2_ros::fromMsg(rosTimeNow(node_));
   imu_link_to_map_transform_attitude_updated_ = true;
 }
 

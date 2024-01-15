@@ -656,7 +656,7 @@ bool Config::configureFilter(RosNodeType* node)
       if (transform_buffer_->canTransform(frame_id_, gnss_frame_id_[i], frame_time, RosDurationType(seconds_to_wait, 0), &tf_error_string))
       {
         // If not using the enu frame, this can be plugged directly into the device, otherwise rotate it from the ROS body frame to our body frame
-        geometry_msgs::TransformStamped gnss_antenna_to_microstrain_vehicle_transform;
+        TransformStampedMsg gnss_antenna_to_microstrain_vehicle_transform;
         if (use_enu_frame_)
         {
           const auto& gnss_antenna_to_ros_vehicle_transform = transform_buffer_->lookupTransform(frame_id_, gnss_frame_id_[i], frame_time);
