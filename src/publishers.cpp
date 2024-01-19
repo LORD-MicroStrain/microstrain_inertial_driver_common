@@ -1051,6 +1051,7 @@ void Publishers::handleFilterStatus(const mip::data_filter::Status& status, cons
 {
   auto mip_filter_status_msg = mip_filter_status_pub_->getMessage();
   updateMipHeader(&(mip_filter_status_msg->header), descriptor_set);
+  config_->filter_state_ = status.filter_state;
   mip_filter_status_msg->filter_state = static_cast<uint16_t>(status.filter_state);
   mip_filter_status_msg->dynamics_mode = static_cast<uint16_t>(status.dynamics_mode);
 
@@ -1210,8 +1211,8 @@ void Publishers::handleFilterEcefPos(const mip::data_filter::EcefPos& ecef_pos, 
   // If the earth to map transform is not valid and we entered full navigation mode, populate the transform with this position
   const bool full_nav =
   (
-    (RosMipDevice::isPhilo(config_->mip_device_->device_info_) && mip_filter_status_pub_->getMessage()->filter_state == MipFilterStatusMsg::FILTER_STATE_GX5_RUN_SOLUTION_VALID) ||
-    (RosMipDevice::isProspect(config_->mip_device_->device_info_) && mip_filter_status_pub_->getMessage()->filter_state == MipFilterStatusMsg::FILTER_STATE_GQ7_FULL_NAV)
+    (RosMipDevice::isPhilo(config_->mip_device_->device_info_) && config_->filter_state_ == mip::data_filter::FilterMode::GX5_RUN_SOLUTION_VALID) ||
+    (RosMipDevice::isProspect(config_->mip_device_->device_info_) && config_->filter_state_ == mip::data_filter::FilterMode::FULL_NAV)
   );
   if (!config_->map_to_earth_transform_valid_ && config_->filter_relative_pos_source_ == REL_POS_SOURCE_AUTO && full_nav)
   {
@@ -1225,9 +1226,9 @@ void Publishers::handleFilterEcefPos(const mip::data_filter::EcefPos& ecef_pos, 
     config_->map_to_earth_transform_.header.stamp = rosTimeNow(node_);
     config_->map_to_earth_transform_.transform = tf2::toMsg(map_to_earth_transform_tf);
 
-    MICROSTRAIN_INFO_THROTTLE(node_, 10, "Full nav achieved. Relative position will be reported relative to the following position");
-    MICROSTRAIN_INFO_THROTTLE(node_, 10, "  LLH: [%f, %f, %f]", lat, lon, alt);
-    MICROSTRAIN_INFO_THROTTLE(node_, 10, "  XYZW: [%f, %f, %f, %f]", config_->map_to_earth_transform_.transform.rotation.x, config_->map_to_earth_transform_.transform.rotation.y, config_->map_to_earth_transform_.transform.rotation.z, config_->map_to_earth_transform_.transform.rotation.w);
+    MICROSTRAIN_INFO(node_, "Full nav achieved. Relative position will be reported relative to the following position");
+    MICROSTRAIN_INFO(node_, "  LLH: [%f, %f, %f]", lat, lon, alt);
+    MICROSTRAIN_INFO(node_, "  XYZW: [%f, %f, %f, %f]", config_->map_to_earth_transform_.transform.rotation.x, config_->map_to_earth_transform_.transform.rotation.y, config_->map_to_earth_transform_.transform.rotation.z, config_->map_to_earth_transform_.transform.rotation.w);
     config_->map_to_earth_transform_valid_ = true;
     config_->map_to_earth_transform_updated_ = true;
   }

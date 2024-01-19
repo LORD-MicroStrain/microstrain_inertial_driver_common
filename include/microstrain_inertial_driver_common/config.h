@@ -137,6 +137,9 @@ public:
   // Configured static transforms
   TransformStampedMsg mount_to_frame_id_transform_;
 
+  // Cached filter state useful for determining state across services and publishers
+  mip::data_filter::FilterMode filter_state_ = static_cast<mip::data_filter::FilterMode>(0);
+
   // Transform between earth and IMU, may be configured at config time, or changed at runtime
   bool map_to_earth_transform_valid_ = false;
   bool map_to_earth_transform_updated_ = false;

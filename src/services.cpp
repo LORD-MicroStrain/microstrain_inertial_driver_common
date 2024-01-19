@@ -154,7 +154,10 @@ bool Services::mipFilterReset(EmptySrv::Request& req, EmptySrv::Response& res)
   
   // If we are using auto relative position config, reset that flag
   if (config_->filter_relative_pos_source_ == REL_POS_SOURCE_AUTO)
+  {
     config_->map_to_earth_transform_valid_ = false;
+    config_->filter_state_ = static_cast<mip::data_filter::FilterMode>(0);
+  }
 
   return !!mip_cmd_result;
 }
