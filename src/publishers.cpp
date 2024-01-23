@@ -1327,6 +1327,7 @@ void Publishers::handleFilterPositionLlhUncertainty(const mip::data_filter::Posi
     0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0
   };
+  const PoseWithCovarianceStampedMsg::_pose_type::_covariance_type enu_frame_covariance = tf2::transformCovariance(ned_frame_covariance, config_->ned_to_enu_transform_tf_);
 
   // Filter fix message
   auto filter_llh_position_msg = filter_llh_position_pub_->getMessageToUpdate();
@@ -1334,25 +1335,29 @@ void Publishers::handleFilterPositionLlhUncertainty(const mip::data_filter::Posi
   filter_llh_position_msg->position_covariance_type = NavSatFixMsg::COVARIANCE_TYPE_DIAGONAL_KNOWN;
   if (config_->use_enu_frame_)
   {
-    filter_llh_position_msg->position_covariance[0] = e;
-    filter_llh_position_msg->position_covariance[4] = n;
+    filter_llh_position_msg->position_covariance[0] = enu_frame_covariance[0];
+    filter_llh_position_msg->position_covariance[4] = enu_frame_covariance[7];
+    filter_llh_position_msg->position_covariance[8] = enu_frame_covariance[14];
   }
   else
   {
-    filter_llh_position_msg->position_covariance[0] = n;
-    filter_llh_position_msg->position_covariance[4] = e;
+    filter_llh_position_msg->position_covariance[0] = ned_frame_covariance[0];
+    filter_llh_position_msg->position_covariance[4] = ned_frame_covariance[7];
+    filter_llh_position_msg->position_covariance[8] = ned_frame_covariance[14];
   }
-  filter_llh_position_msg->position_covariance[8] = d;
 
   // Filter relative odometry message (not counted as updating)
   auto filter_odometry_map_msg = filter_odometry_map_pub_->getMessage();
-  setTranslationCovarianceOnCovariance(&filter_odometry_map_msg->pose.covariance, getTranslationCovarianceFromCovariance(ned_frame_covariance));
+  if (config_->use_enu_frame_)
+    setTranslationCovarianceOnCovariance(&filter_odometry_map_msg->pose.covariance, getTranslationCovarianceFromCovariance(enu_frame_covariance));
+  else
+    setTranslationCovarianceOnCovariance(&filter_odometry_map_msg->pose.covariance, getTranslationCovarianceFromCovariance(ned_frame_covariance));
 
   // If the device does not support ECEF uncertainty, rotate this uncertainty into the ECEF frame and process it
   if (!supports_filter_ecef_)
   {
     const tf2::Transform ecef_to_ned_transform(ecefToNedTransform(filter_llh_position_msg->latitude, filter_llh_position_msg->longitude));
-    const PoseWithCovarianceStampedMsg::_pose_type::_covariance_type ecef_frame_covariance = tf2::transformCovariance(ned_frame_covariance, ecef_to_ned_transform);
+    const PoseWithCovarianceStampedMsg::_pose_type::_covariance_type ecef_frame_covariance = tf2::transformCovariance(ned_frame_covariance, ecef_to_ned_transform.inverse());
     mip::data_filter::EcefPosUncertainty ecef_pos_uncertainty;
     ecef_pos_uncertainty.pos_uncertainty =
     {
@@ -1425,7 +1430,7 @@ void Publishers::handleFilterEulerAnglesUncertainty(const mip::data_filter::Eule
   const double r = pow(euler_angles_uncertainty.roll, 2);
   const double p = pow(euler_angles_uncertainty.pitch, 2);
   const double y = pow(euler_angles_uncertainty.yaw, 2);
-  const PoseWithCovarianceStampedMsg::_pose_type::_covariance_type microstrain_vehicle_frame_covariance =
+  const PoseWithCovarianceStampedMsg::_pose_type::_covariance_type ned_frame_covariance =
   {
     0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0,
@@ -1434,11 +1439,15 @@ void Publishers::handleFilterEulerAnglesUncertainty(const mip::data_filter::Eule
     0, 0, 0, 0, p, 0,
     0, 0, 0, 0, 0, y
   };
+  const PoseWithCovarianceStampedMsg::_pose_type::_covariance_type enu_frame_covariance = tf2::transformCovariance(ned_frame_covariance, config_->ned_to_enu_transform_tf_);
 
   // Filtered IMU message
   auto filter_imu_msg = filter_imu_pub_->getMessageToUpdate();
   updateHeaderTime(&(filter_imu_msg->header), descriptor_set, timestamp);
-  filter_imu_msg->orientation_covariance = getRotationCovarianceFromCovariance(microstrain_vehicle_frame_covariance);
+  if (config_->use_enu_frame_)
+    filter_imu_msg->orientation_covariance = getRotationCovarianceFromCovariance(enu_frame_covariance);
+  else
+    filter_imu_msg->orientation_covariance = getRotationCovarianceFromCovariance(ned_frame_covariance);
 
   // Filter odometry message (not counted as updating)
   auto filter_odometry_earth_msg = filter_odometry_earth_pub_->getMessage();
@@ -1448,12 +1457,15 @@ void Publishers::handleFilterEulerAnglesUncertainty(const mip::data_filter::Eule
   double lat, lon, height;
   config_->geocentric_converter_.Reverse(filter_odometry_earth_msg->pose.pose.position.x, filter_odometry_earth_msg->pose.pose.position.y, filter_odometry_earth_msg->pose.pose.position.z, lat, lon, height);
   const tf2::Transform ecef_to_ned_transform(ecefToNedTransform(lat, lon));
-  const PoseWithCovarianceStampedMsg::_pose_type::_covariance_type ecef_frame_covariance = tf2::transformCovariance(microstrain_vehicle_frame_covariance, ecef_to_ned_transform);
+  const PoseWithCovarianceStampedMsg::_pose_type::_covariance_type ecef_frame_covariance = tf2::transformCovariance(ned_frame_covariance, ecef_to_ned_transform.inverse());
   setRotationCovarianceOnCovariance(&filter_odometry_earth_msg->pose.covariance, getRotationCovarianceFromCovariance(ecef_frame_covariance));
 
   // Filter relative odometry message (not counted as updating)
   auto filter_odometry_map_msg = filter_odometry_map_pub_->getMessage();
-  setRotationCovarianceOnCovariance(&filter_odometry_map_msg->pose.covariance, getRotationCovarianceFromCovariance(microstrain_vehicle_frame_covariance));
+  if (config_->use_enu_frame_)
+    setRotationCovarianceOnCovariance(&filter_odometry_map_msg->pose.covariance, getRotationCovarianceFromCovariance(enu_frame_covariance));
+  else
+    setRotationCovarianceOnCovariance(&filter_odometry_map_msg->pose.covariance, getRotationCovarianceFromCovariance(ned_frame_covariance));
 }
 
 void Publishers::handleFilterVelocityNed(const mip::data_filter::VelocityNed& velocity_ned, const uint8_t descriptor_set, mip::Timestamp timestamp)
