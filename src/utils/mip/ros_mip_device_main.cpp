@@ -132,9 +132,22 @@ bool RosMipDeviceMain::configure(RosNodeType* config_node)
     while (max_external_frame_ids_++ < 256)
     {
       float t[3], r[4];
-      mip::commands_aiding::ReferenceFrame::Format fmt;
-      if (!mip::commands_aiding::readReferenceFrame(*this, max_external_frame_ids_, &fmt, t, r))
+      memset(t, 0, sizeof(t) * sizeof(t[0]));
+      memset(r, 0, sizeof(r) * sizeof(r[0]));
+      mip::commands_aiding::ReferenceFrame::Format fmt = mip::commands_aiding::ReferenceFrame::Format::EULER;
+      mip_cmd_result = mip::commands_aiding::writeReferenceFrame(*this, max_external_frame_ids_, fmt, t, r);
+      if (mip_cmd_result == mip::CmdResult::NACK_INVALID_PARAM)
+      {
+        max_external_frame_ids_--;
         break;
+      }
+      else if (!mip_cmd_result)
+      {
+        max_external_frame_ids_ = 0;
+        MICROSTRAIN_WARN(node_, "Unable to determine max number of external frame IDs. Defaulting to 0");
+        MICROSTRAIN_WARN(node_, "  Error(%d): %s", mip_cmd_result.value, mip_cmd_result.name());
+        break;
+      }
     }
     MICROSTRAIN_DEBUG(node_, "Reference frames from 0 -> %u are supported", max_external_frame_ids_);
   }
