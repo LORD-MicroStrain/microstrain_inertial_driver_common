@@ -102,7 +102,7 @@ typename RosServiceType<ServiceType>::SharedPtr Services::configureService(const
   return createService<ServiceType>(node_, name, callback, this);
 }
 
-template<typename ServiceType, typename MipType, uint8_t DescriptorSet = MipType::DESCRIPTOR_SET>
+template<typename ServiceType, typename MipType, uint8_t DescriptorSet>
 typename RosServiceType<ServiceType>::SharedPtr Services::configureService(const std::string& name, bool (Services::*callback)(typename ServiceType::Request&, typename ServiceType::Response&))
 {
   if (config_->mip_device_->supportsDescriptor(DescriptorSet, MipType::FIELD_DESCRIPTOR))

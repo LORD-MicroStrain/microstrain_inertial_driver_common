@@ -148,6 +148,11 @@ gnss1_antenna_offset        : [0.0, -0.7, -1.0]
 gnss2_antenna_offset_source : 1
 gnss2_antenna_offset        : [0.0, 0.7, -1.0]
 
+# GNSS signal configuration
+gnss_glonass_enable : False
+gnss_galileo_enable : True
+gnss_beidou_enable  : False
+
 
 # ****************************************************************** 
 # RTK Settings (only applicable for devices with RTK support (e.g. GQ7) )

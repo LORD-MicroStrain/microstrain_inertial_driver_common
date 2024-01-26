@@ -296,17 +296,6 @@ public:
   TransformStampedMsg gnss_antenna_link_to_imu_link_transform_[NUM_GNSS];
   TransformStampedMsg odometer_link_to_imu_link_transform_;
 
-  // Transforms
-  // TODO: Pick up here. Use the new naming scheme and check if these names are even right.
-  //       After that fix all of the other tf2 instances
-  /*
-  tf2::Transform t_ecef_to_ned_tangent_plane_;
-  bool t_ecef_to_ned_tangent_plane_valid_ = false;
-  tf2::Transform t_ned_tangent_plane_to_microstrain_vehicle_;
-  bool t_ned_tangent_plane_to_microstrain_vehicle_translation_updated_ = false;
-  bool t_ned_tangent_plane_to_microstrain_vehicle_rotation_updated_ = false;
-  */
-
 private:
   /**
    * \brief Helper function to register a packet callback on this class
