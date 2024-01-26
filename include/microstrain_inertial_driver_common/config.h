@@ -13,10 +13,13 @@
 #define MICROSTRAIN_INERTIAL_DRIVER_COMMON_CONFIG_H
 
 #include <stddef.h>
+#include <map>
 #include <string>
 #include <vector>
 #include <memory>
 #include <fstream>
+
+#include <GeographicLib/Geocentric.hpp>
 
 #include "mip/definitions/commands_filter.hpp"
 
@@ -27,6 +30,22 @@
 
 namespace microstrain
 {
+
+static constexpr auto TF_MODE_OFF = 0;
+static constexpr auto TF_MODE_GLOBAL = 1;
+static constexpr auto TF_MODE_RELATIVE = 2;
+
+static constexpr auto GNSS_ANTENNA_OFFSET_SOURCE_OFF = 0;
+static constexpr auto GNSS_ANTENNA_OFFSET_SOURCE_MANUAL = 1;
+static constexpr auto GNSS_ANTENNA_OFFSET_SOURCE_TRANSFORM = 2;
+
+static constexpr auto REL_POS_SOURCE_BASE_STATION = 0;
+static constexpr auto REL_POS_SOURCE_MANUAL = 1;
+static constexpr auto REL_POS_SOURCE_AUTO = 2;
+static constexpr auto REL_POS_SOURCE_EXTERNAL = 3;
+
+static constexpr auto REL_POS_FRAME_ECEF = 1;
+static constexpr auto REL_POS_FRAME_LLH = 2;
 
 const std::vector<double> DEFAULT_MATRIX = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
 const std::vector<double> DEFAULT_VECTOR = { 0.0, 0.0, 0.0 };
@@ -59,6 +78,7 @@ public:
 
   // Generic config options
   bool debug_;
+  bool device_setup_;
 
   // Connection classes and metadata used to interact with the MIP device
   std::shared_ptr<RosMipDeviceMain> mip_device_;
@@ -71,20 +91,12 @@ public:
 
   // Info for converting to the ENU frame
   bool use_enu_frame_;
-  tf2::Matrix3x3 t_ned2enu_;
-  tf2::Matrix3x3 t_vehiclebody2sensorbody_;
 
-  // Flag for using device timestamp instead of PC received time
-  bool use_device_timestamp_;
-
-  // Flag for using ROS time instead of PC received time. If this is and use_device_timestamp_ is set, this will be preferred when setting message timestamps
-  bool use_ros_time_;
+  tf2::Transform ned_to_enu_transform_tf_;
+  tf2::Transform ros_vehicle_to_microstrain_vehicle_transform_tf_;
 
   // Whether to enable the hardware odometer through the GPIO pins
   bool enable_hardware_odometer_;
-
-  // Whether to publish the velocity in the vehicle frame
-  bool filter_vel_in_vehicle_frame_;
 
   // FILTER
   double gps_leap_seconds_;
@@ -100,38 +112,63 @@ public:
   bool filter_enable_gnss_antenna_cal_;
   bool filter_use_compensated_accel_;
   bool filter_relative_pos_config_;
+  int filter_relative_pos_frame_;
+  int filter_relative_pos_source_;
+  std::vector<double> filter_relative_pos_ref_;
+  std::vector<float> filter_speed_lever_arm_;
 
-  // Frame ids
-  std::string imu_frame_id_;
+  // Ecef to LLH converter
+  GeographicLib::Geocentric geocentric_converter_ = GeographicLib::Geocentric::WGS84();
+
+  // Frame id configuration
+  std::string frame_id_;
+  std::string target_frame_id_;
+  std::string mount_frame_id_;
+  std::string map_frame_id_;
+  std::string earth_frame_id_;
   std::string gnss_frame_id_[NUM_GNSS];
-  std::string filter_frame_id_;
-  std::string filter_child_frame_id_;
-  std::string nmea_frame_id_;
+  std::string odometer_frame_id_;
 
-  // Topic strings
-  std::string velocity_zupt_topic_;
-  std::string angular_zupt_topic_;
-  std::string external_gps_time_topic_;
-  std::string external_speed_topic_;
+  // TF mode and transform configuration
+  int32_t tf_mode_;
+
+  // IMU frame offset configuration
+  bool publish_mount_to_frame_id_transform_;
+
+  // Configured static transforms
+  TransformStampedMsg mount_to_frame_id_transform_;
+
+  // Cached filter state useful for determining state across services and publishers
+  mip::data_filter::FilterMode filter_state_ = static_cast<mip::data_filter::FilterMode>(0);
+
+  // Transform between earth and IMU, may be configured at config time, or changed at runtime
+  bool map_to_earth_transform_valid_ = false;
+  bool map_to_earth_transform_updated_ = false;
+  TransformStampedMsg map_to_earth_transform_;
+
+  // Subscriber settings
+  bool subscribe_ext_time_;
+  bool subscribe_ext_fix_;
+  bool subscribe_ext_vel_ned_;
+  bool subscribe_ext_vel_enu_;
+  bool subscribe_ext_vel_ecef_;
+  bool subscribe_ext_vel_body_;
+  bool subscribe_ext_heading_ned_;
+  bool subscribe_ext_heading_enu_;
 
   // RTK config
   bool rtk_dongle_enable_;
-
-  // Aux port nmea and RTCM config
-  bool publish_nmea_;
-  bool subscribe_rtcm_;
-  std::string rtcm_topic_;
-
-  // ZUPT, angular ZUPT topic listener variables
-  bool angular_zupt_;
-  bool velocity_zupt_;
+  bool ntrip_interface_enable_;
 
   // Static covariance vectors
   std::vector<double> imu_linear_cov_;
   std::vector<double> imu_angular_cov_;
   std::vector<double> imu_orientation_cov_;
+  std::vector<double> imu_mag_cov_;
+  double imu_pressure_vairance_;
 
   // Gnss antenna offsets
+  int gnss_antenna_offset_source_[NUM_GNSS];
   std::vector<float> gnss_antenna_offset_[NUM_GNSS];
 
   // Raw data file parameters
@@ -143,6 +180,7 @@ public:
   // NMEA streaming parameters
   bool nmea_message_allow_duplicate_talker_ids_;
   float nmea_max_rate_hz_;
+  std::map<std::string, std::string> nmea_talker_id_to_frame_id_mapping_;
 
 private:
   /**
@@ -216,6 +254,10 @@ private:
 
   // Handle to the ROS node
   RosNodeType* node_;
+
+  // TF2 buffer lookup class
+  TransformBufferType transform_buffer_;
+  TransformListenerType transform_listener_;
 };  // Config class
 
 }  // namespace microstrain

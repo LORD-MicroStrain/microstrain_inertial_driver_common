@@ -18,6 +18,7 @@
 
 #include "mip/mip.hpp"
 #include "mip/mip_all.hpp"
+#include "mip/definitions/commands_aiding.hpp"
 
 #include "microstrain_inertial_driver_common/utils/mip/ros_mip_device_main.h"
 
@@ -105,8 +106,7 @@ bool RosMipDeviceMain::configure(RosNodeType* config_node)
   }
 
   // Print the device info
-  mip::commands_base::BaseDeviceInfo device_info;
-  if (!(mip_cmd_result = getDeviceInfo(&device_info)))
+  if (!(mip_cmd_result = getDeviceInfo(&device_info_)))
   {
     MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Unable to read device info");
     return false;
@@ -116,14 +116,39 @@ bool RosMipDeviceMain::configure(RosNodeType* config_node)
     Model Name:       %s
     Serial Number:    %s
     Firmware Version: %s
-    #######################)", device_info.model_name, device_info.serial_number, firmwareVersionString(device_info.firmware_version).c_str());
+    #######################)", device_info_.model_name, device_info_.serial_number, firmwareVersionString(device_info_.firmware_version).c_str());
 
   // If the main name of the port contains "GNSS" it is likely we are talking to the aux port, so log a warning
-  if (std::string(device_info.model_name).find("GNSS") != std::string::npos)
+  if (std::string(device_info_.model_name).find("GNSS") != std::string::npos)
   {
     MICROSTRAIN_WARN(node_, "Note: The configured main port appears to actually be the aux port.");
     MICROSTRAIN_WARN(node_, "      Double check that the \"port\" option is configured to the main port of the device.");
     MICROSTRAIN_WARN(node_, "      The node should start as usual, but no data will be published, and most services will not work.");
+  }
+
+  // Determine the number of valid external Frame IDs
+  if (supportsDescriptor(mip::commands_aiding::DESCRIPTOR_SET, mip::commands_aiding::ReferenceFrame::FIELD_DESCRIPTOR))
+  {
+    while (max_external_frame_ids_++ < 256)
+    {
+      float t[3], r[4];
+      mip::commands_aiding::ReferenceFrame::Format fmt;
+      mip_cmd_result = mip::commands_aiding::readReferenceFrame(*this, max_external_frame_ids_, &fmt, t, r);
+      if (mip_cmd_result == mip::CmdResult::NACK_INVALID_PARAM)
+      {
+        max_external_frame_ids_--;
+        break;
+      }
+      else if (!mip_cmd_result)
+      {
+        max_external_frame_ids_ = 0;
+        MICROSTRAIN_WARN(node_, "Unable to determine max number of external frame IDs. Defaulting to 0");
+        MICROSTRAIN_WARN(node_, "  Error(%d): %s", mip_cmd_result.value, mip_cmd_result.name());
+        break;
+      }
+    }
+    max_external_frame_ids_ = 4;  // Temporary fix for the device not properly responding to requests
+    MICROSTRAIN_DEBUG(node_, "Reference frames from 0 -> %u are supported", max_external_frame_ids_);
   }
 
   // Configure the connection with a working device
@@ -214,6 +239,28 @@ mip::CmdResult RosMipDeviceMain::writeBaudRate(uint32_t baudrate, uint8_t port)
     return mip::commands_3dm::writeUartBaudrate(*device_, baudrate);
 }
 
+mip::CmdResult RosMipDeviceMain::readMessageFormat(uint8_t descriptor_set, uint8_t* num_descriptors, uint8_t num_descriptors_max, mip::DescriptorRate* descriptors)
+{
+  if (supportsDescriptor(mip::commands_3dm::DESCRIPTOR_SET, mip::commands_3dm::CMD_MESSAGE_FORMAT))
+  {
+    return mip::commands_3dm::readMessageFormat(*device_, descriptor_set, num_descriptors, num_descriptors_max, descriptors);
+  }
+  else
+  {
+    switch (descriptor_set)
+    {
+      case mip::data_sensor::DESCRIPTOR_SET:
+        return mip::commands_3dm::readImuMessageFormat(*device_, num_descriptors, num_descriptors_max, descriptors);
+      case mip::data_gnss::DESCRIPTOR_SET:
+        return mip::commands_3dm::readGpsMessageFormat(*device_, num_descriptors, num_descriptors_max, descriptors);
+      case mip::data_filter::DESCRIPTOR_SET:
+        return mip::commands_3dm::readFilterMessageFormat(*device_, num_descriptors, num_descriptors_max, descriptors);
+      default:
+        return mip::CmdResult::fromAckNack(mip::CmdResult::NACK_INVALID_PARAM);
+    }
+  }
+}
+
 mip::CmdResult RosMipDeviceMain::writeMessageFormat(uint8_t descriptor_set, uint8_t num_descriptors, const mip::DescriptorRate* descriptors)
 {
   // If the device supports the generic message format command use that, otherwise use the specific function
@@ -284,6 +331,35 @@ bool RosMipDeviceMain::supportsDescriptor(const uint8_t descriptor_set, const ui
   return std::find(supported_descriptors_.begin(), supported_descriptors_.end(), full_descriptor) != supported_descriptors_.end();
 }
 
+mip::CmdResult RosMipDeviceMain::streamDescriptor(const uint8_t descriptor_set, uint8_t field_descriptor, float hertz)
+{
+  // Get the existing message format
+  mip::CmdResult mip_cmd_result;
+  const uint8_t max_descriptor_rates = 255;
+  uint8_t num_descriptor_rates;
+  mip::DescriptorRate descriptor_rates[max_descriptor_rates];  // NOLINT(runtime/arrays)
+  memset(descriptor_rates, 0, sizeof(mip::DescriptorRate) * max_descriptor_rates);
+  if (!(mip_cmd_result = readMessageFormat(descriptor_set, &num_descriptor_rates, max_descriptor_rates, descriptor_rates)))
+    return mip_cmd_result;
+  if (num_descriptor_rates >= max_descriptor_rates)
+    return mip::CmdResult::fromAckNack(mip::CmdResult::NACK_COMMAND_FAILED);
+
+  // Check if the field is already being streamed, if not append it to the end
+  mip::DescriptorRate* rate = std::find_if(std::begin(descriptor_rates), std::begin(descriptor_rates) + num_descriptor_rates, [field_descriptor](const mip::DescriptorRate& d)
+  {
+    return d.descriptor == field_descriptor;
+  });
+  if (rate == std::end(descriptor_rates))
+  {
+    rate = &(descriptor_rates[num_descriptor_rates++]);
+  }
+
+  // Update the decimation, and write the message format back
+  rate->descriptor = field_descriptor;
+  rate->decimation = getDecimationFromHertz(descriptor_set, hertz);
+  return writeMessageFormat(descriptor_set, num_descriptor_rates, descriptor_rates);
+}
+
 uint16_t RosMipDeviceMain::getDecimationFromHertz(const uint8_t descriptor_set, const float hertz, double* actual_hertz)
 {
   // Update the base rate if we don't have it yet
@@ -298,11 +374,20 @@ uint16_t RosMipDeviceMain::getDecimationFromHertz(const uint8_t descriptor_set, 
   {
     const uint16_t base_rate = base_rates_[descriptor_set];
     decimation = base_rate / hertz;
-    if (hertz > base_rate)
+    if (base_rate == 0)
+    {
+      // If base rate is 0, we will just receive data whenever the device receives it. To do this, we just set the decimation to 1
+      MICROSTRAIN_DEBUG(node_, "Descriptor set 0x%02x is an on demand descriptor set, so we are ignoring requested hertz", descriptor_set);
+      if (actual_hertz != nullptr)
+        *actual_hertz = 1;  // Not true, but set it to non-zero so it streams
+      decimation = 1;
+    }
+    else if (hertz > base_rate)
     {
       MICROSTRAIN_WARN(node_, "Requested data rate %.5f for descriptor set 0x%02x is higher than the max data rate %u. Using max data rate instead", hertz, descriptor_set, base_rate);
       if (actual_hertz != nullptr)
         *actual_hertz = base_rate;
+      decimation = 1;
     }
     else if (std::remainder(base_rate, hertz) != 0)
     {
@@ -316,6 +401,10 @@ uint16_t RosMipDeviceMain::getDecimationFromHertz(const uint8_t descriptor_set, 
     {
       *actual_hertz = hertz;
     }
+  }
+  else if (actual_hertz != nullptr)
+  {
+    *actual_hertz = hertz;
   }
   return decimation;
 }

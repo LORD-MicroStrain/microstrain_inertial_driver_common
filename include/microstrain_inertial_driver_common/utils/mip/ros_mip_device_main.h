@@ -70,6 +70,16 @@ class RosMipDeviceMain : public RosMipDevice
   mip::CmdResult writeBaudRate(uint32_t baudrate, uint8_t port = 1);
 
   /**
+   * \brief Helper function to read the message format in a way that will work for all devices
+   * \param descriptor_set The descriptor set that the message format will be read for
+   * \param num_descriptors Will be filled out with the number of mip::DescriptorRate objects in the descriptors pointer
+   * \param num_descriptors_max Max number of descriptor rates that can be returned by this call
+   * \param descriptors Descriptor rates returned from the device
+   * \return MIP command result reflecting the status of the command
+   */
+  mip::CmdResult readMessageFormat(uint8_t descriptor_set, uint8_t* num_descriptors, uint8_t num_descriptors_max, mip::DescriptorRate* descriptors);
+
+  /**
    * \brief Helper function to write the message format in a way that will work for all devices
    * \param descriptor_set The descriptor set that the message format will be writen for
    * \param num_descriptors The number of mip::DescriptorRate objects in the descriptors pointer
@@ -102,6 +112,15 @@ class RosMipDeviceMain : public RosMipDevice
   bool supportsDescriptor(const uint8_t descriptor_set, const uint8_t field_descriptor);
 
   /**
+   * \brief Convenience function to stream a descriptor at a requested data rate.
+   * \param descriptor_set The descriptor set that the field_descriptor is in
+   * \param field_descriptor The field descriptor to stream
+   * \param hertz The data rate in hertz to stream the descriptor at
+   * \return MIP command result reflecting the status of the command
+  */
+  mip::CmdResult streamDescriptor(const uint8_t descriptor_set, uint8_t field_descriptor, float hertz);
+
+  /**
    * \brief Converts a value in hertz to a decimation value for a descriptor set
    * \param descriptor_set The descriptor set to use to lookup the base rate value for
    * \param hertz The value in hertz to convert to decmiation
@@ -109,6 +128,12 @@ class RosMipDeviceMain : public RosMipDevice
    * \return The decimation value for the given descriptor set and hertz
    */
   uint16_t getDecimationFromHertz(const uint8_t descriptor_set, const float hertz, double* actual_hertz = nullptr);
+
+  // Expose some useful members, including the device information
+  mip::commands_base::BaseDeviceInfo device_info_;
+
+  // Number of frame IDs supported by this device
+  uint16_t max_external_frame_ids_ = 0;
 
  private:
   std::vector<uint8_t> supported_descriptor_sets_;  // Supported descriptor sets of the node

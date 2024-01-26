@@ -37,6 +37,36 @@ mip::DeviceInterface& RosMipDevice::device()
     throw std::runtime_error("Attempt to access device on RosMipDevice before it was initialized");
 }
 
+bool RosMipDevice::isProspect(const mip::commands_base::BaseDeviceInfo& device_info)
+{
+  constexpr std::array<const char*, 3> prospect_models = {
+    "GQ7", "CV7", "GV7"
+  };
+  const std::string& model_name = device_info.model_name;
+  for (const auto& prospect_model : prospect_models)
+  {
+    if (model_name.find(prospect_model) != std::string::npos)
+      return true;
+  }
+  return false;
+}
+
+bool RosMipDevice::isPhilo(const mip::commands_base::BaseDeviceInfo& device_info)
+{
+  constexpr std::array<const char*, 9> philo_models = {
+    "GX5", "CV5", "CX5",
+    "GX4", "CV4", "CX4",
+    "GX3", "CV3", "CX3",
+  };
+  const std::string& model_name = device_info.model_name;
+  for (const auto& philo_model : philo_models)
+  {
+    if (model_name.find(philo_model) != std::string::npos)
+      return true;
+  }
+  return false;
+}
+
 bool RosMipDevice::send(const uint8_t* data, size_t data_len)
 {
   return connection_->sendToDevice(data, data_len);
@@ -67,6 +97,20 @@ bool RosMipDevice::disconnect()
 bool RosMipDevice::reconnect()
 {
   return disconnect() && connect();
+}
+
+bool RosMipDevice::shouldParseNmea() const
+{
+  if (connection_ != nullptr)
+    return connection_->shouldParseNmea();
+  else
+    return false;
+}
+
+void RosMipDevice::shouldParseNmea(bool enable)
+{
+  if (connection_ != nullptr)
+    connection_->shouldParseNmea(enable);
 }
 
 std::vector<NMEASentenceMsg> RosMipDevice::nmeaMsgs()

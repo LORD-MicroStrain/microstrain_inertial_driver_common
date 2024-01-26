@@ -88,11 +88,16 @@ void NodeCommon::parseAndPublishMain()
   }
 
   // Publish the NMEA messages
-  if (config_.publish_nmea_)
+  if (config_.mip_device_->shouldParseNmea())
   {
     for (auto& nmea_message : config_.mip_device_->nmeaMsgs())
     {
-      nmea_message.header.frame_id = config_.nmea_frame_id_;
+      // Determine the right frame ID based on the talker ID
+      const std::string& talker_id_str = nmea_message.sentence.substr(1, 2);
+      if (config_.nmea_talker_id_to_frame_id_mapping_.find(talker_id_str) != config_.nmea_talker_id_to_frame_id_mapping_.end())
+        nmea_message.header.frame_id = config_.nmea_talker_id_to_frame_id_mapping_.at(talker_id_str);
+      else
+        nmea_message.header.frame_id = config_.frame_id_;
       publishers_.nmea_sentence_pub_->publish(nmea_message);
     }
   }
@@ -104,11 +109,12 @@ void NodeCommon::parseAndPublishAux()
   config_.aux_device_->device().update();
 
   // Publish the NMEA messages
-  if (config_.publish_nmea_)
+  if (config_.aux_device_->shouldParseNmea())
   {
     for (auto& nmea_message : config_.aux_device_->nmeaMsgs())
     {
-      nmea_message.header.frame_id = config_.nmea_frame_id_;
+      // Assume that the aux port will only produce NMEA from GNSS1
+      nmea_message.header.frame_id = config_.gnss_frame_id_[GNSS1_ID];
       publishers_.nmea_sentence_pub_->publish(nmea_message);
     }
   }
@@ -178,8 +184,8 @@ bool NodeCommon::configure(RosNodeType* config_node)
   // Determine loop rate as 2*(max update rate), but abs. max of 1kHz
   const int max_rate = std::max({config_.nmea_max_rate_hz_, config_.mip_publisher_mapping_->getMaxDataRate()});
   timer_update_rate_hz_ = std::min(2 * max_rate, 2000);
-  if (timer_update_rate_hz_ <= 0)
-    timer_update_rate_hz_ = 1.0;
+  if (timer_update_rate_hz_ <= 100)
+    timer_update_rate_hz_ = 100.0;
   MICROSTRAIN_INFO(node_, "Setting spin rate to <%f> hz", timer_update_rate_hz_);
 
   // Save the config node for later

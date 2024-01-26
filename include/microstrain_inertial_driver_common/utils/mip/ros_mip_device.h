@@ -68,6 +68,20 @@ class RosMipDevice
   mip::DeviceInterface& device();
 
   /**
+   * \brief Determines if the given device info is from a prospect device
+   * \param device_info Populated and null terminated string version of the device info struct fetched from a device
+   * \return true if the device is a prospect device, false otherwise
+  */
+  static bool isProspect(const mip::commands_base::BaseDeviceInfo& device_info);
+
+  /**
+   * \brief Determines if the given device info is from a philo device
+   * \param device_info Populated and null terminated string version of the device info struct fetched from a device
+   * \return true if the device is a philo device, false otherwise
+  */
+  static bool isPhilo(const mip::commands_base::BaseDeviceInfo& device_info);
+
+  /**
    * \brief Sends data to the device
    * \param data Byte array to send to the device
    * \param data_len Length in bytes of the data array
@@ -101,6 +115,18 @@ class RosMipDevice
    * \return true if the device was able to reconnect, false otherwise
   */
   bool reconnect();
+
+  /**
+   * \brief Gets whether or not this connection is parsing NMEA
+   * \return Whether or not this connection is parsing NMEA
+  */
+  bool shouldParseNmea() const;
+
+  /**
+   * \brief Configures the connection object to attempt to parse or not attempt to parse NMEA sentences
+   * \param enable Whether or not to enable NMEA parsing
+  */
+  void shouldParseNmea(bool enable);
 
   /**
    * \brief Returns the NMEA messages collected by the connection, and clears the list of messages on the connection object

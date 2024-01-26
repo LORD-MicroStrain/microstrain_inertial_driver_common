@@ -11,11 +11,28 @@
 #ifndef MICROSTRAIN_INERTIAL_DRIVER_COMMON_SUBSCRIBERS_H
 #define MICROSTRAIN_INERTIAL_DRIVER_COMMON_SUBSCRIBERS_H
 
+#include <array>
+#include <string>
+
 #include "microstrain_inertial_driver_common/utils/ros_compat.h"
+#include "microstrain_inertial_driver_common/utils/clock_bias_monitor.h"
 #include "microstrain_inertial_driver_common/config.h"
+
+#include "mip/definitions/commands_aiding.hpp"
 
 namespace microstrain
 {
+
+static constexpr auto RTCM_TOPIC = "rtcm";
+
+static constexpr auto EXT_TIME_TOPIC         = "ext/time";
+static constexpr auto EXT_FIX_TOPIC          = "ext/llh_position";
+static constexpr auto EXT_VEL_NED_TOPIC      = "ext/velocity_ned";
+static constexpr auto EXT_VEL_ENU_TOPIC      = "ext/velocity_enu";
+static constexpr auto EXT_VEL_ECEF_TOPIC     = "ext/velocity_ecef";
+static constexpr auto EXT_VEL_BODY_TOPIC     = "ext/velocity_body";
+static constexpr auto EXT_HEADING_NED_TOPIC  = "ext/heading_ned";
+static constexpr auto EXT_HEADING_ENU_TOPIC  = "ext/heading_enu";
 
 /**
  * Contains subscribers and the functions they call
@@ -41,33 +58,17 @@ public:
    */
   bool activate();
 
-  /**
-   * \brief Callback that will start the velZupt task to send the velZupt command at 5 hz
-   * \param state  If the state is true, the task will be started, if the state is false, the task will be stopped
-   */
-  void velZuptCallback(const BoolMsg& state);
-
-  /**
-   * \brief Sends the velZupt command. Meant to be called in a loop
-   */
-  void velZupt();
-
-  /**
-   * \brief Callback that will start the angZupt task to send the angZupt command at 5 hz
-   * \param state  If the state is true, the task will be started, if the state is false, the task will be stopped
-   */
-  void angZuptCallback(const BoolMsg& state);
-
-  /**
-   * \brief Sends the angZupt command. Meant to be called in a loop
-   */
-  void angZupt();
-
-  /**
-   * \brief Accepts external GPS time to set time on the device
-   * \param time  Message containing external GPS time
-   */
-  void externalGpsTimeCallback(const TimeReferenceMsg& time);
+  // External aiding measurement callbacks
+  void externalTimeCallback(const TimeReferenceMsg& time);
+  void externalGnssPositionCallback(const NavSatFixMsg& fix);
+  void externalVelNedCallback(const TwistWithCovarianceStampedMsg& vel);
+  void externalVelEnuCallback(const TwistWithCovarianceStampedMsg& vel);
+  void externalVelEcefCallback(const TwistWithCovarianceStampedMsg& vel);
+  void externalWheelSpeedCallback(const TwistWithCovarianceStampedMsg& wheel_speed);
+  void externalVelBodyCallback(const TwistWithCovarianceStampedMsg& vel);
+  void externalPressureCallback(const FluidPressureMsg& pressure);
+  void externalHeadingNedCallback(const PoseWithCovarianceStampedMsg& heading);
+  void externalHeadingEnuCallback(const PoseWithCovarianceStampedMsg& heading);
 
   /**
    * \brief Accepts RTCM corrections from a ROS topic
@@ -75,35 +76,33 @@ public:
    */
   void rtcmCallback(const RTCMMsg& rtcm);
 
-  /**
-   * \brief Accepts external speed measurement to set speed on the device
-   * \param speed  Message containing the external speed measurement
-   */
-  void externalSpeedCallback(const InputSpeedMeasurementMsg& speed);
-
-  // ZUPT subscribers
-  BoolSubType filter_vel_state_sub_;
-  BoolSubType filter_ang_state_sub_;
-
-  // External GNSS subscriber
-  TimeReferenceSubType external_gps_time_sub_;
-
-  // External speed subscriber
-  InputSpeedMeasurementSubType external_speed_sub_;
+  // External aiding measurement subscribers
+  RosSubType<TimeReferenceMsg>::SharedPtr              external_time_sub_;
+  RosSubType<NavSatFixMsg>::SharedPtr                  external_gnss_position_sub_;
+  RosSubType<TwistWithCovarianceStampedMsg>::SharedPtr external_vel_ned_sub_;
+  RosSubType<TwistWithCovarianceStampedMsg>::SharedPtr external_vel_enu_sub_;
+  RosSubType<TwistWithCovarianceStampedMsg>::SharedPtr external_vel_ecef_sub_;
+  RosSubType<TwistWithCovarianceStampedMsg>::SharedPtr external_vel_body_sub_;
+  RosSubType<PoseWithCovarianceStampedMsg>::SharedPtr  external_heading_ned_sub_;
+  RosSubType<PoseWithCovarianceStampedMsg>::SharedPtr  external_heading_enu_sub_;
 
   // RTCM subscriber
-  RTCMSubType rtcm_sub_;
+  RosSubType<RTCMMsg>::SharedPtr rtcm_sub_;
 
 private:
+  uint8_t getSensorIdFromFrameId(const std::string& frame_id);
+
   // Node Information
   RosNodeType* node_;
   Config* config_;
 
-  bool vel_still_;
-  bool ang_still_;
+  // External frame IDs, the index of the string is the sensor ID
+  uint16_t external_frame_ids_size_;
+  std::array<std::string, 256> external_frame_ids_;
 
-  RosTimerType vel_zupt_timer_;
-  RosTimerType ang_zupt_timer_;
+  // TF2 buffer lookup class
+  TransformBufferType transform_buffer_;
+  TransformListenerType transform_listener_;
 };
 
 }  // namespace microstrain

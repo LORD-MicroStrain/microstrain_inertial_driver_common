@@ -14,10 +14,13 @@
 #include <memory>
 #include <algorithm>
 
+#include <GeographicLib/Geocentric.hpp>
+
 #include "mip/mip_version.h"
 #include "mip/definitions/commands_base.hpp"
 #include "mip/definitions/commands_3dm.hpp"
 #include "mip/definitions/commands_gnss.hpp"
+#include "mip/definitions/commands_aiding.hpp"
 #include "mip/definitions/data_sensor.hpp"
 #include "mip/definitions/data_gnss.hpp"
 #include "mip/definitions/data_filter.hpp"
@@ -33,19 +36,25 @@ namespace microstrain
 Config::Config(RosNodeType* node) : node_(node)
 {
   nmea_max_rate_hz_ = 0;
+
+  // Initialize the transform buffer and listener ahead of time
+  transform_buffer_ = createTransformBuffer(node_);
+  transform_listener_ = createTransformListener(transform_buffer_);
 }
 
 bool Config::configure(RosNodeType* node)
 {
   // Initialize some default and static config
-  imu_frame_id_ = "sensor";
-  gnss_frame_id_[GNSS1_ID] = "gnss1_antenna_wgs84_ned";
-  gnss_frame_id_[GNSS2_ID] = "gnss2_antenna_wgs84_ned";
-  filter_frame_id_ = "sensor_wgs84_ned";
-  filter_child_frame_id_ = "sensor";
-  nmea_frame_id_ = "nmea";
-  t_ned2enu_ = tf2::Matrix3x3(0, 1, 0, 1, 0, 0, 0, 0, -1);
-  t_vehiclebody2sensorbody_ = tf2::Matrix3x3(1, 0, 0, 0, -1, 0, 0, 0, -1);
+  ned_to_enu_transform_tf_ = tf2::Transform(tf2::Matrix3x3(
+    0, 1, 0,
+    1, 0, 0,
+    0, 0, -1
+  ));
+  ros_vehicle_to_microstrain_vehicle_transform_tf_ = tf2::Transform(tf2::Matrix3x3(
+    1,  0,  0,
+    0, -1,  0,
+    0,  0, -1
+  ));
 
   ///
   /// Generic configuration used by the rest of the driver
@@ -53,57 +62,84 @@ bool Config::configure(RosNodeType* node)
 
   // General
   getParam<bool>(node, "debug", debug_, false);
+  getParam<bool>(node, "device_setup", device_setup_, false);
 
   // Reconnect
   getParam<int>(node, "reconnect_attempts", reconnect_attempts_, 0);
   getParam<bool>(node, "configure_after_reconnect", configure_after_reconnect_, true);
 
-  // Device
-  getParam<bool>(node, "use_device_timestamp", use_device_timestamp_, false);
-  getParam<bool>(node, "use_ros_time", use_ros_time_, false);
+  // Frame ID config
+  getParam<std::string>(node, "frame_id", frame_id_, "imu_link");
+  getParam<std::string>(node, "target_frame_id", target_frame_id_, "base_link");
+  getParam<std::string>(node, "mount_frame_id", mount_frame_id_, "base_link");
+  getParam<std::string>(node, "map_frame_id", map_frame_id_, "map");
+  getParam<std::string>(node, "earth_frame_id", earth_frame_id_, "earth");
+  getParam<std::string>(node, "gnss1_frame_id", gnss_frame_id_[GNSS1_ID], "gnss_1_antenna_link");
+  getParam<std::string>(node, "gnss2_frame_id", gnss_frame_id_[GNSS2_ID], "gnss_2_antenna_link");
+  getParam<std::string>(node, "odometer_frame_id", odometer_frame_id_, "odometer_link");
   getParam<bool>(node, "use_enu_frame", use_enu_frame_, false);
 
-  // If using ENU frame, reflect in the device frame id
-  if (use_enu_frame_)
+  // tf config
+  getParam<int32_t>(node, "tf_mode", tf_mode_, TF_MODE_GLOBAL);
+  getParam<bool>(node, "publish_mount_to_frame_id_transform", publish_mount_to_frame_id_transform_, true);
+
+  // If using the NED frame, append that to the map frame ID
+  if (!use_enu_frame_)
   {
-    gnss_frame_id_[GNSS1_ID] = "gnss1_antenna_wgs84_enu";
-    gnss_frame_id_[GNSS2_ID] = "gnss2_antenna_wgs84_enu";
-    filter_frame_id_ = "sensor_wgs84_enu";
+    constexpr char ned_suffix[] = "_ned";
+    map_frame_id_ += ned_suffix;
   }
+
+  // Configure the static transforms
+  std::vector<double> mount_to_frame_id_transform_vec;
+  getParam<std::vector<double>>(node, "mount_to_frame_id_transform", mount_to_frame_id_transform_vec, {0, 0, 0, 0, 0, 0, 1});
+
+  if (mount_to_frame_id_transform_vec.size() != 7)
+  {
+    MICROSTRAIN_ERROR(node, "mount_to_frame_id_transform  is invalid. Should have 7 elements (x, y, z, i, j, k, w), but has %lu", mount_to_frame_id_transform_vec.size());
+    return false;
+  }
+
+  mount_to_frame_id_transform_.header.stamp = rosTimeNow(node);
+  mount_to_frame_id_transform_.header.frame_id = mount_frame_id_;
+  mount_to_frame_id_transform_.child_frame_id = frame_id_;
+  mount_to_frame_id_transform_.transform.translation.x = mount_to_frame_id_transform_vec[0];
+  mount_to_frame_id_transform_.transform.translation.y = mount_to_frame_id_transform_vec[1];
+  mount_to_frame_id_transform_.transform.translation.z = mount_to_frame_id_transform_vec[2];
+  mount_to_frame_id_transform_.transform.rotation.x = mount_to_frame_id_transform_vec[3];
+  mount_to_frame_id_transform_.transform.rotation.y = mount_to_frame_id_transform_vec[4];
+  mount_to_frame_id_transform_.transform.rotation.z = mount_to_frame_id_transform_vec[5];
+  mount_to_frame_id_transform_.transform.rotation.w = mount_to_frame_id_transform_vec[6];
 
   // IMU
   getParam<std::vector<double>>(node, "imu_orientation_cov", imu_orientation_cov_, DEFAULT_MATRIX);
   getParam<std::vector<double>>(node, "imu_linear_cov", imu_linear_cov_, DEFAULT_MATRIX);
   getParam<std::vector<double>>(node, "imu_angular_cov", imu_angular_cov_, DEFAULT_MATRIX);
-  getParam<std::string>(node, "imu_frame_id", imu_frame_id_, imu_frame_id_);
+  getParam<std::vector<double>>(node, "imu_mag_cov", imu_mag_cov_, DEFAULT_MATRIX);
+  getParam<double>(node, "imu_pressure_variance", imu_pressure_vairance_, 0.01);
 
   // GNSS 1/2
   std::vector<double> gnss_antenna_offset_double[NUM_GNSS];
+  getParam<int>(node, "gnss1_antenna_offset_source", gnss_antenna_offset_source_[GNSS1_ID], GNSS_ANTENNA_OFFSET_SOURCE_MANUAL);
+  getParam<int>(node, "gnss2_antenna_offset_source", gnss_antenna_offset_source_[GNSS2_ID], GNSS_ANTENNA_OFFSET_SOURCE_MANUAL);
   getParam<std::vector<double>>(node, "gnss1_antenna_offset", gnss_antenna_offset_double[GNSS1_ID], DEFAULT_VECTOR);
   getParam<std::vector<double>>(node, "gnss2_antenna_offset", gnss_antenna_offset_double[GNSS2_ID], DEFAULT_VECTOR);
-  getParam<std::string>(node, "gnss1_frame_id", gnss_frame_id_[GNSS1_ID], gnss_frame_id_[GNSS1_ID]);
-  getParam<std::string>(node, "gnss2_frame_id", gnss_frame_id_[GNSS2_ID], gnss_frame_id_[GNSS2_ID]);
 
   // HARDWARE ODOM
   getParam<bool>(node, "enable_hardware_odometer", enable_hardware_odometer_, false);
 
-  // ROS TF control
-  getParam<bool>(node, "filter_vel_in_vehicle_frame", filter_vel_in_vehicle_frame_, false);
-
   // RTK/GQ7 specific
-  getParam<bool>(node, "rtk_dongle_enable", rtk_dongle_enable_, false);
-  getParam<bool>(node, "subscribe_rtcm", subscribe_rtcm_, false);
-  getParam<std::string>(node, "rtcm_topic", rtcm_topic_, std::string("/rtcm"));
-  getParam<bool>(node, "publish_nmea", publish_nmea_, false);
-  getParam<std::string>(node, "nmea_frame_id", nmea_frame_id_, nmea_frame_id_);
+  getParam<bool>(node, "rtk_dongle_enable", rtk_dongle_enable_, true);
+  getParam<bool>(node, "ntrip_interface_enable", ntrip_interface_enable_, false);
+  rtk_dongle_enable_ = rtk_dongle_enable_ || ntrip_interface_enable_;  // If the NTRIP interface is enabled, we will enable the RTK interface
 
   // FILTER
-  getParam<std::string>(node, "filter_frame_id", filter_frame_id_, filter_frame_id_);
-  getParam<std::string>(node, "filter_child_frame_id", filter_child_frame_id_, filter_child_frame_id_);
+  std::vector<double> filter_speed_lever_arm_double(3, 0.0);
   getParam<bool>(node, "filter_relative_position_config", filter_relative_pos_config_, false);
+  getParam<int>(node, "filter_relative_position_source", filter_relative_pos_source_, 2);
+  getParam<int32_t>(node, "filter_relative_position_frame", filter_relative_pos_frame_, 2);
+  getParam<std::vector<double>>(node, "filter_relative_position_ref", filter_relative_pos_ref_, DEFAULT_VECTOR);
   getParam<double>(node, "gps_leap_seconds", gps_leap_seconds_, 18.0);
-  getParam<bool>(node, "filter_angular_zupt", angular_zupt_, false);
-  getParam<bool>(node, "filter_velocity_zupt", velocity_zupt_, false);
   getParam<bool>(node, "filter_enable_gnss_heading_aiding", filter_enable_gnss_heading_aiding_, true);
   getParam<bool>(node, "filter_enable_gnss_pos_vel_aiding", filter_enable_gnss_pos_vel_aiding_, true);
   getParam<bool>(node, "filter_enable_altimeter_aiding", filter_enable_altimeter_aiding_, false);
@@ -114,12 +150,19 @@ bool Config::configure(RosNodeType* node)
   getParam<bool>(node, "filter_enable_wheeled_vehicle_constraint", filter_enable_wheeled_vehicle_constraint_, false);
   getParam<bool>(node, "filter_enable_vertical_gyro_constraint", filter_enable_vertical_gyro_constraint_, false);
   getParam<bool>(node, "filter_enable_gnss_antenna_cal", filter_enable_gnss_antenna_cal_, false);
-  getParam<std::string>(node, "filter_velocity_zupt_topic", velocity_zupt_topic_, std::string("/moving_vel"));
-  getParam<std::string>(node, "filter_angular_zupt_topic", angular_zupt_topic_, std::string("/moving_ang"));
-  getParam<std::string>(node, "filter_external_gps_time_topic", external_gps_time_topic_,
-                         std::string("/external_gps_time"));
-  getParam<std::string>(node, "filter_external_speed_topic", external_speed_topic_, "/external_speed");
   getParam<bool>(node, "filter_use_compensated_accel", filter_use_compensated_accel_, true);
+  getParam<std::vector<double>>(node, "filter_speed_lever_arm", filter_speed_lever_arm_double, DEFAULT_VECTOR);
+  filter_speed_lever_arm_ = std::vector<float>(filter_speed_lever_arm_double.begin(), filter_speed_lever_arm_double.end());
+
+  // Subscribers
+  getParam<bool>(node, "subscribe_ext_time", subscribe_ext_time_, false);
+  getParam<bool>(node, "subscribe_ext_fix", subscribe_ext_fix_, false);
+  getParam<bool>(node, "subscribe_ext_vel_ned", subscribe_ext_vel_ned_, false);
+  getParam<bool>(node, "subscribe_ext_vel_enu", subscribe_ext_vel_enu_, false);
+  getParam<bool>(node, "subscribe_ext_vel_ecef", subscribe_ext_vel_ecef_, false);
+  getParam<bool>(node, "subscribe_ext_vel_body", subscribe_ext_vel_body_, false);
+  getParam<bool>(node, "subscribe_ext_heading_ned", subscribe_ext_heading_ned_, false);
+  getParam<bool>(node, "subscribe_ext_heading_enu", subscribe_ext_heading_enu_, false);
 
   // NMEA streaming
   getParam<bool>(node, "nmea_message_allow_duplicate_talker_ids", nmea_message_allow_duplicate_talker_ids_, false);
@@ -137,6 +180,14 @@ bool Config::configure(RosNodeType* node)
 
   // Log the MIP SDK version
   MICROSTRAIN_INFO(node_, "Using MIP SDK version: %s", MIP_SDK_VERSION_FULL);
+
+  // Do some configuration validation
+  if (!filter_relative_pos_config_ && device_setup_)
+  {
+    MICROSTRAIN_WARN(node_, "No relative position configured. We will not publish relative odometry or transforms.");
+    MICROSTRAIN_WARN(node_, "  Please configure relative position to publish relative position data");
+    setParam<float>(node, mip_publisher_mapping_->static_topic_to_data_rate_config_key_mapping_.at(FILTER_ODOMETRY_MAP_TOPIC).c_str(), DATA_CLASS_DATA_RATE_DO_NOT_STREAM);
+  }
 
   // Connect to the device and set it up if we were asked to
   if (!connectDevice(node))
@@ -156,54 +207,25 @@ bool Config::connectDevice(RosNodeType* node)
     return false;
 
   // Connect the aux port
-  if (rtk_dongle_enable_)
+  if (ntrip_interface_enable_)
   {
-    if (subscribe_rtcm_ || publish_nmea_)
+    aux_device_ = std::make_shared<RosMipDeviceAux>(node_);
+    if (!aux_device_->configure(node))
     {
-      aux_device_ = std::make_shared<RosMipDeviceAux>(node_);
-      if (!aux_device_->configure(node))
-      {
-        // Only return an error if we were expected to subscribe to RTCM.
-        if (subscribe_rtcm_)
-        {
-          return false;
-        }
-        else
-        {
-          MICROSTRAIN_WARN(node_, "Failed to open aux port, but we were not asked to subscribe to RTCM corrections, so this is not a fatal error");
-          MICROSTRAIN_WARN(node_, "  Note: We will not publish any NMEA sentences from the aux port.");
-          aux_device_ = nullptr;
-        }
-      }
-    }
-    else
-    {
-      MICROSTRAIN_INFO(node_, "Note: Not opening aux port since publish_nmea and subscribe_rtcm are both false");
-    }
-  }
-  else
-  {
-    MICROSTRAIN_INFO(node_, "Note: Not opening aux port because RTK dongle enable was not set to true.");
-    if (subscribe_rtcm_)
-    {
-      MICROSTRAIN_ERROR(node_, "Invalid configuration. In order to subscribe to RTCM, 'rtk_dongle_enable' must be set to true");
+      MICROSTRAIN_ERROR(node_, "Failed to open aux port");
       return false;
     }
-    else if (publish_nmea_)
-    {
-      MICROSTRAIN_INFO(node_, "Note: Not publishing NMEA from aux port despite 'publish_nmea' being set to true since 'rtk_donble_enable' is false");
-    }
+    aux_device_->shouldParseNmea(ntrip_interface_enable_);
   }
+
   return true;
 }
 
 bool Config::setupDevice(RosNodeType* node)
 {
   // Read the config used by this section
-  bool device_setup;
   bool save_settings;
   bool filter_reset_after_config;
-  getParam<bool>(node, "device_setup", device_setup, false);
   getParam<bool>(node, "save_settings", save_settings, true);
   getParam<bool>(node, "filter_reset_after_config", filter_reset_after_config, true);
 
@@ -215,8 +237,15 @@ bool Config::setupDevice(RosNodeType* node)
   if (!mip_publisher_mapping_->configure(node))
     return false;
 
+  // If the device has no way of obtaining a global position, disable global transform mode
+  if (tf_mode_ == TF_MODE_GLOBAL && !mip_device_->supportsDescriptor(mip::data_filter::DESCRIPTOR_SET, mip::data_filter::EcefPos::FIELD_DESCRIPTOR) && !mip_device_->supportsDescriptor(mip::data_filter::DESCRIPTOR_SET, mip::data_filter::PositionLlh::FIELD_DESCRIPTOR))
+  {
+    MICROSTRAIN_ERROR(node_, "Device does not support Global tf_mode as it has no way of obtaining global position");
+    return false;
+  }
+
   // Send commands to the device to configure it
-  if (device_setup)
+  if (device_setup_)
   {
     MICROSTRAIN_DEBUG(node_, "Configuring device");
     if (!configureBase(node) ||
@@ -374,28 +403,45 @@ bool Config::configure3DM(RosNodeType* node)
   }
 
   // Support channel setup
-  if (mip_device_->supportsDescriptor(descriptor_set, mip::commands_3dm::CMD_CONFIGURE_FACTORY_STREAMING))
+  if (raw_file_enable_)
   {
-    if (raw_file_include_support_data_)
+    if (mip_device_->supportsDescriptor(descriptor_set, mip::commands_3dm::CMD_CONFIGURE_FACTORY_STREAMING))
     {
-      if (!(mip_cmd_result = mip::commands_3dm::factoryStreaming(*mip_device_, mip::commands_3dm::FactoryStreaming::Action::MERGE, 0)))
+      if (raw_file_include_support_data_)
       {
-        MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to configure factory streaming channels");
-        return false;
+        if (!(mip_cmd_result = mip::commands_3dm::factoryStreaming(*mip_device_, mip::commands_3dm::FactoryStreaming::Action::MERGE, 0)))
+        {
+          MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to configure factory streaming channels");
+          return false;
+        }
+
+        // Also enable aiding command echo when collecting a factory support binary
+        if (mip_device_->supportsDescriptor(mip::commands_aiding::DESCRIPTOR_SET, mip::commands_aiding::AidingEchoControl::FIELD_DESCRIPTOR))
+        {
+          if (!(mip_cmd_result = mip::commands_aiding::writeAidingEchoControl(*mip_device_, mip::commands_aiding::AidingEchoControl::Mode::RESPONSE)))
+          {
+            MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to configure aiding echo control");
+            return false;
+          }
+        }
+        else
+        {
+          MICROSTRAIN_DEBUG(node_, "Device does not support aiding echo control");
+        }
+      }
+      else
+      {
+        MICROSTRAIN_INFO(node_, "Not configuring factory streaming channels");
       }
     }
     else
     {
-      MICROSTRAIN_INFO(node_, "Not configuring factory streaming channels");
-    }
-  }
-  else
-  {
-    MICROSTRAIN_INFO(node_, "Note: The device does not support the factory streaming channels setup command");
-    if (raw_file_include_support_data_)
-    {
-      MICROSTRAIN_ERROR(node_, "Could not configure support data even though it was requested. Exiting...");
-      return false;
+      MICROSTRAIN_INFO(node_, "Note: The device does not support the factory streaming channels setup command");
+      if (raw_file_include_support_data_)
+      {
+        MICROSTRAIN_ERROR(node_, "Could not configure support data even though it was requested. Exiting...");
+        return false;
+      }
     }
   }
 
@@ -438,6 +484,11 @@ bool Config::configure3DM(RosNodeType* node)
       getParam<int32_t>(node, "gnss1_nmea_talker_id", gnss1_nmea_talker_id, 0);
       getParam<int32_t>(node, "gnss2_nmea_talker_id", gnss2_nmea_talker_id, 0);
       getParam<int32_t>(node, "filter_nmea_talker_id", filter_nmea_talker_id, 0);
+
+      // Save the talker IDs to a map so we can look up the right frame IDs
+      nmea_talker_id_to_frame_id_mapping_[MipMapping::nmeaFormatTalkerIdString(static_cast<mip::commands_3dm::NmeaMessage::TalkerID>(gnss1_nmea_talker_id))] = gnss_frame_id_[GNSS1_ID];
+      nmea_talker_id_to_frame_id_mapping_[MipMapping::nmeaFormatTalkerIdString(static_cast<mip::commands_3dm::NmeaMessage::TalkerID>(gnss2_nmea_talker_id))] = gnss_frame_id_[GNSS2_ID];
+      nmea_talker_id_to_frame_id_mapping_[MipMapping::nmeaFormatTalkerIdString(static_cast<mip::commands_3dm::NmeaMessage::TalkerID>(filter_nmea_talker_id))] = frame_id_;
 
       // Populate the NMEA message config options
       std::vector<mip::commands_3dm::NmeaMessage> formats;
@@ -566,10 +617,6 @@ bool Config::configureFilter(RosNodeType* node)
   std::vector<double> filter_init_position_double(3, 0.0);
   std::vector<double> filter_init_velocity_double(3, 0.0);
   std::vector<double> filter_init_attitude_double(3, 0.0);
-  int filter_relative_position_frame;
-  int filter_relative_position_source;
-  std::vector<double> filter_relative_position_ref_double(3, 0.0);
-  std::vector<double> filter_speed_lever_arm_double(3, 0.0);
   double filter_gnss_antenna_cal_max_offset;
   std::vector<double> filter_lever_arm_offset_double(3, 0.0);
   getParam<int32_t>(node, "filter_adaptive_level", filter_adaptive_level, 2);
@@ -580,10 +627,6 @@ bool Config::configureFilter(RosNodeType* node)
   getParam<std::vector<double>>(node, "filter_init_position", filter_init_position_double, DEFAULT_VECTOR);
   getParam<std::vector<double>>(node, "filter_init_velocity", filter_init_velocity_double, DEFAULT_VECTOR);
   getParam<std::vector<double>>(node, "filter_init_attitude", filter_init_attitude_double, DEFAULT_VECTOR);
-  getParam<int32_t>(node, "filter_relative_position_frame", filter_relative_position_frame, 2);
-  getParam<int32_t>(node, "filter_relative_position_source", filter_relative_position_source, 1);
-  getParam<std::vector<double>>(node, "filter_relative_position_ref", filter_relative_position_ref_double, DEFAULT_VECTOR);
-  getParam<std::vector<double>>(node, "filter_speed_lever_arm", filter_speed_lever_arm_double, DEFAULT_VECTOR);
   getParam<double>(node, "filter_gnss_antenna_cal_max_offset", filter_gnss_antenna_cal_max_offset, 0.1);
   getParam<std::vector<double>>(node, "filter_lever_arm_offset", filter_lever_arm_offset_double, DEFAULT_VECTOR);
 
@@ -602,9 +645,6 @@ bool Config::configureFilter(RosNodeType* node)
   std::vector<float> filter_init_velocity(filter_init_velocity_double.begin(), filter_init_velocity_double.end());
   std::vector<float> filter_init_attitude(filter_init_attitude_double.begin(), filter_init_attitude_double.end());
 
-  std::vector<double> filter_relative_position_ref(filter_relative_position_ref_double.begin(), filter_relative_position_ref_double.end());
-  std::vector<float> filter_speed_lever_arm(filter_speed_lever_arm_double.begin(), filter_speed_lever_arm_double.end());
-
   std::vector<float> filter_sensor2vehicle_frame_transformation_euler(filter_sensor2vehicle_frame_transformation_euler_double.begin(), filter_sensor2vehicle_frame_transformation_euler_double.end());
   std::vector<float> filter_sensor2vehicle_frame_transformation_matrix(filter_sensor2vehicle_frame_transformation_matrix_double.begin(), filter_sensor2vehicle_frame_transformation_matrix_double.end());
   std::vector<float> filter_sensor2vehicle_frame_transformation_quaternion(filter_sensor2vehicle_frame_transformation_quaternion_double.begin(), filter_sensor2vehicle_frame_transformation_quaternion_double.end());
@@ -618,8 +658,8 @@ bool Config::configureFilter(RosNodeType* node)
   if (mip_device_->supportsDescriptor(descriptor_set, mip::commands_filter::CMD_DECLINATION_SOURCE))
   {
     // If the declination source is none, set the declination to 0
-    const auto declination_source_enum = static_cast<mip::commands_filter::FilterMagDeclinationSource>(declination_source);
-    if (declination_source_enum == mip::commands_filter::FilterMagDeclinationSource::NONE)
+    const auto declination_source_enum = static_cast<mip::commands_filter::FilterMagParamSource>(declination_source);
+    if (declination_source_enum == mip::commands_filter::FilterMagParamSource::NONE)
       declination = 0;
 
     MICROSTRAIN_INFO(node_, "Setting Declination Source to %d %f", declination_source, declination);
@@ -634,33 +674,96 @@ bool Config::configureFilter(RosNodeType* node)
     MICROSTRAIN_INFO(node_, "Note: Device does not support the declination source command.");
   }
 
+  // If either antenna offset is configured with the transform selector, lookup the transform in the tf tree
+  // Give the application several seconds to find the transform, otherwise exit
+  constexpr int32_t seconds_to_wait = 10;
+  for (int i = 0; i < NUM_GNSS; i++)
+  {
+    if (gnss_antenna_offset_source_[i] == GNSS_ANTENNA_OFFSET_SOURCE_TRANSFORM)
+    {
+      std::string tf_error_string;
+      RosTimeType frame_time; setRosTime(&frame_time, 0, 0);
+      if (transform_buffer_->canTransform(frame_id_, gnss_frame_id_[i], frame_time, RosDurationType(seconds_to_wait, 0), &tf_error_string))
+      {
+        // If not using the enu frame, this can be plugged directly into the device, otherwise rotate it from the ROS body frame to our body frame
+        TransformStampedMsg gnss_antenna_to_microstrain_vehicle_transform;
+        if (use_enu_frame_)
+        {
+          const auto& gnss_antenna_to_ros_vehicle_transform = transform_buffer_->lookupTransform(frame_id_, gnss_frame_id_[i], frame_time);
+
+          tf2::Transform gnss_antenna_to_ros_vehicle_transform_tf;
+          tf2::fromMsg(gnss_antenna_to_ros_vehicle_transform.transform, gnss_antenna_to_ros_vehicle_transform_tf);
+
+          const auto& gnss_antenna_to_microstrain_vehicle_transform_tf = ros_vehicle_to_microstrain_vehicle_transform_tf_ * gnss_antenna_to_ros_vehicle_transform_tf;
+          gnss_antenna_to_microstrain_vehicle_transform.transform = tf2::toMsg(gnss_antenna_to_microstrain_vehicle_transform_tf);
+        }
+        else
+        {
+          gnss_antenna_to_microstrain_vehicle_transform = transform_buffer_->lookupTransform(frame_id_, gnss_frame_id_[i], frame_time);
+        }
+
+        // Override the antenna offset with the result from the transform tree
+        gnss_antenna_offset_[i][0] = gnss_antenna_to_microstrain_vehicle_transform.transform.translation.x;
+        gnss_antenna_offset_[i][1] = gnss_antenna_to_microstrain_vehicle_transform.transform.translation.y;
+        gnss_antenna_offset_[i][2] = gnss_antenna_to_microstrain_vehicle_transform.transform.translation.z;
+      }
+      else
+      {
+        MICROSTRAIN_ERROR(node_, "Waited for %u seconds and was unable to lookup transform from %s to %s", seconds_to_wait, frame_id_.c_str(), gnss_frame_id_[i].c_str());
+        MICROSTRAIN_ERROR(node_, "  Err: %s", tf_error_string.c_str());
+        return false;
+      }
+    }
+  }
+
   // GNSS 1/2 antenna offsets
   if (mip_device_->supportsDescriptor(descriptor_set, mip::commands_filter::CMD_ANTENNA_OFFSET))
   {
-    MICROSTRAIN_INFO(node_, "Setting single antenna offset to [%f, %f, %f]",
-        gnss_antenna_offset_[GNSS1_ID][0], gnss_antenna_offset_[GNSS1_ID][1], gnss_antenna_offset_[GNSS1_ID][2]);
-    if (!(mip_cmd_result = mip::commands_filter::writeAntennaOffset(*mip_device_, gnss_antenna_offset_[GNSS1_ID].data())))
+    if (gnss_antenna_offset_source_[GNSS1_ID] != GNSS_ANTENNA_OFFSET_SOURCE_OFF)
     {
-      MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Cound not set single antenna offset");
-      return false;
+      MICROSTRAIN_INFO(node_, "Setting single antenna offset to [%f, %f, %f]",
+          gnss_antenna_offset_[GNSS1_ID][0], gnss_antenna_offset_[GNSS1_ID][1], gnss_antenna_offset_[GNSS1_ID][2]);
+      if (!(mip_cmd_result = mip::commands_filter::writeAntennaOffset(*mip_device_, gnss_antenna_offset_[GNSS1_ID].data())))
+      {
+        MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Cound not set single antenna offset");
+        return false;
+      }
+    }
+    else
+    {
+      MICROSTRAIN_INFO(node_, "Not configuring single antenna offset because gnss1_antenna_offset_source is %d", GNSS_ANTENNA_OFFSET_SOURCE_OFF);
     }
   }
   else if (mip_device_->supportsDescriptor(descriptor_set, mip::commands_filter::CMD_MULTI_ANTENNA_OFFSET))
   {
-    MICROSTRAIN_INFO(node_, "Setting GNSS1 antenna offset to [%f, %f, %f]",
-        gnss_antenna_offset_[GNSS1_ID][0], gnss_antenna_offset_[GNSS1_ID][1], gnss_antenna_offset_[GNSS1_ID][2]);
-    if (!(mip_cmd_result = mip::commands_filter::writeMultiAntennaOffset(*mip_device_, GNSS1_ID + 1, gnss_antenna_offset_[GNSS1_ID].data())))
+    if (gnss_antenna_offset_source_[GNSS1_ID] != GNSS_ANTENNA_OFFSET_SOURCE_OFF)
     {
-      MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Could not set multi antenna offset for GNSS1");
-      return false;
+      MICROSTRAIN_INFO(node_, "Setting GNSS1 antenna offset to [%f, %f, %f]",
+          gnss_antenna_offset_[GNSS1_ID][0], gnss_antenna_offset_[GNSS1_ID][1], gnss_antenna_offset_[GNSS1_ID][2]);
+      if (!(mip_cmd_result = mip::commands_filter::writeMultiAntennaOffset(*mip_device_, GNSS1_ID + 1, gnss_antenna_offset_[GNSS1_ID].data())))
+      {
+        MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Could not set multi antenna offset for GNSS1");
+        return false;
+      }
+    }
+    else
+    {
+      MICROSTRAIN_INFO(node_, "Not configuring GNSS1 antenna offset because gnss1_antenna_offset_source is %d", GNSS_ANTENNA_OFFSET_SOURCE_OFF);
     }
 
-    MICROSTRAIN_INFO(node_, "Setting GNSS2 antenna offset to [%f, %f, %f]",
-        gnss_antenna_offset_[GNSS2_ID][0], gnss_antenna_offset_[GNSS2_ID][1], gnss_antenna_offset_[GNSS2_ID][2]);
-    if (!(mip_cmd_result = mip::commands_filter::writeMultiAntennaOffset(*mip_device_, GNSS2_ID + 1, gnss_antenna_offset_[GNSS2_ID].data())))
+    if (gnss_antenna_offset_source_[GNSS2_ID] != GNSS_ANTENNA_OFFSET_SOURCE_OFF)
     {
-      MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Could not set multi antenna offset for GNSS2");
-      return false;
+      MICROSTRAIN_INFO(node_, "Setting GNSS2 antenna offset to [%f, %f, %f]",
+          gnss_antenna_offset_[GNSS2_ID][0], gnss_antenna_offset_[GNSS2_ID][1], gnss_antenna_offset_[GNSS2_ID][2]);
+      if (!(mip_cmd_result = mip::commands_filter::writeMultiAntennaOffset(*mip_device_, GNSS2_ID + 1, gnss_antenna_offset_[GNSS2_ID].data())))
+      {
+        MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Could not set multi antenna offset for GNSS2");
+        return false;
+      }
+    }
+    else
+    {
+      MICROSTRAIN_INFO(node_, "Not configuring GNSS2 antenna offset because gnss2_antenna_offset_source is %d", GNSS_ANTENNA_OFFSET_SOURCE_OFF);
     }
   }
   else
@@ -763,34 +866,11 @@ bool Config::configureFilter(RosNodeType* node)
     MICROSTRAIN_INFO(node_, "Note: The device does not support the filter aiding command.");
   }
 
-  // Set the filter relative position frame settings
-  if (mip_device_->supportsDescriptor(descriptor_set, mip::commands_filter::CMD_REL_POS_CONFIGURATION))
-  {
-    if (filter_relative_pos_config_)
-    {
-      MICROSTRAIN_INFO(node_, "Setting relative position to: [%f, %f, %f], ref frame = %d",
-          filter_relative_position_ref[0], filter_relative_position_ref[1], filter_relative_position_ref[2], filter_relative_position_frame);
-      if (!(mip_cmd_result = mip::commands_filter::writeRelPosConfiguration(*mip_device_, filter_relative_position_source, static_cast<mip::commands_filter::FilterReferenceFrame>(filter_relative_position_frame), filter_relative_position_ref.data())))
-      {
-        MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to configure relative position settings");
-        return false;
-      }
-    }
-    else
-    {
-      MICROSTRAIN_INFO(node_, "Note: Not configuring filter relative position");
-    }
-  }
-  else
-  {
-    MICROSTRAIN_INFO(node_, "Note: The device does not support the relative position configuration command");
-  }
-
   // Set the filter speed lever arm
   if (mip_device_->supportsDescriptor(descriptor_set, mip::commands_filter::CMD_SPEED_LEVER_ARM))
   {
-    MICROSTRAIN_INFO(node_, "Setting speed lever arm to: [%f, %f, %f]", filter_speed_lever_arm[0], filter_speed_lever_arm[1], filter_speed_lever_arm[2]);
-    if (!(mip_cmd_result = mip::commands_filter::writeSpeedLeverArm(*mip_device_, 1, filter_speed_lever_arm.data())))
+    MICROSTRAIN_INFO(node_, "Setting speed lever arm to: [%f, %f, %f]", filter_speed_lever_arm_[0], filter_speed_lever_arm_[1], filter_speed_lever_arm_[2]);
+    if (!(mip_cmd_result = mip::commands_filter::writeSpeedLeverArm(*mip_device_, 1, filter_speed_lever_arm_.data())))
     {
       MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to configure speed lever arm");
       return false;
@@ -1132,6 +1212,9 @@ bool Config::populateNmeaMessageFormat(RosNodeType* config_node, const std::stri
     else
       MICROSTRAIN_INFO(node_, "Configuring %s NMEA sentence from the '%s' descriptor set to stream at %.04f hz", message_id_string.c_str(), descriptor_set_string.c_str(), data_rate);
     formats->push_back(format);
+
+    // Enable NMEA parsing on the main port
+    mip_device_->shouldParseNmea(true);
   }
   else
   {

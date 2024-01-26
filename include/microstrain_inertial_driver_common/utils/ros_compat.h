@@ -46,12 +46,21 @@ constexpr auto NUM_GNSS = 2;
  */
 #if MICROSTRAIN_ROS_VERSION == 1
 #include "ros/ros.h"
+
+#include "tf2_ros/buffer.h"
+#include "tf2_ros/buffer_interface.h"
+#include "tf2_ros/transform_listener.h"
+#include "tf2_ros/static_transform_broadcaster.h"
 #include "tf2_ros/transform_broadcaster.h"
 
 #include "sensor_msgs/NavSatFix.h"
 #include "sensor_msgs/Imu.h"
 #include "sensor_msgs/TimeReference.h"
+#include "sensor_msgs/FluidPressure.h"
+#include "geometry_msgs/Quaternion.h"
 #include "geometry_msgs/PoseWithCovarianceStamped.h"
+#include "geometry_msgs/TwistStamped.h"
+#include "geometry_msgs/TwistWithCovarianceStamped.h"
 #include "geometry_msgs/Vector3.h"
 #include "geometry_msgs/TransformStamped.h"
 #include "sensor_msgs/MagneticField.h"
@@ -62,84 +71,28 @@ constexpr auto NUM_GNSS = 2;
 #include "std_msgs/Bool.h"
 #include "std_msgs/String.h"
 #include "tf2_geometry_msgs/tf2_geometry_msgs.h"
-#include "mavros_msgs/RTCM.h"
+#include "rtcm_msgs/Message.h"
 #include "nmea_msgs/Sentence.h"
 
-#include "microstrain_inertial_msgs/Status.h"
-#include "microstrain_inertial_msgs/ImuOverrangeStatus.h"
-#include "microstrain_inertial_msgs/RTKStatus.h"
-#include "microstrain_inertial_msgs/RTKStatusV1.h"
-#include "microstrain_inertial_msgs/FilterStatus.h"
-#include "microstrain_inertial_msgs/FilterHeading.h"
-#include "microstrain_inertial_msgs/FilterHeadingState.h"
-#include "microstrain_inertial_msgs/FilterAidingMeasurementSummary.h"
-#include "microstrain_inertial_msgs/GPSCorrelationTimestampStamped.h"
-#include "microstrain_inertial_msgs/GNSSAidingStatus.h"
-#include "microstrain_inertial_msgs/GNSSAntennaOffsetCorrection.h"
-#include "microstrain_inertial_msgs/GNSSDualAntennaStatus.h"
-#include "microstrain_inertial_msgs/GNSSFixInfo.h"
-#include "microstrain_inertial_msgs/GNSSSbasInfo.h"
-#include "microstrain_inertial_msgs/GNSSRfErrorDetection.h"
+#include "microstrain_inertial_msgs/HumanReadableStatus.h"
 
-#include "microstrain_inertial_msgs/InputSpeedMeasurement.h"
+#include "microstrain_inertial_msgs/MipHeader.h"
+#include "microstrain_inertial_msgs/MipSensorOverrangeStatus.h"
+#include "microstrain_inertial_msgs/MipGnssFixInfo.h"
+#include "microstrain_inertial_msgs/MipGnssSbasInfo.h"
+#include "microstrain_inertial_msgs/MipGnssRfErrorDetection.h"
+#include "microstrain_inertial_msgs/MipGnssCorrectionsRtkCorrectionsStatus.h"
+#include "microstrain_inertial_msgs/MipFilterStatus.h"
+#include "microstrain_inertial_msgs/MipFilterGnssPositionAidingStatus.h"
+#include "microstrain_inertial_msgs/MipFilterMultiAntennaOffsetCorrection.h"
+#include "microstrain_inertial_msgs/MipFilterAidingMeasurementSummary.h"
+#include "microstrain_inertial_msgs/MipFilterGnssDualAntennaStatus.h"
 
 #include "std_srvs/Empty.h"
 #include "std_srvs/Trigger.h"
 
-#include "microstrain_inertial_msgs/SetAccelBias.h"
-#include "microstrain_inertial_msgs/GetAccelBias.h"
-#include "microstrain_inertial_msgs/SetGyroBias.h"
-#include "microstrain_inertial_msgs/GetGyroBias.h"
-#include "microstrain_inertial_msgs/SetHardIronValues.h"
-#include "microstrain_inertial_msgs/GetHardIronValues.h"
-#include "microstrain_inertial_msgs/SetSoftIronMatrix.h"
-#include "microstrain_inertial_msgs/GetSoftIronMatrix.h"
-#include "microstrain_inertial_msgs/SetComplementaryFilter.h"
-#include "microstrain_inertial_msgs/GetComplementaryFilter.h"
-#include "microstrain_inertial_msgs/InitFilterEuler.h"
-#include "microstrain_inertial_msgs/InitFilterHeading.h"
-#include "microstrain_inertial_msgs/DeviceReport.h"
-#include "microstrain_inertial_msgs/DeviceSettings.h"
-#include "microstrain_inertial_msgs/SetAccelBiasModel.h"
-#include "microstrain_inertial_msgs/GetAccelBiasModel.h"
-#include "microstrain_inertial_msgs/SetGravityAdaptiveVals.h"
-#include "microstrain_inertial_msgs/GetGravityAdaptiveVals.h"
-#include "microstrain_inertial_msgs/SetSensor2VehicleRotation.h"
-#include "microstrain_inertial_msgs/GetSensor2VehicleRotation.h"
-#include "microstrain_inertial_msgs/SetSensor2VehicleOffset.h"
-#include "microstrain_inertial_msgs/GetSensor2VehicleOffset.h"
-#include "microstrain_inertial_msgs/SetReferencePosition.h"
-#include "microstrain_inertial_msgs/GetReferencePosition.h"
-#include "microstrain_inertial_msgs/SetConingScullingComp.h"
-#include "microstrain_inertial_msgs/GetConingScullingComp.h"
-#include "microstrain_inertial_msgs/SetEstimationControlFlags.h"
-#include "microstrain_inertial_msgs/GetEstimationControlFlags.h"
-#include "microstrain_inertial_msgs/SetDynamicsMode.h"
-#include "microstrain_inertial_msgs/GetDynamicsMode.h"
-#include "microstrain_inertial_msgs/SetZeroAngleUpdateThreshold.h"
-#include "microstrain_inertial_msgs/GetZeroAngleUpdateThreshold.h"
-#include "microstrain_inertial_msgs/SetZeroVelocityUpdateThreshold.h"
-#include "microstrain_inertial_msgs/GetZeroVelocityUpdateThreshold.h"
-#include "microstrain_inertial_msgs/SetTareOrientation.h"
-#include "microstrain_inertial_msgs/SetAccelNoise.h"
-#include "microstrain_inertial_msgs/GetAccelNoise.h"
-#include "microstrain_inertial_msgs/SetGyroNoise.h"
-#include "microstrain_inertial_msgs/GetGyroNoise.h"
-#include "microstrain_inertial_msgs/SetMagNoise.h"
-#include "microstrain_inertial_msgs/GetMagNoise.h"
-#include "microstrain_inertial_msgs/SetGyroBiasModel.h"
-#include "microstrain_inertial_msgs/GetGyroBiasModel.h"
-#include "microstrain_inertial_msgs/SetMagAdaptiveVals.h"
-#include "microstrain_inertial_msgs/GetMagAdaptiveVals.h"
-#include "microstrain_inertial_msgs/SetMagDipAdaptiveVals.h"
-#include "microstrain_inertial_msgs/GetMagDipAdaptiveVals.h"
-#include "microstrain_inertial_msgs/SetHeadingSource.h"
-#include "microstrain_inertial_msgs/GetHeadingSource.h"
-#include "microstrain_inertial_msgs/GetSensor2VehicleTransformation.h"
-#include "microstrain_inertial_msgs/ExternalHeadingUpdate.h"
-#include "microstrain_inertial_msgs/SetRelativePositionReference.h"
-#include "microstrain_inertial_msgs/GetRelativePositionReference.h"
-#include "microstrain_inertial_msgs/SetFilterSpeedLeverArm.h"
+#include "microstrain_inertial_msgs/MipBaseGetDeviceInformation.h"
+#include "microstrain_inertial_msgs/Mip3dmCaptureGyroBias.h"
 
 /**
  * ROS2 Includes
@@ -148,13 +101,22 @@ constexpr auto NUM_GNSS = 2;
 #include "rclcpp/rclcpp.hpp"
 #include "rclcpp_lifecycle/lifecycle_node.hpp"
 #include "rclcpp_lifecycle/lifecycle_publisher.hpp"
+
+#include "tf2_ros/buffer.h"
+#include "tf2_ros/buffer_interface.h"
+#include "tf2_ros/transform_listener.h"
+#include "tf2_ros/static_transform_broadcaster.h"
 #include "tf2_ros/transform_broadcaster.h"
 
 #include "lifecycle_msgs/msg/transition.hpp"
 #include "sensor_msgs/msg/nav_sat_fix.hpp"
 #include "sensor_msgs/msg/imu.hpp"
 #include "sensor_msgs/msg/time_reference.hpp"
+#include "sensor_msgs/msg/fluid_pressure.hpp"
+#include "geometry_msgs/msg/quaternion.hpp"
 #include "geometry_msgs/msg/pose_with_covariance_stamped.hpp"
+#include "geometry_msgs/msg/twist_stamped.hpp"
+#include "geometry_msgs/msg/twist_with_covariance_stamped.hpp"
 #include "geometry_msgs/msg/vector3.hpp"
 #include "geometry_msgs/msg/transform_stamped.h"
 #include "sensor_msgs/msg/magnetic_field.hpp"
@@ -166,8 +128,22 @@ constexpr auto NUM_GNSS = 2;
 #include "std_srvs/srv/trigger.hpp"
 #include "std_msgs/msg/bool.hpp"
 #include "std_msgs/msg/string.hpp"
-#include "mavros_msgs/msg/rtcm.hpp"
+#include "rtcm_msgs/msg/message.hpp"
 #include "nmea_msgs/msg/sentence.hpp"
+
+#include "microstrain_inertial_msgs/msg/human_readable_status.hpp"
+
+#include "microstrain_inertial_msgs/msg/mip_header.hpp"
+#include "microstrain_inertial_msgs/msg/mip_sensor_overrange_status.hpp"
+#include "microstrain_inertial_msgs/msg/mip_gnss_fix_info.hpp"
+#include "microstrain_inertial_msgs/msg/mip_gnss_sbas_info.hpp"
+#include "microstrain_inertial_msgs/msg/mip_gnss_rf_error_detection.hpp"
+#include "microstrain_inertial_msgs/msg/mip_gnss_corrections_rtk_corrections_status.hpp"
+#include "microstrain_inertial_msgs/msg/mip_filter_status.hpp"
+#include "microstrain_inertial_msgs/msg/mip_filter_gnss_position_aiding_status.hpp"
+#include "microstrain_inertial_msgs/msg/mip_filter_multi_antenna_offset_correction.hpp"
+#include "microstrain_inertial_msgs/msg/mip_filter_aiding_measurement_summary.hpp"
+#include "microstrain_inertial_msgs/msg/mip_filter_gnss_dual_antenna_status.hpp"
 
 // .h header was deprecated in rolling and will likely be removed in future releases.
 #if MICROSTRAIN_ROLLING == 1 || MICROSTRAIN_HUMBLE == 1
@@ -176,80 +152,25 @@ constexpr auto NUM_GNSS = 2;
 #include "tf2_geometry_msgs/tf2_geometry_msgs.h"
 #endif
 
-#include "microstrain_inertial_msgs/msg/status.hpp"
-#include "microstrain_inertial_msgs/msg/imu_overrange_status.hpp"
-#include "microstrain_inertial_msgs/msg/rtk_status.hpp"
-#include "microstrain_inertial_msgs/msg/rtk_status_v1.hpp"
-#include "microstrain_inertial_msgs/msg/filter_status.hpp"
-#include "microstrain_inertial_msgs/msg/filter_heading.hpp"
-#include "microstrain_inertial_msgs/msg/filter_heading_state.hpp"
-#include "microstrain_inertial_msgs/msg/filter_aiding_measurement_summary.hpp"
-#include "microstrain_inertial_msgs/msg/gps_correlation_timestamp_stamped.hpp"
-#include "microstrain_inertial_msgs/msg/gnss_aiding_status.hpp"
-#include "microstrain_inertial_msgs/msg/gnss_antenna_offset_correction.hpp"
-#include "microstrain_inertial_msgs/msg/gnss_dual_antenna_status.hpp"
-#include "microstrain_inertial_msgs/msg/gnss_fix_info.hpp"
-#include "microstrain_inertial_msgs/msg/gnss_sbas_info.hpp"
-#include "microstrain_inertial_msgs/msg/gnss_rf_error_detection.hpp"
-
-#include "microstrain_inertial_msgs/msg/input_speed_measurement.hpp"
-
-#include "microstrain_inertial_msgs/srv/set_accel_bias.hpp"
-#include "microstrain_inertial_msgs/srv/get_accel_bias.hpp"
-#include "microstrain_inertial_msgs/srv/set_gyro_bias.hpp"
-#include "microstrain_inertial_msgs/srv/get_gyro_bias.hpp"
-#include "microstrain_inertial_msgs/srv/set_hard_iron_values.hpp"
-#include "microstrain_inertial_msgs/srv/get_hard_iron_values.hpp"
-#include "microstrain_inertial_msgs/srv/set_soft_iron_matrix.hpp"
-#include "microstrain_inertial_msgs/srv/get_soft_iron_matrix.hpp"
-#include "microstrain_inertial_msgs/srv/set_complementary_filter.hpp"
-#include "microstrain_inertial_msgs/srv/get_complementary_filter.hpp"
-#include "microstrain_inertial_msgs/srv/init_filter_euler.hpp"
-#include "microstrain_inertial_msgs/srv/init_filter_heading.hpp"
-#include "microstrain_inertial_msgs/srv/device_report.hpp"
-#include "microstrain_inertial_msgs/srv/device_settings.hpp"
-#include "microstrain_inertial_msgs/srv/set_accel_bias_model.hpp"
-#include "microstrain_inertial_msgs/srv/get_accel_bias_model.hpp"
-#include "microstrain_inertial_msgs/srv/set_gravity_adaptive_vals.hpp"
-#include "microstrain_inertial_msgs/srv/get_gravity_adaptive_vals.hpp"
-#include "microstrain_inertial_msgs/srv/set_sensor2_vehicle_rotation.hpp"
-#include "microstrain_inertial_msgs/srv/get_sensor2_vehicle_rotation.hpp"
-#include "microstrain_inertial_msgs/srv/set_sensor2_vehicle_offset.hpp"
-#include "microstrain_inertial_msgs/srv/get_sensor2_vehicle_offset.hpp"
-#include "microstrain_inertial_msgs/srv/set_reference_position.hpp"
-#include "microstrain_inertial_msgs/srv/get_reference_position.hpp"
-#include "microstrain_inertial_msgs/srv/set_coning_sculling_comp.hpp"
-#include "microstrain_inertial_msgs/srv/get_coning_sculling_comp.hpp"
-#include "microstrain_inertial_msgs/srv/set_estimation_control_flags.hpp"
-#include "microstrain_inertial_msgs/srv/get_estimation_control_flags.hpp"
-#include "microstrain_inertial_msgs/srv/set_dynamics_mode.hpp"
-#include "microstrain_inertial_msgs/srv/get_dynamics_mode.hpp"
-#include "microstrain_inertial_msgs/srv/set_zero_angle_update_threshold.hpp"
-#include "microstrain_inertial_msgs/srv/get_zero_angle_update_threshold.hpp"
-#include "microstrain_inertial_msgs/srv/set_zero_velocity_update_threshold.hpp"
-#include "microstrain_inertial_msgs/srv/get_zero_velocity_update_threshold.hpp"
-#include "microstrain_inertial_msgs/srv/set_tare_orientation.hpp"
-#include "microstrain_inertial_msgs/srv/set_accel_noise.hpp"
-#include "microstrain_inertial_msgs/srv/get_accel_noise.hpp"
-#include "microstrain_inertial_msgs/srv/set_gyro_noise.hpp"
-#include "microstrain_inertial_msgs/srv/get_gyro_noise.hpp"
-#include "microstrain_inertial_msgs/srv/set_mag_noise.hpp"
-#include "microstrain_inertial_msgs/srv/get_mag_noise.hpp"
-#include "microstrain_inertial_msgs/srv/set_gyro_bias_model.hpp"
-#include "microstrain_inertial_msgs/srv/get_gyro_bias_model.hpp"
-#include "microstrain_inertial_msgs/srv/set_mag_adaptive_vals.hpp"
-#include "microstrain_inertial_msgs/srv/get_mag_adaptive_vals.hpp"
-#include "microstrain_inertial_msgs/srv/set_mag_dip_adaptive_vals.hpp"
-#include "microstrain_inertial_msgs/srv/get_mag_dip_adaptive_vals.hpp"
-#include "microstrain_inertial_msgs/srv/set_heading_source.hpp"
-#include "microstrain_inertial_msgs/srv/get_heading_source.hpp"
-#include "microstrain_inertial_msgs/srv/get_sensor2_vehicle_transformation.hpp"
-#include "microstrain_inertial_msgs/srv/external_heading_update.hpp"
-#include "microstrain_inertial_msgs/srv/set_relative_position_reference.hpp"
-#include "microstrain_inertial_msgs/srv/get_relative_position_reference.hpp"
-#include "microstrain_inertial_msgs/srv/set_filter_speed_lever_arm.hpp"
+#include "microstrain_inertial_msgs/srv/mip_base_get_device_information.hpp"
+#include "microstrain_inertial_msgs/srv/mip3dm_capture_gyro_bias.hpp"
 #else
 #error "Unsupported ROS version. -DMICROSTRAIN_ROS_VERSION must be set to 1 or 2"
+#endif
+
+
+#if MICROSTRAIN_ROS_VERSION == 1
+namespace tf2_ros
+{
+inline ::ros::Time fromMsg(const ::ros::Time& time)
+{
+  return time;
+}
+inline ::ros::Time toMsg(const ::ros::Time& time)
+{
+  return time;
+}
+}  // namespace tf2_ros
 #endif
 
 namespace microstrain
@@ -275,6 +196,16 @@ class RosPubType : public ::ros::Publisher
   void on_deactivate() { (void)0; }
 };
 
+template<typename MessageType>
+class RosSubType : public ::ros::Subscriber
+{
+ public:
+  using MessageSharedPtr = std::shared_ptr<MessageType>;
+  using SharedPtr = std::shared_ptr<RosSubType<MessageType>>;
+
+  explicit RosSubType(const ::ros::Subscriber& rhs) : ::ros::Subscriber(rhs) {}
+};
+
 /**
  * \brief Wrapper for a ROS1 service to make it look similar to a ROS2 service
  */
@@ -290,138 +221,57 @@ class RosServiceType : public ::ros::ServiceServer
 // ROS1 General Types
 using RosNodeType = ::ros::NodeHandle;
 using RosTimeType = ::ros::Time;
+using RosDurationType = ::ros::Duration;
 using RosTimerType = std::shared_ptr<::ros::Timer>;
 using RosRateType = ::ros::Rate;
 using RosHeaderType = ::std_msgs::Header;
-using RosSubType = std::shared_ptr<::ros::Subscriber>;
 
 // ROS1 Publisher Message Types
 using OdometryMsg = ::nav_msgs::Odometry;
 using ImuMsg = ::sensor_msgs::Imu;
 using NavSatFixMsg = ::sensor_msgs::NavSatFix;
+using FluidPressureMsg = ::sensor_msgs::FluidPressure;
+using QuaternionMsg = ::geometry_msgs::Quaternion;
+using TwistStampedMsg = ::geometry_msgs::TwistStamped;
+using PoseWithCovarianceStampedMsg = ::geometry_msgs::PoseWithCovarianceStamped;
+using TwistWithCovarianceStampedMsg = ::geometry_msgs::TwistWithCovarianceStamped;
 using MagneticFieldMsg = ::sensor_msgs::MagneticField;
 using TimeReferenceMsg = ::sensor_msgs::TimeReference;
 using NMEASentenceMsg = ::nmea_msgs::Sentence;
-using StatusMsg = ::microstrain_inertial_msgs::Status;
-using ImuOverrangeStatusMsg = ::microstrain_inertial_msgs::ImuOverrangeStatus;
-using RTKStatusMsg = ::microstrain_inertial_msgs::RTKStatus;
-using RTKStatusMsgV1 = ::microstrain_inertial_msgs::RTKStatusV1;
-using FilterStatusMsg = ::microstrain_inertial_msgs::FilterStatus;
-using FilterHeadingMsg = ::microstrain_inertial_msgs::FilterHeading;
-using FilterAidingMeasurementSummaryMsg = ::microstrain_inertial_msgs::FilterAidingMeasurementSummary;
-using FilterAidingMeasurementSummaryIndicatorMsg = ::microstrain_inertial_msgs::FilterAidingMeasurementSummaryIndicator;
-using GNSSAidingStatusMsg = ::microstrain_inertial_msgs::GNSSAidingStatus;
-using GNSSAntennaOffsetCorrectionMsg = ::microstrain_inertial_msgs::GNSSAntennaOffsetCorrection;
-using GNSSDualAntennaStatusMsg = ::microstrain_inertial_msgs::GNSSDualAntennaStatus;
-using GNSSFixInfoMsg = ::microstrain_inertial_msgs::GNSSFixInfo;
-using FilterHeadingStateMsg = ::microstrain_inertial_msgs::FilterHeadingState;
-using GPSCorrelationTimestampStampedMsg = ::microstrain_inertial_msgs::GPSCorrelationTimestampStamped;
-using GNSSSbasInfoMsg = ::microstrain_inertial_msgs::GNSSSbasInfo;
-using GNSSRfErrorDetectionMsg = ::microstrain_inertial_msgs::GNSSRfErrorDetection;
+
+using HumanReadableStatusMsg = ::microstrain_inertial_msgs::HumanReadableStatus;
+
+using MipHeaderMsg = ::microstrain_inertial_msgs::MipHeader;
+using MipSensorOverrangeStatusMsg = ::microstrain_inertial_msgs::MipSensorOverrangeStatus;
+using MipGnssFixInfoMsg = ::microstrain_inertial_msgs::MipGnssFixInfo;
+using MipGnssSbasInfoMsg = ::microstrain_inertial_msgs::MipGnssSbasInfo;
+using MipGnssRfErrorDetectionMsg = ::microstrain_inertial_msgs::MipGnssRfErrorDetection;
+using MipGnssCorrectionsRtkCorrectionsStatusMsg = ::microstrain_inertial_msgs::MipGnssCorrectionsRtkCorrectionsStatus;
+using MipFilterGnssPositionAidingStatusMsg = ::microstrain_inertial_msgs::MipFilterGnssPositionAidingStatus;
+using MipFilterStatusMsg = ::microstrain_inertial_msgs::MipFilterStatus;
+using MipFilterMultiAntennaOffsetCorrectionMsg = ::microstrain_inertial_msgs::MipFilterMultiAntennaOffsetCorrection;
+using MipFilterAidingMeasurementSummaryMsg = ::microstrain_inertial_msgs::MipFilterAidingMeasurementSummary;
+using MipFilterGnssDualAntennaStatusMsg = ::microstrain_inertial_msgs::MipFilterGnssDualAntennaStatus;
 
 using TransformStampedMsg = ::geometry_msgs::TransformStamped;
 
-// ROS1 Transform Broadcaster
+// ROS1 TF types
+using TransformBufferType = std::shared_ptr<::tf2_ros::Buffer>;
+using TransformListenerType = std::shared_ptr<::tf2_ros::TransformListener>;
+using StaticTransformBroadcasterType = std::shared_ptr<::tf2_ros::StaticTransformBroadcaster>;
 using TransformBroadcasterType = std::shared_ptr<::tf2_ros::TransformBroadcaster>;
 
 // ROS1 Subscriber Message Types
 using BoolMsg = ::std_msgs::Bool;
 using TimeReferenceMsg = ::sensor_msgs::TimeReference;
-using InputSpeedMeasurementMsg = ::microstrain_inertial_msgs::InputSpeedMeasurement;
-using RTCMMsg = ::mavros_msgs::RTCM;
-
-// ROS1 Subscriber Types
-using BoolSubType = RosSubType;
-using TimeReferenceSubType = RosSubType;
-using InputSpeedMeasurementSubType = RosSubType;
-using RTCMSubType = RosSubType;
+using RTCMMsg = ::rtcm_msgs::Message;
 
 // ROS1 Service Message Types
-using TriggerServiceMsg = std_srvs::Trigger;
-using EmptyServiceMsg = std_srvs::Empty;
+using TriggerSrv = std_srvs::Trigger;
+using EmptySrv = std_srvs::Empty;
 
-using SetAccelBiasServiceMsg = ::microstrain_inertial_msgs::SetAccelBias;
-using GetAccelBiasServiceMsg = ::microstrain_inertial_msgs::GetAccelBias;
-
-using SetGyroBiasServiceMsg = ::microstrain_inertial_msgs::SetGyroBias;
-using GetGyroBiasServiceMsg = ::microstrain_inertial_msgs::GetGyroBias;
-
-using SetHardIronValuesServiceMsg = ::microstrain_inertial_msgs::SetHardIronValues;
-using GetHardIronValuesServiceMsg = ::microstrain_inertial_msgs::GetHardIronValues;
-
-using SetSoftIronMatrixServiceMsg = ::microstrain_inertial_msgs::SetSoftIronMatrix;
-using GetSoftIronMatrixServiceMsg = ::microstrain_inertial_msgs::GetSoftIronMatrix;
-
-using SetComplementaryFilterServiceMsg = ::microstrain_inertial_msgs::SetComplementaryFilter;
-using GetComplementaryFilterServiceMsg = ::microstrain_inertial_msgs::GetComplementaryFilter;
-
-using SetConingScullingCompServiceMsg = ::microstrain_inertial_msgs::SetConingScullingComp;
-using GetConingScullingCompServiceMsg = ::microstrain_inertial_msgs::GetConingScullingComp;
-
-using SetSensor2VehicleRotationServiceMsg = ::microstrain_inertial_msgs::SetSensor2VehicleRotation;
-using GetSensor2VehicleRotationServiceMsg = ::microstrain_inertial_msgs::GetSensor2VehicleRotation;
-
-using SetSensor2VehicleOffsetServiceMsg = ::microstrain_inertial_msgs::SetSensor2VehicleOffset;
-using GetSensor2VehicleOffsetServiceMsg = ::microstrain_inertial_msgs::GetSensor2VehicleOffset;
-
-using GetSensor2VehicleTransformationServiceMsg = ::microstrain_inertial_msgs::GetSensor2VehicleTransformation;
-
-using InitFilterEulerServiceMsg = ::microstrain_inertial_msgs::InitFilterEuler;
-using InitFilterHeadingServiceMsg = ::microstrain_inertial_msgs::InitFilterHeading;
-
-using SetHeadingSourceServiceMsg = ::microstrain_inertial_msgs::SetHeadingSource;
-using GetHeadingSourceServiceMsg = ::microstrain_inertial_msgs::GetHeadingSource;
-
-using SetReferencePositionServiceMsg = ::microstrain_inertial_msgs::SetReferencePosition;
-using GetReferencePositionServiceMsg = ::microstrain_inertial_msgs::GetReferencePosition;
-
-using SetEstimationControlFlagsServiceMsg = ::microstrain_inertial_msgs::SetEstimationControlFlags;
-using GetEstimationControlFlagsServiceMsg = ::microstrain_inertial_msgs::GetEstimationControlFlags;
-
-using SetDynamicsModeServiceMsg = ::microstrain_inertial_msgs::SetDynamicsMode;
-using GetDynamicsModeServiceMsg = ::microstrain_inertial_msgs::GetDynamicsMode;
-
-using SetZeroAngleUpdateThresholdServiceMsg = ::microstrain_inertial_msgs::SetZeroAngleUpdateThreshold;
-using GetZeroAngleUpdateThresholdServiceMsg = ::microstrain_inertial_msgs::GetZeroAngleUpdateThreshold;
-
-using SetZeroVelocityUpdateThresholdServiceMsg = ::microstrain_inertial_msgs::SetZeroVelocityUpdateThreshold;
-using GetZeroVelocityUpdateThresholdServiceMsg = ::microstrain_inertial_msgs::GetZeroVelocityUpdateThreshold;
-
-using SetTareOrientationServiceMsg = ::microstrain_inertial_msgs::SetTareOrientation;
-
-using SetAccelNoiseServiceMsg = ::microstrain_inertial_msgs::SetAccelNoise;
-using GetAccelNoiseServiceMsg = ::microstrain_inertial_msgs::GetAccelNoise;
-
-using SetGyroNoiseServiceMsg = ::microstrain_inertial_msgs::SetGyroNoise;
-using GetGyroNoiseServiceMsg = ::microstrain_inertial_msgs::GetGyroNoise;
-
-using SetMagNoiseServiceMsg = ::microstrain_inertial_msgs::SetMagNoise;
-using GetMagNoiseServiceMsg = ::microstrain_inertial_msgs::GetMagNoise;
-
-using SetGyroBiasModelServiceMsg = ::microstrain_inertial_msgs::SetGyroBiasModel;
-using GetGyroBiasModelServiceMsg = ::microstrain_inertial_msgs::GetGyroBiasModel;
-
-using SetAccelBiasModelServiceMsg = ::microstrain_inertial_msgs::SetAccelBiasModel;
-using GetAccelBiasModelServiceMsg = ::microstrain_inertial_msgs::GetAccelBiasModel;
-
-using SetGravityAdaptiveValsServiceMsg = ::microstrain_inertial_msgs::SetGravityAdaptiveVals;
-using GetGravityAdaptiveValsServiceMsg = ::microstrain_inertial_msgs::GetGravityAdaptiveVals;
-
-using SetMagAdaptiveValsServiceMsg = ::microstrain_inertial_msgs::SetMagAdaptiveVals;
-using GetMagAdaptiveValsServiceMsg = ::microstrain_inertial_msgs::GetMagAdaptiveVals;
-
-using SetMagDipAdaptiveValsServiceMsg = ::microstrain_inertial_msgs::SetMagDipAdaptiveVals;
-using GetMagDipAdaptiveValsServiceMsg = ::microstrain_inertial_msgs::GetMagDipAdaptiveVals;
-
-using ExternalHeadingUpdateServiceMsg = ::microstrain_inertial_msgs::ExternalHeadingUpdate;
-
-using SetRelativePositionReferenceServiceMsg = ::microstrain_inertial_msgs::SetRelativePositionReference;
-using GetRelativePositionReferenceServiceMsg = ::microstrain_inertial_msgs::GetRelativePositionReference;
-
-using DeviceReportServiceMsg = ::microstrain_inertial_msgs::DeviceReport;
-using DeviceSettingsServiceMsg = ::microstrain_inertial_msgs::DeviceSettings;
-
-using SetFilterSpeedLeverArmServiceMsg = ::microstrain_inertial_msgs::SetFilterSpeedLeverArm;
+using MipBaseGetDeviceInformationSrv = ::microstrain_inertial_msgs::MipBaseGetDeviceInformation;
+using Mip3dmCaptureGyroBiasSrv = ::microstrain_inertial_msgs::Mip3dmCaptureGyroBias;
 
 // ROS1 aliases not intended to be used outside this file
 using ParamIntVector = std::vector<int32_t>;
@@ -434,6 +284,16 @@ using ParamIntVector = std::vector<int32_t>;
 #define MICROSTRAIN_FATAL(NOE, ...) ROS_FATAL(__VA_ARGS__)
 
 #define MICROSTRAIN_DEBUG_THROTTLE(NODE, PERIOD, ...) ROS_DEBUG_THROTTLE(PERIOD, __VA_ARGS__)
+#define MICROSTRAIN_INFO_THROTTLE(NODE, PERIOD, ...) ROS_INFO_THROTTLE(PERIOD, __VA_ARGS__)
+#define MICROSTRAIN_WARN_THROTTLE(NODE, PERIOD, ...) ROS_WARN_THROTTLE(PERIOD, __VA_ARGS__)
+#define MICROSTRAIN_ERROR_THROTTLE(NODE, PERIOD, ...) ROS_ERROR_THROTTLE(PERIOD, __VA_ARGS__)
+#define MICROSTRAIN_FATAL_THROTTLE(NODE, PERIOD, ...) ROS_FATAL_THROTTLE(PERIOD, __VA_ARGS__)
+
+#define MICROSTRAIN_DEBUG_ONCE(NODE, ...) ROS_DEBUG_ONCE(__VA_ARGS__)
+#define MICROSTRAIN_INFO_ONCE(NODE, ...) ROS_INFO_ONCE(__VA_ARGS__)
+#define MICROSTRAIN_WARN_ONCE(NODE, ...) ROS_WARN_ONCE(__VA_ARGS__)
+#define MICROSTRAIN_ERROR_ONCE(NODE, ...) ROS_ERROR_ONCE(__VA_ARGS__)
+#define MICROSTRAIN_FATAL_ONCE(NOE, ...) ROS_FATAL_ONCE(__VA_ARGS__)
 
 // ROS1 functions
 
@@ -466,8 +326,19 @@ inline void setRosTime(RosTimeType* time, int32_t sec, int32_t nsec)
  */
 inline int64_t getTimeRefSec(const ros::Time& time_ref)
 {
-  return time_ref.toSec();
+  return time_ref.sec;
 }
+
+/**
+ * \brief Gets the seconds and nanoseconds converted to seconds as a double
+ * \param time_ref  The ros time object to extract the time from
+ * \return seconds combined with nanoseconds from the ros time object
+*/
+inline double getTimeRefSecs(const ros::Time& time_ref)
+{
+  return static_cast<double>(time_ref.sec) + static_cast<double>(time_ref.nsec) / 1000000000.0;
+}
+
 
 /**
  * \brief Sets the sequence number on a ROS header. This is only useful in ROS1 as ROS2 removed the seq member
@@ -491,6 +362,32 @@ template <class ConfigType>
 void getParam(RosNodeType* node, const std::string& param_name, ConfigType& param_val, const ConfigType& default_val)
 {
   node->param<ConfigType>(param_name, param_val, default_val);
+}
+
+template <class ConfigType>
+void setParam(RosNodeType* node, const std::string& param_name, const ConfigType& param_val)
+{
+  node->setParam(param_name, param_val);
+}
+
+inline TransformBufferType createTransformBuffer(RosNodeType* node)
+{
+  return std::make_shared<tf2_ros::Buffer>();
+}
+
+inline TransformListenerType createTransformListener(TransformBufferType buffer)
+{
+  return std::make_shared<tf2_ros::TransformListener>(*buffer);
+}
+
+/**
+ * \brief Creates a static transform broadcaster
+ * \param node The ROS node that the broadcaster will be associated with
+ * \return Initialized shared pointer containing a transdorm broadcaster
+ */
+inline StaticTransformBroadcasterType createStaticTransformBroadcaster(RosNodeType* node)
+{
+  return std::make_shared<tf2_ros::StaticTransformBroadcaster>();
 }
 
 /**
@@ -530,11 +427,11 @@ typename RosPubType<MessageType>::SharedPtr createPublisher(RosNodeType* node, c
  * \return Shared Pointer containing the initialized subscriber
  */
 template <class MessageType, class ClassType>
-std::shared_ptr<::ros::Subscriber> createSubscriber(RosNodeType* node, const std::string& topic,
+typename RosSubType<MessageType>::SharedPtr createSubscriber(RosNodeType* node, const std::string& topic,
                                                      const uint32_t queue_size,
                                                      void (ClassType::*fp)(const MessageType&), ClassType* obj)
 {
-  return std::make_shared<::ros::Subscriber>(node->template subscribe(topic.c_str(), queue_size, fp, obj));
+  return std::make_shared<RosSubType<MessageType>>(node->template subscribe(topic.c_str(), queue_size, fp, obj));
 }
 
 /**
@@ -590,6 +487,7 @@ inline void stopTimer(RosTimerType timer)
 // ROS2 Generic Types
 using RosNodeType = ::rclcpp_lifecycle::LifecycleNode;
 using RosTimeType = ::builtin_interfaces::msg::Time;
+using RosDurationType = ::rclcpp::Duration;
 using RosTimerType = ::rclcpp::TimerBase::SharedPtr;
 using RosRateType = ::rclcpp::Rate;
 using RosHeaderType = ::std_msgs::msg::Header;
@@ -607,6 +505,9 @@ class RosPubType : public ::rclcpp_lifecycle::LifecyclePublisher<MessageType>
   explicit RosPubType(const ::rclcpp_lifecycle::LifecyclePublisher<MessageType>& rhs) : ::rclcpp_lifecycle::LifecyclePublisher<MessageType>(rhs) {}
 };
 
+template<typename MessageType>
+using RosSubType = ::rclcpp::Subscription<MessageType>;
+
 // Alias for the service type so it can be compatible with ROS1
 template<typename ServiceType>
 using RosServiceType = ::rclcpp::Service<ServiceType>;
@@ -615,129 +516,49 @@ using RosServiceType = ::rclcpp::Service<ServiceType>;
 using OdometryMsg = ::nav_msgs::msg::Odometry;
 using ImuMsg = ::sensor_msgs::msg::Imu;
 using NavSatFixMsg = ::sensor_msgs::msg::NavSatFix;
+using FluidPressureMsg = ::sensor_msgs::msg::FluidPressure;
+using QuaternionMsg = ::geometry_msgs::msg::Quaternion;
+using TwistStampedMsg = ::geometry_msgs::msg::TwistStamped;
+using PoseWithCovarianceStampedMsg = ::geometry_msgs::msg::PoseWithCovarianceStamped;
+using TwistWithCovarianceStampedMsg = ::geometry_msgs::msg::TwistWithCovarianceStamped;
 using MagneticFieldMsg = ::sensor_msgs::msg::MagneticField;
 using TimeReferenceMsg = ::sensor_msgs::msg::TimeReference;
 using NMEASentenceMsg = ::nmea_msgs::msg::Sentence;
-using StatusMsg = ::microstrain_inertial_msgs::msg::Status;
-using ImuOverrangeStatusMsg = ::microstrain_inertial_msgs::msg::ImuOverrangeStatus;
-using RTKStatusMsg = ::microstrain_inertial_msgs::msg::RTKStatus;
-using RTKStatusMsgV1 = ::microstrain_inertial_msgs::msg::RTKStatusV1;
-using FilterStatusMsg = ::microstrain_inertial_msgs::msg::FilterStatus;
-using FilterHeadingMsg = ::microstrain_inertial_msgs::msg::FilterHeading;
-using FilterAidingMeasurementSummaryMsg = ::microstrain_inertial_msgs::msg::FilterAidingMeasurementSummary;
-using FilterAidingMeasurementSummaryIndicatorMsg = ::microstrain_inertial_msgs::msg::FilterAidingMeasurementSummaryIndicator;
-using GNSSAidingStatusMsg = ::microstrain_inertial_msgs::msg::GNSSAidingStatus;
-using GNSSAntennaOffsetCorrectionMsg = ::microstrain_inertial_msgs::msg::GNSSAntennaOffsetCorrection;
-using GNSSDualAntennaStatusMsg = ::microstrain_inertial_msgs::msg::GNSSDualAntennaStatus;
-using GNSSFixInfoMsg = ::microstrain_inertial_msgs::msg::GNSSFixInfo;
-using FilterHeadingStateMsg = ::microstrain_inertial_msgs::msg::FilterHeadingState;
-using GPSCorrelationTimestampStampedMsg = ::microstrain_inertial_msgs::msg::GPSCorrelationTimestampStamped;
-using GNSSSbasInfoMsg = ::microstrain_inertial_msgs::msg::GNSSSbasInfo;
-using GNSSRfErrorDetectionMsg = ::microstrain_inertial_msgs::msg::GNSSRfErrorDetection;
+
+using HumanReadableStatusMsg = ::microstrain_inertial_msgs::msg::HumanReadableStatus;
+
+using MipHeaderMsg = ::microstrain_inertial_msgs::msg::MipHeader;
+using MipSensorOverrangeStatusMsg = ::microstrain_inertial_msgs::msg::MipSensorOverrangeStatus;
+using MipGnssFixInfoMsg = ::microstrain_inertial_msgs::msg::MipGnssFixInfo;
+using MipGnssSbasInfoMsg = ::microstrain_inertial_msgs::msg::MipGnssSbasInfo;
+using MipGnssRfErrorDetectionMsg = ::microstrain_inertial_msgs::msg::MipGnssRfErrorDetection;
+using MipGnssCorrectionsRtkCorrectionsStatusMsg = ::microstrain_inertial_msgs::msg::MipGnssCorrectionsRtkCorrectionsStatus;
+using MipFilterStatusMsg = ::microstrain_inertial_msgs::msg::MipFilterStatus;
+using MipFilterGnssPositionAidingStatusMsg = ::microstrain_inertial_msgs::msg::MipFilterGnssPositionAidingStatus;
+using MipFilterMultiAntennaOffsetCorrectionMsg = ::microstrain_inertial_msgs::msg::MipFilterMultiAntennaOffsetCorrection;
+using MipFilterAidingMeasurementSummaryMsg = ::microstrain_inertial_msgs::msg::MipFilterAidingMeasurementSummary;
+
+using MipFilterGnssDualAntennaStatusMsg = ::microstrain_inertial_msgs::msg::MipFilterGnssDualAntennaStatus;
 
 using TransformStampedMsg = ::geometry_msgs::msg::TransformStamped;
 
 // ROS2 Transform Broadcaster
+using TransformBufferType = std::shared_ptr<::tf2_ros::Buffer>;
+using TransformListenerType = std::shared_ptr<::tf2_ros::TransformListener>;
+using StaticTransformBroadcasterType = std::shared_ptr<::tf2_ros::StaticTransformBroadcaster>;
 using TransformBroadcasterType = std::shared_ptr<::tf2_ros::TransformBroadcaster>;
 
 // ROS2 Subscriber Message Types
 using BoolMsg = ::std_msgs::msg::Bool;
 using TimeReferenceMsg = ::sensor_msgs::msg::TimeReference;
-using InputSpeedMeasurementMsg = ::microstrain_inertial_msgs::msg::InputSpeedMeasurement;
-using RTCMMsg = ::mavros_msgs::msg::RTCM;
-
-// ROS2 Subscriber Types
-using BoolSubType = ::rclcpp::Subscription<BoolMsg>::SharedPtr;
-using TimeReferenceSubType = ::rclcpp::Subscription<TimeReferenceMsg>::SharedPtr;
-using InputSpeedMeasurementSubType = ::rclcpp::Subscription<InputSpeedMeasurementMsg>::SharedPtr;
-using RTCMSubType = rclcpp::Subscription<RTCMMsg>::SharedPtr;
+using RTCMMsg = ::rtcm_msgs::msg::Message;
 
 // ROS2 Service Message Types
-using TriggerServiceMsg = std_srvs::srv::Trigger;
-using EmptyServiceMsg = std_srvs::srv::Empty;
+using TriggerSrv = std_srvs::srv::Trigger;
+using EmptySrv = std_srvs::srv::Empty;
 
-using SetAccelBiasServiceMsg = microstrain_inertial_msgs::srv::SetAccelBias;
-using GetAccelBiasServiceMsg = microstrain_inertial_msgs::srv::GetAccelBias;
-
-using SetGyroBiasServiceMsg = microstrain_inertial_msgs::srv::SetGyroBias;
-using GetGyroBiasServiceMsg = microstrain_inertial_msgs::srv::GetGyroBias;
-
-using SetHardIronValuesServiceMsg = microstrain_inertial_msgs::srv::SetHardIronValues;
-using GetHardIronValuesServiceMsg = microstrain_inertial_msgs::srv::GetHardIronValues;
-
-using SetSoftIronMatrixServiceMsg = microstrain_inertial_msgs::srv::SetSoftIronMatrix;
-using GetSoftIronMatrixServiceMsg = microstrain_inertial_msgs::srv::GetSoftIronMatrix;
-
-using SetComplementaryFilterServiceMsg = microstrain_inertial_msgs::srv::SetComplementaryFilter;
-using GetComplementaryFilterServiceMsg = microstrain_inertial_msgs::srv::GetComplementaryFilter;
-
-using SetConingScullingCompServiceMsg = microstrain_inertial_msgs::srv::SetConingScullingComp;
-using GetConingScullingCompServiceMsg = microstrain_inertial_msgs::srv::GetConingScullingComp;
-
-using SetSensor2VehicleRotationServiceMsg = microstrain_inertial_msgs::srv::SetSensor2VehicleRotation;
-using GetSensor2VehicleRotationServiceMsg = microstrain_inertial_msgs::srv::GetSensor2VehicleRotation;
-
-using SetSensor2VehicleOffsetServiceMsg = microstrain_inertial_msgs::srv::SetSensor2VehicleOffset;
-using GetSensor2VehicleOffsetServiceMsg = microstrain_inertial_msgs::srv::GetSensor2VehicleOffset;
-
-using GetSensor2VehicleTransformationServiceMsg = microstrain_inertial_msgs::srv::GetSensor2VehicleTransformation;
-
-using InitFilterEulerServiceMsg = microstrain_inertial_msgs::srv::InitFilterEuler;
-using InitFilterHeadingServiceMsg = microstrain_inertial_msgs::srv::InitFilterHeading;
-
-using SetHeadingSourceServiceMsg = microstrain_inertial_msgs::srv::SetHeadingSource;
-using GetHeadingSourceServiceMsg = microstrain_inertial_msgs::srv::GetHeadingSource;
-
-using SetReferencePositionServiceMsg = microstrain_inertial_msgs::srv::SetReferencePosition;
-using GetReferencePositionServiceMsg = microstrain_inertial_msgs::srv::GetReferencePosition;
-
-using SetEstimationControlFlagsServiceMsg = microstrain_inertial_msgs::srv::SetEstimationControlFlags;
-using GetEstimationControlFlagsServiceMsg = microstrain_inertial_msgs::srv::GetEstimationControlFlags;
-
-using SetDynamicsModeServiceMsg = microstrain_inertial_msgs::srv::SetDynamicsMode;
-using GetDynamicsModeServiceMsg = microstrain_inertial_msgs::srv::GetDynamicsMode;
-
-using SetZeroAngleUpdateThresholdServiceMsg = microstrain_inertial_msgs::srv::SetZeroAngleUpdateThreshold;
-using GetZeroAngleUpdateThresholdServiceMsg = microstrain_inertial_msgs::srv::GetZeroAngleUpdateThreshold;
-
-using SetZeroVelocityUpdateThresholdServiceMsg = microstrain_inertial_msgs::srv::SetZeroVelocityUpdateThreshold;
-using GetZeroVelocityUpdateThresholdServiceMsg = microstrain_inertial_msgs::srv::GetZeroVelocityUpdateThreshold;
-
-using SetTareOrientationServiceMsg = microstrain_inertial_msgs::srv::SetTareOrientation;
-
-using SetAccelNoiseServiceMsg = microstrain_inertial_msgs::srv::SetAccelNoise;
-using GetAccelNoiseServiceMsg = microstrain_inertial_msgs::srv::GetAccelNoise;
-
-using SetGyroNoiseServiceMsg = microstrain_inertial_msgs::srv::SetGyroNoise;
-using GetGyroNoiseServiceMsg = microstrain_inertial_msgs::srv::GetGyroNoise;
-
-using SetMagNoiseServiceMsg = microstrain_inertial_msgs::srv::SetMagNoise;
-using GetMagNoiseServiceMsg = microstrain_inertial_msgs::srv::GetMagNoise;
-
-using SetGyroBiasModelServiceMsg = microstrain_inertial_msgs::srv::SetGyroBiasModel;
-using GetGyroBiasModelServiceMsg = microstrain_inertial_msgs::srv::GetGyroBiasModel;
-
-using SetAccelBiasModelServiceMsg = microstrain_inertial_msgs::srv::SetAccelBiasModel;
-using GetAccelBiasModelServiceMsg = microstrain_inertial_msgs::srv::GetAccelBiasModel;
-
-using SetGravityAdaptiveValsServiceMsg = microstrain_inertial_msgs::srv::SetGravityAdaptiveVals;
-using GetGravityAdaptiveValsServiceMsg = microstrain_inertial_msgs::srv::GetGravityAdaptiveVals;
-
-using SetMagAdaptiveValsServiceMsg = microstrain_inertial_msgs::srv::SetMagAdaptiveVals;
-using GetMagAdaptiveValsServiceMsg = microstrain_inertial_msgs::srv::GetMagAdaptiveVals;
-
-using SetMagDipAdaptiveValsServiceMsg = microstrain_inertial_msgs::srv::SetMagDipAdaptiveVals;
-using GetMagDipAdaptiveValsServiceMsg = microstrain_inertial_msgs::srv::GetMagDipAdaptiveVals;
-
-using ExternalHeadingUpdateServiceMsg = microstrain_inertial_msgs::srv::ExternalHeadingUpdate;
-
-using SetRelativePositionReferenceServiceMsg = microstrain_inertial_msgs::srv::SetRelativePositionReference;
-using GetRelativePositionReferenceServiceMsg = microstrain_inertial_msgs::srv::GetRelativePositionReference;
-
-using DeviceReportServiceMsg = microstrain_inertial_msgs::srv::DeviceReport;
-using DeviceSettingsServiceMsg = microstrain_inertial_msgs::srv::DeviceSettings;
-
-using SetFilterSpeedLeverArmServiceMsg = microstrain_inertial_msgs::srv::SetFilterSpeedLeverArm;
+using MipBaseGetDeviceInformationSrv = microstrain_inertial_msgs::srv::MipBaseGetDeviceInformation;
+using Mip3dmCaptureGyroBiasSrv = microstrain_inertial_msgs::srv::Mip3dmCaptureGyroBias;
 
 // ROS2 aliases not intended to be used outside this file
 using ParamIntVector = std::vector<int64_t>;
@@ -751,6 +572,20 @@ using ParamIntVector = std::vector<int64_t>;
 
 #define MICROSTRAIN_DEBUG_THROTTLE(NODE, PERIOD, ...)                                                                  \
   RCLCPP_DEBUG_THROTTLE(NODE->get_logger(), *NODE->get_clock(), PERIOD, __VA_ARGS__)
+#define MICROSTRAIN_INFO_THROTTLE(NODE, PERIOD, ...)                                                                  \
+  RCLCPP_INFO_THROTTLE(NODE->get_logger(), *NODE->get_clock(), PERIOD, __VA_ARGS__)
+#define MICROSTRAIN_WARN_THROTTLE(NODE, PERIOD, ...)                                                                  \
+  RCLCPP_WARN_THROTTLE(NODE->get_logger(), *NODE->get_clock(), PERIOD, __VA_ARGS__)
+#define MICROSTRAIN_ERROR_THROTTLE(NODE, PERIOD, ...)                                                                  \
+  RCLCPP_ERROR_THROTTLE(NODE->get_logger(), *NODE->get_clock(), PERIOD, __VA_ARGS__)
+#define MICROSTRAIN_FATAL_THROTTLE(NODE, PERIOD, ...)                                                                  \
+  RCLCPP_FATAL_THROTTLE(NODE->get_logger(), *NODE->get_clock(), PERIOD, __VA_ARGS__)
+
+#define MICROSTRAIN_DEBUG_ONCE(NODE, ...) RCLCPP_DEBUG_ONCE(NODE->get_logger(), __VA_ARGS__)
+#define MICROSTRAIN_INFO_ONCE(NODE, ...) RCLCPP_INFO_ONCE(NODE->get_logger(), __VA_ARGS__)
+#define MICROSTRAIN_WARN_ONCE(NODE, ...) RCLCPP_WARN_ONCE(NODE->get_logger(), __VA_ARGS__)
+#define MICROSTRAIN_ERROR_ONCE(NODE, ...) RCLCPP_ERROR_ONCE(NODE->get_logger(), __VA_ARGS__)
+#define MICROSTRAIN_FATAL_ONCE(NODE, ...) RCLCPP_FATAL_ONCE(NODE->get_logger(), __VA_ARGS__)
 
 // ROS2 functions
 
@@ -787,6 +622,16 @@ inline int64_t getTimeRefSec(const builtin_interfaces::msg::Time& time_ref)
 }
 
 /**
+ * \brief Gets the seconds and nanoseconds converted to seconds as a double
+ * \param time_ref  The ros time object to extract the time from
+ * \return seconds combined with nanoseconds from the ros time object
+*/
+inline double getTimeRefSecs(const builtin_interfaces::msg::Time& time_ref)
+{
+  return static_cast<double>(time_ref.sec) + static_cast<double>(time_ref.nanosec) / 1000000000.0;
+}
+
+/**
  * \brief Sets the sequence number on a ROS header. This is only useful in ROS1 as ROS2 removed the seq member
  * \param header  The header to set the sequence number on
  * \param seq  The sequence number to set on the header
@@ -813,8 +658,47 @@ void getParam(RosNodeType* node, const std::string& param_name, ConfigType& para
   }
   else
   {
-    param_val = node->declare_parameter<ConfigType>(param_name, default_val);
+    rcl_interfaces::msg::ParameterDescriptor descriptor;
+#if not defined MICROSTRAIN_FOXY
+    descriptor.dynamic_typing = true;
+#endif
+    param_val = node->declare_parameter(param_name, rclcpp::ParameterValue{default_val}, descriptor).get<ConfigType>();
   }
+}
+
+template <class ConfigType>
+void setParam(RosNodeType* node, const std::string& param_name, const ConfigType& param_val)
+{
+  if (!node->has_parameter(param_name))
+  {
+    rcl_interfaces::msg::ParameterDescriptor descriptor;
+#if not defined MICROSTRAIN_FOXY
+    descriptor.dynamic_typing = true;
+#endif
+    node->declare_parameter(param_name, rclcpp::ParameterValue{}, descriptor);
+  }
+
+  node->set_parameter(rclcpp::Parameter(param_name, param_val));
+}
+
+inline TransformBufferType createTransformBuffer(RosNodeType* node)
+{
+  return std::make_shared<tf2_ros::Buffer>(node->get_clock());
+}
+
+inline TransformListenerType createTransformListener(TransformBufferType buffer)
+{
+  return std::make_shared<tf2_ros::TransformListener>(*buffer);
+}
+
+/**
+ * \brief Creates a static transform broadcaster
+ * \param node The ROS node that the broadcaster will be associated with
+ * \return Initialized shared pointer containing a transdorm broadcaster
+ */
+inline StaticTransformBroadcasterType createStaticTransformBroadcaster(RosNodeType* node)
+{
+  return std::make_shared<tf2_ros::StaticTransformBroadcaster>(node);
 }
 
 /**
@@ -940,6 +824,13 @@ inline void getParamFloat(RosNodeType* node, const std::string& param_name, floa
   }
 }
 
+/**
+ * \brief Extension of getParam. Explicitly gets the array as an array of uint16 values
+ * \param node  The ROS node to extract the config from
+ * \param param_name  The name of the config value to extract
+ * \param param_val  Variable to store the extracted config value in
+ * \param default_val  The default value to set param_val to if the config can't be found
+*/
 inline void getUint16ArrayParam(RosNodeType* node, const std::string& param_name, std::vector<uint16_t>& param_val, const std::vector<uint16_t>& default_val)
 {
   // Get the parameter as ints since that is all ROS supports
@@ -951,6 +842,25 @@ inline void getUint16ArrayParam(RosNodeType* node, const std::string& param_name
   param_val = std::vector<uint16_t>(param_val_int.begin(), param_val_int.end());
 }
 
+inline void setRosTime(RosTimeType* time_ref, double time)
+{
+  // Split the time into seconds and subseconds
+  double seconds;
+  double subseconds = std::modf(time, &seconds);
+
+  // Set the ros time
+  if (time_ref != nullptr)
+    setRosTime(time_ref, static_cast<int64_t>(seconds), static_cast<int64_t>(std::floor(subseconds * 1000000000)));
+}
+
+inline bool isNed(const RosHeaderType& header)
+{
+  const std::string& ned_suffix = "_ned";
+  if (header.frame_id.length() > ned_suffix.length())
+    return (0 == header.frame_id.compare(header.frame_id.length() - ned_suffix.length(), ned_suffix.length(), ned_suffix));
+  else
+    return false;
+}
 
 }  // namespace microstrain
 
