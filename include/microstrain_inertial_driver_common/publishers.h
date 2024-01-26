@@ -361,9 +361,6 @@ private:
   std::map<uint8_t, mip::data_shared::DeltaTime> delta_time_mapping_;
   std::map<uint8_t, mip::data_shared::ReferenceTimestamp> reference_timestamp_mapping_;
   std::map<uint8_t, mip::data_shared::ReferenceTimeDelta> reference_time_delta_mapping_;
-
-  // Save the orientation information, as it is used by some other data to transform based on orientation
-  tf2::Quaternion filter_attitude_quaternion_ = tf2::Quaternion(0, 0, 0, 1);
 };
 
 template<void (Publishers::*Callback)(const mip::Packet&, mip::Timestamp)>
