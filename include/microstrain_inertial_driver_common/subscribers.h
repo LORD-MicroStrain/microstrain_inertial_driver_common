@@ -12,6 +12,7 @@
 #define MICROSTRAIN_INERTIAL_DRIVER_COMMON_SUBSCRIBERS_H
 
 #include <array>
+#include <string>
 
 #include "microstrain_inertial_driver_common/utils/ros_compat.h"
 #include "microstrain_inertial_driver_common/utils/clock_bias_monitor.h"

@@ -25,7 +25,7 @@ class ClockBiasMonitor
    * \param weight How much to weight the old bias estimate vs the new delta time. Closer to 1 means more weight on the old bias estimate
    * \param max_bias_estimate Max bias estimate before resetting to the current delta time. Helps prevents jumps and outliers
   */
-  ClockBiasMonitor(const double weight = 0.5, const double max_bias_estimate = 1);
+  explicit ClockBiasMonitor(const double weight = 0.5, const double max_bias_estimate = 1);
 
   /**
    * \brief Adds a new time. The system time should be from as close as possible to the device time

@@ -337,7 +337,7 @@ mip::CmdResult RosMipDeviceMain::streamDescriptor(const uint8_t descriptor_set, 
   mip::CmdResult mip_cmd_result;
   const uint8_t max_descriptor_rates = 255;
   uint8_t num_descriptor_rates;
-  mip::DescriptorRate descriptor_rates[max_descriptor_rates];
+  mip::DescriptorRate descriptor_rates[max_descriptor_rates];  // NOLINT(runtime/arrays)
   memset(descriptor_rates, 0, sizeof(mip::DescriptorRate) * max_descriptor_rates);
   if (!(mip_cmd_result = readMessageFormat(descriptor_set, &num_descriptor_rates, max_descriptor_rates, descriptor_rates)))
     return mip_cmd_result;

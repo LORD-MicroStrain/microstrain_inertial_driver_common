@@ -170,7 +170,7 @@ inline ::ros::Time toMsg(const ::ros::Time& time)
 {
   return time;
 }
-}
+}  // namespace tf2_ros
 #endif
 
 namespace microstrain

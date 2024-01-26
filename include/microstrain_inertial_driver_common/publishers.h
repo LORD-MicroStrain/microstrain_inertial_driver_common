@@ -236,7 +236,7 @@ public:
   // IMU Publishers
   Publisher<ImuMsg>::SharedPtr                        imu_pub_         = Publisher<ImuMsg>::initialize(IMU_DATA_TOPIC);
   Publisher<MagneticFieldMsg>::SharedPtr              mag_pub_         = Publisher<MagneticFieldMsg>::initialize(IMU_MAG_TOPIC);
-  Publisher<FluidPressureMsg>::SharedPtr              pressure_pub_    = Publisher<FluidPressureMsg>::initialize(IMU_PRESSURE_TOPIC); 
+  Publisher<FluidPressureMsg>::SharedPtr              pressure_pub_    = Publisher<FluidPressureMsg>::initialize(IMU_PRESSURE_TOPIC);
   Publisher<TwistWithCovarianceStampedMsg>::SharedPtr wheel_speed_pub_ = Publisher<TwistWithCovarianceStampedMsg>::initialize(IMU_WHEEL_SPEED_TOPIC);
 
   // GNSS publishers

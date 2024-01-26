@@ -8,6 +8,8 @@
 //
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
+#include <string>
+
 #include "microstrain_inertial_driver_common/utils/geo_utils.h"
 
 #include "microstrain_inertial_driver_common/subscribers.h"
@@ -124,7 +126,7 @@ void Subscribers::externalGnssPositionCallback(const NavSatFixMsg& fix)
   llh_pos.time.timebase = mip::commands_aiding::Time::Timebase::TIME_OF_ARRIVAL;
   if ((llh_pos.sensor_id = getSensorIdFromFrameId(fix.header.frame_id)) == 0)
     return;
-  
+
   // Fill out the rest of the message and send it
   llh_pos.valid_flags.setAll();
   llh_pos.latitude = fix.latitude;
@@ -253,7 +255,7 @@ void Subscribers::externalVelBodyCallback(const TwistWithCovarianceStampedMsg& v
   vehicle_fixed_frame_velocity.time.timebase = mip::commands_aiding::Time::Timebase::TIME_OF_ARRIVAL;
   if ((vehicle_fixed_frame_velocity.sensor_id = getSensorIdFromFrameId(vel.header.frame_id)) == 0)
     return;
-  
+
   // Fill out the rest of the message and send it
   if (vel.twist.covariance[0] != 0)
   {
@@ -286,7 +288,7 @@ void Subscribers::externalHeadingNedCallback(const PoseWithCovarianceStampedMsg&
   true_heading.time.timebase = mip::commands_aiding::Time::Timebase::TIME_OF_ARRIVAL;
   if ((true_heading.sensor_id = getSensorIdFromFrameId(heading.header.frame_id)) == 0)
     return;
-  
+
   // Make sure we have uncertainty
   if (heading.pose.covariance[35] == 0)
   {
@@ -318,7 +320,7 @@ void Subscribers::externalHeadingEnuCallback(const PoseWithCovarianceStampedMsg&
   true_heading.time.timebase = mip::commands_aiding::Time::Timebase::TIME_OF_ARRIVAL;
   if ((true_heading.sensor_id = getSensorIdFromFrameId(heading.header.frame_id)) == 0)
     return;
-  
+
   // Make sure we have uncertainty
   if (heading.pose.covariance[35] == 0)
   {

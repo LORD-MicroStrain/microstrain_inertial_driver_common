@@ -8,6 +8,7 @@
 //
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
+#include <string>
 #include <algorithm>
 
 #include "microstrain_inertial_driver_common/publishers.h"
@@ -203,7 +204,7 @@ bool Publishers::configure()
       config_->map_to_earth_transform_.transform.rotation = tf2::toMsg(ecefToEnuTransformQuat(lat, lon));
     else
       config_->map_to_earth_transform_.transform.rotation = tf2::toMsg(ecefToNedTransformQuat(lat, lon));
-    
+
     // Note that the data is valid so we can publish it on activate
     config_->map_to_earth_transform_valid_ = true;
   }
@@ -420,7 +421,7 @@ bool Publishers::activate()
     static_transform_broadcaster_->sendTransform(config_->map_to_earth_transform_);
   if (config_->publish_mount_to_frame_id_transform_)
     static_transform_broadcaster_->sendTransform(config_->mount_to_frame_id_transform_);
-  
+
   // Static antenna offsets
   // Note: If streaming the antenna offset correction topic, correct the offsets with them
   if (config_->gnss_antenna_offset_source_[GNSS1_ID] == GNSS_ANTENNA_OFFSET_SOURCE_MANUAL)
@@ -636,7 +637,7 @@ void Publishers::handleSensorDeltaTheta(const mip::data_sensor::DeltaTheta& delt
     delta_time = delta_time_mapping_.at(descriptor_set).seconds;
   else
     delta_time = 1 / imu_pub_->dataRate();
-  
+
   // We use this delta measurement to exclude outliers and provide a more useful IMU measurement
   auto imu_msg = imu_pub_->getMessageToUpdate();
   updateHeaderTime(&(imu_msg->header), descriptor_set, timestamp);
@@ -658,7 +659,7 @@ void Publishers::handleSensorDeltaVelocity(const mip::data_sensor::DeltaVelocity
     delta_time = delta_time_mapping_.at(descriptor_set).seconds;
   else
     delta_time = 1 / imu_pub_->dataRate();
-  
+
   auto imu_msg = imu_pub_->getMessageToUpdate();
   updateHeaderTime(&(imu_msg->header), descriptor_set, timestamp);
   imu_msg->linear_acceleration.x = USTRAIN_G * delta_velocity.delta_velocity[0] / delta_time;
@@ -895,7 +896,7 @@ void Publishers::handleGnssFixInfo(const mip::data_gnss::FixInfo& fix_info, cons
     gnss_llh_position_msg->status.status = NavSatFixMsg::_status_type::STATUS_FIX;
   else
     gnss_llh_position_msg->status.status = NavSatFixMsg::_status_type::STATUS_NO_FIX;
-  
+
   // Human readable status (not counted as updating)
   auto filter_human_readable_status_msg = filter_human_readable_status_pub_->getMessage();
   if ((filter_human_readable_status_msg->gnss_state == HumanReadableStatusMsg::GNSS_STATE_NO_FIX || filter_human_readable_status_msg->gnss_state == HumanReadableStatusMsg::GNSS_STATE_3D_FIX) && fix_info.fix_flags.sbasUsed())
@@ -1029,7 +1030,7 @@ void Publishers::handleRtkBaseStationInfo(const mip::data_gnss::BaseStationInfo&
       config_->map_to_earth_transform_.transform.rotation = tf2::toMsg(ecefToEnuTransformQuat(lat, lon));
     else
       config_->map_to_earth_transform_.transform.rotation = tf2::toMsg(ecefToNedTransformQuat(lat, lon));
-    
+
     MICROSTRAIN_INFO_THROTTLE(node_, 10, "Base station info received, relative position will now be published relative to the following position");
     MICROSTRAIN_INFO_THROTTLE(node_, 10, "  LLH: [%f, %f, %f]", lat, lon, alt);
     config_->map_to_earth_transform_valid_ = true;
@@ -1246,7 +1247,7 @@ void Publishers::handleFilterEcefPos(const mip::data_filter::EcefPos& ecef_pos, 
       map_to_earth_transform = transform_buffer_->lookupTransform(config_->earth_frame_id_, config_->map_frame_id_, frame_time);
     else if (config_->filter_relative_pos_source_ != REL_POS_SOURCE_EXTERNAL && config_->map_to_earth_transform_valid_)
       map_to_earth_transform = config_->map_to_earth_transform_;
-    
+
     // Check if we have a valid transform
     if (map_to_earth_transform.header.frame_id == config_->earth_frame_id_ && map_to_earth_transform.child_frame_id == config_->map_frame_id_)
     {
@@ -1365,7 +1366,7 @@ void Publishers::handleFilterPositionLlhUncertainty(const mip::data_filter::Posi
       static_cast<float>(sqrt(ecef_frame_covariance[7])),
       static_cast<float>(sqrt(ecef_frame_covariance[14])),
     };
-    handleFilterEcefPosUncertainty(ecef_pos_uncertainty, descriptor_set, timestamp); 
+    handleFilterEcefPosUncertainty(ecef_pos_uncertainty, descriptor_set, timestamp);
   }
 }
 
@@ -1683,7 +1684,7 @@ void Publishers::handleFilterGnssPosAidStatus(const mip::data_filter::GnssPosAid
     filter_llh_position_msg->status.status = NavSatFixMsg::_status_type::STATUS_SBAS_FIX;
   else if (filter_llh_position_msg->status.status <= NavSatFixMsg::_status_type::STATUS_FIX && !mip_filter_gnss_position_aiding_status_msg->status.no_fix)
     filter_llh_position_msg->status.status = NavSatFixMsg::_status_type::STATUS_FIX;
-  
+
   // Filter human readable status message (not counted as updating)
   auto filter_human_readable_status_msg = filter_human_readable_status_pub_->getMessage();
   if ((filter_human_readable_status_msg->gnss_state == HumanReadableStatusMsg::GNSS_STATE_RTK_FLOAT || filter_human_readable_status_msg->gnss_state == HumanReadableStatusMsg::GNSS_STATE_SBAS || filter_human_readable_status_msg->gnss_state == HumanReadableStatusMsg::GNSS_STATE_3D_FIX || filter_human_readable_status_msg->gnss_state == HumanReadableStatusMsg::GNSS_STATE_NO_FIX) && mip_filter_gnss_position_aiding_status_msg->status.integer_fix)
@@ -1789,7 +1790,7 @@ void Publishers::handleAfterPacket(const mip::PacketRef& packet, mip::Timestamp 
   // Reset some shared descriptors. These are unique to the packets, and we do not want to cache them past this packet
   if (event_source_mapping_.find(packet.descriptorSet()) != event_source_mapping_.end())
     event_source_mapping_[packet.descriptorSet()].trigger_id = 0;
-  
+
   // Reset some state in messages that need to have it reset
   if (filter_human_readable_status_pub_->getMessage()->gnss_state != HumanReadableStatusMsg::UNSUPPORTED)
     filter_human_readable_status_pub_->getMessage()->gnss_state = HumanReadableStatusMsg::GNSS_STATE_NO_FIX;
@@ -1814,11 +1815,11 @@ void Publishers::updateMipHeader(MipHeaderMsg* mip_header, uint8_t descriptor_se
     mip_header->event_source = event_source_mapping_.at(descriptor_set).trigger_id;
   else
     mip_header->event_source = 0;
-  
+
   // Set the most recent reference timestamp if we have one
   if (reference_timestamp_mapping_.find(descriptor_set) != reference_timestamp_mapping_.end())
     mip_header->reference_timestamp = reference_timestamp_mapping_.at(descriptor_set).nanoseconds;
-  
+
   // Set the GPS timestamp if we have one (should always have one)
   if (gps_timestamp_mapping_.find(descriptor_set) != gps_timestamp_mapping_.end())
   {

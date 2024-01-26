@@ -13,6 +13,7 @@
 #define MICROSTRAIN_INERTIAL_DRIVER_COMMON_CONFIG_H
 
 #include <stddef.h>
+#include <map>
 #include <string>
 #include <vector>
 #include <memory>

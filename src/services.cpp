@@ -23,17 +23,17 @@ Services::Services(RosNodeType* node, Config* config) : node_(node), config_(con
 bool Services::configure()
 {
   {
-    using namespace mip::commands_base;  // NOLINT(build/namespace)
+    using namespace mip::commands_base;  // NOLINT(build/namespaces)
     mip_base_get_device_information_service_ = configureService<MipBaseGetDeviceInformationSrv, GetDeviceInfo>(MIP_BASE_GET_DEVICE_INFORMATION_SERVICE, &Services::mipBaseGetDeviceInformation);
   }
   {
-    using namespace mip::commands_3dm;  // NOLINT(build/namespace)
+    using namespace mip::commands_3dm;  // NOLINT(build/namespaces)
     mip_3dm_capture_gyro_bias_service_ = configureService<Mip3dmCaptureGyroBiasSrv, CaptureGyroBias>(MIP_3DM_CAPTURE_GYRO_BIAS_SERVICE, &Services::mip3dmCaptureGyroBias);
     mip_3dm_device_settings_save_service_ = configureService<EmptySrv, DeviceSettings>(MIP_3DM_DEVICE_SETTINGS_SAVE_SERVICE, &Services::mip3dmDeviceSettingsSave);
     mip_3dm_device_settings_load_service_ = configureService<EmptySrv, DeviceSettings>(MIP_3DM_DEVICE_SETTINGS_LOAD_SERVICE, &Services::mip3dmDeviceSettingsLoad);
   }
   {
-    using namespace mip::commands_filter;  // NOLINT(build/namespace)
+    using namespace mip::commands_filter;  // NOLINT(build/namespaces)
     mip_filter_reset_service_ = configureService<EmptySrv, Reset>(MIP_FILTER_RESET_SERVICE, &Services::mipFilterReset);
   }
 
@@ -151,7 +151,7 @@ bool Services::mipFilterReset(EmptySrv::Request& req, EmptySrv::Response& res)
     MICROSTRAIN_DEBUG(node_, "Reset filter");
   else
     MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to reset filter");
-  
+
   // If we are using auto relative position config, reset that flag
   if (config_->filter_relative_pos_source_ == REL_POS_SOURCE_AUTO)
   {

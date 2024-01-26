@@ -187,7 +187,6 @@ class MipPublisherMapping
 
   std::map<std::string, MipPublisherMappingInfo> topic_info_mapping_;  /// Will be populated based on the device with a mapping between with the topic and ROS and MIP configuration.
   std::map<uint8_t, std::vector<mip::DescriptorRate>> streamed_descriptors_mapping_;  /// Will be populated based on the device with a mapping between descriptor sets and the rates for each field descriptor.
-
 };
 
 template<typename MipType>
