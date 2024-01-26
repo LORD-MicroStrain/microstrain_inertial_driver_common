@@ -163,6 +163,11 @@ gnss2_rf_error_detection_data_rate : -1  # Rate of gnss1/rf_error_detection topi
 # Note: Make this as accurate as possible for good performance 
 gnss2_antenna_offset : [0.0, 0.7, -1.0]
 
+# GNSS signal configuration
+gnss_glonass_enable : False
+gnss_galileo_enable : True
+gnss_beidou_enable  : False
+
 # (GQ7 Only) Enable RTK dongle interface
 # Note: Enabling this will cause the node to publish on one of two topics depending
 #       on the version of the RTK dongle connected to the GQ7
