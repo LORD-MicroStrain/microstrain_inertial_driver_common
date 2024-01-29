@@ -99,8 +99,11 @@ constexpr auto NUM_GNSS = 2;
  */
 #elif MICROSTRAIN_ROS_VERSION == 2
 #include "rclcpp/rclcpp.hpp"
+
+#ifdef MICROSTRAIN_LIFECYCLE
 #include "rclcpp_lifecycle/lifecycle_node.hpp"
 #include "rclcpp_lifecycle/lifecycle_publisher.hpp"
+#endif
 
 #include "tf2_ros/buffer.h"
 #include "tf2_ros/buffer_interface.h"
@@ -485,24 +488,42 @@ inline void stopTimer(RosTimerType timer)
  */
 #elif MICROSTRAIN_ROS_VERSION == 2
 // ROS2 Generic Types
+#ifdef MICROSTRAIN_LIFECYCLE
 using RosNodeType = ::rclcpp_lifecycle::LifecycleNode;
+#else
+using RosNodeType = ::rclcpp::Node;
+#endif
 using RosTimeType = ::builtin_interfaces::msg::Time;
 using RosDurationType = ::rclcpp::Duration;
 using RosTimerType = ::rclcpp::TimerBase::SharedPtr;
 using RosRateType = ::rclcpp::Rate;
 using RosHeaderType = ::std_msgs::msg::Header;
 
+template<typename MessageType>
+#ifdef MICROSTRAIN_LIFECYCLE
+using RosBasePubType = ::rclcpp_lifecycle::LifecyclePublisher<MessageType>;
+#else
+using RosBasePubType = ::rclcpp::Publisher<MessageType>;
+#endif
+
 /**
  * \brief Wrapper to allow the publisher from ROS2 be compatible with ROS1
  *        This could almost be just "using", but the "MessageSharedPtr" of the base class is constant, and we need it to not be constant
  */
 template<typename MessageType>
-class RosPubType : public ::rclcpp_lifecycle::LifecyclePublisher<MessageType>
+class RosPubType : public RosBasePubType<MessageType>
 {
  public:
   using MessageSharedPtr = std::shared_ptr<MessageType>;
 
-  explicit RosPubType(const ::rclcpp_lifecycle::LifecyclePublisher<MessageType>& rhs) : ::rclcpp_lifecycle::LifecyclePublisher<MessageType>(rhs) {}
+  explicit RosPubType(const RosBasePubType<MessageType>& rhs) : RosBasePubType<MessageType>(rhs) {}
+
+  // Compatibility for non lifecycle node
+#ifndef MICROSTRAIN_LIFECYCLE
+  using SharedPtr = std::shared_ptr<RosPubType<MessageType>>;
+  void on_activate() {} // NOOP
+  void on_deactivate() {} // NOOP
+#endif
 };
 
 template<typename MessageType>
@@ -719,13 +740,24 @@ inline TransformBroadcasterType createTransformBroadcaster(RosNodeType* node)
  * \param queue_size  The size of the queue to enable in ROS
  * \return Shared Pointer containing the initialized publisher
  */
+#ifdef MICROSTRAIN_LIFECYCLE
 template <class MessageType>
 typename ::rclcpp_lifecycle::LifecyclePublisher<MessageType>::SharedPtr createPublisher(RosNodeType* node,
-                                                                                         const std::string& topic,
-                                                                                         const uint32_t qos)
+                                                                                       const std::string& topic,
+                                                                                       const uint32_t qos)
 {
   return node->template create_publisher<MessageType>(topic, qos);
 }
+#else
+template <class MessageType>
+typename RosPubType<MessageType>::SharedPtr createPublisher(RosNodeType* node,
+                                                            const std::string& topic,
+                                                            const uint32_t qos)
+{
+  auto base_pub = node->template create_publisher<MessageType>(topic, qos);
+  return std::make_shared<RosPubType<MessageType>>(*base_pub);
+}
+#endif
 
 /**
  * \brief Creates a ROS subscriber
