@@ -103,7 +103,7 @@ bool RosConnection::connect(RosNodeType* config_node, const std::string& port, c
   {
     MICROSTRAIN_INFO(node_, "Attempting to open serial port <%s> at <%d>", port.c_str(), baudrate);
     if (should_record_)
-      connection_ = std::unique_ptr<RecordingSerialConnection>(new RecordingSerialConnection(&record_file_, &record_file_, port, baudrate));
+      connection_ = std::unique_ptr<RecordingSerialConnection>(new RecordingSerialConnection(&record_file_, nullptr, port, baudrate));
     else
       connection_ = std::unique_ptr<SerialConnection>(new SerialConnection(port, baudrate));
   }
