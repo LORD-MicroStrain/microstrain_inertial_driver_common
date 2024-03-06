@@ -1727,17 +1727,16 @@ void Publishers::handleFilterGnssDualAntennaStatus(const mip::data_filter::GnssD
   // Filter Dual Antenna Status (pose version)
   auto filter_dual_antenna_heading_msg = filter_dual_antenna_heading_pub_->getMessageToUpdate();
   updateHeaderTime(&(filter_dual_antenna_heading_msg->header), descriptor_set, timestamp);
-  tf2::Quaternion ned_to_microstrain_vehicle_quaternion_tf;
-  ned_to_microstrain_vehicle_quaternion_tf.setRPY(0, 0, gnss_dual_antenna_status.heading);
-  tf2::Transform ned_to_microstrain_vehicle_transform_tf(ned_to_microstrain_vehicle_quaternion_tf);
+  tf2::Quaternion microstrain_vehicle_to_ned_quaternion_tf;
+  microstrain_vehicle_to_ned_quaternion_tf.setRPY(0, 0, gnss_dual_antenna_status.heading);
+  tf2::Transform microstrain_vehicle_to_ned_transform_tf(microstrain_vehicle_to_ned_quaternion_tf);
   if (config_->use_enu_frame_)
   {
-    const tf2::Transform ros_vehicle_to_enu_transform_tf = config_->ned_to_enu_transform_tf_ * ned_to_microstrain_vehicle_transform_tf.inverse() * config_->ros_vehicle_to_microstrain_vehicle_transform_tf_;
+    const tf2::Transform ros_vehicle_to_enu_transform_tf = config_->ned_to_enu_transform_tf_ * microstrain_vehicle_to_ned_transform_tf * config_->ros_vehicle_to_microstrain_vehicle_transform_tf_;
     filter_dual_antenna_heading_msg->pose.pose.orientation = tf2::toMsg(ros_vehicle_to_enu_transform_tf.getRotation());
   }
   else
   {
-    const tf2::Transform microstrain_vehicle_to_ned_transform_tf = ned_to_microstrain_vehicle_transform_tf.inverse();
     filter_dual_antenna_heading_msg->pose.pose.orientation = tf2::toMsg(microstrain_vehicle_to_ned_transform_tf.getRotation());
   }
   filter_dual_antenna_heading_msg->pose.covariance[35] = gnss_dual_antenna_status.heading_unc;
