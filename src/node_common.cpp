@@ -232,8 +232,10 @@ bool NodeCommon::activate()
 bool NodeCommon::deactivate()
 {
   // Stop the timers.
-  stopTimer(main_parsing_timer_);
-  stopTimer(aux_parsing_timer_);
+  if (main_parsing_timer_ != nullptr)
+    stopTimer(main_parsing_timer_);
+  if (aux_parsing_timer_ != nullptr)
+    stopTimer(aux_parsing_timer_);
 
   // Set the device to idle
   mip::CmdResult mip_cmd_result;
