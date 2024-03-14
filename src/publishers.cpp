@@ -131,6 +131,9 @@ bool Publishers::configure()
     registerDataCallback<mip::data_gnss::GpsTime, &Publishers::handleGnssGpsTime>(gnss_descriptor_set);
   }
 
+  // RTK callbacks
+  registerDataCallback<mip::data_gnss::RtkCorrectionsStatus, &Publishers::handleRtkCorrectionsStatus>(mip::data_gnss::MIP_GNSS3_DATA_DESC_SET);
+
   // Filter callbacks
   registerDataCallback<mip::data_filter::Status, &Publishers::handleFilterStatus>();
   registerDataCallback<mip::data_filter::EulerAngles, &Publishers::handleFilterEulerAngles>();
