@@ -1204,11 +1204,13 @@ void Publishers::handleFilterEcefPos(const mip::data_filter::EcefPos& ecef_pos, 
   filter_odometry_earth_msg->pose.pose.position.y = ecef_pos.position_ecef[1];
   filter_odometry_earth_msg->pose.pose.position.z = ecef_pos.position_ecef[2];
 
-  // Update the global transform
-  imu_link_to_earth_transform_translation_updated_ = true;
-  imu_link_to_earth_transform_tf_stamped_.stamp_ = tf2_ros::fromMsg(filter_odometry_earth_msg->header.stamp);
-  imu_link_to_earth_transform_tf_stamped_.setOrigin(tf2::Vector3(ecef_pos.position_ecef[0], ecef_pos.position_ecef[1], ecef_pos.position_ecef[2]));
-
+  // Update the global transform if the data is valid
+  if (ecef_pos.valid_flags == 1)
+  {
+    imu_link_to_earth_transform_translation_updated_ = true;
+    imu_link_to_earth_transform_tf_stamped_.stamp_ = tf2_ros::fromMsg(filter_odometry_earth_msg->header.stamp);
+    imu_link_to_earth_transform_tf_stamped_.setOrigin(tf2::Vector3(ecef_pos.position_ecef[0], ecef_pos.position_ecef[1], ecef_pos.position_ecef[2]));
+  }
   // If the earth to map transform is not valid and we entered full navigation mode, populate the transform with this position
   const bool full_nav =
   (
@@ -1264,10 +1266,13 @@ void Publishers::handleFilterEcefPos(const mip::data_filter::EcefPos& ecef_pos, 
       filter_odometry_map_msg->pose.pose.position.y = imu_to_map_transform_tf.getOrigin().getY();
       filter_odometry_map_msg->pose.pose.position.z = imu_to_map_transform_tf.getOrigin().getZ();
 
-      // Fill in the map to imu link transform
-      imu_link_to_map_transform_tf_stamped_.stamp_ = tf2_ros::fromMsg(rosTimeNow(node_));
-      imu_link_to_map_transform_tf_stamped_.setOrigin(imu_to_map_transform_tf.getOrigin());
-      imu_link_to_map_transform_translation_updated_ = true;
+      // Fill in the map to imu link transform if the data is valid
+      if (ecef_pos.valid_flags == 1)
+      {
+        imu_link_to_map_transform_tf_stamped_.stamp_ = tf2_ros::fromMsg(rosTimeNow(node_));
+        imu_link_to_map_transform_tf_stamped_.setOrigin(imu_to_map_transform_tf.getOrigin());
+        imu_link_to_map_transform_translation_updated_ = true;
+      }
     }
     else if (config_->filter_relative_pos_source_ == REL_POS_SOURCE_BASE_STATION)
     {
@@ -1305,6 +1310,7 @@ void Publishers::handleFilterPositionLlh(const mip::data_filter::PositionLlh& po
   if (!supports_filter_ecef_)
   {
     mip::data_filter::EcefPos ecef_pos;
+    ecef_pos.valid_flags = position_llh.valid_flags;
     config_->geocentric_converter_.Forward(position_llh.latitude, position_llh.longitude, position_llh.ellipsoid_height,
       ecef_pos.position_ecef[0], ecef_pos.position_ecef[1], ecef_pos.position_ecef[2]);
     handleFilterEcefPos(ecef_pos, descriptor_set, timestamp);
