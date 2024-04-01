@@ -62,7 +62,7 @@ bool Config::configure(RosNodeType* node)
 
   // General
   getParam<bool>(node, "debug", debug_, false);
-  getParam<bool>(node, "device_setup", device_setup_, false);
+  getParam<bool>(node, "device_setup", device_setup_, true);
 
   // Reconnect
   getParam<int>(node, "reconnect_attempts", reconnect_attempts_, 0);
