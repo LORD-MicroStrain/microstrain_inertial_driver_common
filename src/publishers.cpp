@@ -139,7 +139,7 @@ bool Publishers::configure()
   filter_velocity_pub_->getMessage()->header.frame_id = config_->frame_id_;
   filter_velocity_ecef_pub_->getMessage()->header.frame_id = config_->frame_id_;
   filter_odometry_earth_pub_->getMessage()->header.frame_id = config_->earth_frame_id_;
-  filter_odometry_earth_pub_->getMessage()->child_frame_id = config_->earth_frame_id_;
+  filter_odometry_earth_pub_->getMessage()->child_frame_id = config_->frame_id_;
   filter_odometry_map_pub_->getMessage()->header.frame_id = config_->map_frame_id_;
   filter_odometry_map_pub_->getMessage()->child_frame_id = config_->frame_id_;
   filter_dual_antenna_heading_pub_->getMessage()->header.frame_id = config_->frame_id_;
@@ -1507,6 +1507,10 @@ void Publishers::handleFilterVelocityNed(const mip::data_filter::VelocityNed& ve
   filter_odometry_map_msg->twist.twist.linear.x = imu_velocity_in_imu_frame.getX();
   filter_odometry_map_msg->twist.twist.linear.y = imu_velocity_in_imu_frame.getY();
   filter_odometry_map_msg->twist.twist.linear.z = imu_velocity_in_imu_frame.getZ();
+
+  // Filter odometry message (not counted as updating)
+  auto filter_odometry_earth_msg = filter_odometry_earth_pub_->getMessage();
+  filter_odometry_earth_msg->twist.twist.linear = filter_odometry_map_msg->twist.twist.linear;
 }
 
 void Publishers::handleFilterVelocityNedUncertainty(const mip::data_filter::VelocityNedUncertainty& velocity_ned_uncertainty, const uint8_t descriptor_set, mip::Timestamp timestamp)
@@ -1534,6 +1538,10 @@ void Publishers::handleFilterVelocityNedUncertainty(const mip::data_filter::Velo
   filter_odometry_map_msg->twist.covariance[21] = pow(velocity_ned_uncertainty.north, 2);
   filter_odometry_map_msg->twist.covariance[28] = pow(velocity_ned_uncertainty.east, 2);
   filter_odometry_map_msg->twist.covariance[35] = pow(velocity_ned_uncertainty.down, 2);
+
+  // Filter odometry message (not counted as updating)
+  auto filter_odometry_earth_msg = filter_odometry_earth_pub_->getMessageToUpdate();
+  filter_odometry_earth_msg->twist.covariance = filter_odometry_map_msg->twist.covariance;
 }
 
 void Publishers::handleFilterEcefVelocity(const mip::data_filter::EcefVel& ecef_vel, const uint8_t descriptor_set, mip::Timestamp timestamp)
@@ -1544,10 +1552,6 @@ void Publishers::handleFilterEcefVelocity(const mip::data_filter::EcefVel& ecef_
   filter_velocity_ecef_msg->twist.twist.linear.x = ecef_vel.velocity_ecef[0];
   filter_velocity_ecef_msg->twist.twist.linear.y = ecef_vel.velocity_ecef[1];
   filter_velocity_ecef_msg->twist.twist.linear.z = ecef_vel.velocity_ecef[2];
-
-  // Filter odometry message (not counted as updating)
-  auto filter_odometry_earth_msg = filter_odometry_earth_pub_->getMessage();
-  filter_odometry_earth_msg->twist.twist.linear = filter_velocity_ecef_msg->twist.twist.linear;
 }
 
 void Publishers::handleFilterEcefVelocityUncertainty(const mip::data_filter::EcefVelUncertainty& ecef_velocity_uncertainty, const uint8_t descriptor_set, mip::Timestamp timestamp)
@@ -1558,10 +1562,6 @@ void Publishers::handleFilterEcefVelocityUncertainty(const mip::data_filter::Ece
   filter_velocity_ecef_msg->twist.covariance[0] = pow(ecef_velocity_uncertainty.vel_uncertainty[0], 2);
   filter_velocity_ecef_msg->twist.covariance[7] = pow(ecef_velocity_uncertainty.vel_uncertainty[1], 2);
   filter_velocity_ecef_msg->twist.covariance[14] = pow(ecef_velocity_uncertainty.vel_uncertainty[2], 2);
-
-  // Filter odometry message (not counted as updating)
-  auto filter_odometry_earth_msg = filter_odometry_earth_pub_->getMessageToUpdate();
-  filter_odometry_earth_msg->twist.covariance = filter_velocity_ecef_msg->twist.covariance;
 }
 
 void Publishers::handleFilterCompAngularRate(const mip::data_filter::CompAngularRate& comp_angular_rate, const uint8_t descriptor_set, mip::Timestamp timestamp)
@@ -1586,8 +1586,11 @@ void Publishers::handleFilterCompAngularRate(const mip::data_filter::CompAngular
   auto filter_odometry_map_msg = filter_odometry_map_pub_->getMessage();
   filter_odometry_map_msg->twist.twist.angular = filter_imu_msg->angular_velocity;
 
-  // The angular velocity comes out in the sensor frame. Rotate it into the earth frame in order to populate the earth messages
+  // Filter odometry message (not counted as updating)
   auto filter_odometry_earth_msg = filter_odometry_earth_pub_->getMessage();
+  filter_odometry_earth_msg->twist.twist.angular = filter_imu_msg->angular_velocity;
+
+  // The angular velocity comes out in the sensor frame. Rotate it into the earth frame in order to populate the earth messages
   const tf2::Transform imu_to_earth_transform_tf(
     tf2::Quaternion(
       filter_odometry_earth_msg->pose.pose.orientation.x,
@@ -1607,11 +1610,6 @@ void Publishers::handleFilterCompAngularRate(const mip::data_filter::CompAngular
   filter_velocity_ecef_msg->twist.twist.angular.x = imu_angular_velocity_in_earth_frame.x();
   filter_velocity_ecef_msg->twist.twist.angular.y = imu_angular_velocity_in_earth_frame.y();
   filter_velocity_ecef_msg->twist.twist.angular.z = imu_angular_velocity_in_earth_frame.z();
-
-  // Filter odometry message (not counted as updating)
-  filter_odometry_earth_msg->twist.twist.angular.x = imu_angular_velocity_in_earth_frame.x();
-  filter_odometry_earth_msg->twist.twist.angular.y = imu_angular_velocity_in_earth_frame.y();
-  filter_odometry_earth_msg->twist.twist.angular.z = imu_angular_velocity_in_earth_frame.z();
 }
 
 void Publishers::handleFilterCompAccel(const mip::data_filter::CompAccel& comp_accel, const uint8_t descriptor_set, mip::Timestamp timestamp)
