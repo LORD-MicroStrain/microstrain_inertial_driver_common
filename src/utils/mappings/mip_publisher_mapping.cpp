@@ -367,8 +367,8 @@ const std::map<std::string, FieldWrapper::SharedPtrVec> MipPublisherMapping::sta
     FieldWrapperType<mip::data_filter::EcefPosUncertainty>::initialize(),
     FieldWrapperType<mip::data_filter::AttitudeQuaternion>::initialize(),
     FieldWrapperType<mip::data_filter::EulerAnglesUncertainty>::initialize(),
-    FieldWrapperType<mip::data_filter::EcefVel>::initialize(),
-    FieldWrapperType<mip::data_filter::EcefVelUncertainty>::initialize(),
+    FieldWrapperType<mip::data_filter::VelocityNed>::initialize(),
+    FieldWrapperType<mip::data_filter::VelocityNedUncertainty>::initialize(),
     FieldWrapperType<mip::data_filter::CompAngularRate>::initialize(),
   }},
   {FILTER_ODOMETRY_MAP_TOPIC, {
