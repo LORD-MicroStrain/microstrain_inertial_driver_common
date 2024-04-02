@@ -130,7 +130,7 @@ bool Publishers::configure()
   for (int i = 0; i < gnss_velocity_pub_.size(); i++) gnss_velocity_pub_[i]->getMessage()->header.frame_id = config_->gnss_frame_id_[i];
   for (int i = 0; i < gnss_velocity_ecef_pub_.size(); i++) gnss_velocity_ecef_pub_[i]->getMessage()->header.frame_id = config_->gnss_frame_id_[i];
   for (int i = 0; i < gnss_odometry_pub_.size(); i++) gnss_odometry_pub_[i]->getMessage()->header.frame_id = config_->earth_frame_id_;
-  for (int i = 0; i < gnss_odometry_pub_.size(); i++) gnss_odometry_pub_[i]->getMessage()->child_frame_id = config_->earth_frame_id_;
+  for (int i = 0; i < gnss_odometry_pub_.size(); i++) gnss_odometry_pub_[i]->getMessage()->child_frame_id = config_->gnss_frame_id_[i];
   for (int i = 0; i < gnss_time_pub_.size(); i++) gnss_time_pub_[i]->getMessage()->header.frame_id = config_->gnss_frame_id_[i];
 
   filter_human_readable_status_pub_->getMessage()->header.frame_id = config_->frame_id_;
@@ -838,6 +838,24 @@ void Publishers::handleGnssVelNed(const mip::data_gnss::VelNed& vel_ned, const u
     gnss_odometry_msg->pose.pose.orientation = tf2::toMsg(microstrain_vehicle_to_earth_transform_tf.getRotation());
   }
   gnss_odometry_msg->pose.covariance[35] = vel_ned.heading_accuracy;
+
+  // Rotate the velocity to the sensor frame for the odometry message
+  const tf2::Vector3 imu_velocity_in_ned_frame(vel_ned.v[0], vel_ned.v[1], vel_ned.v[2]);
+  if (config_->use_enu_frame_)
+  {
+    const tf2::Vector3 imu_velocity_in_ros_vehicle_frame = config_->ros_vehicle_to_microstrain_vehicle_transform_tf_.inverse() * ned_to_microstrain_vehicle_transform_tf * imu_velocity_in_ned_frame;
+    gnss_odometry_msg->twist.twist.linear.x = imu_velocity_in_ros_vehicle_frame.getX();
+    gnss_odometry_msg->twist.twist.linear.y = imu_velocity_in_ros_vehicle_frame.getY();
+    gnss_odometry_msg->twist.twist.linear.z = imu_velocity_in_ros_vehicle_frame.getZ();
+  }
+  else
+  {
+    const tf2::Vector3 imu_velocity_in_microstrain_vehicle_frame = ned_to_microstrain_vehicle_transform_tf * imu_velocity_in_ned_frame;
+    gnss_odometry_msg->twist.twist.linear.x = imu_velocity_in_microstrain_vehicle_frame.getX();
+    gnss_odometry_msg->twist.twist.linear.y = imu_velocity_in_microstrain_vehicle_frame.getY();
+    gnss_odometry_msg->twist.twist.linear.z = imu_velocity_in_microstrain_vehicle_frame.getZ();
+  }
+  gnss_odometry_msg->twist.covariance = gnss_velocity_msg->twist.covariance;
 }
 
 void Publishers::handleGnssPosEcef(const mip::data_gnss::PosEcef& pos_ecef, const uint8_t descriptor_set, mip::Timestamp timestamp)
@@ -866,10 +884,6 @@ void Publishers::handleGnssVelEcef(const mip::data_gnss::VelEcef& vel_ecef, cons
   gnss_velocity_ecef_msg->twist.covariance[0] = vel_ecef.v_accuracy;
   gnss_velocity_ecef_msg->twist.covariance[7] = vel_ecef.v_accuracy;
   gnss_velocity_ecef_msg->twist.covariance[14] = vel_ecef.v_accuracy;
-
-  // GNSS odometry message (not counted as updating)
-  auto gnss_odometry_msg = gnss_odometry_pub_[gnss_index]->getMessage();
-  gnss_odometry_msg->twist = gnss_velocity_ecef_msg->twist;
 }
 
 void Publishers::handleGnssFixInfo(const mip::data_gnss::FixInfo& fix_info, const uint8_t descriptor_set, mip::Timestamp timestamp)
