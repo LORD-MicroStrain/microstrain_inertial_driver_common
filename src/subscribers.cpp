@@ -391,9 +391,15 @@ uint8_t Subscribers::getSensorIdFromFrameId(const std::string& frame_id)
         auto vehicle_to_sensor_transform = transform_buffer_->lookupTransform(config_->frame_id_, frame_id, frame_time);
         if (config_->use_enu_frame_)
         {
-          tf2::Transform ros_vehicle_to_sensor_transform_tf;
+          tf2::Transform ros_vehicle_to_sensor_transform_tf, microstrain_vehicle_to_sensor_transform_tf;
           tf2::fromMsg(vehicle_to_sensor_transform.transform, ros_vehicle_to_sensor_transform_tf);
-          vehicle_to_sensor_transform.transform = tf2::toMsg(ros_vehicle_to_sensor_transform_tf * config_->ros_vehicle_to_microstrain_vehicle_transform_tf_.inverse());
+          const tf2::Vector3& ros_vehicle_to_sensor_translation_tf = ros_vehicle_to_sensor_transform_tf.getOrigin();
+          const tf2::Quaternion& ros_vehicle_to_sensor_rotation_tf = ros_vehicle_to_sensor_transform_tf.getRotation();
+          const tf2::Vector3& microstrain_vehicle_to_sensor_translation_tf = config_->ros_vehicle_to_microstrain_vehicle_transform_tf_ * ros_vehicle_to_sensor_translation_tf;
+          const tf2::Quaternion& microstrain_vehicle_to_sensor_rotation_tf = config_->ros_vehicle_to_microstrain_vehicle_transform_tf_ * ros_vehicle_to_sensor_rotation_tf;
+          microstrain_vehicle_to_sensor_transform_tf.setOrigin(microstrain_vehicle_to_sensor_translation_tf);
+          microstrain_vehicle_to_sensor_transform_tf.setRotation(microstrain_vehicle_to_sensor_rotation_tf);
+          vehicle_to_sensor_transform.transform = tf2::toMsg(microstrain_vehicle_to_sensor_transform_tf);
         }
         mip::commands_aiding::ReferenceFrame reference_frame;
         reference_frame.format = mip::commands_aiding::ReferenceFrame::Format::QUATERNION;
@@ -420,9 +426,9 @@ uint8_t Subscribers::getSensorIdFromFrameId(const std::string& frame_id)
         const tf2::Matrix3x3 m(q);
         double r, p, y;
         m.getRPY(r, p, y);
-        MICROSTRAIN_DEBUG(node_, "Associating MIP frame %u with ROS frame %s", reference_frame.frame_id, frame_id.c_str());
-        MICROSTRAIN_DEBUG(node_, "  Front (meters): %f, Right (meters): %f, Down (meters): %f", vehicle_to_sensor_transform.transform.translation.x, vehicle_to_sensor_transform.transform.translation.y, vehicle_to_sensor_transform.transform.translation.z);
-        MICROSTRAIN_DEBUG(node_, "  Roll (degrees): %f, Pitch (degrees): %f, Yaw (degrees): %f", r * 180 / M_PI, p * 180 / M_PI, y * 180 / M_PI);
+        MICROSTRAIN_INFO(node_, "Associating MIP frame %u with ROS frame %s", reference_frame.frame_id, frame_id.c_str());
+        MICROSTRAIN_INFO(node_, "  Front (meters): %f, Right (meters): %f, Down (meters): %f", vehicle_to_sensor_transform.transform.translation.x, vehicle_to_sensor_transform.transform.translation.y, vehicle_to_sensor_transform.transform.translation.z);
+        MICROSTRAIN_INFO(node_, "  Roll (degrees): %f, Pitch (degrees): %f, Yaw (degrees): %f", r * 180 / M_PI, p * 180 / M_PI, y * 180 / M_PI);
 
         // Attempt to send the command
         mip::CmdResult mip_cmd_result;
