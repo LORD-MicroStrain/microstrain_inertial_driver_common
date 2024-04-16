@@ -123,10 +123,11 @@ void Subscribers::externalGnssPositionCallback(const NavSatFixMsg& fix)
 
   // Get the sensor ID from the frame ID
   mip::commands_aiding::LlhPos llh_pos;
+  llh_pos.time.reserved = 1;
   llh_pos.time.timebase = mip::commands_aiding::Time::Timebase::TIME_OF_ARRIVAL;
   if ((llh_pos.frame_id = getSensorIdFromFrameId(fix.header.frame_id)) == 0)
     return;
-
+  
   // Fill out the rest of the message and send it
   llh_pos.valid_flags.setAll();
   llh_pos.latitude = fix.latitude;
@@ -153,6 +154,7 @@ void Subscribers::externalVelNedCallback(const TwistWithCovarianceStampedMsg& ve
 {
   // Get the sensor ID from the frame ID
   mip::commands_aiding::NedVel ned_vel;
+  ned_vel.time.reserved = 1;
   ned_vel.time.timebase = mip::commands_aiding::Time::Timebase::TIME_OF_ARRIVAL;
   if ((ned_vel.frame_id = getSensorIdFromFrameId(vel.header.frame_id)) == 0)
     return;
@@ -186,6 +188,7 @@ void Subscribers::externalVelEnuCallback(const TwistWithCovarianceStampedMsg& ve
 {
   // Get the sensor ID from the frame ID
   mip::commands_aiding::NedVel ned_vel;
+  ned_vel.time.reserved = 1;
   ned_vel.time.timebase = mip::commands_aiding::Time::Timebase::TIME_OF_ARRIVAL;
   if ((ned_vel.frame_id = getSensorIdFromFrameId(vel.header.frame_id)) == 0)
     return;
@@ -219,6 +222,7 @@ void Subscribers::externalVelEcefCallback(const TwistWithCovarianceStampedMsg& v
 {
   // Get the sensor ID from the frame ID
   mip::commands_aiding::EcefVel ecef_vel;
+  ecef_vel.time.reserved = 1;
   ecef_vel.time.timebase = mip::commands_aiding::Time::Timebase::TIME_OF_ARRIVAL;
   if ((ecef_vel.frame_id = getSensorIdFromFrameId(vel.header.frame_id)) == 0)
     return;
@@ -252,6 +256,7 @@ void Subscribers::externalVelBodyCallback(const TwistWithCovarianceStampedMsg& v
 {
   // Get the sensor ID from the frame ID
   mip::commands_aiding::VehicleFixedFrameVelocity vehicle_fixed_frame_velocity;
+  vehicle_fixed_frame_velocity.time.reserved = 1;
   vehicle_fixed_frame_velocity.time.timebase = mip::commands_aiding::Time::Timebase::TIME_OF_ARRIVAL;
   if ((vehicle_fixed_frame_velocity.frame_id = getSensorIdFromFrameId(vel.header.frame_id)) == 0)
     return;
@@ -285,6 +290,7 @@ void Subscribers::externalHeadingNedCallback(const PoseWithCovarianceStampedMsg&
 {
   // Fill out the time of the message
   mip::commands_aiding::TrueHeading true_heading;
+  true_heading.time.reserved = 1;
   true_heading.time.timebase = mip::commands_aiding::Time::Timebase::TIME_OF_ARRIVAL;
   if ((true_heading.frame_id = getSensorIdFromFrameId(heading.header.frame_id)) == 0)
     return;
@@ -317,6 +323,7 @@ void Subscribers::externalHeadingEnuCallback(const PoseWithCovarianceStampedMsg&
 {
   // Fill out the time of the message
   mip::commands_aiding::TrueHeading true_heading;
+  true_heading.time.reserved = 1;
   true_heading.time.timebase = mip::commands_aiding::Time::Timebase::TIME_OF_ARRIVAL;
   if ((true_heading.frame_id = getSensorIdFromFrameId(heading.header.frame_id)) == 0)
     return;
@@ -330,13 +337,11 @@ void Subscribers::externalHeadingEnuCallback(const PoseWithCovarianceStampedMsg&
 
   // Convert the quaternion to RPY and rotate it to NED
   double r, p, y;
-  /*
   tf2::Quaternion q;
   tf2::fromMsg(heading.pose.pose.orientation, q);
+  q = config_->ned_to_enu_transform_tf_.inverse() * q;
   tf2::Matrix3x3 m(q);
-  m = config_->t_ned_to_enu_.inverse() * m;
   m.getRPY(r, p, y);
-  */
 
   // Fill out the rest of the message and send it
   true_heading.valid_flags = 0xFFFF;
