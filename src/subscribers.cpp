@@ -124,7 +124,7 @@ void Subscribers::externalGnssPositionCallback(const NavSatFixMsg& fix)
   // Get the sensor ID from the frame ID
   mip::commands_aiding::LlhPos llh_pos;
   llh_pos.time.timebase = mip::commands_aiding::Time::Timebase::TIME_OF_ARRIVAL;
-  if ((llh_pos.sensor_id = getSensorIdFromFrameId(fix.header.frame_id)) == 0)
+  if ((llh_pos.frame_id = getSensorIdFromFrameId(fix.header.frame_id)) == 0)
     return;
 
   // Fill out the rest of the message and send it
@@ -154,7 +154,7 @@ void Subscribers::externalVelNedCallback(const TwistWithCovarianceStampedMsg& ve
   // Get the sensor ID from the frame ID
   mip::commands_aiding::NedVel ned_vel;
   ned_vel.time.timebase = mip::commands_aiding::Time::Timebase::TIME_OF_ARRIVAL;
-  if ((ned_vel.sensor_id = getSensorIdFromFrameId(vel.header.frame_id)) == 0)
+  if ((ned_vel.frame_id = getSensorIdFromFrameId(vel.header.frame_id)) == 0)
     return;
 
   // Fill out the rest of the message and send it
@@ -187,7 +187,7 @@ void Subscribers::externalVelEnuCallback(const TwistWithCovarianceStampedMsg& ve
   // Get the sensor ID from the frame ID
   mip::commands_aiding::NedVel ned_vel;
   ned_vel.time.timebase = mip::commands_aiding::Time::Timebase::TIME_OF_ARRIVAL;
-  if ((ned_vel.sensor_id = getSensorIdFromFrameId(vel.header.frame_id)) == 0)
+  if ((ned_vel.frame_id = getSensorIdFromFrameId(vel.header.frame_id)) == 0)
     return;
 
   // Fill out the rest of the message and send it
@@ -220,7 +220,7 @@ void Subscribers::externalVelEcefCallback(const TwistWithCovarianceStampedMsg& v
   // Get the sensor ID from the frame ID
   mip::commands_aiding::EcefVel ecef_vel;
   ecef_vel.time.timebase = mip::commands_aiding::Time::Timebase::TIME_OF_ARRIVAL;
-  if ((ecef_vel.sensor_id = getSensorIdFromFrameId(vel.header.frame_id)) == 0)
+  if ((ecef_vel.frame_id = getSensorIdFromFrameId(vel.header.frame_id)) == 0)
     return;
 
   // Fill out the rest of the message and send it
@@ -253,7 +253,7 @@ void Subscribers::externalVelBodyCallback(const TwistWithCovarianceStampedMsg& v
   // Get the sensor ID from the frame ID
   mip::commands_aiding::VehicleFixedFrameVelocity vehicle_fixed_frame_velocity;
   vehicle_fixed_frame_velocity.time.timebase = mip::commands_aiding::Time::Timebase::TIME_OF_ARRIVAL;
-  if ((vehicle_fixed_frame_velocity.sensor_id = getSensorIdFromFrameId(vel.header.frame_id)) == 0)
+  if ((vehicle_fixed_frame_velocity.frame_id = getSensorIdFromFrameId(vel.header.frame_id)) == 0)
     return;
 
   // Fill out the rest of the message and send it
@@ -286,7 +286,7 @@ void Subscribers::externalHeadingNedCallback(const PoseWithCovarianceStampedMsg&
   // Fill out the time of the message
   mip::commands_aiding::TrueHeading true_heading;
   true_heading.time.timebase = mip::commands_aiding::Time::Timebase::TIME_OF_ARRIVAL;
-  if ((true_heading.sensor_id = getSensorIdFromFrameId(heading.header.frame_id)) == 0)
+  if ((true_heading.frame_id = getSensorIdFromFrameId(heading.header.frame_id)) == 0)
     return;
 
   // Make sure we have uncertainty
@@ -318,7 +318,7 @@ void Subscribers::externalHeadingEnuCallback(const PoseWithCovarianceStampedMsg&
   // Fill out the time of the message
   mip::commands_aiding::TrueHeading true_heading;
   true_heading.time.timebase = mip::commands_aiding::Time::Timebase::TIME_OF_ARRIVAL;
-  if ((true_heading.sensor_id = getSensorIdFromFrameId(heading.header.frame_id)) == 0)
+  if ((true_heading.frame_id = getSensorIdFromFrameId(heading.header.frame_id)) == 0)
     return;
 
   // Make sure we have uncertainty
@@ -401,16 +401,16 @@ uint8_t Subscribers::getSensorIdFromFrameId(const std::string& frame_id)
           microstrain_vehicle_to_sensor_transform_tf.setRotation(microstrain_vehicle_to_sensor_rotation_tf);
           vehicle_to_sensor_transform.transform = tf2::toMsg(microstrain_vehicle_to_sensor_transform_tf);
         }
-        mip::commands_aiding::ReferenceFrame reference_frame;
-        reference_frame.format = mip::commands_aiding::ReferenceFrame::Format::QUATERNION;
-        reference_frame.frame_id = external_frame_ids_size_ + 1;
-        reference_frame.function = mip::FunctionSelector::WRITE;
-        reference_frame.translation = {
+        mip::commands_aiding::FrameConfig frame_config;
+        frame_config.format = mip::commands_aiding::FrameConfig::Format::QUATERNION;
+        frame_config.frame_id = external_frame_ids_size_ + 1;
+        frame_config.function = mip::FunctionSelector::WRITE;
+        frame_config.translation = {
           static_cast<float>(vehicle_to_sensor_transform.transform.translation.x),
           static_cast<float>(vehicle_to_sensor_transform.transform.translation.y),
           static_cast<float>(vehicle_to_sensor_transform.transform.translation.z)
         };
-        reference_frame.rotation = {
+        frame_config.rotation.quaternion = {
           static_cast<float>(vehicle_to_sensor_transform.transform.rotation.w),
           static_cast<float>(vehicle_to_sensor_transform.transform.rotation.x),
           static_cast<float>(vehicle_to_sensor_transform.transform.rotation.y),
@@ -426,13 +426,13 @@ uint8_t Subscribers::getSensorIdFromFrameId(const std::string& frame_id)
         const tf2::Matrix3x3 m(q);
         double r, p, y;
         m.getRPY(r, p, y);
-        MICROSTRAIN_INFO(node_, "Associating MIP frame %u with ROS frame %s", reference_frame.frame_id, frame_id.c_str());
+        MICROSTRAIN_INFO(node_, "Associating MIP frame %u with ROS frame %s", frame_config.frame_id, frame_id.c_str());
         MICROSTRAIN_INFO(node_, "  Front (meters): %f, Right (meters): %f, Down (meters): %f", vehicle_to_sensor_transform.transform.translation.x, vehicle_to_sensor_transform.transform.translation.y, vehicle_to_sensor_transform.transform.translation.z);
         MICROSTRAIN_INFO(node_, "  Roll (degrees): %f, Pitch (degrees): %f, Yaw (degrees): %f", r * 180 / M_PI, p * 180 / M_PI, y * 180 / M_PI);
 
         // Attempt to send the command
         mip::CmdResult mip_cmd_result;
-        if (!(mip_cmd_result = config_->mip_device_->device().runCommand<mip::commands_aiding::ReferenceFrame>(reference_frame)))
+        if (!(mip_cmd_result = config_->mip_device_->device().runCommand<mip::commands_aiding::FrameConfig>(frame_config)))
         {
           MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to send aiding LLH position aiding command");
           return 0;
