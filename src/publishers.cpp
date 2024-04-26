@@ -407,6 +407,8 @@ bool Publishers::activate()
   for (const auto& pub : mip_gnss_fix_info_pub_) pub->activate();
   for (const auto& pub : mip_gnss_sbas_info_pub_) pub->activate();
   for (const auto& pub : mip_gnss_rf_error_detection_pub_) pub->activate();
+  for (const auto& pub : mip_gnss_satellite_status_pub_) pub->activate();
+  for (const auto& pub : mip_gnss_satellite_status_epoch_pub_) pub->activate();
 
   mip_gnss_corrections_rtk_corrections_status_pub_->activate();
 
