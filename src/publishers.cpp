@@ -68,7 +68,8 @@ void setRotationCovarianceOnCovariance(PoseWithCovarianceStampedMsg::_pose_type:
 }
 
 Publishers::Publishers(RosNodeType* node, Config* config)
-  : node_(node), config_(config)
+  : node_(node), config_(config),
+  mip_gnss_satellite_status_epoch_buffer_({EpochBuffer<MipGnssSatelliteStatusMsg>(1.0), EpochBuffer<MipGnssSatelliteStatusMsg>(1.0)})
 {
   // Initialize the transform buffer and listener ahead of time
   transform_buffer_ = createTransformBuffer(node_);
@@ -341,6 +342,7 @@ bool Publishers::configure()
     registerDataCallback<mip::data_gnss::FixInfo, &Publishers::handleGnssFixInfo>(gnss_descriptor_set);
     registerDataCallback<mip::data_gnss::SbasInfo, &Publishers::handleGnssSbasInfo>(gnss_descriptor_set);
     registerDataCallback<mip::data_gnss::RfErrorDetection, &Publishers::handleGnssRfErrorDetection>(gnss_descriptor_set);
+    registerDataCallback<mip::data_gnss::SatelliteStatus, &Publishers::handleGnssSatelliteStatus>(gnss_descriptor_set);
   }
 
   // Note: It is important to make sure this is after the GNSS1/2 callbacks
@@ -973,6 +975,51 @@ void Publishers::handleGnssSbasInfo(const mip::data_gnss::SbasInfo& sbas_info, c
   mip_gnss_sbas_info_msg->sbas_status.integrity_available = sbas_info.sbas_status.integrityAvailable();
   mip_gnss_sbas_info_msg->sbas_status.test_mode = sbas_info.sbas_status.testMode();
   mip_gnss_sbas_info_pub_[gnss_index]->publish(*mip_gnss_sbas_info_msg);
+}
+
+void Publishers::handleGnssSatelliteStatus(const mip::data_gnss::SatelliteStatus& satellite_status, const uint8_t descriptor_set, mip::Timestamp timestamp)
+{
+  // Find the right index for the message
+  uint8_t gnss_index;
+  switch (descriptor_set)
+  {
+    case mip::data_gnss::MIP_GNSS1_DATA_DESC_SET:
+      gnss_index = 0;
+      break;
+    case mip::data_gnss::MIP_GNSS2_DATA_DESC_SET:
+      gnss_index = 1;
+      break;
+    default:
+      return;  // Nothing to do if the descriptor set is not something we recognize
+  }
+
+  // Different message depending on descriptor
+  auto mip_gnss_satellite_status_msg = mip_gnss_satellite_status_pub_[gnss_index]->getMessage();
+  updateMipHeader(&(mip_gnss_satellite_status_msg->header), descriptor_set);
+
+  mip_gnss_satellite_status_msg->gnss_id = static_cast<uint8_t>(satellite_status.gnss_id);
+  mip_gnss_satellite_status_msg->satellite_id = static_cast<uint8_t>(satellite_status.satellite_id);
+  mip_gnss_satellite_status_msg->elevation = satellite_status.elevation;
+  mip_gnss_satellite_status_msg->azimuth = satellite_status.azimuth;
+  mip_gnss_satellite_status_msg->health = satellite_status.health;
+
+  mip_gnss_satellite_status_msg->valid_flags.tow = satellite_status.valid_flags.tow();
+  mip_gnss_satellite_status_msg->valid_flags.week_number = satellite_status.valid_flags.weekNumber();
+  mip_gnss_satellite_status_msg->valid_flags.gnss_id = satellite_status.valid_flags.gnssId();
+  mip_gnss_satellite_status_msg->valid_flags.satellite_id = satellite_status.valid_flags.satelliteId();
+  mip_gnss_satellite_status_msg->valid_flags.elevation = satellite_status.valid_flags.elevation();
+  mip_gnss_satellite_status_msg->valid_flags.azimuth = satellite_status.valid_flags.azimuth();
+  mip_gnss_satellite_status_msg->valid_flags.health = satellite_status.valid_flags.health();
+
+  // Add status to epoch buffer and flush if full
+  if (mip_gnss_satellite_status_epoch_buffer_[gnss_index].push(*mip_gnss_satellite_status_msg, satellite_status.count)) {
+    auto mip_gnss_satellite_status_epoch_msg = mip_gnss_satellite_status_epoch_pub_[gnss_index]->getMessage();
+    mip_gnss_satellite_status_epoch_msg->satellite_status = mip_gnss_satellite_status_epoch_buffer_[gnss_index].get_full_buffer();
+    mip_gnss_satellite_status_epoch_msg->header = mip_gnss_satellite_status_epoch_msg->satellite_status.back().header;
+    mip_gnss_satellite_status_epoch_pub_[gnss_index]->publish(*mip_gnss_satellite_status_epoch_msg);
+  }
+
+  mip_gnss_satellite_status_pub_[gnss_index]->publish(*mip_gnss_satellite_status_msg);
 }
 
 void Publishers::handleRtkCorrectionsStatus(const mip::data_gnss::RtkCorrectionsStatus& rtk_corrections_status, const uint8_t descriptor_set, mip::Timestamp timestamp)
