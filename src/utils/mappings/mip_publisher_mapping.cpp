@@ -397,6 +397,9 @@ const std::map<std::string, FieldWrapper::SharedPtrVec> MipPublisherMapping::sta
   {MIP_GNSS1_RF_ERROR_DETECTION_TOPIC, {
     FieldWrapperType<mip::data_gnss::RfErrorDetection, mip::data_gnss::MIP_GNSS1_DATA_DESC_SET>::initialize()
   }},
+  {MIP_GNSS1_SATELLITE_STATUS_TOPIC, {
+    FieldWrapperType<mip::data_gnss::SatelliteStatus, mip::data_gnss::MIP_GNSS1_DATA_DESC_SET>::initialize()
+  }},
 
   // MIP GNSS2 (0x92) topic mappings
   {MIP_GNSS2_FIX_INFO_TOPIC, {
@@ -407,6 +410,9 @@ const std::map<std::string, FieldWrapper::SharedPtrVec> MipPublisherMapping::sta
   }},
   {MIP_GNSS2_RF_ERROR_DETECTION_TOPIC, {
     FieldWrapperType<mip::data_gnss::RfErrorDetection, mip::data_gnss::MIP_GNSS2_DATA_DESC_SET>::initialize()
+  }},
+  {MIP_GNSS2_SATELLITE_STATUS_TOPIC, {
+    FieldWrapperType<mip::data_gnss::SatelliteStatus, mip::data_gnss::MIP_GNSS2_DATA_DESC_SET>::initialize()
   }},
 
   // MIP Filter (0x82) topic mappings
@@ -466,11 +472,13 @@ const std::map<std::string, std::string> MipPublisherMapping::static_topic_to_da
   {MIP_GNSS1_FIX_INFO_TOPIC,           "mip_gnss1_fix_info_data_rate"},
   {MIP_GNSS1_SBAS_INFO_TOPIC,          "mip_gnss1_sbas_info_data_rate"},
   {MIP_GNSS1_RF_ERROR_DETECTION_TOPIC, "mip_gnss1_rf_error_detection_data_rate"},
+  {MIP_GNSS1_SATELLITE_STATUS_TOPIC,   "mip_gnss1_satellite_status_data_rate"},
 
   // MIP GNSS2 (0x92) data rates
   {MIP_GNSS2_FIX_INFO_TOPIC,           "mip_gnss2_fix_info_data_rate"},
   {MIP_GNSS2_SBAS_INFO_TOPIC,          "mip_gnss2_sbas_info_data_rate"},
   {MIP_GNSS2_RF_ERROR_DETECTION_TOPIC, "mip_gnss2_rf_error_detection_data_rate"},
+  {MIP_GNSS2_SATELLITE_STATUS_TOPIC,   "mip_gnss2_satellite_status_data_rate"},
 
   // MIP filter (0x82) data rates
   {MIP_FILTER_STATUS_TOPIC,                          "mip_filter_status_data_rate"},
