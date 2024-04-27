@@ -108,6 +108,8 @@ bool Publishers::configure()
   for (const auto& pub : mip_gnss_fix_info_pub_) pub->configure(node_, config_);
   for (const auto& pub : mip_gnss_sbas_info_pub_) pub->configure(node_, config_);
   for (const auto& pub : mip_gnss_rf_error_detection_pub_) pub->configure(node_, config_);
+  for (const auto& pub : mip_gnss_satellite_status_pub_) pub->configure(node_, config_);
+  for (const auto& pub : mip_gnss_satellite_status_epoch_pub_) pub->configure(node_, config_);
 
   if (config_->rtk_dongle_enable_ && config_->mip_device_->supportsDescriptor(mip::data_gnss::MIP_GNSS3_DATA_DESC_SET, mip::data_gnss::DATA_RTK_CORRECTIONS_STATUS))
     mip_gnss_corrections_rtk_corrections_status_pub_->configure(node_);
@@ -464,6 +466,8 @@ bool Publishers::deactivate()
   for (const auto& pub : mip_gnss_fix_info_pub_) pub->deactivate();
   for (const auto& pub : mip_gnss_sbas_info_pub_) pub->deactivate();
   for (const auto& pub : mip_gnss_rf_error_detection_pub_) pub->deactivate();
+  for (const auto& pub : mip_gnss_satellite_status_pub_) pub->deactivate();
+  for (const auto& pub : mip_gnss_satellite_status_epoch_pub_) pub->deactivate();
 
   mip_gnss_corrections_rtk_corrections_status_pub_->deactivate();
 
