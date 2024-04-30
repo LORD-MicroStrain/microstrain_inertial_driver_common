@@ -82,6 +82,7 @@ constexpr auto NUM_GNSS = 2;
 #include "microstrain_inertial_msgs/MipGnssSbasInfo.h"
 #include "microstrain_inertial_msgs/MipGnssRfErrorDetection.h"
 #include "microstrain_inertial_msgs/MipGnssSatelliteStatus.h"
+#include "microstrain_inertial_msgs/MipGnssRaw.h"
 #include "microstrain_inertial_msgs/MipGnssCorrectionsRtkCorrectionsStatus.h"
 #include "microstrain_inertial_msgs/MipFilterStatus.h"
 #include "microstrain_inertial_msgs/MipFilterGnssPositionAidingStatus.h"
@@ -141,6 +142,7 @@ constexpr auto NUM_GNSS = 2;
 #include "microstrain_inertial_msgs/msg/mip_sensor_overrange_status.hpp"
 #include "microstrain_inertial_msgs/msg/mip_gnss_fix_info.hpp"
 #include "microstrain_inertial_msgs/msg/mip_gnss_satellite_status.hpp"
+#include "microstrain_inertial_msgs/msg/mip_gnss_raw.hpp"
 #include "microstrain_inertial_msgs/msg/mip_gnss_sbas_info.hpp"
 #include "microstrain_inertial_msgs/msg/mip_gnss_rf_error_detection.hpp"
 #include "microstrain_inertial_msgs/msg/mip_gnss_corrections_rtk_corrections_status.hpp"
@@ -252,6 +254,7 @@ using MipGnssFixInfoMsg = ::microstrain_inertial_msgs::MipGnssFixInfo;
 using MipGnssSbasInfoMsg = ::microstrain_inertial_msgs::MipGnssSbasInfo;
 using MipGnssRfErrorDetectionMsg = ::microstrain_inertial_msgs::MipGnssRfErrorDetection;
 using MipGnssSatelliteStatusMsg = ::microstrain_inertial_msgs::MipGnssSatelliteStatus;
+using MipGnssRawMsg = ::microstrain_inertial_msgs::MipGnssRaw;
 using MipGnssCorrectionsRtkCorrectionsStatusMsg = ::microstrain_inertial_msgs::MipGnssCorrectionsRtkCorrectionsStatus;
 using MipFilterGnssPositionAidingStatusMsg = ::microstrain_inertial_msgs::MipFilterGnssPositionAidingStatus;
 using MipFilterStatusMsg = ::microstrain_inertial_msgs::MipFilterStatus;
@@ -557,6 +560,7 @@ using MipGnssFixInfoMsg = ::microstrain_inertial_msgs::msg::MipGnssFixInfo;
 using MipGnssSbasInfoMsg = ::microstrain_inertial_msgs::msg::MipGnssSbasInfo;
 using MipGnssRfErrorDetectionMsg = ::microstrain_inertial_msgs::msg::MipGnssRfErrorDetection;
 using MipGnssSatelliteStatusMsg = ::microstrain_inertial_msgs::msg::MipGnssSatelliteStatus;
+using MipGnssRawMsg = ::microstrain_inertial_msgs::msg::MipGnssRaw;
 using MipGnssCorrectionsRtkCorrectionsStatusMsg = ::microstrain_inertial_msgs::msg::MipGnssCorrectionsRtkCorrectionsStatus;
 using MipFilterStatusMsg = ::microstrain_inertial_msgs::msg::MipFilterStatus;
 using MipFilterGnssPositionAidingStatusMsg = ::microstrain_inertial_msgs::msg::MipFilterGnssPositionAidingStatus;
