@@ -20,7 +20,6 @@
 
 #include "mip/mip_all.hpp"
 
-#include "microstrain_inertial_driver_common/utils/epoch_buffer.h"
 #include "microstrain_inertial_driver_common/utils/ros_compat.h"
 #include "microstrain_inertial_driver_common/config.h"
 
@@ -266,7 +265,6 @@ public:
   Publisher<MipGnssSbasInfoMsg>::SharedPtrVec         mip_gnss_sbas_info_pub_          = Publisher<MipGnssSbasInfoMsg>::initializeVec({MIP_GNSS1_SBAS_INFO_TOPIC, MIP_GNSS2_SBAS_INFO_TOPIC});
   Publisher<MipGnssRfErrorDetectionMsg>::SharedPtrVec mip_gnss_rf_error_detection_pub_ = Publisher<MipGnssRfErrorDetectionMsg>::initializeVec({MIP_GNSS1_RF_ERROR_DETECTION_TOPIC, MIP_GNSS2_RF_ERROR_DETECTION_TOPIC});
   Publisher<MipGnssSatelliteStatusMsg>::SharedPtrVec  mip_gnss_satellite_status_pub_   = Publisher<MipGnssSatelliteStatusMsg>::initializeVec({MIP_GNSS1_SATELLITE_STATUS_TOPIC, MIP_GNSS2_SATELLITE_STATUS_TOPIC});
-  Publisher<MipGnssSatelliteStatusEpochMsg>::SharedPtrVec  mip_gnss_satellite_status_epoch_pub_   = Publisher<MipGnssSatelliteStatusEpochMsg>::initializeVec({MIP_GNSS1_SATELLITE_STATUS_EPOCH_TOPIC, MIP_GNSS2_SATELLITE_STATUS_EPOCH_TOPIC});
 
   // MIP GNSS Corrections (0x93) publishers
   Publisher<MipGnssCorrectionsRtkCorrectionsStatusMsg>::SharedPtr mip_gnss_corrections_rtk_corrections_status_pub_ = Publisher<MipGnssCorrectionsRtkCorrectionsStatusMsg>::initialize(MIP_GNSS_CORRECTIONS_RTK_CORRECTIONS_STATUS_TOPIC);
@@ -424,9 +422,6 @@ private:
   // TF2 buffer lookup class
   TransformBufferType transform_buffer_;
   TransformListenerType transform_listener_;
-
-  // Aggregation buffers
-  std::array<EpochBuffer<MipGnssSatelliteStatusMsg>,2U> mip_gnss_satellite_status_epoch_buffer_;
 };
 
 template<void (Publishers::*Callback)(const mip::PacketRef&, mip::Timestamp)>

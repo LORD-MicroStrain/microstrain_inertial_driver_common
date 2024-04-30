@@ -68,8 +68,7 @@ void setRotationCovarianceOnCovariance(PoseWithCovarianceStampedMsg::_pose_type:
 }
 
 Publishers::Publishers(RosNodeType* node, Config* config)
-  : node_(node), config_(config),
-  mip_gnss_satellite_status_epoch_buffer_({EpochBuffer<MipGnssSatelliteStatusMsg>(1.0), EpochBuffer<MipGnssSatelliteStatusMsg>(1.0)})
+  : node_(node), config_(config)
 {
   // Initialize the transform buffer and listener ahead of time
   transform_buffer_ = createTransformBuffer(node_);
@@ -109,7 +108,6 @@ bool Publishers::configure()
   for (const auto& pub : mip_gnss_sbas_info_pub_) pub->configure(node_, config_);
   for (const auto& pub : mip_gnss_rf_error_detection_pub_) pub->configure(node_, config_);
   for (const auto& pub : mip_gnss_satellite_status_pub_) pub->configure(node_, config_);
-  for (const auto& pub : mip_gnss_satellite_status_epoch_pub_) pub->configure(node_, config_);
 
   if (config_->rtk_dongle_enable_ && config_->mip_device_->supportsDescriptor(mip::data_gnss::MIP_GNSS3_DATA_DESC_SET, mip::data_gnss::DATA_RTK_CORRECTIONS_STATUS))
     mip_gnss_corrections_rtk_corrections_status_pub_->configure(node_);
@@ -410,7 +408,6 @@ bool Publishers::activate()
   for (const auto& pub : mip_gnss_sbas_info_pub_) pub->activate();
   for (const auto& pub : mip_gnss_rf_error_detection_pub_) pub->activate();
   for (const auto& pub : mip_gnss_satellite_status_pub_) pub->activate();
-  for (const auto& pub : mip_gnss_satellite_status_epoch_pub_) pub->activate();
 
   mip_gnss_corrections_rtk_corrections_status_pub_->activate();
 
@@ -467,7 +464,6 @@ bool Publishers::deactivate()
   for (const auto& pub : mip_gnss_sbas_info_pub_) pub->deactivate();
   for (const auto& pub : mip_gnss_rf_error_detection_pub_) pub->deactivate();
   for (const auto& pub : mip_gnss_satellite_status_pub_) pub->deactivate();
-  for (const auto& pub : mip_gnss_satellite_status_epoch_pub_) pub->deactivate();
 
   mip_gnss_corrections_rtk_corrections_status_pub_->deactivate();
 
@@ -1016,14 +1012,6 @@ void Publishers::handleGnssSatelliteStatus(const mip::data_gnss::SatelliteStatus
   mip_gnss_satellite_status_msg->valid_flags.elevation = satellite_status.valid_flags.elevation();
   mip_gnss_satellite_status_msg->valid_flags.azimuth = satellite_status.valid_flags.azimuth();
   mip_gnss_satellite_status_msg->valid_flags.health = satellite_status.valid_flags.health();
-
-  // Add status to epoch buffer and flush if full
-  if (mip_gnss_satellite_status_epoch_buffer_[gnss_index].push(*mip_gnss_satellite_status_msg, satellite_status.count)) {
-    auto mip_gnss_satellite_status_epoch_msg = mip_gnss_satellite_status_epoch_pub_[gnss_index]->getMessage();
-    mip_gnss_satellite_status_epoch_msg->satellite_status = mip_gnss_satellite_status_epoch_buffer_[gnss_index].get_full_buffer();
-    mip_gnss_satellite_status_epoch_msg->header = mip_gnss_satellite_status_epoch_msg->satellite_status.back().header;
-    mip_gnss_satellite_status_epoch_pub_[gnss_index]->publish(*mip_gnss_satellite_status_epoch_msg);
-  }
 
   mip_gnss_satellite_status_pub_[gnss_index]->publish(*mip_gnss_satellite_status_msg);
 }
