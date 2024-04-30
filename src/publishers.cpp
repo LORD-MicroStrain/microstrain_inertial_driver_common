@@ -1037,7 +1037,7 @@ void Publishers::handleGnssRaw(const mip::data_gnss::Raw& raw, const uint8_t des
   }
 
   // Different message depending on descriptor
-  auto mip_gnss_raw_msg = mip_raw_pub_[gnss_index]->getMessage();
+  auto mip_gnss_raw_msg = mip_gnss_raw_pub_[gnss_index]->getMessage();
   updateMipHeader(&(mip_gnss_raw_msg->header), descriptor_set);
 
   mip_gnss_raw_msg->index = raw.index;
