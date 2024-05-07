@@ -978,6 +978,9 @@ void Publishers::handleGnssSbasInfo(const mip::data_gnss::SbasInfo& sbas_info, c
 void Publishers::handleRtkCorrectionsStatus(const mip::data_gnss::RtkCorrectionsStatus& rtk_corrections_status, const uint8_t descriptor_set, mip::Timestamp timestamp)
 {
   const mip::commands_rtk::GetStatusFlags::StatusFlags dongle_status(rtk_corrections_status.dongle_status);
+  if (0 == dongle_status.version()) {
+    MICROSTRAIN_WARN_ONCE(node_, "RTK Dongle version 0 is unsupported. RtkCorrectionsStatus fields may be invalid.");
+  }
   auto mip_gnss_corrections_rtk_corrections_status_msg = mip_gnss_corrections_rtk_corrections_status_pub_->getMessage();
   updateMipHeader(&(mip_gnss_corrections_rtk_corrections_status_msg->header), descriptor_set);
   mip_gnss_corrections_rtk_corrections_status_msg->time_of_week = rtk_corrections_status.time_of_week;
