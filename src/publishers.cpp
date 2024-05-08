@@ -978,48 +978,37 @@ void Publishers::handleGnssSbasInfo(const mip::data_gnss::SbasInfo& sbas_info, c
 void Publishers::handleRtkCorrectionsStatus(const mip::data_gnss::RtkCorrectionsStatus& rtk_corrections_status, const uint8_t descriptor_set, mip::Timestamp timestamp)
 {
   const mip::commands_rtk::GetStatusFlags::StatusFlags dongle_status(rtk_corrections_status.dongle_status);
-  switch (dongle_status.version())
-  {
-    // V1 dongle
-    case 0:
-    {
-      // RTK Dongle v1 not supported
-      return;
-    }
-    // V2 dongle
-    default:
-    {
-      auto mip_gnss_corrections_rtk_corrections_status_msg = mip_gnss_corrections_rtk_corrections_status_pub_->getMessage();
-      updateMipHeader(&(mip_gnss_corrections_rtk_corrections_status_msg->header), descriptor_set);
-      mip_gnss_corrections_rtk_corrections_status_msg->time_of_week = rtk_corrections_status.time_of_week;
-      mip_gnss_corrections_rtk_corrections_status_msg->week_number = rtk_corrections_status.week_number;
-
-      mip_gnss_corrections_rtk_corrections_status_msg->epoch_status.antenna_location_received = rtk_corrections_status.epoch_status.antennaLocationReceived();
-      mip_gnss_corrections_rtk_corrections_status_msg->epoch_status.antenna_description_received = rtk_corrections_status.epoch_status.antennaDescriptionReceived();
-      mip_gnss_corrections_rtk_corrections_status_msg->epoch_status.gps_received = rtk_corrections_status.epoch_status.gpsReceived();
-      mip_gnss_corrections_rtk_corrections_status_msg->epoch_status.galileo_received = rtk_corrections_status.epoch_status.galileoReceived();
-      mip_gnss_corrections_rtk_corrections_status_msg->epoch_status.glonass_received = rtk_corrections_status.epoch_status.glonassReceived();
-      mip_gnss_corrections_rtk_corrections_status_msg->epoch_status.dongle_status_read_failed = rtk_corrections_status.epoch_status.dongleStatusReadFailed();
-
-      mip_gnss_corrections_rtk_corrections_status_msg->dongle_status.modem_state = dongle_status.modemState();
-      mip_gnss_corrections_rtk_corrections_status_msg->dongle_status.connection_type = dongle_status.connectionType();
-      mip_gnss_corrections_rtk_corrections_status_msg->dongle_status.rssi = -1 * dongle_status.rssi();
-      mip_gnss_corrections_rtk_corrections_status_msg->dongle_status.signal_quality = dongle_status.signalQuality();
-      mip_gnss_corrections_rtk_corrections_status_msg->dongle_status.tower_change_indicator = dongle_status.towerChangeIndicator();
-      mip_gnss_corrections_rtk_corrections_status_msg->dongle_status.nmea_timeout_flag = dongle_status.nmeaTimeout();
-      mip_gnss_corrections_rtk_corrections_status_msg->dongle_status.server_timeout_flag = dongle_status.serverTimeout();
-      mip_gnss_corrections_rtk_corrections_status_msg->dongle_status.rtcm_timeout_flag = dongle_status.correctionsTimeout();
-      mip_gnss_corrections_rtk_corrections_status_msg->dongle_status.device_out_of_range_flag = dongle_status.deviceOutOfRange();
-      mip_gnss_corrections_rtk_corrections_status_msg->dongle_status.corrections_unavailable_flag = dongle_status.correctionsUnavailable();
-
-      mip_gnss_corrections_rtk_corrections_status_msg->gps_correction_latency = rtk_corrections_status.gps_correction_latency;
-      mip_gnss_corrections_rtk_corrections_status_msg->glonass_correction_latency = rtk_corrections_status.glonass_correction_latency;
-      mip_gnss_corrections_rtk_corrections_status_msg->galileo_correction_latency = rtk_corrections_status.galileo_correction_latency;
-      mip_gnss_corrections_rtk_corrections_status_msg->beidou_correction_latency = rtk_corrections_status.beidou_correction_latency;
-      mip_gnss_corrections_rtk_corrections_status_pub_->publish(*mip_gnss_corrections_rtk_corrections_status_msg);
-      break;
-    }
+  if (0 == dongle_status.version()) {
+    MICROSTRAIN_WARN_ONCE(node_, "RTK Dongle version 0 is unsupported. RtkCorrectionsStatus fields may be invalid.");
   }
+  auto mip_gnss_corrections_rtk_corrections_status_msg = mip_gnss_corrections_rtk_corrections_status_pub_->getMessage();
+  updateMipHeader(&(mip_gnss_corrections_rtk_corrections_status_msg->header), descriptor_set);
+  mip_gnss_corrections_rtk_corrections_status_msg->time_of_week = rtk_corrections_status.time_of_week;
+  mip_gnss_corrections_rtk_corrections_status_msg->week_number = rtk_corrections_status.week_number;
+
+  mip_gnss_corrections_rtk_corrections_status_msg->epoch_status.antenna_location_received = rtk_corrections_status.epoch_status.antennaLocationReceived();
+  mip_gnss_corrections_rtk_corrections_status_msg->epoch_status.antenna_description_received = rtk_corrections_status.epoch_status.antennaDescriptionReceived();
+  mip_gnss_corrections_rtk_corrections_status_msg->epoch_status.gps_received = rtk_corrections_status.epoch_status.gpsReceived();
+  mip_gnss_corrections_rtk_corrections_status_msg->epoch_status.galileo_received = rtk_corrections_status.epoch_status.galileoReceived();
+  mip_gnss_corrections_rtk_corrections_status_msg->epoch_status.glonass_received = rtk_corrections_status.epoch_status.glonassReceived();
+  mip_gnss_corrections_rtk_corrections_status_msg->epoch_status.dongle_status_read_failed = rtk_corrections_status.epoch_status.dongleStatusReadFailed();
+
+  mip_gnss_corrections_rtk_corrections_status_msg->dongle_status.modem_state = dongle_status.modemState();
+  mip_gnss_corrections_rtk_corrections_status_msg->dongle_status.connection_type = dongle_status.connectionType();
+  mip_gnss_corrections_rtk_corrections_status_msg->dongle_status.rssi = -1 * dongle_status.rssi();
+  mip_gnss_corrections_rtk_corrections_status_msg->dongle_status.signal_quality = dongle_status.signalQuality();
+  mip_gnss_corrections_rtk_corrections_status_msg->dongle_status.tower_change_indicator = dongle_status.towerChangeIndicator();
+  mip_gnss_corrections_rtk_corrections_status_msg->dongle_status.nmea_timeout_flag = dongle_status.nmeaTimeout();
+  mip_gnss_corrections_rtk_corrections_status_msg->dongle_status.server_timeout_flag = dongle_status.serverTimeout();
+  mip_gnss_corrections_rtk_corrections_status_msg->dongle_status.rtcm_timeout_flag = dongle_status.correctionsTimeout();
+  mip_gnss_corrections_rtk_corrections_status_msg->dongle_status.device_out_of_range_flag = dongle_status.deviceOutOfRange();
+  mip_gnss_corrections_rtk_corrections_status_msg->dongle_status.corrections_unavailable_flag = dongle_status.correctionsUnavailable();
+
+  mip_gnss_corrections_rtk_corrections_status_msg->gps_correction_latency = rtk_corrections_status.gps_correction_latency;
+  mip_gnss_corrections_rtk_corrections_status_msg->glonass_correction_latency = rtk_corrections_status.glonass_correction_latency;
+  mip_gnss_corrections_rtk_corrections_status_msg->galileo_correction_latency = rtk_corrections_status.galileo_correction_latency;
+  mip_gnss_corrections_rtk_corrections_status_msg->beidou_correction_latency = rtk_corrections_status.beidou_correction_latency;
+  mip_gnss_corrections_rtk_corrections_status_pub_->publish(*mip_gnss_corrections_rtk_corrections_status_msg);
 }
 
 void Publishers::handleRtkBaseStationInfo(const mip::data_gnss::BaseStationInfo& base_station_info, const uint8_t descriptor_set, mip::Timestamp timestamp)
