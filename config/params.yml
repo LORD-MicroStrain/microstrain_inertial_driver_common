@@ -544,7 +544,7 @@ filter_nmea_rmc_data_rate: 0
 filter_nmea_hdt_data_rate: 0
 filter_nmea_prka_data_rate: 0  # Note that this message_id will not have any talker ID on it since it is proprietary and can only come from the filter descriptor set
 
-# External aiding measurement configuration
+# (CV7-INS only) External aiding measurement configuration
 subscribe_ext_time        : False
 subscribe_ext_fix         : False
 subscribe_ext_vel_ned     : False
@@ -553,3 +553,5 @@ subscribe_ext_vel_ecef    : False
 subscribe_ext_vel_body    : False
 subscribe_ext_heading_ned : False
 subscribe_ext_heading_enu : False
+subscribe_ext_mag         : False
+subscribe_ext_pressure    : False

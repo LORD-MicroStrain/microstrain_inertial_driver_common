@@ -37,7 +37,7 @@ bool Subscribers::activate()
   }
 
   // Setup the external measurement subscribers
-  if (config_->subscribe_ext_time_ && config_->mip_device_->supportsDescriptor(mip::commands_base::DESCRIPTOR_SET, mip::commands_base::CMD_GPS_TIME_BROADCAST_NEW))
+  if (config_->subscribe_ext_time_ && config_->mip_device_->supportsDescriptor(mip::commands_base::DESCRIPTOR_SET, mip::commands_base::CMD_GPS_TIME_UPDATE))
   {
     MICROSTRAIN_INFO(node_, "Subscribing to %s for external time", EXT_TIME_TOPIC);
     external_time_sub_ = createSubscriber<>(node_, EXT_TIME_TOPIC, 1000, &Subscribers::externalTimeCallback, this);
@@ -76,6 +76,16 @@ bool Subscribers::activate()
   {
     MICROSTRAIN_INFO(node_, "Subscribing to %s for external heading in the ENU frame", EXT_HEADING_ENU_TOPIC);
     external_heading_enu_sub_ = createSubscriber<>(node_, EXT_HEADING_ENU_TOPIC, 1000, &Subscribers::externalHeadingEnuCallback, this);
+  }
+  if (config_->subscribe_ext_mag_ && config_->mip_device_->supportsDescriptor(mip::commands_aiding::DESCRIPTOR_SET, mip::commands_aiding::CMD_MAGNETIC_FIELD))
+  {
+    MICROSTRAIN_INFO(node_, "Subscribing to %s for external mag", EXT_MAG_TOPIC);
+    external_mag_sub_ = createSubscriber(node_, EXT_MAG_TOPIC, 1000, &Subscribers::externalMagCallback, this);
+  }
+  if (config_->subscribe_ext_pressure_ && config_->mip_device_->supportsDescriptor(mip::commands_aiding::DESCRIPTOR_SET, mip::commands_aiding::CMD_PRESSURE))
+  {
+    MICROSTRAIN_INFO(node_, "Subscribing to %s for external pressure", EXT_PRESSURE_TOPIC);
+    external_pressure_sub_ = createSubscriber(node_, EXT_PRESSURE_TOPIC, 1000, &Subscribers::externalPressureCallback, this);
   }
 
   return true;
@@ -127,7 +137,7 @@ void Subscribers::externalGnssPositionCallback(const NavSatFixMsg& fix)
   llh_pos.time.timebase = mip::commands_aiding::Time::Timebase::TIME_OF_ARRIVAL;
   if ((llh_pos.frame_id = getSensorIdFromFrameId(fix.header.frame_id)) == 0)
     return;
-  
+
   // Fill out the rest of the message and send it
   llh_pos.valid_flags.setAll();
   llh_pos.latitude = fix.latitude;
@@ -351,6 +361,65 @@ void Subscribers::externalHeadingEnuCallback(const PoseWithCovarianceStampedMsg&
   mip::CmdResult mip_cmd_result;
   if (!(mip_cmd_result = config_->mip_device_->device().runCommand<mip::commands_aiding::TrueHeading>(true_heading)))
     MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to send external heading command");
+}
+
+void Subscribers::externalMagCallback(const MagneticFieldMsg& mag)
+{
+  // Fill out the time of the message
+  mip::commands_aiding::MagneticField magnetic_field;
+  magnetic_field.time.reserved = 1;
+  magnetic_field.time.timebase = mip::commands_aiding::Time::Timebase::TIME_OF_ARRIVAL;
+  if ((magnetic_field.frame_id = getSensorIdFromFrameId(mag.header.frame_id)) == 0)
+    return;
+
+  // Fill out the rest of the message and send it
+  if (mag.magnetic_field_covariance[0] != 0)
+  {
+    magnetic_field.magnetic_field[0] = mag.magnetic_field.x;
+    magnetic_field.uncertainty[0] = sqrt(mag.magnetic_field_covariance[0]);
+    magnetic_field.valid_flags.x(true);
+  }
+  if (mag.magnetic_field_covariance[4] != 0)
+  {
+    magnetic_field.magnetic_field[1] = mag.magnetic_field.y;
+    magnetic_field.uncertainty[1] = sqrt(mag.magnetic_field_covariance[4]);
+    magnetic_field.valid_flags.y(true);
+  }
+  if (mag.magnetic_field_covariance[8] != 0)
+  {
+    magnetic_field.magnetic_field[2] = mag.magnetic_field.z;
+    magnetic_field.uncertainty[2] = sqrt(mag.magnetic_field_covariance[8]);
+    magnetic_field.valid_flags.z(true);
+  }
+
+  mip::CmdResult mip_cmd_result;
+  if (!(mip_cmd_result = config_->mip_device_->device().runCommand<mip::commands_aiding::MagneticField>(magnetic_field)))
+    MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to send magnetic field command");
+}
+
+void Subscribers::externalPressureCallback(const FluidPressureMsg& fluid_pressure)
+{
+  mip::commands_aiding::Pressure pressure;
+  pressure.time.reserved = 1;
+  pressure.time.timebase = mip::commands_aiding::Time::Timebase::TIME_OF_ARRIVAL;
+  if ((pressure.frame_id = getSensorIdFromFrameId(fluid_pressure.header.frame_id)) == 0)
+    return;
+
+  // Make sure we have uncertainty
+  if (fluid_pressure.variance == 0)
+  {
+    MICROSTRAIN_WARN_THROTTLE(node_, 10, "Invalid pressure received on %s. Must have variance", EXT_PRESSURE_TOPIC);
+    return;
+  }
+
+  // Convert from Pascals to mBar and send it
+  pressure.valid_flags = 0xFFFF;
+  pressure.pressure = fluid_pressure.fluid_pressure * 100;
+  pressure.uncertainty = sqrt(fluid_pressure.variance);
+
+  mip::CmdResult mip_cmd_result;
+  if (!(mip_cmd_result = config_->mip_device_->device().runCommand<mip::commands_aiding::Pressure>(pressure)))
+    MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to send external pressure command");
 }
 
 void Subscribers::rtcmCallback(const RTCMMsg& rtcm)
