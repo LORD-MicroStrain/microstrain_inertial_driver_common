@@ -175,6 +175,10 @@ The following topics are subscribed to by the node. Most are controlled by indiv
    * Will be enabled if {{{subscribe_ext_heading_ned}}} is true and the device supports the true heading aiding command. Will subscribe to external heading in the NED frame and send it to the device.
  * '''/ext/heading_enu''' [[http://docs.ros.org/en/noetic/api/geometry_msgs/html/msg/PoseWithCovarianceStamped.html|geometry_msgs/PoseWithCovarianceStamped]]
    * Will be enabled if {{{subscribe_ext_heading_enu}}} is true and the device supports the true heading aiding command. Will subscribe to external heading in the ENU frame and send it to the device.
+ * '''/ext/mag''' [[http://docs.ros.org/en/noetic/api/sensor_msgs/html/msg/MagneticField.html|sensor_msgs/MagneticField]]
+   * Will be enabled if {{{subscribe_ext_mag}}} is true and the device supports the magnetic field aiding command. Will subscribe to external magnetic field data and send it to the device.
+ * '''/ext/pressure''' [[http://docs.ros.org/en/noetic/api/sensor_msgs/html/msg/FluidPressure.html|sensor_msgs/FluidPressure]]
+   * Will be enabled if {{{subscribe_ext_pressure}}} is true and the device supports the pressure aiding command. Will subscribe to external pressure data and send it to the device.
 
 == Services ==
 The following services are available on this node. All services that your device supports will be created when the node is activated.

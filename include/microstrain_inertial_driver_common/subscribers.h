@@ -33,6 +33,8 @@ static constexpr auto EXT_VEL_ECEF_TOPIC     = "ext/velocity_ecef";
 static constexpr auto EXT_VEL_BODY_TOPIC     = "ext/velocity_body";
 static constexpr auto EXT_HEADING_NED_TOPIC  = "ext/heading_ned";
 static constexpr auto EXT_HEADING_ENU_TOPIC  = "ext/heading_enu";
+static constexpr auto EXT_MAG_TOPIC          = "ext/mag";
+static constexpr auto EXT_PRESSURE_TOPIC     = "ext/pressure";
 
 /**
  * Contains subscribers and the functions they call
@@ -64,11 +66,11 @@ public:
   void externalVelNedCallback(const TwistWithCovarianceStampedMsg& vel);
   void externalVelEnuCallback(const TwistWithCovarianceStampedMsg& vel);
   void externalVelEcefCallback(const TwistWithCovarianceStampedMsg& vel);
-  void externalWheelSpeedCallback(const TwistWithCovarianceStampedMsg& wheel_speed);
   void externalVelBodyCallback(const TwistWithCovarianceStampedMsg& vel);
-  void externalPressureCallback(const FluidPressureMsg& pressure);
   void externalHeadingNedCallback(const PoseWithCovarianceStampedMsg& heading);
   void externalHeadingEnuCallback(const PoseWithCovarianceStampedMsg& heading);
+  void externalMagCallback(const MagneticFieldMsg& mag);
+  void externalPressureCallback(const FluidPressureMsg& fluid_pressure);
 
   /**
    * \brief Accepts RTCM corrections from a ROS topic
@@ -85,6 +87,8 @@ public:
   RosSubType<TwistWithCovarianceStampedMsg>::SharedPtr external_vel_body_sub_;
   RosSubType<PoseWithCovarianceStampedMsg>::SharedPtr  external_heading_ned_sub_;
   RosSubType<PoseWithCovarianceStampedMsg>::SharedPtr  external_heading_enu_sub_;
+  RosSubType<MagneticFieldMsg>::SharedPtr              external_mag_sub_;
+  RosSubType<FluidPressureMsg>::SharedPtr              external_pressure_sub_;
 
   // RTCM subscriber
   RosSubType<RTCMMsg>::SharedPtr rtcm_sub_;
