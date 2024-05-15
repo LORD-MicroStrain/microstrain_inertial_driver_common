@@ -521,8 +521,8 @@ class RosPubType : public RosBasePubType<MessageType>
   // Compatibility for non lifecycle node
 #ifndef MICROSTRAIN_LIFECYCLE
   using SharedPtr = std::shared_ptr<RosPubType<MessageType>>;
-  void on_activate() {} // NOOP
-  void on_deactivate() {} // NOOP
+  void on_activate() {}  // NOOP
+  void on_deactivate() {}  // NOOP
 #endif
 };
 
