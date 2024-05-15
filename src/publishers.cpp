@@ -1706,7 +1706,7 @@ void Publishers::handleFilterGnssPosAidStatus(const mip::data_filter::GnssPosAid
   }
   else if (!rtk_fixed_ && mip_filter_gnss_position_aiding_status_msg->status.differential)
   {
-    filter_human_readable_status_msg->gnss_state = HumanReadableStatusMsg::GNSS_STATE_RTK_FIXED;
+    filter_human_readable_status_msg->gnss_state = HumanReadableStatusMsg::GNSS_STATE_RTK_FLOAT;
     rtk_float_ = true;
   }
 }
