@@ -127,13 +127,15 @@ bool RosMipDeviceMain::configure(RosNodeType* config_node)
   }
 
   // Determine the number of valid external Frame IDs
-  if (supportsDescriptor(mip::commands_aiding::DESCRIPTOR_SET, mip::commands_aiding::ReferenceFrame::FIELD_DESCRIPTOR))
+  if (supportsDescriptor(mip::commands_aiding::DESCRIPTOR_SET, mip::commands_aiding::FrameConfig::FIELD_DESCRIPTOR))
   {
     while (max_external_frame_ids_++ < 256)
     {
-      float t[3], r[4];
-      mip::commands_aiding::ReferenceFrame::Format fmt;
-      mip_cmd_result = mip::commands_aiding::readReferenceFrame(*this, max_external_frame_ids_, &fmt, t, r);
+      bool tracking;
+      float translation[3];
+      mip::commands_aiding::FrameConfig::Rotation rotation;
+      mip::commands_aiding::FrameConfig::Format fmt = mip::commands_aiding::FrameConfig::Format::QUATERNION;
+      mip_cmd_result = mip::commands_aiding::readFrameConfig(*this, max_external_frame_ids_, fmt, &tracking, translation, &rotation);
       if (mip_cmd_result == mip::CmdResult::NACK_INVALID_PARAM)
       {
         max_external_frame_ids_--;

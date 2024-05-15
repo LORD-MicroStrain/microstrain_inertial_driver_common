@@ -163,6 +163,8 @@ bool Config::configure(RosNodeType* node)
   getParam<bool>(node, "subscribe_ext_vel_body", subscribe_ext_vel_body_, false);
   getParam<bool>(node, "subscribe_ext_heading_ned", subscribe_ext_heading_ned_, false);
   getParam<bool>(node, "subscribe_ext_heading_enu", subscribe_ext_heading_enu_, false);
+  getParam<bool>(node, "subscribe_ext_mag", subscribe_ext_mag_, false);
+  getParam<bool>(node, "subscribe_ext_pressure", subscribe_ext_pressure_, false);
 
   // NMEA streaming
   getParam<bool>(node, "nmea_message_allow_duplicate_talker_ids", nmea_message_allow_duplicate_talker_ids_, false);
