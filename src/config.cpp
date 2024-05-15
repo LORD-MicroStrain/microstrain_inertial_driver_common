@@ -677,44 +677,40 @@ bool Config::configureFilter(RosNodeType* node)
   }
 
   // If either antenna offset is configured with the transform selector, lookup the transform in the tf tree
-  // Give the application several seconds to find the transform, otherwise exit
-  constexpr int32_t seconds_to_wait = 10;
   for (int i = 0; i < NUM_GNSS; i++)
   {
     if (gnss_antenna_offset_source_[i] == GNSS_ANTENNA_OFFSET_SOURCE_TRANSFORM)
     {
+      // Wait until we can find the transform for the GQ7 antennas
       std::string tf_error_string;
       RosTimeType frame_time; setRosTime(&frame_time, 0, 0);
-      if (transform_buffer_->canTransform(frame_id_, gnss_frame_id_[i], frame_time, RosDurationType(seconds_to_wait, 0), &tf_error_string))
+      constexpr int32_t seconds_to_wait = 2;
+      while (!transform_buffer_->canTransform(frame_id_, gnss_frame_id_[i], frame_time, RosDurationType(seconds_to_wait, 0), &tf_error_string))
       {
-        // If not using the enu frame, this can be plugged directly into the device, otherwise rotate it from the ROS body frame to our body frame
-        TransformStampedMsg gnss_antenna_to_microstrain_vehicle_transform;
-        if (use_enu_frame_)
-        {
-          const auto& gnss_antenna_to_ros_vehicle_transform = transform_buffer_->lookupTransform(frame_id_, gnss_frame_id_[i], frame_time);
+        MICROSTRAIN_WARN(node_, "Timed out waiting for transform from %s to %s, tf error: %s", frame_id_.c_str(), gnss_frame_id_[i].c_str(), tf_error_string.c_str());
+      }
 
-          tf2::Transform gnss_antenna_to_ros_vehicle_transform_tf;
-          tf2::fromMsg(gnss_antenna_to_ros_vehicle_transform.transform, gnss_antenna_to_ros_vehicle_transform_tf);
+      // If not using the enu frame, this can be plugged directly into the device, otherwise rotate it from the ROS body frame to our body frame
+      TransformStampedMsg gnss_antenna_to_microstrain_vehicle_transform;
+      if (use_enu_frame_)
+      {
+        const auto& gnss_antenna_to_ros_vehicle_transform = transform_buffer_->lookupTransform(frame_id_, gnss_frame_id_[i], frame_time);
 
-          const auto& gnss_antenna_to_microstrain_vehicle_transform_tf = ros_vehicle_to_microstrain_vehicle_transform_tf_ * gnss_antenna_to_ros_vehicle_transform_tf;
-          gnss_antenna_to_microstrain_vehicle_transform.transform = tf2::toMsg(gnss_antenna_to_microstrain_vehicle_transform_tf);
-        }
-        else
-        {
-          gnss_antenna_to_microstrain_vehicle_transform = transform_buffer_->lookupTransform(frame_id_, gnss_frame_id_[i], frame_time);
-        }
+        tf2::Transform gnss_antenna_to_ros_vehicle_transform_tf;
+        tf2::fromMsg(gnss_antenna_to_ros_vehicle_transform.transform, gnss_antenna_to_ros_vehicle_transform_tf);
 
-        // Override the antenna offset with the result from the transform tree
-        gnss_antenna_offset_[i][0] = gnss_antenna_to_microstrain_vehicle_transform.transform.translation.x;
-        gnss_antenna_offset_[i][1] = gnss_antenna_to_microstrain_vehicle_transform.transform.translation.y;
-        gnss_antenna_offset_[i][2] = gnss_antenna_to_microstrain_vehicle_transform.transform.translation.z;
+        const auto& gnss_antenna_to_microstrain_vehicle_transform_tf = ros_vehicle_to_microstrain_vehicle_transform_tf_ * gnss_antenna_to_ros_vehicle_transform_tf;
+        gnss_antenna_to_microstrain_vehicle_transform.transform = tf2::toMsg(gnss_antenna_to_microstrain_vehicle_transform_tf);
       }
       else
       {
-        MICROSTRAIN_ERROR(node_, "Waited for %u seconds and was unable to lookup transform from %s to %s", seconds_to_wait, frame_id_.c_str(), gnss_frame_id_[i].c_str());
-        MICROSTRAIN_ERROR(node_, "  Err: %s", tf_error_string.c_str());
-        return false;
+        gnss_antenna_to_microstrain_vehicle_transform = transform_buffer_->lookupTransform(frame_id_, gnss_frame_id_[i], frame_time);
       }
+
+      // Override the antenna offset with the result from the transform tree
+      gnss_antenna_offset_[i][0] = gnss_antenna_to_microstrain_vehicle_transform.transform.translation.x;
+      gnss_antenna_offset_[i][1] = gnss_antenna_to_microstrain_vehicle_transform.transform.translation.y;
+      gnss_antenna_offset_[i][2] = gnss_antenna_to_microstrain_vehicle_transform.transform.translation.z;
     }
   }
 
