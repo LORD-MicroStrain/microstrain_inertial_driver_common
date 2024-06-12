@@ -301,6 +301,15 @@ using ParamIntVector = std::vector<int32_t>;
 // ROS1 functions
 
 /**
+ * \brief Checks whether ROS is currently running
+ * \return Whether ROS is currently running
+*/
+inline bool rosOk()
+{
+  return ros::ok();
+}
+
+/**
  * \brief Gets the current ROS time
  * \param node  Unused in this function as the ros time function is static
  * \return Current ROS time
@@ -609,6 +618,15 @@ using ParamIntVector = std::vector<int64_t>;
 #define MICROSTRAIN_FATAL_ONCE(NODE, ...) RCLCPP_FATAL_ONCE(NODE->get_logger(), __VA_ARGS__)
 
 // ROS2 functions
+
+/**
+ * \brief Checks whether ROS is currently running
+ * \return Whether ROS is currently running
+*/
+inline bool rosOk()
+{
+  return rclcpp::ok();
+}
 
 /**
  * \brief Gets the current ROS time

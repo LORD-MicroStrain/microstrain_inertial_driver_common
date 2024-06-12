@@ -1,0 +1,97 @@
+# This is an example file showing how to configure different types of events on sensors that support them.
+# For more in-depth documentation on events and the concepts that drive them, check out the documentation:
+#   Triggers: https://files.microstrain.com/CV7+Online/external_content/dcp/Commands/3dm_command/data/mip_cmd_3dm_event_trigger.htm
+#   Actions: https://files.microstrain.com/CV7+Online/external_content/dcp/Commands/3dm_command/data/mip_cmd_3dm_event_action.htm
+events:
+  # Triggers are the things that drive events. Each action must be associated with exactly one trigger.
+  # Each of the below objects contains an array so that multiple triggers of the same type may be configured.
+  #   NOTE: There are a limited number of triggers available per device. See device specific documentation for more information
+  triggers:
+    # GPIO triggers will be triggered on the state of a GPIO pin.
+    #   instance - Unique identifier of the trigger
+    #   pin - GPIO pin number that will trigger this event. See https://files.microstrain.com/CV7+Online/user_manual_content/additional_features/User%20GPIO.htm for more information on available pins
+    #   mode - How the pin state affects the trigger. Options are listed below
+    #     0 - DISABLED: The pin will have no effect and the trigger will never activate
+    #     1 - WHILE_HIGH: The trigger will be active when the pin is high
+    #     2 - WHILE_LOW: The trigger will be active while the pin is low
+    #     4 - EDGE: Use if the pin is configured for timestamping via https://files.microstrain.com/CV7+Online/external_content/dcp/Commands/3dm_command/data/mip_cmd_3dm_gpio_config.htm
+    gpio:
+      # This will trigger when GPIO pin 1 is high
+      - instance: 1
+        pin: 1
+        mode: 1
+    # Threshold triggers will compare supported MIP fields meet a comparison criteria.
+    # These triggers get quite complex. For more in-depth documentation, see https://files.microstrain.com/CV7+Online/external_content/dcp/Commands/3dm_command/data/mip_cmd_3dm_event_trigger.htm
+    #   instance - Unique identifier of the trigger
+    #   descriptor_set - Descriptor set of the data quantity that we want to compare
+    #   field_descriptor - Field descriptor of the data quantity that we want to compare
+    #   param_id - 1-based index of the data quantity that we want to compare. E.g. for Scaled Accel (0x80,0x04) a value of 2 would represent the Y axis.
+    #   type - Determines the type of comparison. Options are listed below
+    #     1 - WINDOW: Trigger is active if low_threshold <= value <= high_threshold. If the thresholds are reversed, the trigger is active when value < high_thres or value > low_thres.
+    #     2 - INTERVAL: Trigger at evenly-spaced intervals. Normally used with time fields to trigger periodically.
+    #   low_threshold - Only used when type is 1. Lower bounds for when the trigger will be active.
+    #   high_threshold - Only used when type is 1. Upper bounds for when the trigger will be active.
+    #   interval_threshold - Only used when type is 2.
+    #   interval - Only used when type is 2.
+    threshold:
+      # This will trigger when the Y value of Scaled Accel (0x80, 0x04) is between 5 and 10 m/s^2
+      - instance: 2
+        descriptor_set: 0x80
+        field_descriptor: 0x04
+        param_id: 2
+        type: 1
+        low_threshold: 5.0
+        high_threshold: 10.0
+      # This will trigger when the X value of scaled accel (0x80, 0x04) is TODO: I have no idea what this does
+      - instance: 3
+        descriptor_set: 0x80
+        field_descriptor: 0x04
+        param_id: 1
+        type: 2
+        interval_threshold: 1.0
+        interval: 1.0
+    # Combination triggers will combine two to four of any of the above trigger types or a fellow combination trigger into a single trigger.
+    # These triggers are even more complex than thresholds. See https://files.microstrain.com/CV7+Online/user_manual_content/additional_features/Event%20System/Event%20Components/Event%20Trigger%20Combination.htm
+    #   instance - Unique identifier of the trigger
+    #   logic_table - The last column of a truth table describing the output given the state of each input (look at the link above, this is too much to document here)
+    #   input_triggers - List of input trigger instances
+    combination:
+      # This will trigger when both of the threshold triggers above are active
+      - instance: 4
+        logic_table: 0x8888
+        input_triggers: [2, 3]
+
+  # Actions are the things that happen when an event is triggered. Each action must be associated with exactly one trigger
+  # Each of the below objects contains an array so that multiple actions of the same type may be configured.
+  #   NOTE: There are a limited number of triggers available per device. See device specific documentation for more information
+  actions:
+    # GPIO actions will control one of the GPIO pins on the device
+    #   instance - Unique identifier for the action
+    #   trigger_instance - ID (instance) of the trigger you want to associate with this action.
+    #   pin - GPIO pin number that will be modified by this action. See https://files.microstrain.com/CV7+Online/user_manual_content/additional_features/User%20GPIO.htm for more information on available pins
+    #   mode - Behavior of the pin. Options are listed below
+    #     0 - DISABLED: Pin state will not be changed
+    #     1 - ACTIVE_HIGH: Pin will be set high when the trigger is active, and low otherwise
+    #     2 - ACTIVE_LOW: Pin will be set low when the trigger is active, and high otherwise
+    #     5 - ONESHOT_HIGH: Pin will be set high each time the trigger activates. It will not be set low
+    #     6 - ONESHOT_LOW: Pin will be set low each time the trigger activates. It will not be set high
+    #     7 - TOGGLE: Pin will change to the opposite state each time the trigger activates
+    gpio:
+      # This action will toggle GPIO pin 2. It is connected to trigger 1, so this event will toggle pin 2 whenever pin 1 goes high
+      - instance: 1
+        trigger_instance: 1
+        pin: 2
+        mode: 7
+    # Message actions will stream up to 12 data quantities when triggered.
+    #   instance - Unique identifier for the action
+    #   trigger_instance - ID (instance) of the trigger you want to associate with this action.
+    #   descriptor_set - Descriptor set of the data that will be produced by this event
+    #   hertz - Hertz to stream the data at while the event is active. If set to 0, this message will just be published once when the event activates
+    #   descriptors - Array of field descriptors to stream when the event becomes active
+    message:
+      # This action will stream Delta Theta (0x80, 0x07), Delta Velocity (0x80, 0x08), Complementary Quaternion (0x80, 0x0A) one time when the event occurs.
+      - instance: 2
+        trigger_instance: 2
+        descriptor_set: 0x80
+        hertz: 0
+        descriptors: [0x07, 0x08, 0x0A]
