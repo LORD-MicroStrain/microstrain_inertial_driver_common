@@ -87,6 +87,7 @@ constexpr auto NUM_GNSS = 2;
 #include "microstrain_inertial_msgs/MipFilterMultiAntennaOffsetCorrection.h"
 #include "microstrain_inertial_msgs/MipFilterAidingMeasurementSummary.h"
 #include "microstrain_inertial_msgs/MipFilterGnssDualAntennaStatus.h"
+#include "microstrain_inertial_msgs/MipSystemBuiltInTest.h"
 
 #include "std_srvs/Empty.h"
 #include "std_srvs/Trigger.h"
@@ -147,6 +148,7 @@ constexpr auto NUM_GNSS = 2;
 #include "microstrain_inertial_msgs/msg/mip_filter_multi_antenna_offset_correction.hpp"
 #include "microstrain_inertial_msgs/msg/mip_filter_aiding_measurement_summary.hpp"
 #include "microstrain_inertial_msgs/msg/mip_filter_gnss_dual_antenna_status.hpp"
+#include "microstrain_inertial_msgs/msg/mip_system_built_in_test.hpp"
 
 // .h header was deprecated in rolling and will likely be removed in future releases.
 #if MICROSTRAIN_ROLLING == 1 || MICROSTRAIN_HUMBLE == 1
@@ -255,6 +257,7 @@ using MipFilterStatusMsg = ::microstrain_inertial_msgs::MipFilterStatus;
 using MipFilterMultiAntennaOffsetCorrectionMsg = ::microstrain_inertial_msgs::MipFilterMultiAntennaOffsetCorrection;
 using MipFilterAidingMeasurementSummaryMsg = ::microstrain_inertial_msgs::MipFilterAidingMeasurementSummary;
 using MipFilterGnssDualAntennaStatusMsg = ::microstrain_inertial_msgs::MipFilterGnssDualAntennaStatus;
+using MipSystemBuiltInTestMsg = ::microstrain_inertial_msgs::MipSystemBuiltInTest;
 
 using TransformStampedMsg = ::geometry_msgs::TransformStamped;
 
@@ -558,8 +561,8 @@ using MipFilterStatusMsg = ::microstrain_inertial_msgs::msg::MipFilterStatus;
 using MipFilterGnssPositionAidingStatusMsg = ::microstrain_inertial_msgs::msg::MipFilterGnssPositionAidingStatus;
 using MipFilterMultiAntennaOffsetCorrectionMsg = ::microstrain_inertial_msgs::msg::MipFilterMultiAntennaOffsetCorrection;
 using MipFilterAidingMeasurementSummaryMsg = ::microstrain_inertial_msgs::msg::MipFilterAidingMeasurementSummary;
-
 using MipFilterGnssDualAntennaStatusMsg = ::microstrain_inertial_msgs::msg::MipFilterGnssDualAntennaStatus;
+using MipSystemBuiltInTestMsg = ::microstrain_inertial_msgs::msg::MipSystemBuiltInTest;
 
 using TransformStampedMsg = ::geometry_msgs::msg::TransformStamped;
 
