@@ -1811,7 +1811,6 @@ void Publishers::handleFilterAidingMeasurementSummary(const mip::data_filter::Ai
 
 void Publishers::handleSystemBuiltInTest(const mip::data_system::BuiltInTest& built_in_test, const uint8_t descriptor_set, mip::Timestamp timestamp)
 {
-  MICROSTRAIN_INFO(node_, "FOO");
   auto mip_system_built_in_test_msg = mip_system_built_in_test_pub_->getMessage();
   updateMipHeader(&(mip_system_built_in_test_msg->header), descriptor_set);
   std::copy(std::begin(built_in_test.result), std::end(built_in_test.result), std::begin(mip_system_built_in_test_msg->result));
@@ -1819,9 +1818,9 @@ void Publishers::handleSystemBuiltInTest(const mip::data_system::BuiltInTest& bu
 
   // Parse out the BIT into the human readable status message
   auto filter_human_readable_status_msg = filter_human_readable_status_pub_->getMessage();
+  filter_human_readable_status_msg->continuous_bit_flags.clear();
   if (RosMipDevice::isGq7(config_->mip_device_->device_info_))
   {
-    MICROSTRAIN_INFO(node_, "Is GQ7");
     mip::data_system::Gq7BuiltInTest gq7_built_in_test = built_in_test;
     if (gq7_built_in_test.systemClockFailure())
       filter_human_readable_status_msg->continuous_bit_flags.push_back(filter_human_readable_status_msg->CONTINUOUS_BIT_FLAGS_GQ7_SYSTEM_CLOCK_FAILURE);
