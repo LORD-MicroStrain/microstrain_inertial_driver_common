@@ -20,13 +20,13 @@ namespace mip::data_system
 /**
  * \brief Wrapper class to be used by the device specific built in test classes
 */
-struct DeviceBuiltInTest : public BuiltInTest
+struct ContinuousBuiltInTest : public BuiltInTest
 {
  protected:
   /**
    * \brief non-explicit constructor that allows implicit conversion from a BuiltInTest to a Device BuiltInTest
   */
-  DeviceBuiltInTest(BuiltInTest b)
+  ContinuousBuiltInTest(BuiltInTest b)
   {
     memcpy(result, b.result, sizeof(result) / sizeof(result[0]));
   }
@@ -46,12 +46,12 @@ struct DeviceBuiltInTest : public BuiltInTest
 /**
  * \brief GQ7 specific built in test
 */
-struct Gq7BuiltInTest : public DeviceBuiltInTest
+struct Gq7ContinuousBuiltInTest : public ContinuousBuiltInTest
 {
   /**
-   * \brief non-explicit constructor that allows implicit conversion from a BuiltInTest to a Gq7BuiltInTest
+   * \brief non-explicit constructor that allows implicit conversion from a BuiltInTest to a Gq7ContinuousBuiltInTest
   */
-  Gq7BuiltInTest(BuiltInTest b) : DeviceBuiltInTest(b) {}
+  Gq7ContinuousBuiltInTest(BuiltInTest b) : ContinuousBuiltInTest(b) {}
 
   inline bool systemClockFailure()
   {
@@ -291,6 +291,192 @@ struct Gq7BuiltInTest : public DeviceBuiltInTest
   inline bool rtkDongleFault()
   {
     return getBitInByte(14, 3);
+  }
+};
+
+/**
+ * \brief CV7 specific built in test
+*/
+struct Cv7ContinuousBuiltInTest : public ContinuousBuiltInTest
+{
+  /**
+   * \brief non-explicit constructor that allows implicit conversion from a BuiltInTest to a Cv7ContinuousBuiltInTest
+  */
+  Cv7ContinuousBuiltInTest(BuiltInTest b) : ContinuousBuiltInTest(b) {}
+
+  inline bool systemClockFailure()
+  {
+    return getBitInByte(0, 0);
+  }
+
+  inline bool powerFault()
+  {
+    return getBitInByte(0, 1);
+  }
+
+  inline bool firmwareFault()
+  {
+    return getBitInByte(0, 4);
+  }
+
+  inline bool timingOverload()
+  {
+    return getBitInByte(0, 5);
+  }
+
+  inline bool bufferOverrun()
+  {
+    return getBitInByte(0, 6);
+  }
+
+  inline bool imuProcessFault()
+  {
+    return getBitInByte(2, 0);
+  }
+
+  inline bool imuDataRateMismatch()
+  {
+    return getBitInByte(2, 1);
+  }
+
+  inline bool imuOverrunDroppedData()
+  {
+    return getBitInByte(2, 2);
+  }
+
+  inline bool imuStuck()
+  {
+    return getBitInByte(2, 3);
+  }
+
+  inline bool filterProcessFault()
+  {
+    return getBitInByte(2, 4);
+  }
+
+  inline bool filterDroppedData()
+  {
+    return getBitInByte(2, 5);
+  }
+
+  inline bool filterRateMismatch()
+  {
+    return getBitInByte(2, 6);
+  }
+
+  inline bool filterStuck()
+  {
+    return getBitInByte(2, 7);
+  }
+
+  inline bool imuClockFault()
+  {
+    return getBitInByte(4, 0);
+  }
+
+  inline bool imuCommunicationFault()
+  {
+    return getBitInByte(4, 1);
+  }
+
+  inline bool imuTimingOverrun()
+  {
+    return getBitInByte(4, 2);
+  }
+
+  inline bool imuCalibrationErrorAccelerometer()
+  {
+    return getBitInByte(4, 4);
+  }
+
+  inline bool imuCalibrationErrorGyroscope()
+  {
+    return getBitInByte(4, 5);
+  }
+
+  inline bool imuCalibrationErrorMagnetometer()
+  {
+    return getBitInByte(4, 6);
+  }
+
+  inline bool accelerometerGeneralFault()
+  {
+    return getBitInByte(5, 0);
+  }
+
+  inline bool accelerometerOverRange()
+  {
+    return getBitInByte(5, 1);
+  }
+
+  inline bool accelerometerSelfTestFail()
+  {
+    return getBitInByte(5, 2);
+  }
+
+  inline bool gyroscopeGeneralFault()
+  {
+    return getBitInByte(5, 4);
+  }
+
+  inline bool gyroscopeOverRange()
+  {
+    return getBitInByte(5, 5);
+  }
+
+  inline bool gyroscopeSelfTestFail()
+  {
+    return getBitInByte(5, 6);
+  }
+
+  inline bool magnetometerGeneralFault()
+  {
+    return getBitInByte(6, 0);
+  }
+
+  inline bool magnetometerOverRange()
+  {
+    return getBitInByte(6, 1);
+  }
+
+  inline bool magnetometerSelfTestFail()
+  {
+    return getBitInByte(6, 2);
+  }
+
+  inline bool pressureSensorGeneralFault()
+  {
+    return getBitInByte(6, 4);
+  }
+
+  inline bool pressureSensorOverRange()
+  {
+    return getBitInByte(6, 5);
+  }
+
+  inline bool pressureSensorSelfTestFail()
+  {
+    return getBitInByte(6, 6);
+  }
+
+  inline bool factoryBitsInvalid()
+  {
+    return getBitInByte(7, 0);
+  }
+
+  inline bool filterFault()
+  {
+    return getBitInByte(8, 0);
+  }
+
+  inline bool filterTimingOverrun()
+  {
+    return getBitInByte(8, 2);
+  }
+
+  inline bool filterTimingUnderrun()
+  {
+    return getBitInByte(8, 3);
   }
 };
 
