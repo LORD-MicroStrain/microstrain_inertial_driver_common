@@ -107,6 +107,8 @@ class RosConnection : public mip::Connection
   // Implemented in order to satisfy the requirements for the MIP connection
   bool sendToDevice(const uint8_t* data, size_t length) final;
   bool recvFromDevice(uint8_t* buffer, size_t max_length, mip::Timeout timeout, size_t* count_out, mip::Timestamp* timestamp_out) final;
+  const char* interfaceName() const final;
+  uint32_t parameter() const final;
 
  private:
   /**

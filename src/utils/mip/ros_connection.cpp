@@ -221,6 +221,16 @@ bool RosConnection::recvFromDevice(uint8_t* buffer, size_t max_length, mip::Time
   return success;
 }
 
+const char* RosConnection::interfaceName() const
+{
+  return "ROS";
+}
+
+uint32_t RosConnection::parameter() const
+{
+  return 0;
+}
+
 void RosConnection::extractNmea(const uint8_t* data, size_t data_len)
 {
   // Convert into a string if there was actually data

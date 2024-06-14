@@ -921,10 +921,15 @@ void Publishers::handleGnssFixInfo(const mip::data_gnss::FixInfo& fix_info, cons
 
   // Human readable status (not counted as updating)
   auto filter_human_readable_status_msg = filter_human_readable_status_pub_->getMessage();
-  if ((filter_human_readable_status_msg->gnss_state == HumanReadableStatusMsg::GNSS_STATE_NO_FIX || filter_human_readable_status_msg->gnss_state == HumanReadableStatusMsg::GNSS_STATE_3D_FIX) && fix_info.fix_flags.sbasUsed())
-    filter_human_readable_status_msg->gnss_state = HumanReadableStatusMsg::GNSS_STATE_SBAS;
-  else if (filter_human_readable_status_msg->gnss_state == HumanReadableStatusMsg::GNSS_STATE_NO_FIX && fix_info.fix_type == mip::data_gnss::FixInfo::FixType::FIX_3D)
-    filter_human_readable_status_msg->gnss_state = HumanReadableStatusMsg::GNSS_STATE_3D_FIX;
+  if (!rtk_fixed_ && !rtk_float_)
+  {
+    if (fix_info.fix_flags.sbasUsed())
+      filter_human_readable_status_msg->gnss_state = HumanReadableStatusMsg::GNSS_STATE_SBAS;
+    else if (fix_info.fix_type == mip::data_gnss::FixInfo::FixType::FIX_3D)
+      filter_human_readable_status_msg->gnss_state = HumanReadableStatusMsg::GNSS_STATE_3D_FIX;
+    else
+      filter_human_readable_status_msg->gnss_state = HumanReadableStatusMsg::GNSS_STATE_NO_FIX;
+  }
 }
 
 void Publishers::handleGnssRfErrorDetection(const mip::data_gnss::RfErrorDetection& rf_error_detection, const uint8_t descriptor_set, mip::Timestamp timestamp)
@@ -1079,48 +1084,37 @@ void Publishers::handleGnssRaw(const mip::data_gnss::Raw& raw, const uint8_t des
 void Publishers::handleRtkCorrectionsStatus(const mip::data_gnss::RtkCorrectionsStatus& rtk_corrections_status, const uint8_t descriptor_set, mip::Timestamp timestamp)
 {
   const mip::commands_rtk::GetStatusFlags::StatusFlags dongle_status(rtk_corrections_status.dongle_status);
-  switch (dongle_status.version())
-  {
-    // V1 dongle
-    case 0:
-    {
-      // RTK Dongle v1 not supported
-      return;
-    }
-    // V2 dongle
-    default:
-    {
-      auto mip_gnss_corrections_rtk_corrections_status_msg = mip_gnss_corrections_rtk_corrections_status_pub_->getMessage();
-      updateMipHeader(&(mip_gnss_corrections_rtk_corrections_status_msg->header), descriptor_set);
-      mip_gnss_corrections_rtk_corrections_status_msg->time_of_week = rtk_corrections_status.time_of_week;
-      mip_gnss_corrections_rtk_corrections_status_msg->week_number = rtk_corrections_status.week_number;
-
-      mip_gnss_corrections_rtk_corrections_status_msg->epoch_status.antenna_location_received = rtk_corrections_status.epoch_status.antennaLocationReceived();
-      mip_gnss_corrections_rtk_corrections_status_msg->epoch_status.antenna_description_received = rtk_corrections_status.epoch_status.antennaDescriptionReceived();
-      mip_gnss_corrections_rtk_corrections_status_msg->epoch_status.gps_received = rtk_corrections_status.epoch_status.gpsReceived();
-      mip_gnss_corrections_rtk_corrections_status_msg->epoch_status.galileo_received = rtk_corrections_status.epoch_status.galileoReceived();
-      mip_gnss_corrections_rtk_corrections_status_msg->epoch_status.glonass_received = rtk_corrections_status.epoch_status.glonassReceived();
-      mip_gnss_corrections_rtk_corrections_status_msg->epoch_status.dongle_status_read_failed = rtk_corrections_status.epoch_status.dongleStatusReadFailed();
-
-      mip_gnss_corrections_rtk_corrections_status_msg->dongle_status.modem_state = dongle_status.modemState();
-      mip_gnss_corrections_rtk_corrections_status_msg->dongle_status.connection_type = dongle_status.connectionType();
-      mip_gnss_corrections_rtk_corrections_status_msg->dongle_status.rssi = -1 * dongle_status.rssi();
-      mip_gnss_corrections_rtk_corrections_status_msg->dongle_status.signal_quality = dongle_status.signalQuality();
-      mip_gnss_corrections_rtk_corrections_status_msg->dongle_status.tower_change_indicator = dongle_status.towerChangeIndicator();
-      mip_gnss_corrections_rtk_corrections_status_msg->dongle_status.nmea_timeout_flag = dongle_status.nmeaTimeout();
-      mip_gnss_corrections_rtk_corrections_status_msg->dongle_status.server_timeout_flag = dongle_status.serverTimeout();
-      mip_gnss_corrections_rtk_corrections_status_msg->dongle_status.rtcm_timeout_flag = dongle_status.correctionsTimeout();
-      mip_gnss_corrections_rtk_corrections_status_msg->dongle_status.device_out_of_range_flag = dongle_status.deviceOutOfRange();
-      mip_gnss_corrections_rtk_corrections_status_msg->dongle_status.corrections_unavailable_flag = dongle_status.correctionsUnavailable();
-
-      mip_gnss_corrections_rtk_corrections_status_msg->gps_correction_latency = rtk_corrections_status.gps_correction_latency;
-      mip_gnss_corrections_rtk_corrections_status_msg->glonass_correction_latency = rtk_corrections_status.glonass_correction_latency;
-      mip_gnss_corrections_rtk_corrections_status_msg->galileo_correction_latency = rtk_corrections_status.galileo_correction_latency;
-      mip_gnss_corrections_rtk_corrections_status_msg->beidou_correction_latency = rtk_corrections_status.beidou_correction_latency;
-      mip_gnss_corrections_rtk_corrections_status_pub_->publish(*mip_gnss_corrections_rtk_corrections_status_msg);
-      break;
-    }
+  if (0 == dongle_status.version()) {
+    MICROSTRAIN_WARN_ONCE(node_, "RTK Dongle version 0 is unsupported. RtkCorrectionsStatus fields may be invalid.");
   }
+  auto mip_gnss_corrections_rtk_corrections_status_msg = mip_gnss_corrections_rtk_corrections_status_pub_->getMessage();
+  updateMipHeader(&(mip_gnss_corrections_rtk_corrections_status_msg->header), descriptor_set);
+  mip_gnss_corrections_rtk_corrections_status_msg->time_of_week = rtk_corrections_status.time_of_week;
+  mip_gnss_corrections_rtk_corrections_status_msg->week_number = rtk_corrections_status.week_number;
+
+  mip_gnss_corrections_rtk_corrections_status_msg->epoch_status.antenna_location_received = rtk_corrections_status.epoch_status.antennaLocationReceived();
+  mip_gnss_corrections_rtk_corrections_status_msg->epoch_status.antenna_description_received = rtk_corrections_status.epoch_status.antennaDescriptionReceived();
+  mip_gnss_corrections_rtk_corrections_status_msg->epoch_status.gps_received = rtk_corrections_status.epoch_status.gpsReceived();
+  mip_gnss_corrections_rtk_corrections_status_msg->epoch_status.galileo_received = rtk_corrections_status.epoch_status.galileoReceived();
+  mip_gnss_corrections_rtk_corrections_status_msg->epoch_status.glonass_received = rtk_corrections_status.epoch_status.glonassReceived();
+  mip_gnss_corrections_rtk_corrections_status_msg->epoch_status.dongle_status_read_failed = rtk_corrections_status.epoch_status.dongleStatusReadFailed();
+
+  mip_gnss_corrections_rtk_corrections_status_msg->dongle_status.modem_state = dongle_status.modemState();
+  mip_gnss_corrections_rtk_corrections_status_msg->dongle_status.connection_type = dongle_status.connectionType();
+  mip_gnss_corrections_rtk_corrections_status_msg->dongle_status.rssi = -1 * dongle_status.rssi();
+  mip_gnss_corrections_rtk_corrections_status_msg->dongle_status.signal_quality = dongle_status.signalQuality();
+  mip_gnss_corrections_rtk_corrections_status_msg->dongle_status.tower_change_indicator = dongle_status.towerChangeIndicator();
+  mip_gnss_corrections_rtk_corrections_status_msg->dongle_status.nmea_timeout_flag = dongle_status.nmeaTimeout();
+  mip_gnss_corrections_rtk_corrections_status_msg->dongle_status.server_timeout_flag = dongle_status.serverTimeout();
+  mip_gnss_corrections_rtk_corrections_status_msg->dongle_status.rtcm_timeout_flag = dongle_status.correctionsTimeout();
+  mip_gnss_corrections_rtk_corrections_status_msg->dongle_status.device_out_of_range_flag = dongle_status.deviceOutOfRange();
+  mip_gnss_corrections_rtk_corrections_status_msg->dongle_status.corrections_unavailable_flag = dongle_status.correctionsUnavailable();
+
+  mip_gnss_corrections_rtk_corrections_status_msg->gps_correction_latency = rtk_corrections_status.gps_correction_latency;
+  mip_gnss_corrections_rtk_corrections_status_msg->glonass_correction_latency = rtk_corrections_status.glonass_correction_latency;
+  mip_gnss_corrections_rtk_corrections_status_msg->galileo_correction_latency = rtk_corrections_status.galileo_correction_latency;
+  mip_gnss_corrections_rtk_corrections_status_msg->beidou_correction_latency = rtk_corrections_status.beidou_correction_latency;
+  mip_gnss_corrections_rtk_corrections_status_pub_->publish(*mip_gnss_corrections_rtk_corrections_status_msg);
 }
 
 void Publishers::handleRtkBaseStationInfo(const mip::data_gnss::BaseStationInfo& base_station_info, const uint8_t descriptor_set, mip::Timestamp timestamp)
@@ -1806,10 +1800,16 @@ void Publishers::handleFilterGnssPosAidStatus(const mip::data_filter::GnssPosAid
 
   // Filter human readable status message (not counted as updating)
   auto filter_human_readable_status_msg = filter_human_readable_status_pub_->getMessage();
-  if ((filter_human_readable_status_msg->gnss_state == HumanReadableStatusMsg::GNSS_STATE_RTK_FLOAT || filter_human_readable_status_msg->gnss_state == HumanReadableStatusMsg::GNSS_STATE_SBAS || filter_human_readable_status_msg->gnss_state == HumanReadableStatusMsg::GNSS_STATE_3D_FIX || filter_human_readable_status_msg->gnss_state == HumanReadableStatusMsg::GNSS_STATE_NO_FIX) && mip_filter_gnss_position_aiding_status_msg->status.integer_fix)
+  if (mip_filter_gnss_position_aiding_status_msg->status.integer_fix)
+  {
     filter_human_readable_status_msg->gnss_state = HumanReadableStatusMsg::GNSS_STATE_RTK_FIXED;
-  else if ((filter_human_readable_status_msg->gnss_state == HumanReadableStatusMsg::GNSS_STATE_SBAS || filter_human_readable_status_msg->gnss_state == HumanReadableStatusMsg::GNSS_STATE_3D_FIX || filter_human_readable_status_msg->gnss_state == HumanReadableStatusMsg::GNSS_STATE_NO_FIX) && mip_filter_gnss_position_aiding_status_msg->status.differential)
-    filter_human_readable_status_msg->gnss_state = HumanReadableStatusMsg::GNSS_STATE_RTK_FIXED;
+    rtk_fixed_ = true;
+  }
+  else if (!rtk_fixed_ && mip_filter_gnss_position_aiding_status_msg->status.differential)
+  {
+    filter_human_readable_status_msg->gnss_state = HumanReadableStatusMsg::GNSS_STATE_RTK_FLOAT;
+    rtk_float_ = true;
+  }
 }
 
 void Publishers::handleFilterMultiAntennaOffsetCorrection(const mip::data_filter::MultiAntennaOffsetCorrection& multi_antenna_offset_correction, const uint8_t descriptor_set, mip::Timestamp timestamp)
@@ -1910,9 +1910,11 @@ void Publishers::handleAfterPacket(const mip::PacketRef& packet, mip::Timestamp 
     event_source_mapping_[packet.descriptorSet()].trigger_id = 0;
 
   // Reset some state in messages that need to have it reset
-  if (filter_human_readable_status_pub_->getMessage()->gnss_state != HumanReadableStatusMsg::UNSUPPORTED)
-    filter_human_readable_status_pub_->getMessage()->gnss_state = HumanReadableStatusMsg::GNSS_STATE_NO_FIX;
   filter_llh_position_pub_->getMessage()->status.status = NavSatFixMsg::_status_type::STATUS_NO_FIX;
+
+  // Reset whether or not we have RTK
+  rtk_fixed_ = false;
+  rtk_float_ = false;
 }
 
 void Publishers::updateMipHeader(MipHeaderMsg* mip_header, uint8_t descriptor_set) const

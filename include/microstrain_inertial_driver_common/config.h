@@ -155,6 +155,8 @@ public:
   bool subscribe_ext_vel_body_;
   bool subscribe_ext_heading_ned_;
   bool subscribe_ext_heading_enu_;
+  bool subscribe_ext_mag_;
+  bool subscribe_ext_pressure_;
 
   // RTK config
   bool rtk_dongle_enable_;
