@@ -6,7 +6,6 @@
 
 #include <yaml-cpp/yaml.h>
 
-#include <filesystem>
 
 namespace microstrain
 {
@@ -35,7 +34,6 @@ class EventsYaml
   void printEventAction(const mip::commands_3dm::EventAction& action);
 
   RosNodeType* node_;
-  std::filesystem::path events_yaml_file_path_;
 };
 
 }

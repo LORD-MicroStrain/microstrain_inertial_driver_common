@@ -232,9 +232,9 @@ bool EventsYaml::parseEventGpioTriggerConfig(const YAML::Node& gpio_triggers_yam
     gpio_trigger.type = mip::commands_3dm::EventTrigger::Type::GPIO;
     try
     {
-      gpio_trigger.instance = getRequiredKeyFromYaml<uint8_t>(gpio_trigger_yaml, "instance");
-      gpio_trigger.parameters.gpio.pin = getRequiredKeyFromYaml<uint8_t>(gpio_trigger_yaml, "pin");
-      gpio_trigger.parameters.gpio.mode = static_cast<mip::commands_3dm::EventTrigger::GpioParams::Mode>(getRequiredKeyFromYaml<uint8_t>(gpio_trigger_yaml, "mode"));
+      gpio_trigger.instance = getRequiredKeyFromYaml<uint16_t>(gpio_trigger_yaml, "instance");
+      gpio_trigger.parameters.gpio.pin = getRequiredKeyFromYaml<uint16_t>(gpio_trigger_yaml, "pin");
+      gpio_trigger.parameters.gpio.mode = static_cast<mip::commands_3dm::EventTrigger::GpioParams::Mode>(getRequiredKeyFromYaml<uint16_t>(gpio_trigger_yaml, "mode"));
       gpio_event_triggers->push_back(gpio_trigger);
     }
     catch (const std::runtime_error& e)
@@ -263,11 +263,11 @@ bool EventsYaml::parseEventThresholdTriggerConfig(const YAML::Node& threshold_tr
     threshold_trigger.type = mip::commands_3dm::EventTrigger::Type::THRESHOLD;
     try
     {
-      threshold_trigger.instance = getRequiredKeyFromYaml<uint8_t>(threshold_trigger_yaml, "instance");
-      threshold_trigger.parameters.threshold.desc_set = getRequiredKeyFromYaml<uint8_t>(threshold_trigger_yaml, "descriptor_set");
-      threshold_trigger.parameters.threshold.field_desc = getRequiredKeyFromYaml<uint8_t>(threshold_trigger_yaml, "field_descriptor");
-      threshold_trigger.parameters.threshold.param_id = getRequiredKeyFromYaml<uint8_t>(threshold_trigger_yaml, "param_id");
-      threshold_trigger.parameters.threshold.type = static_cast<mip::commands_3dm::EventTrigger::ThresholdParams::Type>(getRequiredKeyFromYaml<uint8_t>(threshold_trigger_yaml, "type"));
+      threshold_trigger.instance = getRequiredKeyFromYaml<uint16_t>(threshold_trigger_yaml, "instance");
+      threshold_trigger.parameters.threshold.desc_set = getRequiredKeyFromYaml<uint16_t>(threshold_trigger_yaml, "descriptor_set");
+      threshold_trigger.parameters.threshold.field_desc = getRequiredKeyFromYaml<uint16_t>(threshold_trigger_yaml, "field_descriptor");
+      threshold_trigger.parameters.threshold.param_id = getRequiredKeyFromYaml<uint16_t>(threshold_trigger_yaml, "param_id");
+      threshold_trigger.parameters.threshold.type = static_cast<mip::commands_3dm::EventTrigger::ThresholdParams::Type>(getRequiredKeyFromYaml<uint16_t>(threshold_trigger_yaml, "type"));
       switch (threshold_trigger.parameters.threshold.type)
       {
         case mip::commands_3dm::EventTrigger::ThresholdParams::Type::WINDOW:
@@ -310,7 +310,7 @@ bool EventsYaml::parseEventCombinationTriggerConfig(const YAML::Node& combinatio
     combination_trigger.type = mip::commands_3dm::EventTrigger::Type::COMBINATION;
     try
     {
-      combination_trigger.instance = getRequiredKeyFromYaml<uint8_t>(combination_trigger_yaml, "instance");
+      combination_trigger.instance = getRequiredKeyFromYaml<uint16_t>(combination_trigger_yaml, "instance");
       combination_trigger.parameters.combination.logic_table = getRequiredKeyFromYaml<uint16_t>(combination_trigger_yaml, "logic_table");
 
       YAML::Node input_triggers_yaml;
@@ -325,9 +325,9 @@ bool EventsYaml::parseEventCombinationTriggerConfig(const YAML::Node& combinatio
           {
             try
             {
-              combination_trigger.parameters.combination.input_triggers[i++] = input_trigger_yaml.as<uint8_t>();
+              combination_trigger.parameters.combination.input_triggers[i++] = input_trigger_yaml.as<uint16_t>();
             }
-            catch(const YAML::TypedBadConversion<uint8_t>& t)
+            catch(const YAML::TypedBadConversion<uint16_t>& t)
             {
               MICROSTRAIN_ERROR(node_, "Combination trigger parameter 'input_triggers' must only contain numbers");
               return false;
@@ -372,10 +372,10 @@ bool EventsYaml::parseEventGpioActionConfig(const YAML::Node& gpio_actions_yaml,
     gpio_action.type = mip::commands_3dm::EventAction::Type::GPIO;
     try
     {
-      gpio_action.instance = getRequiredKeyFromYaml<uint8_t>(gpio_action_yaml, "instance");
-      gpio_action.trigger = getRequiredKeyFromYaml<uint8_t>(gpio_action_yaml, "trigger_instance");
-      gpio_action.parameters.gpio.pin = getRequiredKeyFromYaml<uint8_t>(gpio_action_yaml, "pin");
-      gpio_action.parameters.gpio.mode = static_cast<mip::commands_3dm::EventAction::GpioParams::Mode>(getRequiredKeyFromYaml<uint8_t>(gpio_action_yaml, "mode"));
+      gpio_action.instance = getRequiredKeyFromYaml<uint16_t>(gpio_action_yaml, "instance");
+      gpio_action.trigger = getRequiredKeyFromYaml<uint16_t>(gpio_action_yaml, "trigger_instance");
+      gpio_action.parameters.gpio.pin = getRequiredKeyFromYaml<uint16_t>(gpio_action_yaml, "pin");
+      gpio_action.parameters.gpio.mode = static_cast<mip::commands_3dm::EventAction::GpioParams::Mode>(getRequiredKeyFromYaml<uint16_t>(gpio_action_yaml, "mode"));
       gpio_event_actions->push_back(gpio_action);
     }
     catch(const std::runtime_error& r)
@@ -403,9 +403,9 @@ bool EventsYaml::parseEventMessageActionConfig(std::shared_ptr<RosMipDeviceMain>
     message_action.type = mip::commands_3dm::EventAction::Type::MESSAGE;
     try
     {
-      message_action.instance = getRequiredKeyFromYaml<uint8_t>(message_action_yaml, "instance");
-      message_action.trigger = getRequiredKeyFromYaml<uint8_t>(message_action_yaml, "trigger_instance");
-      message_action.parameters.message.desc_set = getRequiredKeyFromYaml<uint8_t>(message_action_yaml, "descriptor_set");
+      message_action.instance = getRequiredKeyFromYaml<uint16_t>(message_action_yaml, "instance");
+      message_action.trigger = getRequiredKeyFromYaml<uint16_t>(message_action_yaml, "trigger_instance");
+      message_action.parameters.message.desc_set = getRequiredKeyFromYaml<uint16_t>(message_action_yaml, "descriptor_set");
 
       double actual_hertz;
       float desired_hertz = getRequiredKeyFromYaml<float>(message_action_yaml, "hertz");
@@ -424,9 +424,9 @@ bool EventsYaml::parseEventMessageActionConfig(std::shared_ptr<RosMipDeviceMain>
           {
             try
             {
-              message_action.parameters.message.descriptors[i++] = descriptor_yaml.as<uint8_t>();
+              message_action.parameters.message.descriptors[i++] = descriptor_yaml.as<uint16_t>();
             }
-            catch(const YAML::TypedBadConversion<uint8_t>& t)
+            catch(const YAML::TypedBadConversion<uint16_t>& t)
             {
               MICROSTRAIN_ERROR(node_, "Message action parameter 'descriptors' must only contain numbers");
               return false;
@@ -472,7 +472,8 @@ T EventsYaml::getRequiredKeyFromYaml(const YAML::Node& node, const std::string& 
   }
   catch(const YAML::TypedBadConversion<T>& t)
   {
-    MICROSTRAIN_ERROR(node_, "Unable to get required key '%s' of type %s", key.c_str(), typeid(T).name());
+    YAML::Emitter emitter; emitter << node;
+    MICROSTRAIN_ERROR(node_, "Unable to get required key '%s' of type %s in %s", key.c_str(), typeid(T).name(), emitter.c_str());
     MICROSTRAIN_ERROR(node_, "  Exception: %s", t.what());
     throw std::runtime_error("");
   }
@@ -489,8 +490,8 @@ void EventsYaml::printEventTrigger(const mip::commands_3dm::EventTrigger& trigge
       MICROSTRAIN_INFO(node_, "  mode = %u", static_cast<uint8_t>(trigger.parameters.gpio.mode));
       break;
     case mip::commands_3dm::EventTrigger::Type::THRESHOLD:
-      MICROSTRAIN_INFO(node_, "  descriptor_set = %u", trigger.parameters.threshold.desc_set);
-      MICROSTRAIN_INFO(node_, "  field_descriptor = %u", trigger.parameters.threshold.field_desc);
+      MICROSTRAIN_INFO(node_, "  descriptor_set = 0x%02X", trigger.parameters.threshold.desc_set);
+      MICROSTRAIN_INFO(node_, "  field_descriptor = 0x%02X", trigger.parameters.threshold.field_desc);
       MICROSTRAIN_INFO(node_, "  param_id = %u", trigger.parameters.threshold.param_id);
       MICROSTRAIN_INFO(node_, "  threshold_type = %u", static_cast<uint8_t>(trigger.parameters.threshold.type));
       switch (trigger.parameters.threshold.type)
@@ -506,7 +507,7 @@ void EventsYaml::printEventTrigger(const mip::commands_3dm::EventTrigger& trigge
       }
       break;
     case mip::commands_3dm::EventTrigger::Type::COMBINATION:
-      MICROSTRAIN_INFO(node_, "  logic_table = %u", trigger.parameters.combination.logic_table);
+      MICROSTRAIN_INFO(node_, "  logic_table = 0x%04X", trigger.parameters.combination.logic_table);
       std::stringstream ss; ss << "[";
       const size_t max_input_triggers = sizeof(trigger.parameters.combination.input_triggers) / sizeof(trigger.parameters.combination.input_triggers[0]);
       for (int i = 0; i < max_input_triggers; i++)
