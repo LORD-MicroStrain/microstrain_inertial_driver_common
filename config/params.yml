@@ -322,7 +322,6 @@ imu_angular_cov       : [0.01, 0, 0, 0, 0.01, 0, 0, 0, 0.01]
 imu_mag_cov           : [0.01, 0, 0, 0, 0.01, 0, 0, 0, 0.01]
 imu_pressure_variance : 0.01
 
-
 # ****************************************************************** 
 # Other Device Settings
 # ****************************************************************** 
@@ -402,6 +401,29 @@ sbas_apply_integrity: False
 #  Note: ROS2 can't handle empty arrays in a yml file, so uncomment this line and fill it in if you want to specify PRNs
 #sbas_included_prns: []
 
+# Low pass filter configuration.
+# Note: The device may fail if one of these is enabled, and the device does not support the relevant measurement
+#   accel_* will affect data in /imu/data_raw if enabled
+#   gyro_* will affect data in /imu/data_raw if enabled
+#   mag_* will affect data in /imu/mag if enabled
+#   pressure_* will affect data in /imu/pressure if enabled
+low_pass_filter_config : True
+
+accel_low_pass_filter_enable    : False
+accel_low_pass_filter_auto      : False
+accel_low_pass_filter_frequency : 0
+
+gyro_low_pass_filter_enable    : False
+gyro_low_pass_filter_auto      : False
+gyro_low_pass_filter_frequency : 0
+
+mag_low_pass_filter_enable    : False
+mag_low_pass_filter_auto      : False
+mag_low_pass_filter_frequency : 0
+
+pressure_low_pass_filter_enable    : False
+pressure_low_pass_filter_auto      : False
+pressure_low_pass_filter_frequency : 0
 
 # ****************************************************************** 
 # Publisher Settings
@@ -410,6 +432,7 @@ sbas_apply_integrity: False
 #  Note: If set to 0, the data will not be stremaed from the device, and the publisher will not be created
 
 # The speed at which the individual IMU publishers will publish at.
+imu_data_raw_rate         : 1    # Rate of imu/data_raw topic
 imu_data_rate             : 100  # Rate of imu/data topic
 imu_mag_data_rate         : 0    # Rate of imu/mag topic
 imu_pressure_data_rate    : 0    # Rate of imu/pressure topic
