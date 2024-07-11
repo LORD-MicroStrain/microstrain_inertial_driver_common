@@ -385,6 +385,9 @@ const std::map<std::string, FieldWrapper::SharedPtrVec> MipPublisherMapping::sta
   {MIP_SENSOR_OVERRANGE_STATUS_TOPIC, {
     FieldWrapperType<mip::data_sensor::OverrangeStatus>::initialize(),
   }},
+  {MIP_SENSOR_TEMPERATURE_STATISTICS_TOPIC, {
+    FieldWrapperType<mip::data_sensor::TemperatureAbs>::initialize(),
+  }},
 
   // MIP GNSS1 (0x81, 0x91) topic mappings
   {MIP_GNSS1_FIX_INFO_TOPIC, {
@@ -460,7 +463,8 @@ const std::map<std::string, std::string> MipPublisherMapping::static_topic_to_da
   {FILTER_DUAL_ANTENNA_HEADING_TOPIC,  "filter_dual_antenna_heading_data_rate"},
 
   // MIP sensor (0x80) data rates
-  {MIP_SENSOR_OVERRANGE_STATUS_TOPIC, "mip_sensor_overrange_status_data_rate"},
+  {MIP_SENSOR_OVERRANGE_STATUS_TOPIC,       "mip_sensor_overrange_status_data_rate"},
+  {MIP_SENSOR_TEMPERATURE_STATISTICS_TOPIC, "mip_sensor_temperature_statistics_data_rate"},
 
   // MIP GNSS1 (0x81, 0x91) data rates
   {MIP_GNSS1_FIX_INFO_TOPIC,           "mip_gnss1_fix_info_data_rate"},

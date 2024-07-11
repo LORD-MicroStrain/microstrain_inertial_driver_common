@@ -258,7 +258,8 @@ public:
 
 
   // MIP Sensor (0x80) publishers
-  Publisher<MipSensorOverrangeStatusMsg>::SharedPtr mip_sensor_overrange_status_pub_ = Publisher<MipSensorOverrangeStatusMsg>::initialize(MIP_SENSOR_OVERRANGE_STATUS_TOPIC);
+  Publisher<MipSensorOverrangeStatusMsg>::SharedPtr       mip_sensor_overrange_status_pub_       = Publisher<MipSensorOverrangeStatusMsg>::initialize(MIP_SENSOR_OVERRANGE_STATUS_TOPIC);
+  Publisher<MipSensorTemperatureStatisticsMsg>::SharedPtr mip_sensor_temperature_statistics_pub_ = Publisher<MipSensorTemperatureStatisticsMsg>::initialize(MIP_SENSOR_TEMPERATURE_STATISTICS_TOPIC);
 
   // MIP GNSS (0x81, 0x91, 0x92) publishers
   Publisher<MipGnssFixInfoMsg>::SharedPtrVec          mip_gnss_fix_info_pub_           = Publisher<MipGnssFixInfoMsg>::initializeVec({MIP_GNSS1_FIX_INFO_TOPIC, MIP_GNSS2_FIX_INFO_TOPIC});
@@ -333,6 +334,7 @@ private:
   void handleSensorScaledPressure(const mip::data_sensor::ScaledPressure& scaled_pressure, const uint8_t descriptor_set, mip::Timestamp timestamp);
   void handleSensorOdometerData(const mip::data_sensor::OdometerData& odometer_data, const uint8_t descriptor_set, mip::Timestamp timestamp);
   void handleSensorOverrangeStatus(const mip::data_sensor::OverrangeStatus& overrange_status, const uint8_t descriptor_set, mip::Timestamp timestamp);
+  void handleSensorTemperatureStatistics(const mip::data_sensor::TemperatureAbs& temperature_statistics, const uint8_t descriptor_set, mip::Timestamp timestamp);
 
   // Callbcaks to handle GNSS1/2 data from the device
   void handleGnssGpsTime(const mip::data_gnss::GpsTime& gps_time, const uint8_t descriptor_set, mip::Timestamp timestamp);

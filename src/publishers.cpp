@@ -103,6 +103,7 @@ bool Publishers::configure()
   }
 
   mip_sensor_overrange_status_pub_->configure(node_, config_);
+  mip_sensor_temperature_statistics_pub_->configure(node_, config_);
 
   for (const auto& pub : mip_gnss_fix_info_pub_) pub->configure(node_, config_);
   for (const auto& pub : mip_gnss_sbas_info_pub_) pub->configure(node_, config_);
@@ -330,6 +331,7 @@ bool Publishers::configure()
   registerDataCallback<mip::data_sensor::ScaledPressure, &Publishers::handleSensorScaledPressure>();
   registerDataCallback<mip::data_sensor::OdometerData, &Publishers::handleSensorOdometerData>();
   registerDataCallback<mip::data_sensor::OverrangeStatus, &Publishers::handleSensorOverrangeStatus>();
+  registerDataCallback<mip::data_sensor::TemperatureAbs, &Publishers::handleSensorTemperatureStatistics>();
 
   // GNSS1/2 callbacks
   for (const uint8_t gnss_descriptor_set : std::initializer_list<uint8_t>{mip::data_gnss::DESCRIPTOR_SET, mip::data_gnss::MIP_GNSS1_DATA_DESC_SET, mip::data_gnss::MIP_GNSS2_DATA_DESC_SET})
@@ -401,6 +403,7 @@ bool Publishers::activate()
   filter_dual_antenna_heading_pub_->activate();
 
   mip_sensor_overrange_status_pub_->activate();
+  mip_sensor_temperature_statistics_pub_->activate();
 
   for (const auto& pub : mip_gnss_fix_info_pub_) pub->activate();
   for (const auto& pub : mip_gnss_sbas_info_pub_) pub->activate();
@@ -456,6 +459,7 @@ bool Publishers::deactivate()
   filter_dual_antenna_heading_pub_->deactivate();
 
   mip_sensor_overrange_status_pub_->deactivate();
+  mip_sensor_temperature_statistics_pub_->deactivate();
 
   for (const auto& pub : mip_gnss_fix_info_pub_) pub->deactivate();
   for (const auto& pub : mip_gnss_sbas_info_pub_) pub->deactivate();
@@ -742,6 +746,16 @@ void Publishers::handleSensorOverrangeStatus(const mip::data_sensor::OverrangeSt
   mip_sensor_overrange_status_msg->status.mag_z = overrange_status.status.magZ();
   mip_sensor_overrange_status_msg->status.press = overrange_status.status.press();
   mip_sensor_overrange_status_pub_->publish(*mip_sensor_overrange_status_msg);
+}
+
+void Publishers::handleSensorTemperatureStatistics(const mip::data_sensor::TemperatureAbs& temperature_statistics, const uint8_t descriptor_set, mip::Timestamp timestamp)
+{
+  auto mip_sensor_temperature_statistics_msg = mip_sensor_temperature_statistics_pub_->getMessage();
+  updateMipHeader(&(mip_sensor_temperature_statistics_msg->header), descriptor_set);
+  mip_sensor_temperature_statistics_msg->min_temp = temperature_statistics.min_temp;
+  mip_sensor_temperature_statistics_msg->max_temp = temperature_statistics.max_temp;
+  mip_sensor_temperature_statistics_msg->mean_temp = temperature_statistics.mean_temp;
+  mip_sensor_temperature_statistics_pub_->publish(*mip_sensor_temperature_statistics_msg);
 }
 
 void Publishers::handleGnssGpsTime(const mip::data_gnss::GpsTime& gps_time, const uint8_t descriptor_set, mip::Timestamp timestamp)
