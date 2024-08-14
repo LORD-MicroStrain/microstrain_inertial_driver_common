@@ -319,6 +319,15 @@ bool Config::configure3DM(RosNodeType* node)
   float hardware_odometer_uncertainty;
   bool sbas_enable, sbas_enable_ranging, sbas_enable_corrections, sbas_apply_integrity;
   std::vector<uint16_t> sbas_prns;
+  bool low_pass_filter_config;
+  bool accel_low_pass_filter_enable, accel_low_pass_filter_auto;
+  float accel_low_pass_filter_frequency;
+  bool gyro_low_pass_filter_enable, gyro_low_pass_filter_auto;
+  float gyro_low_pass_filter_frequency;
+  bool mag_low_pass_filter_enable, mag_low_pass_filter_auto;
+  float mag_low_pass_filter_frequency;
+  bool pressure_low_pass_filter_enable, pressure_low_pass_filter_auto;
+  float pressure_low_pass_filter_frequency;
   getParam<bool>(node, "gpio_config", gpio_config, false);
   getParam<bool>(node, "nmea_message_config", nmea_message_config, false);
   getParam<int32_t>(node, "filter_pps_source", filter_pps_source, 1);
@@ -329,6 +338,19 @@ bool Config::configure3DM(RosNodeType* node)
   getParam<bool>(node, "sbas_enable_corrections", sbas_enable_corrections, false);
   getParam<bool>(node, "sbas_apply_integrity", sbas_apply_integrity, false);
   getUint16ArrayParam(node, "sbas_included_prns", sbas_prns, std::vector<uint16_t>());
+  getParam<bool>(node, "low_pass_filter_config", low_pass_filter_config, false);
+  getParam<bool>(node, "accel_low_pass_filter_enable", accel_low_pass_filter_enable, false);
+  getParam<bool>(node, "accel_low_pass_filter_auto", accel_low_pass_filter_auto, false);
+  getParam<float>(node, "accel_low_pass_filter_frequency", accel_low_pass_filter_frequency, 0);
+  getParam<bool>(node, "gyro_low_pass_filter_enable", gyro_low_pass_filter_enable, false);
+  getParam<bool>(node, "gyro_low_pass_filter_auto", gyro_low_pass_filter_auto, false);
+  getParam<float>(node, "gyro_low_pass_filter_frequency", gyro_low_pass_filter_frequency, 0);
+  getParam<bool>(node, "mag_low_pass_filter_enable", mag_low_pass_filter_enable, false);
+  getParam<bool>(node, "mag_low_pass_filter_auto", mag_low_pass_filter_auto, false);
+  getParam<float>(node, "mag_low_pass_filter_frequency", mag_low_pass_filter_frequency, 0);
+  getParam<bool>(node, "pressure_low_pass_filter_enable", pressure_low_pass_filter_enable, false);
+  getParam<bool>(node, "pressure_low_pass_filter_auto", pressure_low_pass_filter_auto, false);
+  getParam<float>(node, "pressure_low_pass_filter_frequency", pressure_low_pass_filter_frequency, 0);
 
   mip::CmdResult mip_cmd_result;
   const uint8_t descriptor_set = mip::commands_3dm::DESCRIPTOR_SET;
@@ -535,6 +557,65 @@ bool Config::configure3DM(RosNodeType* node)
   else
   {
     MICROSTRAIN_INFO(node_, "Note: The device does not support the nmea message format command");
+  }
+
+  // Low pass filter settings.
+  std::vector<std::tuple<uint8_t, bool, bool, float>> low_pass_filter_settings =
+  {
+    {mip::data_sensor::DATA_ACCEL_SCALED, accel_low_pass_filter_enable, accel_low_pass_filter_auto, accel_low_pass_filter_frequency},
+    {mip::data_sensor::DATA_GYRO_SCALED, gyro_low_pass_filter_enable, gyro_low_pass_filter_auto, gyro_low_pass_filter_frequency},
+    {mip::data_sensor::DATA_MAG_SCALED, mag_low_pass_filter_enable, mag_low_pass_filter_auto, mag_low_pass_filter_frequency},
+    {mip::data_sensor::DATA_PRESSURE_SCALED, pressure_low_pass_filter_enable, pressure_low_pass_filter_auto, pressure_low_pass_filter_frequency},
+  };
+  const bool supports_deprecated_low_pass_filter_settings = mip_device_->supportsDescriptor(mip::commands_3dm::ImuLowpassFilter::DESCRIPTOR_SET, mip::commands_3dm::ImuLowpassFilter::FIELD_DESCRIPTOR);
+  const bool supports_low_pass_filter_settings = mip_device_->supportsDescriptor(mip::commands_3dm::LowpassFilter::DESCRIPTOR_SET, mip::commands_3dm::LowpassFilter::FIELD_DESCRIPTOR);
+  if (supports_deprecated_low_pass_filter_settings || supports_low_pass_filter_settings)
+  {
+    if (low_pass_filter_config)
+    {
+      for (const auto& low_pass_filter_entry : low_pass_filter_settings)
+      {
+        const uint8_t low_pass_filter_field_descriptor = std::get<0>(low_pass_filter_entry);
+        const bool low_pass_filter_enable = std::get<1>(low_pass_filter_entry);
+        const bool low_pass_filter_auto = std::get<2>(low_pass_filter_entry);
+        const float low_pass_filter_frequency = std::get<3>(low_pass_filter_entry);
+        if (supports_low_pass_filter_settings)
+        {
+          MICROSTRAIN_INFO(node_, "Configuring low pass filter with:");
+          MICROSTRAIN_INFO(node_, "  descriptor_set = 0x%02x", mip::data_sensor::DESCRIPTOR_SET);
+          MICROSTRAIN_INFO(node_, "  field_descriptor = 0x%02x", low_pass_filter_field_descriptor);
+          MICROSTRAIN_INFO(node_, "  enable = %d", low_pass_filter_enable);
+          MICROSTRAIN_INFO(node_, "  manual = %d", !low_pass_filter_auto);
+          MICROSTRAIN_INFO(node_, "  frequency = %f", low_pass_filter_frequency);
+          if (!(mip_cmd_result = mip::commands_3dm::writeLowpassFilter(*mip_device_, mip::data_sensor::DESCRIPTOR_SET, low_pass_filter_field_descriptor, low_pass_filter_enable, !low_pass_filter_auto, low_pass_filter_frequency)))
+          {
+            MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to configure low pass filter settings");
+            return false;
+          }
+        }
+        else
+        {
+          MICROSTRAIN_INFO(node_, "Configuring low pass filter with:");
+          MICROSTRAIN_INFO(node_, "  field_descriptor = 0x%02x", low_pass_filter_field_descriptor);
+          MICROSTRAIN_INFO(node_, "  enable = %d", low_pass_filter_enable);
+          MICROSTRAIN_INFO(node_, "  auto = %d", low_pass_filter_auto);
+          MICROSTRAIN_INFO(node_, "  frequency = %u", static_cast<uint16_t>(std::round(low_pass_filter_frequency)));
+          if (!(mip_cmd_result = mip::commands_3dm::writeImuLowpassFilter(*mip_device_, low_pass_filter_field_descriptor, low_pass_filter_enable, !low_pass_filter_auto, static_cast<uint16_t>(std::round(low_pass_filter_frequency)), 0)))
+          {
+            MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to configure low pass filter settings");
+            return false;
+          }
+        }
+      }
+    }
+    else
+    {
+      MICROSTRAIN_INFO(node_, "Not configuring low pass filter settings because 'low_pass_filter_config' is false");
+    }
+  }
+  else
+  {
+    MICROSTRAIN_INFO(node_, "Note: The device does not support the low pass filter settings command");
   }
 
   return true;

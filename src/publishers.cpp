@@ -77,6 +77,7 @@ Publishers::Publishers(RosNodeType* node, Config* config)
 
 bool Publishers::configure()
 {
+  imu_raw_pub_->configure(node_, config_);
   imu_pub_->configure(node_, config_);
   mag_pub_->configure(node_, config_);
   pressure_pub_->configure(node_, config_);
@@ -122,6 +123,7 @@ bool Publishers::configure()
     nmea_sentence_pub_->configure(node_);
 
   // Frame ID configuration
+  imu_raw_pub_->getMessage()->header.frame_id = config_->frame_id_;
   imu_pub_->getMessage()->header.frame_id = config_->frame_id_;
   mag_pub_->getMessage()->header.frame_id = config_->frame_id_;
   pressure_pub_->getMessage()->header.frame_id = config_->frame_id_;
@@ -149,8 +151,11 @@ bool Publishers::configure()
   config_->map_to_earth_transform_.child_frame_id = config_->map_frame_id_;
 
   // Static covariance configuration
+  auto imu_raw_msg = imu_raw_pub_->getMessage();
   auto imu_msg = imu_pub_->getMessage();
   auto mag_msg = mag_pub_->getMessage();
+  std::copy(config_->imu_linear_cov_.begin(), config_->imu_linear_cov_.end(), imu_raw_msg->linear_acceleration_covariance.begin());
+  std::copy(config_->imu_angular_cov_.begin(), config_->imu_angular_cov_.end(), imu_raw_msg->angular_velocity_covariance.begin());
   std::copy(config_->imu_linear_cov_.begin(), config_->imu_linear_cov_.end(), imu_msg->linear_acceleration_covariance.begin());
   std::copy(config_->imu_angular_cov_.begin(), config_->imu_angular_cov_.end(), imu_msg->angular_velocity_covariance.begin());
   std::copy(config_->imu_orientation_cov_.begin(), config_->imu_orientation_cov_.end(), imu_msg->orientation_covariance.begin());
@@ -324,6 +329,8 @@ bool Publishers::configure()
   registerDataCallback<mip::data_filter::Timestamp, &Publishers::handleFilterTimestamp>();
 
   // IMU callbacks
+  registerDataCallback<mip::data_sensor::ScaledAccel, &Publishers::handleSensorScaledAccel>();
+  registerDataCallback<mip::data_sensor::ScaledGyro, &Publishers::handleSensorScaledGyro>();
   registerDataCallback<mip::data_sensor::DeltaTheta, &Publishers::handleSensorDeltaTheta>();
   registerDataCallback<mip::data_sensor::DeltaVelocity, &Publishers::handleSensorDeltaVelocity>();
   registerDataCallback<mip::data_sensor::CompQuaternion, &Publishers::handleSensorCompQuaternion>();
@@ -382,6 +389,7 @@ bool Publishers::configure()
 
 bool Publishers::activate()
 {
+  imu_raw_pub_->activate();
   imu_pub_->activate();
   mag_pub_->activate();
   pressure_pub_->activate();
@@ -440,6 +448,7 @@ bool Publishers::activate()
 
 bool Publishers::deactivate()
 {
+  imu_raw_pub_->deactivate();
   imu_pub_->deactivate();
   mag_pub_->deactivate();
   pressure_pub_->deactivate();
@@ -482,6 +491,7 @@ void Publishers::publish()
   // This publish function will get called after each packet is processed.
   // For standard ROS messages this allows us to combine multiple MIP fields and then publish them
   // For custom ROS messages, the messages are published directly in the callbacks
+  imu_raw_pub_->publish();
   imu_pub_->publish();
   mag_pub_->publish();
   pressure_pub_->publish();
@@ -631,6 +641,34 @@ void Publishers::handleSensorGpsTimestamp(const mip::data_sensor::GpsTimestamp& 
   stored_timestamp.week_number = gps_timestamp.week_number;
   stored_timestamp.valid_flags = gps_timestamp.valid_flags;
   gps_timestamp_mapping_[descriptor_set] = stored_timestamp;
+}
+
+void Publishers::handleSensorScaledAccel(const mip::data_sensor::ScaledAccel& scaled_accel, const uint8_t descriptor_set, mip::Timestamp timestamp)
+{
+  auto imu_raw_msg = imu_raw_pub_->getMessageToUpdate();
+  updateHeaderTime(&(imu_raw_msg->header), descriptor_set, timestamp);
+  imu_raw_msg->linear_acceleration.x = USTRAIN_G * scaled_accel.scaled_accel[0];
+  imu_raw_msg->linear_acceleration.y = USTRAIN_G * scaled_accel.scaled_accel[1];
+  imu_raw_msg->linear_acceleration.z = USTRAIN_G * scaled_accel.scaled_accel[2];
+  if (config_->use_enu_frame_)
+  {
+    imu_raw_msg->linear_acceleration.y *= -1.0;
+    imu_raw_msg->linear_acceleration.z *= -1.0;
+  }
+}
+
+void Publishers::handleSensorScaledGyro(const mip::data_sensor::ScaledGyro& scaled_gyro, const uint8_t descriptor_set, mip::Timestamp timestamp)
+{
+  auto imu_raw_msg = imu_raw_pub_->getMessageToUpdate();
+  updateHeaderTime(&(imu_raw_msg->header), descriptor_set, timestamp);
+  imu_raw_msg->angular_velocity.x = scaled_gyro.scaled_gyro[0];
+  imu_raw_msg->angular_velocity.y = scaled_gyro.scaled_gyro[1];
+  imu_raw_msg->angular_velocity.z = scaled_gyro.scaled_gyro[2];
+  if (config_->use_enu_frame_)
+  {
+    imu_raw_msg->angular_velocity.y *= -1.0;
+    imu_raw_msg->angular_velocity.z *= -1.0;
+  }
 }
 
 void Publishers::handleSensorDeltaTheta(const mip::data_sensor::DeltaTheta& delta_theta, const uint8_t descriptor_set, mip::Timestamp timestamp)

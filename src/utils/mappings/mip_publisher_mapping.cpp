@@ -272,6 +272,10 @@ bool MipPublisherMapping::shouldPublish(const std::string& topic) const
 const std::map<std::string, FieldWrapper::SharedPtrVec> MipPublisherMapping::static_topic_to_mip_type_mapping_ =
 {
   // /imu* topic mappings
+  {IMU_DATA_RAW_TOPIC, {
+    FieldWrapperType<mip::data_sensor::ScaledAccel>::initialize(),
+    FieldWrapperType<mip::data_sensor::ScaledGyro>::initialize(),
+  }},
   {IMU_DATA_TOPIC, {
     FieldWrapperType<mip::data_sensor::DeltaTheta>::initialize(),
     FieldWrapperType<mip::data_sensor::DeltaVelocity>::initialize(),
@@ -433,6 +437,7 @@ const std::map<std::string, FieldWrapper::SharedPtrVec> MipPublisherMapping::sta
 const std::map<std::string, std::string> MipPublisherMapping::static_topic_to_data_rate_config_key_mapping_ =
 {
   // /imu* data rates
+  {IMU_DATA_RAW_TOPIC,    "imu_data_raw_rate"},
   {IMU_DATA_TOPIC,        "imu_data_rate"},
   {IMU_MAG_TOPIC,         "imu_mag_data_rate"},
   {IMU_PRESSURE_TOPIC,    "imu_pressure_data_rate"},
