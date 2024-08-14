@@ -40,6 +40,21 @@ Config::Config(RosNodeType* node) : node_(node)
   // Initialize the transform buffer and listener ahead of time
   transform_buffer_ = createTransformBuffer(node_);
   transform_listener_ = createTransformListener(transform_buffer_);
+
+  // Store some transform definitions
+  ned_to_enu_transform_tf_ = tf2::Transform(tf2::Matrix3x3(
+      0,  1,  0,
+      1,  0,  0,
+      0,  0, -1
+  ));
+  enu_to_ned_transform_tf_ = ned_to_enu_transform_tf_.inverse();
+
+  microstrain_vehicle_frame_to_ros_vehicle_frame_transform_tf_ = tf2::Transform(tf2::Matrix3x3(
+      1,  0,  0,
+      0, -1,  0,
+      0,  0, -1
+  ));
+  ros_vehicle_frame_to_microstrain_vehicle_frame_transform_tf_ = microstrain_vehicle_frame_to_ros_vehicle_frame_transform_tf_.inverse();
 }
 
 bool Config::configure(RosNodeType* node)
@@ -72,31 +87,15 @@ bool Config::configure(RosNodeType* node)
 
   // The definition of the "driver" world frame and vehicle frame differs depending on use_enu_frame and use_ros_vehicle_frame
   if (use_enu_frame_)
-  {
-    microstrain_global_frame_to_driver_global_frame_transform_tf_ = tf2::Transform(tf2::Matrix3x3(
-      0,  1,  0,
-      1,  0,  0,
-      0,  0, -1
-    ));
-  }
+    microstrain_global_frame_to_driver_global_frame_transform_tf_ = ned_to_enu_transform_tf_;
   else
-  {
     microstrain_global_frame_to_driver_global_frame_transform_tf_ = tf2::Transform::getIdentity();
-  }
   driver_global_frame_to_microstrain_global_frame_transform_tf_ = microstrain_global_frame_to_driver_global_frame_transform_tf_.inverse();
 
   if (use_ros_vehicle_frame_)
-  {
-    microstrain_vehicle_frame_to_driver_vehicle_frame_transform_tf_ = tf2::Transform(tf2::Matrix3x3(
-      1,  0,  0,
-      0, -1,  0,
-      0,  0, -1
-    ));
-  }
+    microstrain_vehicle_frame_to_driver_vehicle_frame_transform_tf_ = microstrain_vehicle_frame_to_ros_vehicle_frame_transform_tf_;
   else
-  {
     microstrain_vehicle_frame_to_driver_vehicle_frame_transform_tf_ = tf2::Transform::getIdentity();
-  }
   driver_vehicle_frame_to_microstrain_vehicle_frame_transform_tf_ = microstrain_vehicle_frame_to_driver_vehicle_frame_transform_tf_.inverse();
 
   // tf config

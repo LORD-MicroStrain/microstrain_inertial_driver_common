@@ -349,7 +349,7 @@ void Subscribers::externalHeadingEnuCallback(const PoseWithCovarianceStampedMsg&
   double r, p, y;
   tf2::Quaternion q;
   tf2::fromMsg(heading.pose.pose.orientation, q);
-  //q = config_->ned_to_enu_transform_tf_.inverse() * q;  // TODO: Fix this
+  q = config_->enu_to_ned_transform_tf_ * q;
   tf2::Matrix3x3 m(q);
   m.getRPY(r, p, y);
 
