@@ -277,6 +277,9 @@ public:
   Publisher<MipFilterAidingMeasurementSummaryMsg>::SharedPtr       mip_filter_aiding_measurement_summary_pub_      = Publisher<MipFilterAidingMeasurementSummaryMsg>::initialize(MIP_FILTER_AIDING_MEASUREMENT_SUMMARY_TOPIC);
   Publisher<MipFilterGnssDualAntennaStatusMsg>::SharedPtr          mip_filter_gnss_dual_antenna_status_pub_        = Publisher<MipFilterGnssDualAntennaStatusMsg>::initialize(MIP_FILTER_GNSS_DUAL_ANTENNA_STATUS_TOPIC);
 
+  // MIP System (0xA0) publishers
+  Publisher<MipSystemBuiltInTestMsg>::SharedPtr mip_system_built_in_test_pub_ = Publisher<MipSystemBuiltInTestMsg>::initialize(MIP_SYSTEM_BUILT_IN_TEST_TOPIC);
+
   // NMEA sentence publisher
   Publisher<NMEASentenceMsg>::SharedPtr nmea_sentence_pub_ = Publisher<NMEASentenceMsg>::initialize(NMEA_SENTENCE_TOPIC);
 
@@ -353,7 +356,7 @@ private:
   void handleRtkCorrectionsStatus(const mip::data_gnss::RtkCorrectionsStatus& rtk_corrections_status, const uint8_t descriptor_set, mip::Timestamp timestamp);
   void handleRtkBaseStationInfo(const mip::data_gnss::BaseStationInfo& base_station_info, const uint8_t descriptor_set, mip::Timestamp timestamp);
 
-  // Callbacks to handle filter datat from the device
+  // Callbacks to handle filter data from the device
   void handleFilterTimestamp(const mip::data_filter::Timestamp& filter_timestamp, const uint8_t descriptor_set, mip::Timestamp timestamp);
   void handleFilterStatus(const mip::data_filter::Status& status, const uint8_t descriptor_set, mip::Timestamp timestamp);
   void handleFilterEcefPos(const mip::data_filter::EcefPos& ecef_pos, const uint8_t descriptor_set, mip::Timestamp timestamp);
@@ -373,6 +376,9 @@ private:
   void handleFilterMultiAntennaOffsetCorrection(const mip::data_filter::MultiAntennaOffsetCorrection& multi_antenna_offset_correction, const uint8_t descriptor_set, mip::Timestamp timestamp);
   void handleFilterGnssDualAntennaStatus(const mip::data_filter::GnssDualAntennaStatus& gnss_dual_antenna_status, const uint8_t descriptor_set, mip::Timestamp timestamp);
   void handleFilterAidingMeasurementSummary(const mip::data_filter::AidingMeasurementSummary& aiding_measurement_summary, const uint8_t descriptor_set, mip::Timestamp timestamp);
+
+  // Callbacks to handle system data from the device
+  void handleSystemBuiltInTest(const mip::data_system::BuiltInTest& built_in_test, const uint8_t descriptor_set, mip::Timestamp timestamp);
 
   /**
    * \brief Called after a packet has been processed.

@@ -13,6 +13,7 @@
 
 #include "microstrain_inertial_driver_common/publishers.h"
 #include "microstrain_inertial_driver_common/utils/geo_utils.h"
+#include "microstrain_inertial_driver_common/utils/mip/built_in_test.h"
 
 namespace microstrain
 {
@@ -118,6 +119,8 @@ bool Publishers::configure()
   mip_filter_multi_antenna_offset_correction_pub_->configure(node_, config_);
   mip_filter_aiding_measurement_summary_pub_->configure(node_, config_);
   mip_filter_gnss_dual_antenna_status_pub_->configure(node_, config_);
+
+  mip_system_built_in_test_pub_->configure(node_, config_);
 
   if (config_->mip_device_->shouldParseNmea() || (config_->aux_device_ != nullptr && config_->aux_device_->shouldParseNmea()))
     nmea_sentence_pub_->configure(node_);
@@ -382,6 +385,9 @@ bool Publishers::configure()
   registerDataCallback<mip::data_filter::GnssDualAntennaStatus, &Publishers::handleFilterGnssDualAntennaStatus>();
   registerDataCallback<mip::data_filter::AidingMeasurementSummary, &Publishers::handleFilterAidingMeasurementSummary>();
 
+  // System callbacks
+  registerDataCallback<mip::data_system::BuiltInTest, &Publishers::handleSystemBuiltInTest>();
+
   // After packet callback
   registerPacketCallback<&Publishers::handleAfterPacket>();
   return true;
@@ -424,6 +430,8 @@ bool Publishers::activate()
   mip_filter_multi_antenna_offset_correction_pub_->activate();
   mip_filter_aiding_measurement_summary_pub_->activate();
   mip_filter_gnss_dual_antenna_status_pub_->activate();
+
+  mip_system_built_in_test_pub_->activate();
 
   nmea_sentence_pub_->activate();
 
@@ -481,6 +489,8 @@ bool Publishers::deactivate()
   mip_filter_multi_antenna_offset_correction_pub_->deactivate();
   mip_filter_aiding_measurement_summary_pub_->deactivate();
   mip_filter_gnss_dual_antenna_status_pub_->deactivate();
+
+  mip_system_built_in_test_pub_->deactivate();
 
   nmea_sentence_pub_->deactivate();
   return true;
@@ -1849,6 +1859,192 @@ void Publishers::handleFilterAidingMeasurementSummary(const mip::data_filter::Ai
   mip_filter_aiding_measurement_summary_msg->indicator.configuration_error = aiding_measurement_summary.indicator.configurationError();
   mip_filter_aiding_measurement_summary_msg->indicator.max_num_meas_exceeded = aiding_measurement_summary.indicator.maxNumMeasExceeded();
   mip_filter_aiding_measurement_summary_pub_->publish(*mip_filter_aiding_measurement_summary_msg);
+}
+
+void Publishers::handleSystemBuiltInTest(const mip::data_system::BuiltInTest& built_in_test, const uint8_t descriptor_set, mip::Timestamp timestamp)
+{
+  auto mip_system_built_in_test_msg = mip_system_built_in_test_pub_->getMessage();
+  updateMipHeader(&(mip_system_built_in_test_msg->header), descriptor_set);
+  std::copy(std::begin(built_in_test.result), std::end(built_in_test.result), std::begin(mip_system_built_in_test_msg->result));
+  mip_system_built_in_test_pub_->publish(*mip_system_built_in_test_msg);
+
+  // Parse out the BIT into the human readable status message
+  auto filter_human_readable_status_msg = filter_human_readable_status_pub_->getMessage();
+  filter_human_readable_status_msg->continuous_bit_flags.clear();
+  if (RosMipDevice::isGq7(config_->mip_device_->device_info_))
+  {
+    mip::data_system::Gq7ContinuousBuiltInTest gq7_built_in_test = built_in_test;
+    if (gq7_built_in_test.systemClockFailure())
+      filter_human_readable_status_msg->continuous_bit_flags.push_back(filter_human_readable_status_msg->CONTINUOUS_BIT_FLAGS_GQ7_SYSTEM_CLOCK_FAILURE);
+    if (gq7_built_in_test.powerFault())
+      filter_human_readable_status_msg->continuous_bit_flags.push_back(filter_human_readable_status_msg->CONTINUOUS_BIT_FLAGS_GQ7_POWER_FAULT);
+    if (gq7_built_in_test.firmwareFault())
+      filter_human_readable_status_msg->continuous_bit_flags.push_back(filter_human_readable_status_msg->CONTINUOUS_BIT_FLAGS_GQ7_FIRMWARE_FAULT);
+    if (gq7_built_in_test.timingOverload())
+      filter_human_readable_status_msg->continuous_bit_flags.push_back(filter_human_readable_status_msg->CONTINUOUS_BIT_FLAGS_GQ7_TIMING_OVERLOAD);
+    if (gq7_built_in_test.bufferOverrun())
+      filter_human_readable_status_msg->continuous_bit_flags.push_back(filter_human_readable_status_msg->CONTINUOUS_BIT_FLAGS_GQ7_BUFFER_OVERRUN);
+    if (gq7_built_in_test.imuIpcFault())
+      filter_human_readable_status_msg->continuous_bit_flags.push_back(filter_human_readable_status_msg->CONTINUOUS_BIT_FLAGS_GQ7_IMU_IPC_FAULT);
+    if (gq7_built_in_test.filterIpcFault())
+      filter_human_readable_status_msg->continuous_bit_flags.push_back(filter_human_readable_status_msg->CONTINUOUS_BIT_FLAGS_GQ7_FILTER_IPC_FAULT);
+    if (gq7_built_in_test.gnssIpcFault())
+      filter_human_readable_status_msg->continuous_bit_flags.push_back(filter_human_readable_status_msg->CONTINUOUS_BIT_FLAGS_GQ7_GNSS_IPC_FAULT);
+    if (gq7_built_in_test.imuClockFault())
+      filter_human_readable_status_msg->continuous_bit_flags.push_back(filter_human_readable_status_msg->CONTINUOUS_BIT_FLAGS_GQ7_IMU_CLOCK_FAULT);
+    if (gq7_built_in_test.imuCommunicationFault())
+      filter_human_readable_status_msg->continuous_bit_flags.push_back(filter_human_readable_status_msg->CONTINUOUS_BIT_FLAGS_GQ7_IMU_COMMUNICATION_FAULT);
+    if (gq7_built_in_test.imuTimingOverrun())
+      filter_human_readable_status_msg->continuous_bit_flags.push_back(filter_human_readable_status_msg->CONTINUOUS_BIT_FLAGS_GQ7_IMU_TIMING_OVERRUN);
+    if (gq7_built_in_test.imuCalibrationErrorAccel())
+      filter_human_readable_status_msg->continuous_bit_flags.push_back(filter_human_readable_status_msg->CONTINUOUS_BIT_FLAGS_GQ7_IMU_CALIBRATION_ERROR_ACCEL);
+    if (gq7_built_in_test.imuCalibrationErrorGyro())
+      filter_human_readable_status_msg->continuous_bit_flags.push_back(filter_human_readable_status_msg->CONTINUOUS_BIT_FLAGS_GQ7_IMU_CALIBRATION_ERROR_GYRO);
+    if (gq7_built_in_test.imuCalibrationErrorMag())
+      filter_human_readable_status_msg->continuous_bit_flags.push_back(filter_human_readable_status_msg->CONTINUOUS_BIT_FLAGS_GQ7_IMU_CALIBRATION_ERROR_MAG);
+    if (gq7_built_in_test.accelerometerGeneralFault())
+      filter_human_readable_status_msg->continuous_bit_flags.push_back(filter_human_readable_status_msg->CONTINUOUS_BIT_FLAGS_GQ7_ACCELEROMETER_GENERAL_FAULT);
+    if (gq7_built_in_test.accelerometerOverRange())
+      filter_human_readable_status_msg->continuous_bit_flags.push_back(filter_human_readable_status_msg->CONTINUOUS_BIT_FLAGS_GQ7_ACCELEROMETER_OVER_RANGE);
+    if (gq7_built_in_test.accelerometerSelfTestFail())
+      filter_human_readable_status_msg->continuous_bit_flags.push_back(filter_human_readable_status_msg->CONTINUOUS_BIT_FLAGS_GQ7_ACCELEROMETER_SELF_TEST_FAIL);
+    if (gq7_built_in_test.gyroscopeGeneralFault())
+      filter_human_readable_status_msg->continuous_bit_flags.push_back(filter_human_readable_status_msg->CONTINUOUS_BIT_FLAGS_GQ7_GYROSCOPE_GENERAL_FAULT);
+    if (gq7_built_in_test.gyroscopeOverRange())
+      filter_human_readable_status_msg->continuous_bit_flags.push_back(filter_human_readable_status_msg->CONTINUOUS_BIT_FLAGS_GQ7_GYROSCOPE_OVER_RANGE);
+    if (gq7_built_in_test.gyroscopeSelfTestFail())
+      filter_human_readable_status_msg->continuous_bit_flags.push_back(filter_human_readable_status_msg->CONTINUOUS_BIT_FLAGS_GQ7_GYROSCOPE_SELF_TEST_FAIL);
+    if (gq7_built_in_test.magnetometerGeneralFault())
+      filter_human_readable_status_msg->continuous_bit_flags.push_back(filter_human_readable_status_msg->CONTINUOUS_BIT_FLAGS_GQ7_MAGNETOMETER_GENERAL_FAULT);
+    if (gq7_built_in_test.magnetometerOverRange())
+      filter_human_readable_status_msg->continuous_bit_flags.push_back(filter_human_readable_status_msg->CONTINUOUS_BIT_FLAGS_GQ7_MAGNETOMETER_OVER_RANGE);
+    if (gq7_built_in_test.magnetometerSelfTestFail())
+      filter_human_readable_status_msg->continuous_bit_flags.push_back(filter_human_readable_status_msg->CONTINUOUS_BIT_FLAGS_GQ7_MAGNETOMETER_SELF_TEST_FAIL);
+    if (gq7_built_in_test.pressureSensorGeneralFault())
+      filter_human_readable_status_msg->continuous_bit_flags.push_back(filter_human_readable_status_msg->CONTINUOUS_BIT_FLAGS_GQ7_PRESSURE_SENSOR_GENERAL_FAULT);
+    if (gq7_built_in_test.pressureSensorOverRange())
+      filter_human_readable_status_msg->continuous_bit_flags.push_back(filter_human_readable_status_msg->CONTINUOUS_BIT_FLAGS_GQ7_PRESSURE_SENSOR_OVER_RANGE);
+    if (gq7_built_in_test.pressureSensorSelfTestFail())
+      filter_human_readable_status_msg->continuous_bit_flags.push_back(filter_human_readable_status_msg->CONTINUOUS_BIT_FLAGS_GQ7_PRESSURE_SENSOR_SELF_TEST_FAIL);  
+    if (gq7_built_in_test.filterClockFault())
+      filter_human_readable_status_msg->continuous_bit_flags.push_back(filter_human_readable_status_msg->CONTINUOUS_BIT_FLAGS_GQ7_FILTER_CLOCK_FAULT);
+    if (gq7_built_in_test.filterHardwareFault())
+      filter_human_readable_status_msg->continuous_bit_flags.push_back(filter_human_readable_status_msg->CONTINUOUS_BIT_FLAGS_GQ7_FILTER_HARDWARE_FAULT);
+    if (gq7_built_in_test.filterTimingOverrun())
+      filter_human_readable_status_msg->continuous_bit_flags.push_back(filter_human_readable_status_msg->CONTINUOUS_BIT_FLAGS_GQ7_FILTER_TIMING_OVERRUN);
+    if (gq7_built_in_test.filterTimingUnderrun())
+      filter_human_readable_status_msg->continuous_bit_flags.push_back(filter_human_readable_status_msg->CONTINUOUS_BIT_FLAGS_GQ7_FILTER_TIMING_UNDERRUN);
+    if (gq7_built_in_test.filterCommunicationError())
+      filter_human_readable_status_msg->continuous_bit_flags.push_back(filter_human_readable_status_msg->CONTINUOUS_BIT_FLAGS_GQ7_FILTER_COMMUNICATION_ERROR);
+    if (gq7_built_in_test.gnssClockFault())
+      filter_human_readable_status_msg->continuous_bit_flags.push_back(filter_human_readable_status_msg->CONTINUOUS_BIT_FLAGS_GQ7_GNSS_CLOCK_FAULT);
+    if (gq7_built_in_test.gnssHardwareFault())
+      filter_human_readable_status_msg->continuous_bit_flags.push_back(filter_human_readable_status_msg->CONTINUOUS_BIT_FLAGS_GQ7_GNSS_HARDWARE_FAULT);
+    if (gq7_built_in_test.gnssCommunicationError())
+      filter_human_readable_status_msg->continuous_bit_flags.push_back(filter_human_readable_status_msg->CONTINUOUS_BIT_FLAGS_GQ7_GNSS_COMMUNICATION_ERROR);
+    if (gq7_built_in_test.gpsTimeFault())
+      filter_human_readable_status_msg->continuous_bit_flags.push_back(filter_human_readable_status_msg->CONTINUOUS_BIT_FLAGS_GQ7_GPS_TIME_FAULT);
+    if (gq7_built_in_test.gnssTimingOverrun())
+      filter_human_readable_status_msg->continuous_bit_flags.push_back(filter_human_readable_status_msg->CONTINUOUS_BIT_FLAGS_GQ7_GNSS_TIMING_OVERRUN);
+    if (gq7_built_in_test.gnssReceiver1PowerFault())
+      filter_human_readable_status_msg->continuous_bit_flags.push_back(filter_human_readable_status_msg->CONTINUOUS_BIT_FLAGS_GQ7_GNSS_RECEIVER_1_POWER_FAULT);  
+    if (gq7_built_in_test.gnssReceiver1Fault())
+      filter_human_readable_status_msg->continuous_bit_flags.push_back(filter_human_readable_status_msg->CONTINUOUS_BIT_FLAGS_GQ7_GNSS_RECEIVER_1_FAULT);
+    if (gq7_built_in_test.gnssAntenna1Shorted())
+      filter_human_readable_status_msg->continuous_bit_flags.push_back(filter_human_readable_status_msg->CONTINUOUS_BIT_FLAGS_GQ7_GNSS_ANTENNA_1_SHORTED);
+    if (gq7_built_in_test.gnssAntenna1Open())
+      filter_human_readable_status_msg->continuous_bit_flags.push_back(filter_human_readable_status_msg->CONTINUOUS_BIT_FLAGS_GQ7_GNSS_ANTENNA_1_OPEN);
+    if (gq7_built_in_test.gnssReceiver1SolutionFault())
+      filter_human_readable_status_msg->continuous_bit_flags.push_back(filter_human_readable_status_msg->CONTINUOUS_BIT_FLAGS_GQ7_GNSS_RECEIVER_1_SOLUTION_FAULT);  
+    if (gq7_built_in_test.gnssReceiver2PowerFault())
+      filter_human_readable_status_msg->continuous_bit_flags.push_back(filter_human_readable_status_msg->CONTINUOUS_BIT_FLAGS_GQ7_GNSS_RECEIVER_2_POWER_FAULT);  
+    if (gq7_built_in_test.gnssReceiver2Fault())
+      filter_human_readable_status_msg->continuous_bit_flags.push_back(filter_human_readable_status_msg->CONTINUOUS_BIT_FLAGS_GQ7_GNSS_RECEIVER_2_FAULT);
+    if (gq7_built_in_test.gnssAntenna2Shorted())
+      filter_human_readable_status_msg->continuous_bit_flags.push_back(filter_human_readable_status_msg->CONTINUOUS_BIT_FLAGS_GQ7_GNSS_ANTENNA_2_SHORTED);
+    if (gq7_built_in_test.gnssAntenna2Open())
+      filter_human_readable_status_msg->continuous_bit_flags.push_back(filter_human_readable_status_msg->CONTINUOUS_BIT_FLAGS_GQ7_GNSS_ANTENNA_2_OPEN);
+    if (gq7_built_in_test.gnssReceiver2SolutionFault())
+      filter_human_readable_status_msg->continuous_bit_flags.push_back(filter_human_readable_status_msg->CONTINUOUS_BIT_FLAGS_GQ7_GNSS_RECEIVER_2_SOLUTION_FAULT);
+    if (gq7_built_in_test.rtcmCommunicationFault())
+      filter_human_readable_status_msg->continuous_bit_flags.push_back(filter_human_readable_status_msg->CONTINUOUS_BIT_FLAGS_GQ7_RTCM_COMMUNICATION_FAULT);
+    if (gq7_built_in_test.rtkDongleFault())
+      filter_human_readable_status_msg->continuous_bit_flags.push_back(filter_human_readable_status_msg->CONTINUOUS_BIT_FLAGS_GQ7_RTK_DONGLE_FAULT);
+  }
+  else if (RosMipDevice::isCv7(config_->mip_device_->device_info_))
+  {
+    mip::data_system::Cv7ContinuousBuiltInTest cv7_built_in_test = built_in_test;
+    if (cv7_built_in_test.systemClockFailure())
+      filter_human_readable_status_msg->continuous_bit_flags.push_back(filter_human_readable_status_msg->CONTINUOUS_BIT_FLAGS_CV7_SYSTEM_CLOCK_FAILURE);
+    if (cv7_built_in_test.powerFault())
+      filter_human_readable_status_msg->continuous_bit_flags.push_back(filter_human_readable_status_msg->CONTINUOUS_BIT_FLAGS_CV7_POWER_FAULT);
+    if (cv7_built_in_test.firmwareFault())
+      filter_human_readable_status_msg->continuous_bit_flags.push_back(filter_human_readable_status_msg->CONTINUOUS_BIT_FLAGS_CV7_FIRMWARE_FAULT);
+    if (cv7_built_in_test.timingOverload())
+      filter_human_readable_status_msg->continuous_bit_flags.push_back(filter_human_readable_status_msg->CONTINUOUS_BIT_FLAGS_CV7_TIMING_OVERLOAD);
+    if (cv7_built_in_test.bufferOverrun())
+      filter_human_readable_status_msg->continuous_bit_flags.push_back(filter_human_readable_status_msg->CONTINUOUS_BIT_FLAGS_CV7_BUFFER_OVERRUN);
+    if (cv7_built_in_test.imuProcessFault())
+      filter_human_readable_status_msg->continuous_bit_flags.push_back(filter_human_readable_status_msg->CONTINUOUS_BIT_FLAGS_CV7_IMU_PROCESS_FAULT);
+    if (cv7_built_in_test.imuDataRateMismatch())
+      filter_human_readable_status_msg->continuous_bit_flags.push_back(filter_human_readable_status_msg->CONTINUOUS_BIT_FLAGS_CV7_IMU_DATA_RATE_MISMATCH);
+    if (cv7_built_in_test.imuOverrunDroppedData())
+      filter_human_readable_status_msg->continuous_bit_flags.push_back(filter_human_readable_status_msg->CONTINUOUS_BIT_FLAGS_CV7_IMU_OVERRUN_DROPPED_DATA);
+    if (cv7_built_in_test.imuStuck())
+      filter_human_readable_status_msg->continuous_bit_flags.push_back(filter_human_readable_status_msg->CONTINUOUS_BIT_FLAGS_CV7_IMU_STUCK);
+    if (cv7_built_in_test.filterProcessFault())
+      filter_human_readable_status_msg->continuous_bit_flags.push_back(filter_human_readable_status_msg->CONTINUOUS_BIT_FLAGS_CV7_FILTER_PROCESS_FAULT);
+    if (cv7_built_in_test.filterDroppedData())
+      filter_human_readable_status_msg->continuous_bit_flags.push_back(filter_human_readable_status_msg->CONTINUOUS_BIT_FLAGS_CV7_FILTER_DROPPED_DATA);
+    if (cv7_built_in_test.filterRateMismatch())
+      filter_human_readable_status_msg->continuous_bit_flags.push_back(filter_human_readable_status_msg->CONTINUOUS_BIT_FLAGS_CV7_FILTER_RATE_MISMATCH);
+    if (cv7_built_in_test.filterStuck())
+      filter_human_readable_status_msg->continuous_bit_flags.push_back(filter_human_readable_status_msg->CONTINUOUS_BIT_FLAGS_CV7_FILTER_STUCK);
+    if (cv7_built_in_test.imuClockFault())
+      filter_human_readable_status_msg->continuous_bit_flags.push_back(filter_human_readable_status_msg->CONTINUOUS_BIT_FLAGS_CV7_IMU_CLOCK_FAULT);
+    if (cv7_built_in_test.imuCommunicationFault())
+      filter_human_readable_status_msg->continuous_bit_flags.push_back(filter_human_readable_status_msg->CONTINUOUS_BIT_FLAGS_CV7_IMU_COMMUNICATION_FAULT);
+    if (cv7_built_in_test.imuTimingOverrun())
+      filter_human_readable_status_msg->continuous_bit_flags.push_back(filter_human_readable_status_msg->CONTINUOUS_BIT_FLAGS_CV7_IMU_TIMING_OVERRUN);
+    if (cv7_built_in_test.imuCalibrationErrorAccelerometer())
+      filter_human_readable_status_msg->continuous_bit_flags.push_back(filter_human_readable_status_msg->CONTINUOUS_BIT_FLAGS_CV7_IMU_CALIBRATION_ERROR_ACCELEROMETER);
+    if (cv7_built_in_test.imuCalibrationErrorGyroscope())
+      filter_human_readable_status_msg->continuous_bit_flags.push_back(filter_human_readable_status_msg->CONTINUOUS_BIT_FLAGS_CV7_IMU_CALIBRATION_ERROR_GYROSCOPE);
+    if (cv7_built_in_test.imuCalibrationErrorMagnetometer())
+      filter_human_readable_status_msg->continuous_bit_flags.push_back(filter_human_readable_status_msg->CONTINUOUS_BIT_FLAGS_CV7_IMU_CALIBRATION_ERROR_MAGNETOMETER);
+    if (cv7_built_in_test.accelerometerGeneralFault())
+      filter_human_readable_status_msg->continuous_bit_flags.push_back(filter_human_readable_status_msg->CONTINUOUS_BIT_FLAGS_CV7_ACCELEROMETER_GENERAL_FAULT);
+    if (cv7_built_in_test.accelerometerOverRange())
+      filter_human_readable_status_msg->continuous_bit_flags.push_back(filter_human_readable_status_msg->CONTINUOUS_BIT_FLAGS_CV7_ACCELEROMETER_OVER_RANGE);
+    if (cv7_built_in_test.accelerometerSelfTestFail())
+      filter_human_readable_status_msg->continuous_bit_flags.push_back(filter_human_readable_status_msg->CONTINUOUS_BIT_FLAGS_CV7_ACCELEROMETER_SELF_TEST_FAIL);
+    if (cv7_built_in_test.gyroscopeGeneralFault())
+      filter_human_readable_status_msg->continuous_bit_flags.push_back(filter_human_readable_status_msg->CONTINUOUS_BIT_FLAGS_CV7_GYROSCOPE_GENERAL_FAULT);
+    if (cv7_built_in_test.gyroscopeOverRange())
+      filter_human_readable_status_msg->continuous_bit_flags.push_back(filter_human_readable_status_msg->CONTINUOUS_BIT_FLAGS_CV7_GYROSCOPE_OVER_RANGE);
+    if (cv7_built_in_test.gyroscopeSelfTestFail())
+      filter_human_readable_status_msg->continuous_bit_flags.push_back(filter_human_readable_status_msg->CONTINUOUS_BIT_FLAGS_CV7_GYROSCOPE_SELF_TEST_FAIL);
+    if (cv7_built_in_test.magnetometerGeneralFault())
+      filter_human_readable_status_msg->continuous_bit_flags.push_back(filter_human_readable_status_msg->CONTINUOUS_BIT_FLAGS_CV7_MAGNETOMETER_GENERAL_FAULT);
+    if (cv7_built_in_test.magnetometerOverRange())
+      filter_human_readable_status_msg->continuous_bit_flags.push_back(filter_human_readable_status_msg->CONTINUOUS_BIT_FLAGS_CV7_MAGNETOMETER_OVER_RANGE);
+    if (cv7_built_in_test.magnetometerSelfTestFail())
+      filter_human_readable_status_msg->continuous_bit_flags.push_back(filter_human_readable_status_msg->CONTINUOUS_BIT_FLAGS_CV7_MAGNETOMETER_SELF_TEST_FAIL);
+    if (cv7_built_in_test.pressureSensorGeneralFault())
+      filter_human_readable_status_msg->continuous_bit_flags.push_back(filter_human_readable_status_msg->CONTINUOUS_BIT_FLAGS_CV7_PRESSURE_SENSOR_GENERAL_FAULT);
+    if (cv7_built_in_test.pressureSensorOverRange())
+      filter_human_readable_status_msg->continuous_bit_flags.push_back(filter_human_readable_status_msg->CONTINUOUS_BIT_FLAGS_CV7_PRESSURE_SENSOR_OVER_RANGE);
+    if (cv7_built_in_test.pressureSensorSelfTestFail())
+      filter_human_readable_status_msg->continuous_bit_flags.push_back(filter_human_readable_status_msg->CONTINUOUS_BIT_FLAGS_CV7_PRESSURE_SENSOR_SELF_TEST_FAIL);
+    if (cv7_built_in_test.factoryBitsInvalid())
+      filter_human_readable_status_msg->continuous_bit_flags.push_back(filter_human_readable_status_msg->CONTINUOUS_BIT_FLAGS_CV7_FACTORY_BITS_INVALID);
+    if (cv7_built_in_test.filterFault())
+      filter_human_readable_status_msg->continuous_bit_flags.push_back(filter_human_readable_status_msg->CONTINUOUS_BIT_FLAGS_CV7_FILTER_FAULT);
+    if (cv7_built_in_test.filterTimingOverrun())
+      filter_human_readable_status_msg->continuous_bit_flags.push_back(filter_human_readable_status_msg->CONTINUOUS_BIT_FLAGS_CV7_FILTER_TIMING_OVERRUN);
+    if (cv7_built_in_test.filterTimingUnderrun())
+      filter_human_readable_status_msg->continuous_bit_flags.push_back(filter_human_readable_status_msg->CONTINUOUS_BIT_FLAGS_CV7_FILTER_TIMING_UNDERRUN);
+  }
 }
 
 void Publishers::handleAfterPacket(const mip::PacketRef& packet, mip::Timestamp timestamp)

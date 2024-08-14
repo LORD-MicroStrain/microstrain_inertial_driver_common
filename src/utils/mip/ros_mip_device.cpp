@@ -67,6 +67,22 @@ bool RosMipDevice::isPhilo(const mip::commands_base::BaseDeviceInfo& device_info
   return false;
 }
 
+bool RosMipDevice::isGq7(const mip::commands_base::BaseDeviceInfo& device_info)
+{
+  const std::string& model_name = device_info.model_name;
+  if (model_name.find("GQ7") != std::string::npos)
+    return true;
+  return false;
+}
+
+bool RosMipDevice::isCv7(const mip::commands_base::BaseDeviceInfo& device_info)
+{
+  const std::string& model_name = device_info.model_name;
+  if (model_name.find("CV7") != std::string::npos)
+    return true;
+  return false;
+}
+
 bool RosMipDevice::send(const uint8_t* data, size_t data_len)
 {
   return connection_->sendToDevice(data, data_len);

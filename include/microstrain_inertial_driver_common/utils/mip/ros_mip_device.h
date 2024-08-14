@@ -82,6 +82,20 @@ class RosMipDevice
   static bool isPhilo(const mip::commands_base::BaseDeviceInfo& device_info);
 
   /**
+   * \brief Determines if the given device info is from a GQ7
+   * \param device_info Populated and null terminated string version of the device info struct fetched from a device
+   * \return true if the device is a GQ7, false otherwise
+  */
+  static bool isGq7(const mip::commands_base::BaseDeviceInfo& device_info);
+
+  /**
+   * \brief Determines if the given device info is from a CV7
+   * \param device_info Populated and null terminated string version of the device info struct fetched from a device
+   * \return true if the device is a CV7, false otherwise
+  */
+  static bool isCv7(const mip::commands_base::BaseDeviceInfo& device_info);
+
+  /**
    * \brief Sends data to the device
    * \param data Byte array to send to the device
    * \param data_len Length in bytes of the data array
