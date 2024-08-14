@@ -305,7 +305,44 @@ bool Config::setupDevice(RosNodeType* node)
 
 bool Config::configureBase(RosNodeType* node)
 {
-  // No base configuration commands in the driver yet
+  // Read local config
+  bool set_baud;
+  int32_t aux_baudrate;
+  getParam<bool>(node, "set_baud", set_baud, false);
+  getParam<int32_t>(node, "aux_baudrate", aux_baudrate, 115200);
+
+  mip::CmdResult mip_cmd_result;
+  const uint8_t descriptor_set = mip::commands_base::DESCRIPTOR_SET;
+
+  // We will handle setting the aux port baudrate here if we were requested to do so
+  // We will not handle setting the main port baudrate because that is handled in the connection class in a way that will always work
+  if (mip_device_->supportsDescriptor(descriptor_set, mip::commands_base::CMD_COMM_SPEED))
+  {
+    if (set_baud)
+    {
+      MICROSTRAIN_INFO(node_, "Note: Setting aux port baudrate to %d", aux_baudrate);
+      if (!(mip_cmd_result = mip::commands_base::writeCommSpeed(*mip_device_, 2, aux_baudrate)))
+      {
+        MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to write aux port baudrate");
+        return false;
+      }
+
+      // Reopen the aux port if it is already open
+      if (aux_device_ != nullptr)
+      {
+        if (!aux_device_->reconnect())
+        {
+          MICROSTRAIN_ERROR(node_, "Failed to open aux port after configuring baudrate");
+          return false;
+        }
+      }
+    }
+  }
+  else
+  {
+    MICROSTRAIN_INFO(node_, "Device does not support comm speed command");
+  }
+
   return true;
 }
 
