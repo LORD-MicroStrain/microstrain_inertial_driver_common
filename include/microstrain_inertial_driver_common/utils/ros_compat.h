@@ -78,6 +78,7 @@ constexpr auto NUM_GNSS = 2;
 
 #include "microstrain_inertial_msgs/MipHeader.h"
 #include "microstrain_inertial_msgs/MipSensorOverrangeStatus.h"
+#include "microstrain_inertial_msgs/MipSensorTemperatureStatistics.h"
 #include "microstrain_inertial_msgs/MipGnssFixInfo.h"
 #include "microstrain_inertial_msgs/MipGnssSbasInfo.h"
 #include "microstrain_inertial_msgs/MipGnssRfErrorDetection.h"
@@ -138,6 +139,7 @@ constexpr auto NUM_GNSS = 2;
 
 #include "microstrain_inertial_msgs/msg/mip_header.hpp"
 #include "microstrain_inertial_msgs/msg/mip_sensor_overrange_status.hpp"
+#include "microstrain_inertial_msgs/msg/mip_sensor_temperature_statistics.hpp"
 #include "microstrain_inertial_msgs/msg/mip_gnss_fix_info.hpp"
 #include "microstrain_inertial_msgs/msg/mip_gnss_sbas_info.hpp"
 #include "microstrain_inertial_msgs/msg/mip_gnss_rf_error_detection.hpp"
@@ -246,6 +248,7 @@ using HumanReadableStatusMsg = ::microstrain_inertial_msgs::HumanReadableStatus;
 
 using MipHeaderMsg = ::microstrain_inertial_msgs::MipHeader;
 using MipSensorOverrangeStatusMsg = ::microstrain_inertial_msgs::MipSensorOverrangeStatus;
+using MipSensorTemperatureStatisticsMsg = ::microstrain_inertial_msgs::MipSensorTemperatureStatistics;
 using MipGnssFixInfoMsg = ::microstrain_inertial_msgs::MipGnssFixInfo;
 using MipGnssSbasInfoMsg = ::microstrain_inertial_msgs::MipGnssSbasInfo;
 using MipGnssRfErrorDetectionMsg = ::microstrain_inertial_msgs::MipGnssRfErrorDetection;
@@ -550,6 +553,7 @@ using HumanReadableStatusMsg = ::microstrain_inertial_msgs::msg::HumanReadableSt
 
 using MipHeaderMsg = ::microstrain_inertial_msgs::msg::MipHeader;
 using MipSensorOverrangeStatusMsg = ::microstrain_inertial_msgs::msg::MipSensorOverrangeStatus;
+using MipSensorTemperatureStatisticsMsg = ::microstrain_inertial_msgs::msg::MipSensorTemperatureStatistics;
 using MipGnssFixInfoMsg = ::microstrain_inertial_msgs::msg::MipGnssFixInfo;
 using MipGnssSbasInfoMsg = ::microstrain_inertial_msgs::msg::MipGnssSbasInfo;
 using MipGnssRfErrorDetectionMsg = ::microstrain_inertial_msgs::msg::MipGnssRfErrorDetection;
