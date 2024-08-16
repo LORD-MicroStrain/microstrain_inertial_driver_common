@@ -19,7 +19,7 @@ aux_port     : "/dev/ttyACM1"
 aux_baudrate : 115200
 debug        : False
 
-# If set to true, this will configure the requested baudrate on the device for the main port.
+# If set to true, this will configure the requested baudrate on the device for the main port and aux port if possible.
 # Note that this will be set on both USB and serial, but will only actually affect the baudrate of a serial connection.
 set_baud : False
 
@@ -330,7 +330,6 @@ imu_angular_cov       : [0.01, 0, 0, 0, 0.01, 0, 0, 0, 0.01]
 imu_mag_cov           : [0.01, 0, 0, 0, 0.01, 0, 0, 0, 0.01]
 imu_pressure_variance : 0.01
 
-
 # ****************************************************************** 
 # Other Device Settings
 # ****************************************************************** 
@@ -351,16 +350,10 @@ odometer_uncertainty     : 0.0
 #         4 - GPIO4 (aux port pin 9)     - Features = 0 - Unused, 1 - GPIO, 2 - PPS, 3 - Encoder
 #
 #     CV7 GPIO Pins =
-#         1 - GPIO1 (pin 7)  - Features = 0 - Unused, 1 - GPIO, 2 - PPS
-#         2 - GPIO2 (pin 9)  - Features = 0 - Unused, 1 - GPIO, 2 - PPS
-#         3 - GPIO3 (pin 6)  - Features = 0 - Unused, 1 - GPIO, 2 - PPS
-#         4 - GPIO4 (pin 10) - Features = 0 - Unused, 1 - GPIO, 2 - PPS
-#
-#     Feature =
-#         0 - Unused   - Behaviors = 0 - unused
-#         1 - GPIO     - Behaviors = 0 - unused, 1 - input, 2 - output low, 3 - output high
-#         2 - PPS      - Behaviors = 0 - unused, 1 - input, 2 - output
-#         3 - Encoder  - Behaviors = 0 - unused, 1 - enc A, 2 - enc B
+#         1 - GPIO1 (pin 7)  - Features = 0 - Unused, 1 - GPIO, 2 - PPS, 5 - UART
+#         2 - GPIO2 (pin 9)  - Features = 0 - Unused, 1 - GPIO, 2 - PPS, 5 - UART
+#         3 - GPIO3 (pin 6)  - Features = 0 - Unused, 1 - GPIO, 2 - PPS, 5 - UART
+#         4 - GPIO4 (pin 10) - Features = 0 - Unused, 1 - GPIO, 2 - PPS, 5 - UART
 #
 #     GPIO Behavior =
 #         0 - Unused
@@ -377,6 +370,12 @@ odometer_uncertainty     : 0.0
 #         0 - Unused
 #         1 - Encoder A
 #         2 - Encoder B
+#
+#     UART Behavior = 
+#         0x21 - UART port 2 transmit (only valid for GPIO 1 and 2)
+#         0x22 - UART port 2 receive (only valid for GPIO 1 and 2)
+#         0x31 - UART port 3 transmit (only valid for GPIO 3 and 4)
+#         0x32 - UART port 3 receive (only valid for GPIO 3 and 4)
 #
 #     Pin Mode Bitfield =
 #         1 - open drain
@@ -410,6 +409,29 @@ sbas_apply_integrity: False
 #  Note: ROS2 can't handle empty arrays in a yml file, so uncomment this line and fill it in if you want to specify PRNs
 #sbas_included_prns: []
 
+# Low pass filter configuration.
+# Note: The device may fail if one of these is enabled, and the device does not support the relevant measurement
+#   accel_* will affect data in /imu/data_raw if enabled
+#   gyro_* will affect data in /imu/data_raw if enabled
+#   mag_* will affect data in /imu/mag if enabled
+#   pressure_* will affect data in /imu/pressure if enabled
+low_pass_filter_config : True
+
+accel_low_pass_filter_enable    : False
+accel_low_pass_filter_auto      : False
+accel_low_pass_filter_frequency : 0
+
+gyro_low_pass_filter_enable    : False
+gyro_low_pass_filter_auto      : False
+gyro_low_pass_filter_frequency : 0
+
+mag_low_pass_filter_enable    : False
+mag_low_pass_filter_auto      : False
+mag_low_pass_filter_frequency : 0
+
+pressure_low_pass_filter_enable    : False
+pressure_low_pass_filter_auto      : False
+pressure_low_pass_filter_frequency : 0
 
 # ****************************************************************** 
 # Publisher Settings
@@ -418,6 +440,7 @@ sbas_apply_integrity: False
 #  Note: If set to 0, the data will not be stremaed from the device, and the publisher will not be created
 
 # The speed at which the individual IMU publishers will publish at.
+imu_data_raw_rate         : 1    # Rate of imu/data_raw topic
 imu_data_rate             : 100  # Rate of imu/data topic
 imu_mag_data_rate         : 0    # Rate of imu/mag topic
 imu_pressure_data_rate    : 0    # Rate of imu/pressure topic
@@ -460,7 +483,8 @@ filter_dual_antenna_heading_data_rate  : 0  # Rate of ekf/dual_antenna_heading t
                                             #       If either are set to a higher value, this message will be published at that rate.
 
 # The speed at which the individual MIP publishers will publish at.
-mip_sensor_overrange_status_data_rate : 0  # Rate of mip/sensor/overrange_status topic
+mip_sensor_overrange_status_data_rate       : 0  # Rate of mip/sensor/overrange_status topic
+mip_sensor_temperature_statistics_data_rate : 0  # Rate of mip/sensor/temperature_statistics topic
 
 mip_gnss1_fix_info_data_rate           : 0  # Rate of mip/gnss_1/fix_info topic
 mip_gnss1_sbas_info_data_rate          : 0  # Rate of mip/gnss_1/sbas_info topic

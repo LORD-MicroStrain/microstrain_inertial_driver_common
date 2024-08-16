@@ -78,6 +78,7 @@ constexpr auto NUM_GNSS = 2;
 
 #include "microstrain_inertial_msgs/MipHeader.h"
 #include "microstrain_inertial_msgs/MipSensorOverrangeStatus.h"
+#include "microstrain_inertial_msgs/MipSensorTemperatureStatistics.h"
 #include "microstrain_inertial_msgs/MipGnssFixInfo.h"
 #include "microstrain_inertial_msgs/MipGnssSbasInfo.h"
 #include "microstrain_inertial_msgs/MipGnssRfErrorDetection.h"
@@ -87,6 +88,7 @@ constexpr auto NUM_GNSS = 2;
 #include "microstrain_inertial_msgs/MipFilterMultiAntennaOffsetCorrection.h"
 #include "microstrain_inertial_msgs/MipFilterAidingMeasurementSummary.h"
 #include "microstrain_inertial_msgs/MipFilterGnssDualAntennaStatus.h"
+#include "microstrain_inertial_msgs/MipSystemBuiltInTest.h"
 
 #include "std_srvs/Empty.h"
 #include "std_srvs/Trigger.h"
@@ -138,6 +140,7 @@ constexpr auto NUM_GNSS = 2;
 
 #include "microstrain_inertial_msgs/msg/mip_header.hpp"
 #include "microstrain_inertial_msgs/msg/mip_sensor_overrange_status.hpp"
+#include "microstrain_inertial_msgs/msg/mip_sensor_temperature_statistics.hpp"
 #include "microstrain_inertial_msgs/msg/mip_gnss_fix_info.hpp"
 #include "microstrain_inertial_msgs/msg/mip_gnss_sbas_info.hpp"
 #include "microstrain_inertial_msgs/msg/mip_gnss_rf_error_detection.hpp"
@@ -147,6 +150,7 @@ constexpr auto NUM_GNSS = 2;
 #include "microstrain_inertial_msgs/msg/mip_filter_multi_antenna_offset_correction.hpp"
 #include "microstrain_inertial_msgs/msg/mip_filter_aiding_measurement_summary.hpp"
 #include "microstrain_inertial_msgs/msg/mip_filter_gnss_dual_antenna_status.hpp"
+#include "microstrain_inertial_msgs/msg/mip_system_built_in_test.hpp"
 
 // .h header was deprecated in rolling and will likely be removed in future releases.
 #if MICROSTRAIN_ROLLING == 1 || MICROSTRAIN_HUMBLE == 1
@@ -246,6 +250,7 @@ using HumanReadableStatusMsg = ::microstrain_inertial_msgs::HumanReadableStatus;
 
 using MipHeaderMsg = ::microstrain_inertial_msgs::MipHeader;
 using MipSensorOverrangeStatusMsg = ::microstrain_inertial_msgs::MipSensorOverrangeStatus;
+using MipSensorTemperatureStatisticsMsg = ::microstrain_inertial_msgs::MipSensorTemperatureStatistics;
 using MipGnssFixInfoMsg = ::microstrain_inertial_msgs::MipGnssFixInfo;
 using MipGnssSbasInfoMsg = ::microstrain_inertial_msgs::MipGnssSbasInfo;
 using MipGnssRfErrorDetectionMsg = ::microstrain_inertial_msgs::MipGnssRfErrorDetection;
@@ -255,6 +260,7 @@ using MipFilterStatusMsg = ::microstrain_inertial_msgs::MipFilterStatus;
 using MipFilterMultiAntennaOffsetCorrectionMsg = ::microstrain_inertial_msgs::MipFilterMultiAntennaOffsetCorrection;
 using MipFilterAidingMeasurementSummaryMsg = ::microstrain_inertial_msgs::MipFilterAidingMeasurementSummary;
 using MipFilterGnssDualAntennaStatusMsg = ::microstrain_inertial_msgs::MipFilterGnssDualAntennaStatus;
+using MipSystemBuiltInTestMsg = ::microstrain_inertial_msgs::MipSystemBuiltInTest;
 
 using TransformStampedMsg = ::geometry_msgs::TransformStamped;
 
@@ -550,6 +556,7 @@ using HumanReadableStatusMsg = ::microstrain_inertial_msgs::msg::HumanReadableSt
 
 using MipHeaderMsg = ::microstrain_inertial_msgs::msg::MipHeader;
 using MipSensorOverrangeStatusMsg = ::microstrain_inertial_msgs::msg::MipSensorOverrangeStatus;
+using MipSensorTemperatureStatisticsMsg = ::microstrain_inertial_msgs::msg::MipSensorTemperatureStatistics;
 using MipGnssFixInfoMsg = ::microstrain_inertial_msgs::msg::MipGnssFixInfo;
 using MipGnssSbasInfoMsg = ::microstrain_inertial_msgs::msg::MipGnssSbasInfo;
 using MipGnssRfErrorDetectionMsg = ::microstrain_inertial_msgs::msg::MipGnssRfErrorDetection;
@@ -558,8 +565,8 @@ using MipFilterStatusMsg = ::microstrain_inertial_msgs::msg::MipFilterStatus;
 using MipFilterGnssPositionAidingStatusMsg = ::microstrain_inertial_msgs::msg::MipFilterGnssPositionAidingStatus;
 using MipFilterMultiAntennaOffsetCorrectionMsg = ::microstrain_inertial_msgs::msg::MipFilterMultiAntennaOffsetCorrection;
 using MipFilterAidingMeasurementSummaryMsg = ::microstrain_inertial_msgs::msg::MipFilterAidingMeasurementSummary;
-
 using MipFilterGnssDualAntennaStatusMsg = ::microstrain_inertial_msgs::msg::MipFilterGnssDualAntennaStatus;
+using MipSystemBuiltInTestMsg = ::microstrain_inertial_msgs::msg::MipSystemBuiltInTest;
 
 using TransformStampedMsg = ::geometry_msgs::msg::TransformStamped;
 

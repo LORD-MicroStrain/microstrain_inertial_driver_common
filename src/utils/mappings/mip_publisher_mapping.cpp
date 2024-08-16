@@ -272,6 +272,10 @@ bool MipPublisherMapping::shouldPublish(const std::string& topic) const
 const std::map<std::string, FieldWrapper::SharedPtrVec> MipPublisherMapping::static_topic_to_mip_type_mapping_ =
 {
   // /imu* topic mappings
+  {IMU_DATA_RAW_TOPIC, {
+    FieldWrapperType<mip::data_sensor::ScaledAccel>::initialize(),
+    FieldWrapperType<mip::data_sensor::ScaledGyro>::initialize(),
+  }},
   {IMU_DATA_TOPIC, {
     FieldWrapperType<mip::data_sensor::DeltaTheta>::initialize(),
     FieldWrapperType<mip::data_sensor::DeltaVelocity>::initialize(),
@@ -337,6 +341,7 @@ const std::map<std::string, FieldWrapper::SharedPtrVec> MipPublisherMapping::sta
     FieldWrapperType<mip::data_filter::GnssPosAidStatus>::initialize(),
     FieldWrapperType<mip::data_filter::GnssDualAntennaStatus>::initialize(),
     FieldWrapperType<mip::data_filter::Status>::initialize(),
+    FieldWrapperType<mip::data_system::BuiltInTest>::initialize(),
   }},
   {FILTER_IMU_DATA_TOPIC, {
     FieldWrapperType<mip::data_filter::AttitudeQuaternion>::initialize(),
@@ -385,6 +390,9 @@ const std::map<std::string, FieldWrapper::SharedPtrVec> MipPublisherMapping::sta
   {MIP_SENSOR_OVERRANGE_STATUS_TOPIC, {
     FieldWrapperType<mip::data_sensor::OverrangeStatus>::initialize(),
   }},
+  {MIP_SENSOR_TEMPERATURE_STATISTICS_TOPIC, {
+    FieldWrapperType<mip::data_sensor::TemperatureAbs>::initialize(),
+  }},
 
   // MIP GNSS1 (0x81, 0x91) topic mappings
   {MIP_GNSS1_FIX_INFO_TOPIC, {
@@ -425,11 +433,17 @@ const std::map<std::string, FieldWrapper::SharedPtrVec> MipPublisherMapping::sta
   {MIP_FILTER_GNSS_DUAL_ANTENNA_STATUS_TOPIC, {
     FieldWrapperType<mip::data_filter::GnssDualAntennaStatus>::initialize(),
   }},
+
+  // MIP System (0xA0) topic mappings
+  {MIP_SYSTEM_BUILT_IN_TEST_TOPIC, {
+    FieldWrapperType<mip::data_system::BuiltInTest>::initialize(),
+  }},
 };
 
 const std::map<std::string, std::string> MipPublisherMapping::static_topic_to_data_rate_config_key_mapping_ =
 {
   // /imu* data rates
+  {IMU_DATA_RAW_TOPIC,    "imu_data_raw_rate"},
   {IMU_DATA_TOPIC,        "imu_data_rate"},
   {IMU_MAG_TOPIC,         "imu_mag_data_rate"},
   {IMU_PRESSURE_TOPIC,    "imu_pressure_data_rate"},
@@ -460,7 +474,8 @@ const std::map<std::string, std::string> MipPublisherMapping::static_topic_to_da
   {FILTER_DUAL_ANTENNA_HEADING_TOPIC,  "filter_dual_antenna_heading_data_rate"},
 
   // MIP sensor (0x80) data rates
-  {MIP_SENSOR_OVERRANGE_STATUS_TOPIC, "mip_sensor_overrange_status_data_rate"},
+  {MIP_SENSOR_OVERRANGE_STATUS_TOPIC,       "mip_sensor_overrange_status_data_rate"},
+  {MIP_SENSOR_TEMPERATURE_STATISTICS_TOPIC, "mip_sensor_temperature_statistics_data_rate"},
 
   // MIP GNSS1 (0x81, 0x91) data rates
   {MIP_GNSS1_FIX_INFO_TOPIC,           "mip_gnss1_fix_info_data_rate"},
@@ -478,6 +493,9 @@ const std::map<std::string, std::string> MipPublisherMapping::static_topic_to_da
   {MIP_FILTER_MULTI_ANTENNA_OFFSET_CORRECTION_TOPIC, "mip_filter_multi_antenna_offset_correction_data_rate"},
   {MIP_FILTER_AIDING_MEASUREMENT_SUMMARY_TOPIC,      "mip_filter_aiding_measurement_summary_data_rate"},
   {MIP_FILTER_GNSS_DUAL_ANTENNA_STATUS_TOPIC,        "mip_filter_gnss_dual_antenna_status_data_rate"},
+
+  // MIP System (0xA0) data rates
+  {MIP_SYSTEM_BUILT_IN_TEST_TOPIC, "mip_system_built_in_test_data_rate"},
 };
 
 }  // namespace microstrain
