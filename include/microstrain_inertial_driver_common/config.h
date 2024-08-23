@@ -236,6 +236,13 @@ private:
   bool configureFilterAidingMeasurement(const mip::commands_filter::AidingMeasurementEnable::AidingSource aiding_source, const bool enable);
 
   /**
+   * \brief Configures the gnss source on a device and handles if the gnss source is not supported by this particular device
+   * \param gnss_source  The heading source to configure
+   * \return true if the configuration was successful or unsupported, false if the configuration failed
+   */
+  bool configureGnssSourceControl(const mip::commands_filter::GnssSource::Source gnss_source);
+
+  /**
    * \brief Configures the heading source on a device and handles if the heading source is not supported by this particular device
    * \param heading_source  The heading source to configure
    * \return true if the configuration was successful or unsupported, false if the configuration failed
