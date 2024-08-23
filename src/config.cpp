@@ -378,16 +378,16 @@ bool Config::configure3DM(RosNodeType* node)
   getParam<bool>(node, "low_pass_filter_config", low_pass_filter_config, false);
   getParam<bool>(node, "accel_low_pass_filter_enable", accel_low_pass_filter_enable, false);
   getParam<bool>(node, "accel_low_pass_filter_auto", accel_low_pass_filter_auto, false);
-  getParam<float>(node, "accel_low_pass_filter_frequency", accel_low_pass_filter_frequency, 0);
+  getParamFloat(node, "accel_low_pass_filter_frequency", accel_low_pass_filter_frequency, 0);
   getParam<bool>(node, "gyro_low_pass_filter_enable", gyro_low_pass_filter_enable, false);
   getParam<bool>(node, "gyro_low_pass_filter_auto", gyro_low_pass_filter_auto, false);
-  getParam<float>(node, "gyro_low_pass_filter_frequency", gyro_low_pass_filter_frequency, 0);
+  getParamFloat(node, "gyro_low_pass_filter_frequency", gyro_low_pass_filter_frequency, 0);
   getParam<bool>(node, "mag_low_pass_filter_enable", mag_low_pass_filter_enable, false);
   getParam<bool>(node, "mag_low_pass_filter_auto", mag_low_pass_filter_auto, false);
-  getParam<float>(node, "mag_low_pass_filter_frequency", mag_low_pass_filter_frequency, 0);
+  getParamFloat(node, "mag_low_pass_filter_frequency", mag_low_pass_filter_frequency, 0);
   getParam<bool>(node, "pressure_low_pass_filter_enable", pressure_low_pass_filter_enable, false);
   getParam<bool>(node, "pressure_low_pass_filter_auto", pressure_low_pass_filter_auto, false);
-  getParam<float>(node, "pressure_low_pass_filter_frequency", pressure_low_pass_filter_frequency, 0);
+  getParamFloat(node, "pressure_low_pass_filter_frequency", pressure_low_pass_filter_frequency, 0);
 
   mip::CmdResult mip_cmd_result;
   const uint8_t descriptor_set = mip::commands_3dm::DESCRIPTOR_SET;
