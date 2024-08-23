@@ -904,12 +904,15 @@ bool Config::configureFilter(RosNodeType* node)
     MICROSTRAIN_INFO(node_, "Note: The device does not support the vehicle dynamics mode command.");
   }
 
+  // Set GNSS aiding source control
   if (mip_device_->supportsDescriptor(descriptor_set, mip::commands_filter::CMD_GNSS_SOURCE_CONTROL))
   {
     MICROSTRAIN_INFO(node_, "Setting GNSS aiding source control to %d", gnss_aiding_source_control);
-    const auto gnss_source_enum = static_cast<mip::commands_filter::GnssSource::Source>(gnss_aiding_source_control);
-    if (!configureGnssSourceControl(gnss_source_enum))
+    if (!(mip_cmd_result = mip::commands_filter::writeGnssSource(*mip_device_, static_cast<mip::commands_filter::GnssSource::Source>(gnss_aiding_source_control))))
+    {
+      MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Could not set GNSS aiding source control");
       return false;
+    }
   }
 
   // Set heading Source
