@@ -234,6 +234,7 @@ public:
 
 
   // IMU Publishers
+  Publisher<ImuMsg>::SharedPtr                        imu_raw_pub_     = Publisher<ImuMsg>::initialize(IMU_DATA_RAW_TOPIC);
   Publisher<ImuMsg>::SharedPtr                        imu_pub_         = Publisher<ImuMsg>::initialize(IMU_DATA_TOPIC);
   Publisher<MagneticFieldMsg>::SharedPtr              mag_pub_         = Publisher<MagneticFieldMsg>::initialize(IMU_MAG_TOPIC);
   Publisher<FluidPressureMsg>::SharedPtr              pressure_pub_    = Publisher<FluidPressureMsg>::initialize(IMU_PRESSURE_TOPIC);
@@ -258,7 +259,8 @@ public:
 
 
   // MIP Sensor (0x80) publishers
-  Publisher<MipSensorOverrangeStatusMsg>::SharedPtr mip_sensor_overrange_status_pub_ = Publisher<MipSensorOverrangeStatusMsg>::initialize(MIP_SENSOR_OVERRANGE_STATUS_TOPIC);
+  Publisher<MipSensorOverrangeStatusMsg>::SharedPtr       mip_sensor_overrange_status_pub_       = Publisher<MipSensorOverrangeStatusMsg>::initialize(MIP_SENSOR_OVERRANGE_STATUS_TOPIC);
+  Publisher<MipSensorTemperatureStatisticsMsg>::SharedPtr mip_sensor_temperature_statistics_pub_ = Publisher<MipSensorTemperatureStatisticsMsg>::initialize(MIP_SENSOR_TEMPERATURE_STATISTICS_TOPIC);
 
   // MIP GNSS (0x81, 0x91, 0x92) publishers
   Publisher<MipGnssFixInfoMsg>::SharedPtrVec          mip_gnss_fix_info_pub_           = Publisher<MipGnssFixInfoMsg>::initializeVec({MIP_GNSS1_FIX_INFO_TOPIC, MIP_GNSS2_FIX_INFO_TOPIC});
@@ -274,6 +276,9 @@ public:
   Publisher<MipFilterMultiAntennaOffsetCorrectionMsg>::SharedPtr   mip_filter_multi_antenna_offset_correction_pub_ = Publisher<MipFilterMultiAntennaOffsetCorrectionMsg>::initialize(MIP_FILTER_MULTI_ANTENNA_OFFSET_CORRECTION_TOPIC);
   Publisher<MipFilterAidingMeasurementSummaryMsg>::SharedPtr       mip_filter_aiding_measurement_summary_pub_      = Publisher<MipFilterAidingMeasurementSummaryMsg>::initialize(MIP_FILTER_AIDING_MEASUREMENT_SUMMARY_TOPIC);
   Publisher<MipFilterGnssDualAntennaStatusMsg>::SharedPtr          mip_filter_gnss_dual_antenna_status_pub_        = Publisher<MipFilterGnssDualAntennaStatusMsg>::initialize(MIP_FILTER_GNSS_DUAL_ANTENNA_STATUS_TOPIC);
+
+  // MIP System (0xA0) publishers
+  Publisher<MipSystemBuiltInTestMsg>::SharedPtr mip_system_built_in_test_pub_ = Publisher<MipSystemBuiltInTestMsg>::initialize(MIP_SYSTEM_BUILT_IN_TEST_TOPIC);
 
   // NMEA sentence publisher
   Publisher<NMEASentenceMsg>::SharedPtr nmea_sentence_pub_ = Publisher<NMEASentenceMsg>::initialize(NMEA_SENTENCE_TOPIC);
@@ -326,6 +331,8 @@ private:
 
   // Callbacks to handle sensor data from the MIP device
   void handleSensorGpsTimestamp(const mip::data_sensor::GpsTimestamp& gps_timestamp, const uint8_t descriptor_set, mip::Timestamp timestamp);
+  void handleSensorScaledAccel(const mip::data_sensor::ScaledAccel& scaled_accel, const uint8_t descriptor_set, mip::Timestamp timestamp);
+  void handleSensorScaledGyro(const mip::data_sensor::ScaledGyro& scaled_gyro, const uint8_t descriptor_set, mip::Timestamp timestamp);
   void handleSensorDeltaTheta(const mip::data_sensor::DeltaTheta& delta_theta, const uint8_t descriptor_set, mip::Timestamp timestamp);
   void handleSensorDeltaVelocity(const mip::data_sensor::DeltaVelocity& delta_velocity, const uint8_t descriptor_set, mip::Timestamp timestamp);
   void handleSensorCompQuaternion(const mip::data_sensor::CompQuaternion& comp_quaternion, const uint8_t descriptor_set, mip::Timestamp timestamp);
@@ -333,6 +340,7 @@ private:
   void handleSensorScaledPressure(const mip::data_sensor::ScaledPressure& scaled_pressure, const uint8_t descriptor_set, mip::Timestamp timestamp);
   void handleSensorOdometerData(const mip::data_sensor::OdometerData& odometer_data, const uint8_t descriptor_set, mip::Timestamp timestamp);
   void handleSensorOverrangeStatus(const mip::data_sensor::OverrangeStatus& overrange_status, const uint8_t descriptor_set, mip::Timestamp timestamp);
+  void handleSensorTemperatureStatistics(const mip::data_sensor::TemperatureAbs& temperature_statistics, const uint8_t descriptor_set, mip::Timestamp timestamp);
 
   // Callbcaks to handle GNSS1/2 data from the device
   void handleGnssGpsTime(const mip::data_gnss::GpsTime& gps_time, const uint8_t descriptor_set, mip::Timestamp timestamp);
@@ -348,7 +356,7 @@ private:
   void handleRtkCorrectionsStatus(const mip::data_gnss::RtkCorrectionsStatus& rtk_corrections_status, const uint8_t descriptor_set, mip::Timestamp timestamp);
   void handleRtkBaseStationInfo(const mip::data_gnss::BaseStationInfo& base_station_info, const uint8_t descriptor_set, mip::Timestamp timestamp);
 
-  // Callbacks to handle filter datat from the device
+  // Callbacks to handle filter data from the device
   void handleFilterTimestamp(const mip::data_filter::Timestamp& filter_timestamp, const uint8_t descriptor_set, mip::Timestamp timestamp);
   void handleFilterStatus(const mip::data_filter::Status& status, const uint8_t descriptor_set, mip::Timestamp timestamp);
   void handleFilterEcefPos(const mip::data_filter::EcefPos& ecef_pos, const uint8_t descriptor_set, mip::Timestamp timestamp);
@@ -368,6 +376,9 @@ private:
   void handleFilterMultiAntennaOffsetCorrection(const mip::data_filter::MultiAntennaOffsetCorrection& multi_antenna_offset_correction, const uint8_t descriptor_set, mip::Timestamp timestamp);
   void handleFilterGnssDualAntennaStatus(const mip::data_filter::GnssDualAntennaStatus& gnss_dual_antenna_status, const uint8_t descriptor_set, mip::Timestamp timestamp);
   void handleFilterAidingMeasurementSummary(const mip::data_filter::AidingMeasurementSummary& aiding_measurement_summary, const uint8_t descriptor_set, mip::Timestamp timestamp);
+
+  // Callbacks to handle system data from the device
+  void handleSystemBuiltInTest(const mip::data_system::BuiltInTest& built_in_test, const uint8_t descriptor_set, mip::Timestamp timestamp);
 
   /**
    * \brief Called after a packet has been processed.
