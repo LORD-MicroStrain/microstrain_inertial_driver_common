@@ -9,6 +9,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #include <errno.h>
+#include <tuple>
 #include <vector>
 #include <string>
 #include <memory>
@@ -390,16 +391,16 @@ bool Config::configure3DM(RosNodeType* node)
   getParam<bool>(node, "low_pass_filter_config", low_pass_filter_config, false);
   getParam<bool>(node, "accel_low_pass_filter_enable", accel_low_pass_filter_enable, false);
   getParam<bool>(node, "accel_low_pass_filter_auto", accel_low_pass_filter_auto, false);
-  getParam<float>(node, "accel_low_pass_filter_frequency", accel_low_pass_filter_frequency, 0);
+  getParamFloat(node, "accel_low_pass_filter_frequency", accel_low_pass_filter_frequency, 0);
   getParam<bool>(node, "gyro_low_pass_filter_enable", gyro_low_pass_filter_enable, false);
   getParam<bool>(node, "gyro_low_pass_filter_auto", gyro_low_pass_filter_auto, false);
-  getParam<float>(node, "gyro_low_pass_filter_frequency", gyro_low_pass_filter_frequency, 0);
+  getParamFloat(node, "gyro_low_pass_filter_frequency", gyro_low_pass_filter_frequency, 0);
   getParam<bool>(node, "mag_low_pass_filter_enable", mag_low_pass_filter_enable, false);
   getParam<bool>(node, "mag_low_pass_filter_auto", mag_low_pass_filter_auto, false);
-  getParam<float>(node, "mag_low_pass_filter_frequency", mag_low_pass_filter_frequency, 0);
+  getParamFloat(node, "mag_low_pass_filter_frequency", mag_low_pass_filter_frequency, 0);
   getParam<bool>(node, "pressure_low_pass_filter_enable", pressure_low_pass_filter_enable, false);
   getParam<bool>(node, "pressure_low_pass_filter_auto", pressure_low_pass_filter_auto, false);
-  getParam<float>(node, "pressure_low_pass_filter_frequency", pressure_low_pass_filter_frequency, 0);
+  getParamFloat(node, "pressure_low_pass_filter_frequency", pressure_low_pass_filter_frequency, 0);
 
   mip::CmdResult mip_cmd_result;
   const uint8_t descriptor_set = mip::commands_3dm::DESCRIPTOR_SET;
@@ -733,12 +734,14 @@ bool Config::configureFilter(RosNodeType* node)
   int dynamics_mode;
   int32_t declination_source;
   double declination;
+  int32_t gnss_aiding_source_control;
   getParam<int32_t>(node, "filter_declination_source", declination_source, 2);
   getParam<double>(node, "filter_declination", declination, 0.23);
   getParam<int32_t>(node, "filter_heading_source", heading_source, 0x1);
   getParam<float>(node, "filter_initial_heading", initial_heading, 0.0);
   getParam<bool>(node, "filter_auto_init", filter_auto_init, true);
   getParam<int32_t>(node, "filter_dynamics_mode", dynamics_mode, 1);
+  getParam<int32_t>(node, "filter_gnss_aiding_source_control", gnss_aiding_source_control, 1);
 
   // Read some QG7 specific filter options
   int filter_adaptive_level;
@@ -900,6 +903,17 @@ bool Config::configureFilter(RosNodeType* node)
   else
   {
     MICROSTRAIN_INFO(node_, "Note: The device does not support the vehicle dynamics mode command.");
+  }
+
+  // Set GNSS aiding source control
+  if (mip_device_->supportsDescriptor(descriptor_set, mip::commands_filter::CMD_GNSS_SOURCE_CONTROL))
+  {
+    MICROSTRAIN_INFO(node_, "Setting GNSS aiding source control to %d", gnss_aiding_source_control);
+    if (!(mip_cmd_result = mip::commands_filter::writeGnssSource(*mip_device_, static_cast<mip::commands_filter::GnssSource::Source>(gnss_aiding_source_control))))
+    {
+      MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Could not set GNSS aiding source control");
+      return false;
+    }
   }
 
   // Set heading Source
@@ -1254,6 +1268,22 @@ bool Config::configureFilterAidingMeasurement(const mip::commands_filter::Aiding
   }
   return true;
 }
+
+bool Config::configureGnssSourceControl(const mip::commands_filter::GnssSource::Source gnss_source)
+{
+  const mip::CmdResult mip_cmd_result = mip::commands_filter::writeGnssSource(*mip_device_, gnss_source);
+  if (mip_cmd_result == mip::CmdResult::NACK_INVALID_PARAM)
+  {
+    MICROSTRAIN_WARN(node_, "Gnss source 0x%02x is not valid for this device. Please refer to the device manual for more information", static_cast<uint32_t>(gnss_source));
+  }
+  else if (!mip_cmd_result)
+  {
+    MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to set gnss source");
+    return false;
+  }
+  return true;
+}
+
 
 bool Config::configureHeadingSource(const mip::commands_filter::HeadingSource::Source heading_source)
 {

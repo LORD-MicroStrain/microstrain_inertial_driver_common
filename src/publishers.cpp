@@ -1835,7 +1835,7 @@ void Publishers::handleSystemBuiltInTest(const mip::data_system::BuiltInTest& bu
     if (gq7_built_in_test.pressureSensorOverRange())
       filter_human_readable_status_msg->continuous_bit_flags.push_back(filter_human_readable_status_msg->CONTINUOUS_BIT_FLAGS_GQ7_PRESSURE_SENSOR_OVER_RANGE);
     if (gq7_built_in_test.pressureSensorSelfTestFail())
-      filter_human_readable_status_msg->continuous_bit_flags.push_back(filter_human_readable_status_msg->CONTINUOUS_BIT_FLAGS_GQ7_PRESSURE_SENSOR_SELF_TEST_FAIL);  
+      filter_human_readable_status_msg->continuous_bit_flags.push_back(filter_human_readable_status_msg->CONTINUOUS_BIT_FLAGS_GQ7_PRESSURE_SENSOR_SELF_TEST_FAIL);
     if (gq7_built_in_test.filterClockFault())
       filter_human_readable_status_msg->continuous_bit_flags.push_back(filter_human_readable_status_msg->CONTINUOUS_BIT_FLAGS_GQ7_FILTER_CLOCK_FAULT);
     if (gq7_built_in_test.filterHardwareFault())
@@ -1857,7 +1857,7 @@ void Publishers::handleSystemBuiltInTest(const mip::data_system::BuiltInTest& bu
     if (gq7_built_in_test.gnssTimingOverrun())
       filter_human_readable_status_msg->continuous_bit_flags.push_back(filter_human_readable_status_msg->CONTINUOUS_BIT_FLAGS_GQ7_GNSS_TIMING_OVERRUN);
     if (gq7_built_in_test.gnssReceiver1PowerFault())
-      filter_human_readable_status_msg->continuous_bit_flags.push_back(filter_human_readable_status_msg->CONTINUOUS_BIT_FLAGS_GQ7_GNSS_RECEIVER_1_POWER_FAULT);  
+      filter_human_readable_status_msg->continuous_bit_flags.push_back(filter_human_readable_status_msg->CONTINUOUS_BIT_FLAGS_GQ7_GNSS_RECEIVER_1_POWER_FAULT);
     if (gq7_built_in_test.gnssReceiver1Fault())
       filter_human_readable_status_msg->continuous_bit_flags.push_back(filter_human_readable_status_msg->CONTINUOUS_BIT_FLAGS_GQ7_GNSS_RECEIVER_1_FAULT);
     if (gq7_built_in_test.gnssAntenna1Shorted())
@@ -1865,9 +1865,9 @@ void Publishers::handleSystemBuiltInTest(const mip::data_system::BuiltInTest& bu
     if (gq7_built_in_test.gnssAntenna1Open())
       filter_human_readable_status_msg->continuous_bit_flags.push_back(filter_human_readable_status_msg->CONTINUOUS_BIT_FLAGS_GQ7_GNSS_ANTENNA_1_OPEN);
     if (gq7_built_in_test.gnssReceiver1SolutionFault())
-      filter_human_readable_status_msg->continuous_bit_flags.push_back(filter_human_readable_status_msg->CONTINUOUS_BIT_FLAGS_GQ7_GNSS_RECEIVER_1_SOLUTION_FAULT);  
+      filter_human_readable_status_msg->continuous_bit_flags.push_back(filter_human_readable_status_msg->CONTINUOUS_BIT_FLAGS_GQ7_GNSS_RECEIVER_1_SOLUTION_FAULT);
     if (gq7_built_in_test.gnssReceiver2PowerFault())
-      filter_human_readable_status_msg->continuous_bit_flags.push_back(filter_human_readable_status_msg->CONTINUOUS_BIT_FLAGS_GQ7_GNSS_RECEIVER_2_POWER_FAULT);  
+      filter_human_readable_status_msg->continuous_bit_flags.push_back(filter_human_readable_status_msg->CONTINUOUS_BIT_FLAGS_GQ7_GNSS_RECEIVER_2_POWER_FAULT);
     if (gq7_built_in_test.gnssReceiver2Fault())
       filter_human_readable_status_msg->continuous_bit_flags.push_back(filter_human_readable_status_msg->CONTINUOUS_BIT_FLAGS_GQ7_GNSS_RECEIVER_2_FAULT);
     if (gq7_built_in_test.gnssAntenna2Shorted())
