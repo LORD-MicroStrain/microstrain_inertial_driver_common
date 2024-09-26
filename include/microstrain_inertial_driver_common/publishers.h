@@ -428,9 +428,11 @@ private:
   // Older philo devices do not support ECEF position, so we will need to convert from LLH to ECEF ourselves
   bool supports_filter_ecef_;
 
-  // Keep track of whether we have RTK fixed or float status.
+  // Keep track of the filter state as the messages may override each other if we don't
   bool rtk_fixed_ = false;
   bool rtk_float_ = false;
+  bool has_sbas_  = false;
+  bool has_fix_   = false;
 
   // TF2 buffer lookup class
   TransformBufferType transform_buffer_;
