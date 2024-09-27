@@ -321,20 +321,25 @@ bool Config::configureBase(RosNodeType* node)
   {
     if (set_baud)
     {
-      MICROSTRAIN_INFO(node_, "Note: Setting aux port baudrate to %d", aux_baudrate);
-      if (!(mip_cmd_result = mip::commands_base::writeCommSpeed(*mip_device_, 2, aux_baudrate)))
+      // Only set the baudrate if the device has an aux port (we can check by fetching the baudrate)
+      uint32_t tmp_baud;
+      if (!!(mip_cmd_result = mip::commands_base::readCommSpeed(*mip_device_, 2, &tmp_baud)))
       {
-        MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to write aux port baudrate");
-        return false;
-      }
-
-      // Reopen the aux port if it is already open
-      if (aux_device_ != nullptr)
-      {
-        if (!aux_device_->reconnect())
+        MICROSTRAIN_INFO(node_, "Note: Setting aux port baudrate to %d", aux_baudrate);
+        if (!(mip_cmd_result = mip::commands_base::writeCommSpeed(*mip_device_, 2, aux_baudrate)))
         {
-          MICROSTRAIN_ERROR(node_, "Failed to open aux port after configuring baudrate");
+          MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to write aux port baudrate");
           return false;
+        }
+
+        // Reopen the aux port if it is already open
+        if (aux_device_ != nullptr)
+        {
+          if (!aux_device_->reconnect())
+          {
+            MICROSTRAIN_ERROR(node_, "Failed to open aux port after configuring baudrate");
+            return false;
+          }
         }
       }
     }
