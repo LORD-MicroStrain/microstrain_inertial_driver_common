@@ -972,18 +972,6 @@ void Publishers::handleGnssFixInfo(const mip::data_gnss::FixInfo& fix_info, cons
     gnss_llh_position_msg->status.status = NavSatFixMsg::_status_type::STATUS_FIX;
   else
     gnss_llh_position_msg->status.status = NavSatFixMsg::_status_type::STATUS_NO_FIX;
-
-  // Human readable status (not counted as updating)
-  auto filter_human_readable_status_msg = filter_human_readable_status_pub_->getMessage();
-  if (!rtk_fixed_ && !rtk_float_)
-  {
-    if (fix_info.fix_flags.sbasUsed())
-      filter_human_readable_status_msg->gnss_state = HumanReadableStatusMsg::GNSS_STATE_SBAS;
-    else if (fix_info.fix_type == mip::data_gnss::FixInfo::FixType::FIX_3D)
-      filter_human_readable_status_msg->gnss_state = HumanReadableStatusMsg::GNSS_STATE_3D_FIX;
-    else
-      filter_human_readable_status_msg->gnss_state = HumanReadableStatusMsg::GNSS_STATE_NO_FIX;
-  }
 }
 
 void Publishers::handleGnssRfErrorDetection(const mip::data_gnss::RfErrorDetection& rf_error_detection, const uint8_t descriptor_set, mip::Timestamp timestamp)
@@ -1771,6 +1759,7 @@ void Publishers::handleFilterGnssPosAidStatus(const mip::data_filter::GnssPosAid
     {
       if (mip_gnss_fix_info_pub_[gnss_index]->getMessage()->fix_flags.sbas_used)
       {
+        filter_human_readable_status_msg->gnss_state = HumanReadableStatusMsg::GNSS_STATE_SBAS;
         filter_llh_position_msg->status.status = NavSatFixMsg::_status_type::STATUS_SBAS_FIX;
         has_sbas_ = true;
       }
@@ -1778,11 +1767,13 @@ void Publishers::handleFilterGnssPosAidStatus(const mip::data_filter::GnssPosAid
       {
         if (!mip_filter_gnss_position_aiding_status_msg->status.no_fix)
         {
+          filter_human_readable_status_msg->gnss_state = HumanReadableStatusMsg::GNSS_STATE_3D_FIX;
           filter_llh_position_msg->status.status = NavSatFixMsg::_status_type::STATUS_FIX;
           has_fix_ = true;
         }
         else if (!has_fix_)
         {
+          filter_human_readable_status_msg->gnss_state = HumanReadableStatusMsg::GNSS_STATE_NO_FIX;
           filter_llh_position_msg->status.status = NavSatFixMsg::_status_type::STATUS_NO_FIX;
         }
       }
