@@ -321,20 +321,25 @@ bool Config::configureBase(RosNodeType* node)
   {
     if (set_baud)
     {
-      MICROSTRAIN_INFO(node_, "Note: Setting aux port baudrate to %d", aux_baudrate);
-      if (!(mip_cmd_result = mip::commands_base::writeCommSpeed(*mip_device_, 2, aux_baudrate)))
+      // Only set the baudrate if the device has an aux port (we can check by fetching the baudrate)
+      uint32_t tmp_baud;
+      if (!!(mip_cmd_result = mip::commands_base::readCommSpeed(*mip_device_, 2, &tmp_baud)))
       {
-        MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to write aux port baudrate");
-        return false;
-      }
-
-      // Reopen the aux port if it is already open
-      if (aux_device_ != nullptr)
-      {
-        if (!aux_device_->reconnect())
+        MICROSTRAIN_INFO(node_, "Note: Setting aux port baudrate to %d", aux_baudrate);
+        if (!(mip_cmd_result = mip::commands_base::writeCommSpeed(*mip_device_, 2, aux_baudrate)))
         {
-          MICROSTRAIN_ERROR(node_, "Failed to open aux port after configuring baudrate");
+          MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to write aux port baudrate");
           return false;
+        }
+
+        // Reopen the aux port if it is already open
+        if (aux_device_ != nullptr)
+        {
+          if (!aux_device_->reconnect())
+          {
+            MICROSTRAIN_ERROR(node_, "Failed to open aux port after configuring baudrate");
+            return false;
+          }
         }
       }
     }
@@ -636,7 +641,7 @@ bool Config::configure3DM(RosNodeType* node)
           MICROSTRAIN_INFO(node_, "Configuring low pass filter with:");
           MICROSTRAIN_INFO(node_, "  field_descriptor = 0x%02x", low_pass_filter_field_descriptor);
           MICROSTRAIN_INFO(node_, "  enable = %d", low_pass_filter_enable);
-          MICROSTRAIN_INFO(node_, "  auto = %d", low_pass_filter_auto);
+          MICROSTRAIN_INFO(node_, "  manual = %d", !low_pass_filter_auto);
           MICROSTRAIN_INFO(node_, "  frequency = %u", static_cast<uint16_t>(std::round(low_pass_filter_frequency)));
           if (!(mip_cmd_result = mip::commands_3dm::writeImuLowpassFilter(*mip_device_, low_pass_filter_field_descriptor, low_pass_filter_enable, !low_pass_filter_auto, static_cast<uint16_t>(std::round(low_pass_filter_frequency)), 0)))
           {
