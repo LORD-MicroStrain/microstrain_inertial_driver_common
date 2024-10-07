@@ -972,18 +972,6 @@ void Publishers::handleGnssFixInfo(const mip::data_gnss::FixInfo& fix_info, cons
     gnss_llh_position_msg->status.status = NavSatFixMsg::_status_type::STATUS_FIX;
   else
     gnss_llh_position_msg->status.status = NavSatFixMsg::_status_type::STATUS_NO_FIX;
-
-  // Human readable status (not counted as updating)
-  auto filter_human_readable_status_msg = filter_human_readable_status_pub_->getMessage();
-  if (!rtk_fixed_ && !rtk_float_)
-  {
-    if (fix_info.fix_flags.sbasUsed())
-      filter_human_readable_status_msg->gnss_state = HumanReadableStatusMsg::GNSS_STATE_SBAS;
-    else if (fix_info.fix_type == mip::data_gnss::FixInfo::FixType::FIX_3D)
-      filter_human_readable_status_msg->gnss_state = HumanReadableStatusMsg::GNSS_STATE_3D_FIX;
-    else
-      filter_human_readable_status_msg->gnss_state = HumanReadableStatusMsg::GNSS_STATE_NO_FIX;
-  }
 }
 
 void Publishers::handleGnssRfErrorDetection(const mip::data_gnss::RfErrorDetection& rf_error_detection, const uint8_t descriptor_set, mip::Timestamp timestamp)
@@ -1750,26 +1738,46 @@ void Publishers::handleFilterGnssPosAidStatus(const mip::data_filter::GnssPosAid
   // Filter fix message (not counted as updating)
   auto filter_llh_position_msg = filter_llh_position_pub_->getMessage();
 
-  // Take the best out of the two receivers
+  // Take the best out of the two receivers for GNSS status
   const uint8_t gnss_index = gnss_pos_aid_status.receiver_id - 1;
-  if (filter_llh_position_msg->status.status <= NavSatFixMsg::_status_type::STATUS_GBAS_FIX && mip_filter_gnss_position_aiding_status_msg->status.differential)
-    filter_llh_position_msg->status.status = NavSatFixMsg::_status_type::STATUS_GBAS_FIX;
-  else if (filter_llh_position_msg->status.status <= NavSatFixMsg::_status_type::STATUS_SBAS_FIX && mip_gnss_fix_info_pub_[gnss_index]->getMessage()->fix_flags.sbas_used)
-    filter_llh_position_msg->status.status = NavSatFixMsg::_status_type::STATUS_SBAS_FIX;
-  else if (filter_llh_position_msg->status.status <= NavSatFixMsg::_status_type::STATUS_FIX && !mip_filter_gnss_position_aiding_status_msg->status.no_fix)
-    filter_llh_position_msg->status.status = NavSatFixMsg::_status_type::STATUS_FIX;
-
-  // Filter human readable status message (not counted as updating)
   auto filter_human_readable_status_msg = filter_human_readable_status_pub_->getMessage();
   if (mip_filter_gnss_position_aiding_status_msg->status.integer_fix)
   {
+    filter_llh_position_msg->status.status = NavSatFixMsg::_status_type::STATUS_GBAS_FIX;
     filter_human_readable_status_msg->gnss_state = HumanReadableStatusMsg::GNSS_STATE_RTK_FIXED;
     rtk_fixed_ = true;
   }
-  else if (!rtk_fixed_ && mip_filter_gnss_position_aiding_status_msg->status.differential)
+  else if (!rtk_fixed_)
   {
-    filter_human_readable_status_msg->gnss_state = HumanReadableStatusMsg::GNSS_STATE_RTK_FLOAT;
-    rtk_float_ = true;
+    if (mip_filter_gnss_position_aiding_status_msg->status.differential)
+    {
+      filter_llh_position_msg->status.status = NavSatFixMsg::_status_type::STATUS_GBAS_FIX;
+      filter_human_readable_status_msg->gnss_state = HumanReadableStatusMsg::GNSS_STATE_RTK_FLOAT;
+      rtk_float_ = true;
+    }
+    else if (!rtk_float_)
+    {
+      if (mip_gnss_fix_info_pub_[gnss_index]->getMessage()->fix_flags.sbas_used)
+      {
+        filter_human_readable_status_msg->gnss_state = HumanReadableStatusMsg::GNSS_STATE_SBAS;
+        filter_llh_position_msg->status.status = NavSatFixMsg::_status_type::STATUS_SBAS_FIX;
+        has_sbas_ = true;
+      }
+      else if (!has_sbas_)
+      {
+        if (!mip_filter_gnss_position_aiding_status_msg->status.no_fix)
+        {
+          filter_human_readable_status_msg->gnss_state = HumanReadableStatusMsg::GNSS_STATE_3D_FIX;
+          filter_llh_position_msg->status.status = NavSatFixMsg::_status_type::STATUS_FIX;
+          has_fix_ = true;
+        }
+        else if (!has_fix_)
+        {
+          filter_human_readable_status_msg->gnss_state = HumanReadableStatusMsg::GNSS_STATE_NO_FIX;
+          filter_llh_position_msg->status.status = NavSatFixMsg::_status_type::STATUS_NO_FIX;
+        }
+      }
+    }
   }
 }
 
@@ -2056,12 +2064,11 @@ void Publishers::handleAfterPacket(const mip::PacketRef& packet, mip::Timestamp 
   if (event_source_mapping_.find(packet.descriptorSet()) != event_source_mapping_.end())
     event_source_mapping_[packet.descriptorSet()].trigger_id = 0;
 
-  // Reset some state in messages that need to have it reset
-  filter_llh_position_pub_->getMessage()->status.status = NavSatFixMsg::_status_type::STATUS_NO_FIX;
-
   // Reset whether or not we have RTK
   rtk_fixed_ = false;
   rtk_float_ = false;
+  has_sbas_ = false;
+  has_fix_ = false;
 }
 
 void Publishers::updateMipHeader(MipHeaderMsg* mip_header, uint8_t descriptor_set) const
