@@ -641,7 +641,7 @@ bool Config::configure3DM(RosNodeType* node)
           MICROSTRAIN_INFO(node_, "Configuring low pass filter with:");
           MICROSTRAIN_INFO(node_, "  field_descriptor = 0x%02x", low_pass_filter_field_descriptor);
           MICROSTRAIN_INFO(node_, "  enable = %d", low_pass_filter_enable);
-          MICROSTRAIN_INFO(node_, "  auto = %d", low_pass_filter_auto);
+          MICROSTRAIN_INFO(node_, "  manual = %d", !low_pass_filter_auto);
           MICROSTRAIN_INFO(node_, "  frequency = %u", static_cast<uint16_t>(std::round(low_pass_filter_frequency)));
           if (!(mip_cmd_result = mip::commands_3dm::writeImuLowpassFilter(*mip_device_, low_pass_filter_field_descriptor, low_pass_filter_enable, !low_pass_filter_auto, static_cast<uint16_t>(std::round(low_pass_filter_frequency)), 0)))
           {

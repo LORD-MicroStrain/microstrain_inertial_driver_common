@@ -417,19 +417,19 @@ low_pass_filter_config : True
 
 accel_low_pass_filter_enable    : False
 accel_low_pass_filter_auto      : False
-accel_low_pass_filter_frequency : 0
+accel_low_pass_filter_frequency : 1
 
 gyro_low_pass_filter_enable    : False
 gyro_low_pass_filter_auto      : False
-gyro_low_pass_filter_frequency : 0
+gyro_low_pass_filter_frequency : 1
 
 mag_low_pass_filter_enable    : False
 mag_low_pass_filter_auto      : False
-mag_low_pass_filter_frequency : 0
+mag_low_pass_filter_frequency : 1
 
 pressure_low_pass_filter_enable    : False
 pressure_low_pass_filter_auto      : False
-pressure_low_pass_filter_frequency : 0
+pressure_low_pass_filter_frequency : 1
 
 # ****************************************************************** 
 # Publisher Settings
