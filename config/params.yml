@@ -149,9 +149,9 @@ gnss2_antenna_offset_source : 1
 gnss2_antenna_offset        : [0.0, 0.7, -1.0]
 
 # GNSS signal configuration
-gnss_glonass_enable : False
+gnss_glonass_enable : True
 gnss_galileo_enable : True
-gnss_beidou_enable  : False
+gnss_beidou_enable  : True
 
 
 # ****************************************************************** 
