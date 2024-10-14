@@ -18,9 +18,9 @@ ClockBiasMonitor::ClockBiasMonitor(const double weight, const double max_bias_es
 {
 }
 
-void ClockBiasMonitor::addTime(const RosTimeType& source_time, const RosTimeType& target_time)
+void ClockBiasMonitor::addTime(const double source_time, const double target_time)
 {
-  const double delta_time = getTimeRefSecs(source_time) - getTimeRefSecs(target_time);
+  const double delta_time = source_time - target_time;
 
   // Check if initialization is required
   if (!have_bias_estimate_)
@@ -50,20 +50,6 @@ bool ClockBiasMonitor::hasBiasEstimate() const
 double ClockBiasMonitor::getBiasEstimate() const
 {
   return bias_estimate_;
-}
-
-RosTimeType ClockBiasMonitor::getTime(const RosTimeType& source_time, const RosTimeType& target_time)
-{
-  // Calculate the bias estimate
-  addTime(source_time, target_time);
-
-  // Calculate the adjusted time
-  const double device_time_secs = getTimeRefSecs(source_time) + bias_estimate_;
-
-  // Set the ROS time
-  RosTimeType time;
-  setRosTime(&time, device_time_secs);
-  return time;
 }
 
 }  // namespace microstrain

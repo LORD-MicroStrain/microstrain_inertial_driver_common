@@ -68,6 +68,11 @@ void setRotationCovarianceOnCovariance(PoseWithCovarianceStampedMsg::_pose_type:
   (*covariance)[35] = rotation_covariance[8];
 }
 
+constexpr double gpsTimestampSecs(const mip::data_shared::GpsTimestamp& gps_timestamp)
+{
+  return gps_timestamp.week_number * 604800 + gps_timestamp.tow;
+}
+
 Publishers::Publishers(RosNodeType* node, Config* config)
   : node_(node), config_(config)
 {
@@ -607,6 +612,21 @@ void Publishers::handleSharedDeltaTicks(const mip::data_shared::DeltaTicks& delt
 
 void Publishers::handleSharedGpsTimestamp(const mip::data_shared::GpsTimestamp& gps_timestamp, const uint8_t descriptor_set, mip::Timestamp timestamp)
 {
+  // If the timestamp came from the sensor descriptor set, update the clock bias monitor
+  if (descriptor_set == mip::data_sensor::DESCRIPTOR_SET)
+  {
+    const double collected_timestamp_secs = static_cast<double>(timestamp) / 1000.0;
+    if (clock_bias_monitor_.hasBiasEstimate())
+    {
+      clock_bias_monitor_.addTime(gpsTimestampSecs(gps_timestamp), collected_timestamp_secs);
+    }
+    else
+    {
+      clock_bias_monitor_.addTime(gpsTimestampSecs(gps_timestamp), collected_timestamp_secs - 0.99);
+      start_time_ = std::chrono::system_clock::now();
+    }
+  }
+
   // Save the GPS timestamp
   gps_timestamp_mapping_[descriptor_set] = gps_timestamp;
 
@@ -650,7 +670,7 @@ void Publishers::handleSensorGpsTimestamp(const mip::data_sensor::GpsTimestamp& 
   stored_timestamp.tow = gps_timestamp.tow;
   stored_timestamp.week_number = gps_timestamp.week_number;
   stored_timestamp.valid_flags = gps_timestamp.valid_flags;
-  gps_timestamp_mapping_[descriptor_set] = stored_timestamp;
+  handleSharedGpsTimestamp(stored_timestamp, descriptor_set, timestamp);
 }
 
 void Publishers::handleSensorScaledAccel(const mip::data_sensor::ScaledAccel& scaled_accel, const uint8_t descriptor_set, mip::Timestamp timestamp)
@@ -782,7 +802,7 @@ void Publishers::handleSensorOdometerData(const mip::data_sensor::OdometerData& 
 void Publishers::handleSensorOverrangeStatus(const mip::data_sensor::OverrangeStatus& overrange_status, const uint8_t descriptor_set, mip::Timestamp timestamp)
 {
   auto mip_sensor_overrange_status_msg = mip_sensor_overrange_status_pub_->getMessage();
-  updateMipHeader(&(mip_sensor_overrange_status_msg->header), descriptor_set);
+  updateMipHeader(&(mip_sensor_overrange_status_msg->header), descriptor_set, timestamp);
   mip_sensor_overrange_status_msg->status.accel_x = overrange_status.status.accelX();
   mip_sensor_overrange_status_msg->status.accel_y = overrange_status.status.accelY();
   mip_sensor_overrange_status_msg->status.accel_z = overrange_status.status.accelZ();
@@ -799,7 +819,7 @@ void Publishers::handleSensorOverrangeStatus(const mip::data_sensor::OverrangeSt
 void Publishers::handleSensorTemperatureStatistics(const mip::data_sensor::TemperatureAbs& temperature_statistics, const uint8_t descriptor_set, mip::Timestamp timestamp)
 {
   auto mip_sensor_temperature_statistics_msg = mip_sensor_temperature_statistics_pub_->getMessage();
-  updateMipHeader(&(mip_sensor_temperature_statistics_msg->header), descriptor_set);
+  updateMipHeader(&(mip_sensor_temperature_statistics_msg->header), descriptor_set, timestamp);
   mip_sensor_temperature_statistics_msg->min_temp = temperature_statistics.min_temp;
   mip_sensor_temperature_statistics_msg->max_temp = temperature_statistics.max_temp;
   mip_sensor_temperature_statistics_msg->mean_temp = temperature_statistics.mean_temp;
@@ -955,7 +975,7 @@ void Publishers::handleGnssFixInfo(const mip::data_gnss::FixInfo& fix_info, cons
 
   // GNSS Fix info message
   auto mip_gnss_fix_info_msg = mip_gnss_fix_info_pub_[gnss_index]->getMessage();
-  updateMipHeader(&(mip_gnss_fix_info_msg->header), descriptor_set);
+  updateMipHeader(&(mip_gnss_fix_info_msg->header), descriptor_set, timestamp);
   mip_gnss_fix_info_msg->fix_type = static_cast<uint8_t>(fix_info.fix_type);
   mip_gnss_fix_info_msg->num_sv = fix_info.num_sv;
   mip_gnss_fix_info_msg->fix_flags.sbas_used = fix_info.fix_flags & mip::data_gnss::FixInfo::FixFlags::SBAS_USED;
@@ -1004,7 +1024,7 @@ void Publishers::handleGnssRfErrorDetection(const mip::data_gnss::RfErrorDetecti
 
   // Different message depending on the descriptor set
   auto mip_gnss_rf_error_detection_msg = mip_gnss_rf_error_detection_pub_[gnss_index]->getMessage();
-  updateMipHeader(&(mip_gnss_rf_error_detection_msg->header), descriptor_set);
+  updateMipHeader(&(mip_gnss_rf_error_detection_msg->header), descriptor_set, timestamp);
   mip_gnss_rf_error_detection_msg->rf_band = static_cast<uint8_t>(rf_error_detection.rf_band);
   mip_gnss_rf_error_detection_msg->jamming_state = static_cast<uint8_t>(rf_error_detection.jamming_state);
   mip_gnss_rf_error_detection_msg->spoofing_state = static_cast<uint8_t>(rf_error_detection.spoofing_state);
@@ -1029,7 +1049,7 @@ void Publishers::handleGnssSbasInfo(const mip::data_gnss::SbasInfo& sbas_info, c
 
   // Different message depending on descriptor
   auto mip_gnss_sbas_info_msg = mip_gnss_sbas_info_pub_[gnss_index]->getMessage();
-  updateMipHeader(&(mip_gnss_sbas_info_msg->header), descriptor_set);
+  updateMipHeader(&(mip_gnss_sbas_info_msg->header), descriptor_set, timestamp);
   mip_gnss_sbas_info_msg->time_of_week = sbas_info.time_of_week;
   mip_gnss_sbas_info_msg->week_number = sbas_info.week_number;
   mip_gnss_sbas_info_msg->sbas_system = static_cast<uint8_t>(sbas_info.sbas_system);
@@ -1049,7 +1069,7 @@ void Publishers::handleRtkCorrectionsStatus(const mip::data_gnss::RtkCorrections
     MICROSTRAIN_WARN_ONCE(node_, "RTK Dongle version 0 is unsupported. RtkCorrectionsStatus fields may be invalid.");
   }
   auto mip_gnss_corrections_rtk_corrections_status_msg = mip_gnss_corrections_rtk_corrections_status_pub_->getMessage();
-  updateMipHeader(&(mip_gnss_corrections_rtk_corrections_status_msg->header), descriptor_set);
+  updateMipHeader(&(mip_gnss_corrections_rtk_corrections_status_msg->header), descriptor_set, timestamp);
   mip_gnss_corrections_rtk_corrections_status_msg->time_of_week = rtk_corrections_status.time_of_week;
   mip_gnss_corrections_rtk_corrections_status_msg->week_number = rtk_corrections_status.week_number;
 
@@ -1121,7 +1141,7 @@ void Publishers::handleFilterTimestamp(const mip::data_filter::Timestamp& filter
 void Publishers::handleFilterStatus(const mip::data_filter::Status& status, const uint8_t descriptor_set, mip::Timestamp timestamp)
 {
   auto mip_filter_status_msg = mip_filter_status_pub_->getMessage();
-  updateMipHeader(&(mip_filter_status_msg->header), descriptor_set);
+  updateMipHeader(&(mip_filter_status_msg->header), descriptor_set, timestamp);
   config_->filter_state_ = status.filter_state;
   mip_filter_status_msg->filter_state = static_cast<uint16_t>(status.filter_state);
   mip_filter_status_msg->dynamics_mode = static_cast<uint16_t>(status.dynamics_mode);
@@ -1726,7 +1746,7 @@ void Publishers::handleFilterGnssPosAidStatus(const mip::data_filter::GnssPosAid
 {
   // Filter GNSS position aiding status
   auto mip_filter_gnss_position_aiding_status_msg = mip_filter_gnss_position_aiding_status_pub_->getMessage();
-  updateMipHeader(&(mip_filter_gnss_position_aiding_status_msg->header), descriptor_set);
+  updateMipHeader(&(mip_filter_gnss_position_aiding_status_msg->header), descriptor_set, timestamp);
   mip_filter_gnss_position_aiding_status_msg->receiver_id = gnss_pos_aid_status.receiver_id;
   mip_filter_gnss_position_aiding_status_msg->time_of_week = gnss_pos_aid_status.time_of_week;
   mip_filter_gnss_position_aiding_status_msg->status.tight_coupling = gnss_pos_aid_status.status.tightCoupling();
@@ -1776,7 +1796,7 @@ void Publishers::handleFilterGnssPosAidStatus(const mip::data_filter::GnssPosAid
 void Publishers::handleFilterMultiAntennaOffsetCorrection(const mip::data_filter::MultiAntennaOffsetCorrection& multi_antenna_offset_correction, const uint8_t descriptor_set, mip::Timestamp timestamp)
 {
   auto mip_filter_multi_antenna_offset_correction_msg = mip_filter_multi_antenna_offset_correction_pub_->getMessage();
-  updateMipHeader(&(mip_filter_multi_antenna_offset_correction_msg->header), descriptor_set);
+  updateMipHeader(&(mip_filter_multi_antenna_offset_correction_msg->header), descriptor_set, timestamp);
   mip_filter_multi_antenna_offset_correction_msg->receiver_id = multi_antenna_offset_correction.receiver_id;
   mip_filter_multi_antenna_offset_correction_msg->offset[0] = multi_antenna_offset_correction.offset[0];
   mip_filter_multi_antenna_offset_correction_msg->offset[1] = multi_antenna_offset_correction.offset[1];
@@ -1804,9 +1824,19 @@ void Publishers::handleFilterMultiAntennaOffsetCorrection(const mip::data_filter
 
 void Publishers::handleFilterGnssDualAntennaStatus(const mip::data_filter::GnssDualAntennaStatus& gnss_dual_antenna_status, const uint8_t descriptor_set, mip::Timestamp timestamp)
 {
+  // The timestamp here may be old, only update if it has changed
+  mip::data_shared::GpsTimestamp gps_timestamp;
+  if (gps_timestamp_mapping_.find(descriptor_set) != gps_timestamp_mapping_.end())
+    gps_timestamp = gps_timestamp_mapping_.at(descriptor_set);
+  gps_timestamp.tow = gnss_dual_antenna_status.time_of_week;
+  const double gps_timestamp_secs = gpsTimestampSecs(gps_timestamp);
+  if (gps_timestamp_secs <= last_dual_antenna_heading_gps_timestamp_secs_)
+    return;
+  last_dual_antenna_heading_gps_timestamp_secs_ = gps_timestamp_secs;
+
   // Filter Dual Antenna Status (pose version)
   auto filter_dual_antenna_heading_msg = filter_dual_antenna_heading_pub_->getMessageToUpdate();
-  updateHeaderTime(&(filter_dual_antenna_heading_msg->header), descriptor_set, timestamp);
+  updateHeaderTime(&(filter_dual_antenna_heading_msg->header), descriptor_set, timestamp, &gps_timestamp);
   tf2::Quaternion microstrain_vehicle_to_ned_quaternion_tf;
   microstrain_vehicle_to_ned_quaternion_tf.setRPY(0, 0, gnss_dual_antenna_status.heading);
   tf2::Transform microstrain_vehicle_to_ned_transform_tf(microstrain_vehicle_to_ned_quaternion_tf);
@@ -1823,7 +1853,7 @@ void Publishers::handleFilterGnssDualAntennaStatus(const mip::data_filter::GnssD
 
   // Filter GNSS Dual Antenna status
   auto mip_filter_gnss_dual_antenna_status_msg = mip_filter_gnss_dual_antenna_status_pub_->getMessage();
-  updateMipHeader(&(mip_filter_gnss_dual_antenna_status_msg->header), descriptor_set);
+  updateMipHeader(&(mip_filter_gnss_dual_antenna_status_msg->header), descriptor_set, timestamp);
   mip_filter_gnss_dual_antenna_status_msg->time_of_week = gnss_dual_antenna_status.time_of_week;
   mip_filter_gnss_dual_antenna_status_msg->heading = gnss_dual_antenna_status.heading;
   mip_filter_gnss_dual_antenna_status_msg->heading_unc = gnss_dual_antenna_status.heading_unc;
@@ -1847,7 +1877,7 @@ void Publishers::handleFilterGnssDualAntennaStatus(const mip::data_filter::GnssD
 void Publishers::handleFilterAidingMeasurementSummary(const mip::data_filter::AidingMeasurementSummary& aiding_measurement_summary, const uint8_t descriptor_set, mip::Timestamp timestamp)
 {
   auto mip_filter_aiding_measurement_summary_msg = mip_filter_aiding_measurement_summary_pub_->getMessage();
-  updateMipHeader(&(mip_filter_aiding_measurement_summary_msg->header), descriptor_set);
+  updateMipHeader(&(mip_filter_aiding_measurement_summary_msg->header), descriptor_set, timestamp);
   mip_filter_aiding_measurement_summary_msg->time_of_week = aiding_measurement_summary.time_of_week;
   mip_filter_aiding_measurement_summary_msg->source = aiding_measurement_summary.source;
   mip_filter_aiding_measurement_summary_msg->type = static_cast<uint8_t>(aiding_measurement_summary.type);
@@ -1864,7 +1894,7 @@ void Publishers::handleFilterAidingMeasurementSummary(const mip::data_filter::Ai
 void Publishers::handleSystemBuiltInTest(const mip::data_system::BuiltInTest& built_in_test, const uint8_t descriptor_set, mip::Timestamp timestamp)
 {
   auto mip_system_built_in_test_msg = mip_system_built_in_test_pub_->getMessage();
-  updateMipHeader(&(mip_system_built_in_test_msg->header), descriptor_set);
+  updateMipHeader(&(mip_system_built_in_test_msg->header), descriptor_set, timestamp);
   std::copy(std::begin(built_in_test.result), std::end(built_in_test.result), std::begin(mip_system_built_in_test_msg->result));
   mip_system_built_in_test_pub_->publish(*mip_system_built_in_test_msg);
 
@@ -2049,7 +2079,7 @@ void Publishers::handleSystemBuiltInTest(const mip::data_system::BuiltInTest& bu
 
 void Publishers::handleAfterPacket(const mip::PacketRef& packet, mip::Timestamp timestamp)
 {
-  // Right now, we don't have to do much, just publish everything
+  // Publish all the messages that have been updated
   publish();
 
   // Reset some shared descriptors. These are unique to the packets, and we do not want to cache them past this packet
@@ -2064,10 +2094,10 @@ void Publishers::handleAfterPacket(const mip::PacketRef& packet, mip::Timestamp 
   rtk_float_ = false;
 }
 
-void Publishers::updateMipHeader(MipHeaderMsg* mip_header, uint8_t descriptor_set) const
+void Publishers::updateMipHeader(MipHeaderMsg* mip_header, uint8_t descriptor_set, mip::Timestamp timestamp, const mip::data_shared::GpsTimestamp* gps_timestamp)
 {
   // Update the ROS header with the ROS timestamp
-  mip_header->header.stamp = rosTimeNow(node_);
+  updateHeaderTime(&mip_header->header, descriptor_set, timestamp, gps_timestamp);
 
   // Default frame ID is determined by the descriptor set
   if (descriptor_set == mip::data_gnss::DESCRIPTOR_SET || descriptor_set == mip::data_gnss::MIP_GNSS1_DATA_DESC_SET)
@@ -2088,17 +2118,48 @@ void Publishers::updateMipHeader(MipHeaderMsg* mip_header, uint8_t descriptor_se
     mip_header->reference_timestamp = reference_timestamp_mapping_.at(descriptor_set).nanoseconds;
 
   // Set the GPS timestamp if we have one (should always have one)
-  if (gps_timestamp_mapping_.find(descriptor_set) != gps_timestamp_mapping_.end())
-  {
-    mip_header->gps_timestamp.week_number = gps_timestamp_mapping_.at(descriptor_set).week_number;
-    mip_header->gps_timestamp.tow = gps_timestamp_mapping_.at(descriptor_set).tow;
-  }
+  mip::data_shared::GpsTimestamp gps_timestamp_copy;
+  if (gps_timestamp != nullptr)
+    gps_timestamp_copy = *gps_timestamp;
+  else if (gps_timestamp_mapping_.find(descriptor_set) != gps_timestamp_mapping_.end())
+    gps_timestamp_copy = gps_timestamp_mapping_.at(descriptor_set);
+  mip_header->gps_timestamp.week_number = gps_timestamp_copy.week_number;
+  mip_header->gps_timestamp.tow = gps_timestamp_copy.tow;
 }
 
-void Publishers::updateHeaderTime(RosHeaderType* header, uint8_t descriptor_set, mip::Timestamp timestamp)
+void Publishers::updateHeaderTime(RosHeaderType* header, uint8_t descriptor_set, mip::Timestamp timestamp, const mip::data_shared::GpsTimestamp* gps_timestamp)
 {
-  // Set the header time to the current ROS time
-  header->stamp = rosTimeNow(node_);
+  // Find the right GPS timestamp to use (may not be used)
+  mip::data_shared::GpsTimestamp gps_timestamp_copy;
+  if (gps_timestamp != nullptr)
+    gps_timestamp_copy = *gps_timestamp;
+  else if (gps_timestamp_mapping_.find(descriptor_set) != gps_timestamp_mapping_.end())
+    gps_timestamp_copy = gps_timestamp_mapping_.at(descriptor_set);
+
+  // Set the timestamp depending on how the node was configured
+  if (config_->timestamp_source_ == TIMESTAMP_SOURCE_ROS)
+  {
+    setRosTime(&header->stamp, static_cast<double>(timestamp) / 1000.0);
+  }
+  else if (config_->timestamp_source_ == TIMESTAMP_SOURCE_MIP)
+  {
+    setGpsTime(&header->stamp, gps_timestamp_copy);
+  }
+  else if (config_->timestamp_source_ == TIMESTAMP_SOURCE_HYBRID)
+  {
+    const double utc_timestamp = gpsTimestampSecs(gps_timestamp_copy) - clock_bias_monitor_.getBiasEstimate();
+    const auto diff = utc_timestamp - last_timestamp_;
+    if (diff >= 0.0099999 && diff <= 0.001011)
+    {
+      auto now = std::chrono::system_clock::now();
+      auto time_took = std::chrono::duration_cast<std::chrono::microseconds>(now - start_time_);
+      MICROSTRAIN_INFO_ONCE(node_, "Took %f microseconds to get a good time", static_cast<double>(time_took.count()) / 1000000.0);
+    }
+    last_timestamp_ = utc_timestamp;
+    double utc_timestamp_seconds;
+    const double utc_timestamp_subseconds = modf(utc_timestamp, &utc_timestamp_seconds);
+    setRosTime(&header->stamp, static_cast<int32_t>(utc_timestamp_seconds), static_cast<int32_t>(utc_timestamp_subseconds * 1000000000));
+  }
 }
 
 void Publishers::setGpsTime(RosTimeType* time, const mip::data_shared::GpsTimestamp& timestamp)
@@ -2109,7 +2170,7 @@ void Publishers::setGpsTime(RosTimeType* time, const mip::data_shared::GpsTimest
 
   // Seconds since start of Unix time = seconds between 1970 and 1980 + number of weeks since 1980 * number of seconds in a week + number of complete seconds past in current week - leap seconds since start of GPS time
   const uint64_t utc_milliseconds = static_cast<uint64_t>((315964800 + timestamp.week_number * 604800 + static_cast<uint64_t>(seconds) - GPS_LEAP_SECONDS) * 1000L) + static_cast<uint64_t>(std::round(subseconds * 1000.0));
-  setRosTime(time, utc_milliseconds / 1000, (utc_milliseconds % 1000) * 1000000);
+  setRosTime(time, static_cast<double>(utc_milliseconds) / 1000.0);
 }
 
 }  // namespace microstrain

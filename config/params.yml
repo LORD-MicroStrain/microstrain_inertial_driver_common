@@ -69,6 +69,14 @@ raw_file_include_support_data : True
 # The directory to store the raw data file
 raw_file_directory : "/home/your_name"
 
+# Timestamp configuration
+#     0 - ROS time that the packet was received. This is the simplest, but also least accurate timestamp solution
+#     1 - GPS time. This will stamp the messages with the exact timestamps produced by the device.
+#         This is the most accurate solution, but will also produce timestamps starting at GPS time 0 until a valid GPS time is received,
+#         at which point the time will jump to the current UTC time. Useful for those doing their own timestamp processing
+#     2 - Hybrid. This will combine the two above methods to produce valid UTC times where the dt is very close to the device time dt.
+#         This is the easiest and most accurate solution for users looking to consume messages with no additional processing.
+timestamp_source : 2
 
 # ****************************************************************** 
 # Frame ID Settings 

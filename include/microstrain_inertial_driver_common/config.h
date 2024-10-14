@@ -31,6 +31,10 @@
 namespace microstrain
 {
 
+static constexpr auto TIMESTAMP_SOURCE_ROS = 0;
+static constexpr auto TIMESTAMP_SOURCE_MIP = 1;
+static constexpr auto TIMESTAMP_SOURCE_HYBRID = 2;
+
 static constexpr auto TF_MODE_OFF = 0;
 static constexpr auto TF_MODE_GLOBAL = 1;
 static constexpr auto TF_MODE_RELATIVE = 2;
@@ -89,7 +93,10 @@ public:
   int reconnect_attempts_;
   bool configure_after_reconnect_;
 
-  // Info for converting to the ENU frame
+  // Timestamp source
+  int timestamp_source_;
+
+  // Whether we will use the ENU or NED frame for global frame data
   bool use_enu_frame_;
 
   tf2::Transform ned_to_enu_transform_tf_;

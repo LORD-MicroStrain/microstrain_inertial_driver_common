@@ -824,8 +824,8 @@ createService(RosNodeType* node, const std::string& service, bool (ClassType::*s
 template <class ClassType>
 RosTimerType createTimer(RosNodeType* node, double hz, void (ClassType::*fp)(), ClassType* obj)
 {
-  std::chrono::milliseconds timer_interval_ms(static_cast<int>(1.0 / hz * 1000.0));
-  return node->template create_wall_timer(timer_interval_ms, [=]() { (obj->*fp)(); });
+  std::chrono::microseconds timer_interval_us(static_cast<int>(1.0 / hz * 1000000.0));
+  return node->template create_wall_timer(timer_interval_us, [=]() { (obj->*fp)(); });
 }
 
 /**

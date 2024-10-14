@@ -69,6 +69,9 @@ bool Config::configure(RosNodeType* node)
   getParam<int>(node, "reconnect_attempts", reconnect_attempts_, 0);
   getParam<bool>(node, "configure_after_reconnect", configure_after_reconnect_, true);
 
+  // Timestamp source
+  getParam<int>(node, "timestamp_source", timestamp_source_, 2);
+
   // Frame ID config
   getParam<std::string>(node, "frame_id", frame_id_, "imu_link");
   getParam<std::string>(node, "target_frame_id", target_frame_id_, "base_link");

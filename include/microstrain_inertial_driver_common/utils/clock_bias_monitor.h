@@ -32,7 +32,7 @@ class ClockBiasMonitor
    * \param source_time The source time you want to convert from
    * \param target_time The target time we will calculate the bias for
   */
-  void addTime(const RosTimeType& source_time, const RosTimeType& target_time);
+  void addTime(const double source_time, const double target_time);
 
   /**
    * \brief Checks if the monitor has a bias estimate, this will be set to true, once addTime has been called once
@@ -45,14 +45,6 @@ class ClockBiasMonitor
    * \return The current bias estimate
   */
   double getBiasEstimate() const;
-
-  /**
-   * \brief Gets the time in system time given a system time and device time
-   * \param source_time The source time you want to convert from
-   * \param target_time The target time we will calculate the bias for
-   * \return The target time reflective of the system_time
-  */
-  RosTimeType getTime(const RosTimeType& system_time, const RosTimeType& device_time);
 
  private:
   double weight_;  /// How much to weight the old bias estimate vs the new delta time. Closer to 1 means more weight on the old bias estimate
