@@ -157,6 +157,29 @@ bool MipPublisherMapping::configure(RosNodeType* config_node)
     }
   }
 
+  // If we are using linear accel instead of compensated accel, replace the descriptor
+  bool filter_use_compensated_accel; getParam(config_node, "filter_use_compensated_accel", filter_use_compensated_accel, true);
+  if (!filter_use_compensated_accel)
+  {
+    if (mip_device_->supportsDescriptor(mip::data_filter::DESCRIPTOR_SET, mip::data_filter::DATA_LINEAR_ACCELERATION))
+    {
+      // Find and delete the compensated accel descriptor from streaming if it exists
+      auto& descriptor_rates = streamed_descriptors_mapping_[mip::data_filter::DESCRIPTOR_SET];
+      auto compensated_accel_rate_iter = std::find_if(descriptor_rates.begin(), descriptor_rates.end(), [](const mip::DescriptorRate& d)
+      {
+        return d.descriptor == mip::data_filter::DATA_COMPENSATED_ACCELERATION;
+      }
+      );
+      mip::DescriptorRate compensated_accel_rate = *compensated_accel_rate_iter;
+      if (compensated_accel_rate_iter != descriptor_rates.end())
+        compensated_accel_rate_iter = descriptor_rates.erase(compensated_accel_rate_iter);
+
+      // Insert the new descriptor rate
+      compensated_accel_rate.descriptor = mip::data_filter::DATA_LINEAR_ACCELERATION;
+      descriptor_rates.insert(compensated_accel_rate_iter, compensated_accel_rate);
+    }
+  }
+
   // Add shared descriptors
   if (mip_device_->supportsDescriptor(mip::data_sensor::DESCRIPTOR_SET, mip::data_shared::DATA_GPS_TIME))
   {
