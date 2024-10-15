@@ -766,9 +766,9 @@ void Publishers::handleSensorScaledMag(const mip::data_sensor::ScaledMag& scaled
 {
   auto mag_msg = mag_pub_->getMessageToUpdate();
   updateHeaderTime(&(mag_msg->header), descriptor_set, timestamp);
-  mag_msg->magnetic_field.x = scaled_mag.scaled_mag[0];
-  mag_msg->magnetic_field.y = scaled_mag.scaled_mag[1];
-  mag_msg->magnetic_field.z = scaled_mag.scaled_mag[2];
+  mag_msg->magnetic_field.x = scaled_mag.scaled_mag[0] / 10000;
+  mag_msg->magnetic_field.y = scaled_mag.scaled_mag[1] / 10000;
+  mag_msg->magnetic_field.z = scaled_mag.scaled_mag[2] / 10000;
   if (config_->use_enu_frame_)
   {
     mag_msg->magnetic_field.y *= -1.0;
