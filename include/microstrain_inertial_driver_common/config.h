@@ -39,9 +39,9 @@ static constexpr auto TF_MODE_OFF = 0;
 static constexpr auto TF_MODE_GLOBAL = 1;
 static constexpr auto TF_MODE_RELATIVE = 2;
 
-static constexpr auto GNSS_ANTENNA_OFFSET_SOURCE_OFF = 0;
-static constexpr auto GNSS_ANTENNA_OFFSET_SOURCE_MANUAL = 1;
-static constexpr auto GNSS_ANTENNA_OFFSET_SOURCE_TRANSFORM = 2;
+static constexpr auto OFFSET_SOURCE_OFF = 0;
+static constexpr auto OFFSET_SOURCE_MANUAL = 1;
+static constexpr auto OFFSET_SOURCE_TRANSFORM = 2;
 
 static constexpr auto REL_POS_SOURCE_BASE_STATION = 0;
 static constexpr auto REL_POS_SOURCE_MANUAL = 1;
@@ -122,7 +122,6 @@ public:
   int filter_relative_pos_frame_;
   int filter_relative_pos_source_;
   std::vector<double> filter_relative_pos_ref_;
-  std::vector<float> filter_speed_lever_arm_;
 
   // Ecef to LLH converter
   GeographicLib::Geocentric geocentric_converter_ = GeographicLib::Geocentric::WGS84();
@@ -179,6 +178,10 @@ public:
   // Gnss antenna offsets
   int gnss_antenna_offset_source_[NUM_GNSS];
   std::vector<float> gnss_antenna_offset_[NUM_GNSS];
+
+  // Filter speed lever arm offset
+  int filter_speed_lever_arm_source_;
+  std::vector<float> filter_speed_lever_arm_;
 
   // Raw data file parameters
   bool raw_file_enable_;
@@ -267,6 +270,13 @@ private:
    * \return true if the object was able to be populated properly, false if the object was not able to be populated
    */
   bool populateNmeaMessageFormat(RosNodeType* config_node, const std::string& data_rate_key, mip::commands_3dm::NmeaMessage::TalkerID talker_id, uint8_t descriptor_set, mip::commands_3dm::NmeaMessage::MessageID message_id, std::vector<mip::commands_3dm::NmeaMessage>* formats);
+
+  /**
+   * \brief Looks up the lever arm offset from the tf tree for a "target_frame_id" wrt the "frame_id_"
+   * \param target_frame_id The frame Id you want to lookup the transform of
+   * \return The transform between the target_frame_id and frame_id_
+   */
+  tf2::Transform lookupLeverArmOffsetInMicrostrainVehicleFrame(const std::string& target_frame_id);
 
   // Handle to the ROS node
   RosNodeType* node_;

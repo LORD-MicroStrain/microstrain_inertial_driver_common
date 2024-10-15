@@ -13,8 +13,8 @@
 namespace microstrain
 {
 
-ClockBiasMonitor::ClockBiasMonitor(const double weight, const double max_bias_estimate)
-  : weight_(weight), max_bias_estimate_(max_bias_estimate)
+ClockBiasMonitor::ClockBiasMonitor(const double weight, const double max_bias_estimate, const size_t source_time_average_size)
+  : weight_(weight), max_bias_estimate_(max_bias_estimate), source_time_average_size_(source_time_average_size)
 {
 }
 

@@ -448,14 +448,15 @@ bool Publishers::activate()
 
   // Static antenna offsets
   // Note: If streaming the antenna offset correction topic, correct the offsets with them
-  if (config_->gnss_antenna_offset_source_[GNSS1_ID] == GNSS_ANTENNA_OFFSET_SOURCE_MANUAL)
+  if (config_->gnss_antenna_offset_source_[GNSS1_ID] == OFFSET_SOURCE_MANUAL)
     if (config_->mip_device_->supportsDescriptorSet(mip::data_gnss::DESCRIPTOR_SET) || config_->mip_device_->supportsDescriptorSet(mip::data_gnss::MIP_GNSS1_DATA_DESC_SET))
       static_transform_broadcaster_->sendTransform(gnss_antenna_link_to_imu_link_transform_[GNSS1_ID]);
-  if (config_->gnss_antenna_offset_source_[GNSS2_ID] == GNSS_ANTENNA_OFFSET_SOURCE_MANUAL)
+  if (config_->gnss_antenna_offset_source_[GNSS2_ID] == OFFSET_SOURCE_MANUAL)
     if (config_->mip_device_->supportsDescriptorSet(mip::data_gnss::MIP_GNSS2_DATA_DESC_SET))
       static_transform_broadcaster_->sendTransform(gnss_antenna_link_to_imu_link_transform_[GNSS2_ID]);
-  if (config_->mip_device_->supportsDescriptor(mip::commands_filter::DESCRIPTOR_SET, mip::commands_filter::CMD_SPEED_LEVER_ARM))
-    static_transform_broadcaster_->sendTransform(odometer_link_to_imu_link_transform_);
+  if (config_->filter_speed_lever_arm_source_ == OFFSET_SOURCE_MANUAL)
+    if (config_->mip_device_->supportsDescriptor(mip::commands_filter::DESCRIPTOR_SET, mip::commands_filter::CMD_SPEED_LEVER_ARM))
+      static_transform_broadcaster_->sendTransform(odometer_link_to_imu_link_transform_);
   return true;
 }
 
@@ -2155,14 +2156,6 @@ void Publishers::updateHeaderTime(RosHeaderType* header, uint8_t descriptor_set,
   else if (config_->timestamp_source_ == TIMESTAMP_SOURCE_HYBRID)
   {
     const double utc_timestamp = gpsTimestampSecs(gps_timestamp_copy) - clock_bias_monitor_.getBiasEstimate();
-    const auto diff = utc_timestamp - last_timestamp_;
-    if (diff >= 0.0099999 && diff <= 0.001011)
-    {
-      auto now = std::chrono::system_clock::now();
-      auto time_took = std::chrono::duration_cast<std::chrono::microseconds>(now - start_time_);
-      MICROSTRAIN_INFO_ONCE(node_, "Took %f microseconds to get a good time", static_cast<double>(time_took.count()) / 1000000.0);
-    }
-    last_timestamp_ = utc_timestamp;
     double utc_timestamp_seconds;
     const double utc_timestamp_subseconds = modf(utc_timestamp, &utc_timestamp_seconds);
     setRosTime(&header->stamp, static_cast<int32_t>(utc_timestamp_seconds), static_cast<int32_t>(utc_timestamp_subseconds * 1000000000));

@@ -24,8 +24,9 @@ class ClockBiasMonitor
    * \brief Constructor
    * \param weight How much to weight the old bias estimate vs the new delta time. Closer to 1 means more weight on the old bias estimate
    * \param max_bias_estimate Max bias estimate before resetting to the current delta time. Helps prevents jumps and outliers
+   * \param average_size Number of measurements to collect before computing an average and starting
   */
-  explicit ClockBiasMonitor(const double weight = 0.5, const double max_bias_estimate = 1);
+  explicit ClockBiasMonitor(const double weight = 0.5, const double max_bias_estimate = 1, const size_t source_time_average_size = 10);
 
   /**
    * \brief Adds a new time. The system time should be from as close as possible to the device time
@@ -52,6 +53,9 @@ class ClockBiasMonitor
 
   bool have_bias_estimate_ = false;  /// Will be set to true after getting the bias estimate for the first time
   double bias_estimate_ = 0.0;  /// Saved bias estimate. Can be used to convert a device time to a system time
+
+  size_t source_time_average_size_;  /// Number of source times we need to compute an average
+  std::vector<double> source_time_average_vector_;  /// Will be used to accumulate source times before computing an average
 };
 
 }  // namespace microstrain

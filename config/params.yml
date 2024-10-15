@@ -308,6 +308,12 @@ gps_leap_seconds                       : 18.0
 
 # (GQ7 only) Speed Lever Arm Configuration
 #   Lever Arm - In vehicle reference frame (meters)
+# Speed lever arm offset source
+#     0 - Disabled:  We will not configure the speed lever arm offset, or publish it as a transform
+#     1 - Manual:    We will use the provided vector to configure the device, and publish it as the transform between frame_id and odometer_frame_id
+#     2 - Transform: We will lookup the transform between frame_id and odometer_frame_id and use it to configure the device. We will ignore filter_speed_lever_arm
+# Speed lever arm offset vector in the vehicle frame wrt IMU origin (meters)
+filter_speed_lever_arm_source : 2
 filter_speed_lever_arm : [0.0, 0.5, -1.0]
 
 # (All, except GQ7, CV7, -10, and -15 products) Heading Source 0 = None, 1 = magnetic, 2 = GNSS velocity (note: see manual for limitations)  
@@ -330,10 +336,10 @@ filter_gnss_aiding_source_control: 1
 # ****************************************************************** 
 
 # Static IMU message covariance values (the device does not generate these) 
-imu_orientation_cov   : [0.01, 0, 0, 0, 0.01, 0, 0, 0, 0.01]
-imu_linear_cov        : [0.01, 0, 0, 0, 0.01, 0, 0, 0, 0.01]
-imu_angular_cov       : [0.01, 0, 0, 0, 0.01, 0, 0, 0, 0.01]
-imu_mag_cov           : [0.01, 0, 0, 0, 0.01, 0, 0, 0, 0.01]
+imu_orientation_cov   : [0.01, 0.0, 0.0, 0.0, 0.01, 0.0, 0.0, 0.0, 0.01]
+imu_linear_cov        : [0.01, 0.0, 0.0, 0.0, 0.01, 0.0, 0.0, 0.0, 0.01]
+imu_angular_cov       : [0.01, 0.0, 0.0, 0.0, 0.01, 0.0, 0.0, 0.0, 0.01]
+imu_mag_cov           : [0.01, 0.0, 0.0, 0.0, 0.01, 0.0, 0.0, 0.0, 0.01]
 imu_pressure_variance : 0.01
 
 # ****************************************************************** 
