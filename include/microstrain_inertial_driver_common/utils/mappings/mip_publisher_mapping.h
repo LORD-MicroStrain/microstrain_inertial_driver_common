@@ -78,8 +78,8 @@ static constexpr auto MIP_SYSTEM_BUILT_IN_TEST_TOPIC = "mip/system/built_in_test
 static constexpr auto NMEA_SENTENCE_TOPIC = "nmea";
 
 // Some other constants
-static constexpr float FIELD_DATA_RATE_USE_DATA_CLASS = -1;
-static constexpr float DATA_CLASS_DATA_RATE_DO_NOT_STREAM = 0;
+static constexpr float DATA_RATE_DO_NOT_STREAM = -1;  // If the data rate is set to do not stream, we will create the publisher, but not stream any data. Useful for event configuration
+static constexpr float DATA_RATE_OFF = 0;  // If the data rate is set to off, we will not stream or create a publisher
 
 /**
  * Container for both a descriptor set and field descriptor
@@ -97,7 +97,7 @@ struct MipPublisherMappingInfo
 {
   std::vector<uint8_t> descriptor_sets = {};  /// Descriptor sets used by this topic
   std::vector<MipDescriptor> descriptors = {};  /// Descriptors streamed by this topic
-  float data_rate = DATA_CLASS_DATA_RATE_DO_NOT_STREAM;  /// Data rate that this topic is streamed at
+  float data_rate = DATA_RATE_OFF;  /// Data rate that this topic is streamed at
 };
 
 /**

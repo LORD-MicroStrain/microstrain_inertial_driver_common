@@ -95,11 +95,7 @@ bool MipPublisherMapping::configure(RosNodeType* config_node)
     // Get the data rate for the topic, and if it is not the default, use it, otherwise use the data class data rate
     if (static_topic_to_data_rate_config_key_mapping_.find(topic) != static_topic_to_data_rate_config_key_mapping_.end())
     {
-      getParamFloat(config_node, static_topic_to_data_rate_config_key_mapping_.at(topic), topic_info.data_rate, DATA_CLASS_DATA_RATE_DO_NOT_STREAM);
-      if (topic_info.data_rate == FIELD_DATA_RATE_USE_DATA_CLASS)
-      {
-        MICROSTRAIN_WARN(node_, "Data rates of %0.1f are no longer supported. Disabling topic %s", FIELD_DATA_RATE_USE_DATA_CLASS, topic.c_str());
-      }
+      getParamFloat(config_node, static_topic_to_data_rate_config_key_mapping_.at(topic), topic_info.data_rate, DATA_RATE_OFF);
     }
     else
     {
@@ -125,7 +121,7 @@ bool MipPublisherMapping::configure(RosNodeType* config_node)
       auto& descriptor_rates = streamed_descriptors_mapping_[descriptor_set];
 
       // If the data rate is 0, do not stream any data
-      if (topic_info.data_rate == DATA_CLASS_DATA_RATE_DO_NOT_STREAM)
+      if (topic_info.data_rate == DATA_RATE_OFF)
       {
         MICROSTRAIN_DEBUG(node_, "Not configuring descriptor 0x%02x%02x to stream because it's data rate is set to 0", descriptor_set, field_descriptor);
         continue;
@@ -267,7 +263,7 @@ float MipPublisherMapping::getDataRate(const std::string& topic) const
   if (topic_info_mapping_.find(topic) != topic_info_mapping_.end())
     return topic_info_mapping_.at(topic).data_rate;
   else
-    return DATA_CLASS_DATA_RATE_DO_NOT_STREAM;
+    return DATA_RATE_OFF;
 }
 
 float MipPublisherMapping::getMaxDataRate(uint8_t descriptor_set) const
@@ -289,7 +285,8 @@ bool MipPublisherMapping::canPublish(const std::string& topic) const
 
 bool MipPublisherMapping::shouldPublish(const std::string& topic) const
 {
-  return canPublish(topic) && getDataRate(topic) != DATA_CLASS_DATA_RATE_DO_NOT_STREAM;
+  const auto data_rate = getDataRate(topic);
+  return canPublish(topic) && (data_rate != DATA_RATE_OFF || data_rate == DATA_RATE_DO_NOT_STREAM);
 }
 
 const std::map<std::string, FieldWrapper::SharedPtrVec> MipPublisherMapping::static_topic_to_mip_type_mapping_ =
