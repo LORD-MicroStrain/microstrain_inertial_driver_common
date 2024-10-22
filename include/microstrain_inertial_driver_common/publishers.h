@@ -429,6 +429,9 @@ private:
   std::map<uint8_t, mip::data_shared::ReferenceTimestamp> reference_timestamp_mapping_;
   std::map<uint8_t, mip::data_shared::ReferenceTimeDelta> reference_time_delta_mapping_;
 
+  // Previous timestamp for each descriptor set. Only used for hybrid timestamping
+  std::map<uint8_t, double> previous_utc_timestamps_;
+
   // Older philo devices do not support ECEF position, so we will need to convert from LLH to ECEF ourselves
   bool supports_filter_ecef_ = false;
 

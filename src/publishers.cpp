@@ -617,15 +617,7 @@ void Publishers::handleSharedGpsTimestamp(const mip::data_shared::GpsTimestamp& 
   if (descriptor_set == mip::data_sensor::DESCRIPTOR_SET)
   {
     const double collected_timestamp_secs = static_cast<double>(timestamp) / 1000.0;
-    if (clock_bias_monitor_.hasBiasEstimate())
-    {
-      clock_bias_monitor_.addTime(gpsTimestampSecs(gps_timestamp), collected_timestamp_secs);
-    }
-    else
-    {
-      clock_bias_monitor_.addTime(gpsTimestampSecs(gps_timestamp), collected_timestamp_secs - 0.99);
-      start_time_ = std::chrono::system_clock::now();
-    }
+    clock_bias_monitor_.addTime(gpsTimestampSecs(gps_timestamp), collected_timestamp_secs);
   }
 
   // Save the GPS timestamp
@@ -2155,7 +2147,21 @@ void Publishers::updateHeaderTime(RosHeaderType* header, uint8_t descriptor_set,
   }
   else if (config_->timestamp_source_ == TIMESTAMP_SOURCE_HYBRID)
   {
-    const double utc_timestamp = gpsTimestampSecs(gps_timestamp_copy) - clock_bias_monitor_.getBiasEstimate();
+    double utc_timestamp = 0;
+    if (clock_bias_monitor_.hasBiasEstimate())
+    {
+      const double current_utc_timestamp = gpsTimestampSecs(gps_timestamp_copy) - clock_bias_monitor_.getBiasEstimate();
+      const double previous_utc_timestamp = previous_utc_timestamps_.find(descriptor_set) != previous_utc_timestamps_.end() ? previous_utc_timestamps_.at(descriptor_set) : 0;
+      const double utc_timestamp_dt = current_utc_timestamp - previous_utc_timestamp;
+      if (utc_timestamp_dt >= 0)
+        utc_timestamp = current_utc_timestamp;
+      else
+        clock_bias_monitor_.reset();
+      if (current_utc_timestamp != previous_utc_timestamp)
+        previous_utc_timestamps_[descriptor_set] = current_utc_timestamp;
+    }
+    if (utc_timestamp == 0)
+      utc_timestamp = static_cast<double>(timestamp) / 1000.0;
     double utc_timestamp_seconds;
     const double utc_timestamp_subseconds = modf(utc_timestamp, &utc_timestamp_seconds);
     setRosTime(&header->stamp, static_cast<int32_t>(utc_timestamp_seconds), static_cast<int32_t>(utc_timestamp_subseconds * 1000000000));
