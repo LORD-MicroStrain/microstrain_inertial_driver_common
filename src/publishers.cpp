@@ -868,9 +868,9 @@ void Publishers::handleGnssPosLlh(const mip::data_gnss::PosLlh& pos_llh, const u
   gnss_llh_position_msg->latitude = pos_llh.latitude;
   gnss_llh_position_msg->longitude = pos_llh.longitude;
   gnss_llh_position_msg->altitude = pos_llh.ellipsoid_height;
-  gnss_llh_position_msg->position_covariance[0] = pos_llh.horizontal_accuracy;
-  gnss_llh_position_msg->position_covariance[4] = pos_llh.horizontal_accuracy;
-  gnss_llh_position_msg->position_covariance[8] = pos_llh.vertical_accuracy;
+  gnss_llh_position_msg->position_covariance[0] = pow(pos_llh.horizontal_accuracy, 2);
+  gnss_llh_position_msg->position_covariance[4] = pow(pos_llh.horizontal_accuracy, 2);
+  gnss_llh_position_msg->position_covariance[8] = pow(pos_llh.vertical_accuracy, 2);
 }
 
 void Publishers::handleGnssVelNed(const mip::data_gnss::VelNed& vel_ned, const uint8_t descriptor_set, mip::Timestamp timestamp)
@@ -893,9 +893,10 @@ void Publishers::handleGnssVelNed(const mip::data_gnss::VelNed& vel_ned, const u
     gnss_velocity_msg->twist.twist.linear.y = vel_ned.v[1];
     gnss_velocity_msg->twist.twist.linear.z = vel_ned.v[2];
   }
-  gnss_velocity_msg->twist.covariance[0] = vel_ned.speed_accuracy;
-  gnss_velocity_msg->twist.covariance[7] = vel_ned.speed_accuracy;
-  gnss_velocity_msg->twist.covariance[14] = vel_ned.speed_accuracy;
+  double velocity_covariance = pow(vel_ned.speed_accuracy, 2);
+  gnss_velocity_msg->twist.covariance[0] = velocity_covariance;
+  gnss_velocity_msg->twist.covariance[7] = velocity_covariance;
+  gnss_velocity_msg->twist.covariance[14] = velocity_covariance;
 
   // GNSS odometry message (not counted as updating)
   auto gnss_odometry_msg = gnss_odometry_pub_[gnss_index]->getMessage();
@@ -950,9 +951,9 @@ void Publishers::handleGnssPosEcef(const mip::data_gnss::PosEcef& pos_ecef, cons
   gnss_odometry_msg->pose.pose.position.x = pos_ecef.x[0];
   gnss_odometry_msg->pose.pose.position.y = pos_ecef.x[1];
   gnss_odometry_msg->pose.pose.position.z = pos_ecef.x[2];
-  gnss_odometry_msg->pose.covariance[0] = pos_ecef.x_accuracy;
-  gnss_odometry_msg->pose.covariance[7] = pos_ecef.x_accuracy;
-  gnss_odometry_msg->pose.covariance[14] = pos_ecef.x_accuracy;
+  gnss_odometry_msg->pose.covariance[0] = pow(pos_ecef.x_accuracy, 2);
+  gnss_odometry_msg->pose.covariance[7] = pow(pos_ecef.x_accuracy, 2);
+  gnss_odometry_msg->pose.covariance[14] = pow(pos_ecef.x_accuracy, 2);
 }
 
 void Publishers::handleGnssVelEcef(const mip::data_gnss::VelEcef& vel_ecef, const uint8_t descriptor_set, mip::Timestamp timestamp)
@@ -964,9 +965,9 @@ void Publishers::handleGnssVelEcef(const mip::data_gnss::VelEcef& vel_ecef, cons
   gnss_velocity_ecef_msg->twist.twist.linear.x = vel_ecef.v[0];
   gnss_velocity_ecef_msg->twist.twist.linear.y = vel_ecef.v[1];
   gnss_velocity_ecef_msg->twist.twist.linear.z = vel_ecef.v[2];
-  gnss_velocity_ecef_msg->twist.covariance[0] = vel_ecef.v_accuracy;
-  gnss_velocity_ecef_msg->twist.covariance[7] = vel_ecef.v_accuracy;
-  gnss_velocity_ecef_msg->twist.covariance[14] = vel_ecef.v_accuracy;
+  gnss_velocity_ecef_msg->twist.covariance[0] = pow(vel_ecef.v_accuracy, 2);
+  gnss_velocity_ecef_msg->twist.covariance[7] = pow(vel_ecef.v_accuracy, 2);
+  gnss_velocity_ecef_msg->twist.covariance[14] = pow(vel_ecef.v_accuracy, 2);
 }
 
 void Publishers::handleGnssFixInfo(const mip::data_gnss::FixInfo& fix_info, const uint8_t descriptor_set, mip::Timestamp timestamp)
@@ -1858,7 +1859,7 @@ void Publishers::handleFilterGnssDualAntennaStatus(const mip::data_filter::GnssD
   {
     filter_dual_antenna_heading_msg->pose.pose.orientation = tf2::toMsg(microstrain_vehicle_to_ned_transform_tf.getRotation());
   }
-  filter_dual_antenna_heading_msg->pose.covariance[35] = gnss_dual_antenna_status.heading_unc;
+  filter_dual_antenna_heading_msg->pose.covariance[35] = pow(gnss_dual_antenna_status.heading_unc, 2);
 
   // Filter GNSS Dual Antenna status
   auto mip_filter_gnss_dual_antenna_status_msg = mip_filter_gnss_dual_antenna_status_pub_->getMessage();
