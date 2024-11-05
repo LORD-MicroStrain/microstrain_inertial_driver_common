@@ -31,6 +31,10 @@ bool Services::configure()
     mip_3dm_capture_gyro_bias_service_ = configureService<Mip3dmCaptureGyroBiasSrv, CaptureGyroBias>(MIP_3DM_CAPTURE_GYRO_BIAS_SERVICE, &Services::mip3dmCaptureGyroBias);
     mip_3dm_device_settings_save_service_ = configureService<EmptySrv, DeviceSettings>(MIP_3DM_DEVICE_SETTINGS_SAVE_SERVICE, &Services::mip3dmDeviceSettingsSave);
     mip_3dm_device_settings_load_service_ = configureService<EmptySrv, DeviceSettings>(MIP_3DM_DEVICE_SETTINGS_LOAD_SERVICE, &Services::mip3dmDeviceSettingsLoad);
+    mip_3dm_gpio_configuration_read_service_ = configureService<Mip3dmGpioConfigurationReadSrv, GpioConfig>(MIP_3DM_GPIO_CONFIGURATION_READ, &Services::mip3dmGpioConfigurationRead);
+    mip_3dm_gpio_configuration_write_service_ = configureService<Mip3dmGpioConfigurationWriteSrv, GpioConfig>(MIP_3DM_GPIO_CONFIGURATION_WRITE, &Services::mip3dmGpioConfigurationWrite);
+    mip_3dm_gpio_state_read_service_ = configureService<Mip3dmGpioStateReadSrv, GpioConfig>(MIP_3DM_GPIO_STATE_READ, &Services::mip3dmGpioStateRead);
+    mip_3dm_gpio_state_write_service_ = configureService<Mip3dmGpioStateWriteSrv, GpioConfig>(MIP_3DM_GPIO_STATE_WRITE, &Services::mip3dmGpioStateWrite);
   }
   {
     using namespace mip::commands_filter;  // NOLINT(build/namespaces)
@@ -159,6 +163,79 @@ bool Services::mipFilterReset(EmptySrv::Request& req, EmptySrv::Response& res)
     config_->filter_state_ = static_cast<mip::data_filter::FilterMode>(0);
   }
 
+  return !!mip_cmd_result;
+}
+
+bool Services::mip3dmGpioConfigurationRead(Mip3dmGpioConfigurationReadSrv::Request& req, Mip3dmGpioConfigurationReadSrv::Response& res)
+{
+  MICROSTRAIN_DEBUG(node_, "Reading GPIO configuration for pin %u", req.pin);
+
+  mip::commands_3dm::GpioConfig::Feature feature;
+  mip::commands_3dm::GpioConfig::Behavior behavior;
+  mip::commands_3dm::GpioConfig::PinMode pin_mode;
+  const mip::CmdResult mip_cmd_result = mip::commands_3dm::readGpioConfig(*(config_->mip_device_), req.pin, &feature, &behavior, &pin_mode);
+  if (!!mip_cmd_result)
+  {
+    res.feature = static_cast<uint8_t>(feature);
+    res.behavior = static_cast<uint8_t>(behavior);
+    res.pin_mode = static_cast<uint8_t>(pin_mode);
+    MICROSTRAIN_DEBUG(node_, "Read GPIO configuration for pin %u", req.pin);
+    MICROSTRAIN_DEBUG(node_, "  feature = %u", res.feature);
+    MICROSTRAIN_DEBUG(node_, "  behavior = %u", res.behavior);
+    MICROSTRAIN_DEBUG(node_, "  pin_mode = %u", res.pin_mode);
+  }
+  else
+  {
+    MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to read GPIO configuration");
+  }
+
+  return !!mip_cmd_result;
+}
+
+bool Services::mip3dmGpioConfigurationWrite(Mip3dmGpioConfigurationWriteSrv::Request& req, Mip3dmGpioConfigurationWriteSrv::Response& res)
+{
+  MICROSTRAIN_DEBUG(node_, "Writing GPIO configuration for pin %u", req.pin);
+  MICROSTRAIN_DEBUG(node_, "  feature = %u", req.feature);
+  MICROSTRAIN_DEBUG(node_, "  behavior = %u", req.behavior);
+  MICROSTRAIN_DEBUG(node_, "  pin_mode = %u", req.pin_mode);
+
+  const mip::commands_3dm::GpioConfig::Feature feature = static_cast<mip::commands_3dm::GpioConfig::Feature>(req.feature);
+  const mip::commands_3dm::GpioConfig::Behavior behavior = static_cast<mip::commands_3dm::GpioConfig::Behavior>(req.behavior);
+  const mip::commands_3dm::GpioConfig::PinMode pin_mode = static_cast<mip::commands_3dm::GpioConfig::PinMode>(req.pin_mode);
+  const mip::CmdResult mip_cmd_result = mip::commands_3dm::writeGpioConfig(*(config_->mip_device_), req.pin, feature, behavior, pin_mode);
+  if (!!mip_cmd_result)
+    MICROSTRAIN_DEBUG(node_, "Wrote GPIO configuration for pin %u", req.pin);
+  else
+    MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to write GPIO configuration");
+  
+  return !!mip_cmd_result;
+}
+
+bool Services::mip3dmGpioStateRead(Mip3dmGpioStateReadSrv::Request& req, Mip3dmGpioStateReadSrv::Response& res)
+{
+  MICROSTRAIN_DEBUG(node_, "Reading GPIO state for pin %u", req.pin);
+
+  bool state;
+  const mip::CmdResult mip_cmd_result = mip::commands_3dm::readGpioState(*(config_->mip_device_), req.pin, &state);
+  if (!!mip_cmd_result)
+    MICROSTRAIN_DEBUG(node_, "Read GPIO state for pin %u: %d", req.pin, state);
+  else
+    MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to read GPIO state");
+  
+  return !!mip_cmd_result;
+}
+
+bool Services::mip3dmGpioStateWrite(Mip3dmGpioStateWriteSrv::Request& req, Mip3dmGpioStateWriteSrv::Response& res)
+{
+  MICROSTRAIN_DEBUG(node_, "Writing GPIO state for pin %u", req.pin);
+  MICROSTRAIN_DEBUG(node_, "  state = %d", req.state);
+
+  const mip::CmdResult mip_cmd_result = mip::commands_3dm::writeGpioState(*(config_->mip_device_), req.pin, req.state);
+  if (!!mip_cmd_result)
+    MICROSTRAIN_DEBUG(node_, "Wrote GPIO state for pin %u", req.pin);
+  else
+    MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to write GPIO state");
+  
   return !!mip_cmd_result;
 }
 

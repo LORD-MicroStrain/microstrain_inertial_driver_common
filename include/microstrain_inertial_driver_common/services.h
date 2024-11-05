@@ -24,6 +24,10 @@ static constexpr auto MIP_BASE_GET_DEVICE_INFORMATION_SERVICE = "mip/base/get_de
 static constexpr auto MIP_3DM_CAPTURE_GYRO_BIAS_SERVICE = "mip/three_dm/capture_gyro_bias";
 static constexpr auto MIP_3DM_DEVICE_SETTINGS_SAVE_SERVICE = "mip/three_dm/device_settings/save";
 static constexpr auto MIP_3DM_DEVICE_SETTINGS_LOAD_SERVICE = "mip/three_dm/device_settings/load";
+static constexpr auto MIP_3DM_GPIO_CONFIGURATION_READ = "mip/three_dm/gpio_configuration/read";
+static constexpr auto MIP_3DM_GPIO_CONFIGURATION_WRITE = "mip/three_dm/gpio_configuration/write";
+static constexpr auto MIP_3DM_GPIO_STATE_READ = "mip/three_dm/gpio_state/read";
+static constexpr auto MIP_3DM_GPIO_STATE_WRITE = "mip/three_dm/gpio_state/write";
 static constexpr auto MIP_FILTER_RESET_SERVICE = "mip/ekf/reset";
 
 /**
@@ -56,6 +60,10 @@ public:
   bool mip3dmCaptureGyroBias(Mip3dmCaptureGyroBiasSrv::Request& req, Mip3dmCaptureGyroBiasSrv::Response& res);
   bool mip3dmDeviceSettingsSave(EmptySrv::Request& req, EmptySrv::Response& res);
   bool mip3dmDeviceSettingsLoad(EmptySrv::Request& req, EmptySrv::Response& res);
+  bool mip3dmGpioConfigurationRead(Mip3dmGpioConfigurationReadSrv::Request& req, Mip3dmGpioConfigurationReadSrv::Response& res);
+  bool mip3dmGpioConfigurationWrite(Mip3dmGpioConfigurationWriteSrv::Request& req, Mip3dmGpioConfigurationWriteSrv::Response& res);
+  bool mip3dmGpioStateRead(Mip3dmGpioStateReadSrv::Request& req, Mip3dmGpioStateReadSrv::Response& res);
+  bool mip3dmGpioStateWrite(Mip3dmGpioStateWriteSrv::Request& req, Mip3dmGpioStateWriteSrv::Response& res);
 
   bool mipFilterReset(EmptySrv::Request& req, EmptySrv::Response& res);
 
@@ -91,6 +99,10 @@ private:
   RosServiceType<Mip3dmCaptureGyroBiasSrv>::SharedPtr mip_3dm_capture_gyro_bias_service_;
   RosServiceType<EmptySrv>::SharedPtr mip_3dm_device_settings_save_service_;
   RosServiceType<EmptySrv>::SharedPtr mip_3dm_device_settings_load_service_;
+  RosServiceType<Mip3dmGpioConfigurationReadSrv>::SharedPtr mip_3dm_gpio_configuration_read_service_;
+  RosServiceType<Mip3dmGpioConfigurationWriteSrv>::SharedPtr mip_3dm_gpio_configuration_write_service_;
+  RosServiceType<Mip3dmGpioStateReadSrv>::SharedPtr mip_3dm_gpio_state_read_service_;
+  RosServiceType<Mip3dmGpioStateWriteSrv>::SharedPtr mip_3dm_gpio_state_write_service_;
 
   RosServiceType<EmptySrv>::SharedPtr mip_filter_reset_service_;
 };
