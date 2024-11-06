@@ -122,7 +122,9 @@ bool Publishers::configure()
 
   mip_system_built_in_test_pub_->configure(node_, config_);
 
-  if (config_->mip_device_->shouldParseNmea() || (config_->aux_device_ != nullptr && config_->aux_device_->shouldParseNmea()))
+  const bool will_publish_nmea = (config_->mip_device_->connection() != nullptr && config_->mip_device_->connection()->shouldParseNmea()) ||
+                                 (config_->aux_device_ != nullptr && config_->aux_device_->connection() != nullptr && config_->aux_device_->connection()->shouldParseNmea());
+  if (will_publish_nmea)
     nmea_sentence_pub_->configure(node_);
 
   // Frame ID configuration

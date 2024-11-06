@@ -88,17 +88,21 @@ void NodeCommon::parseAndPublishMain()
   }
 
   // Publish the NMEA messages
-  if (config_.mip_device_->shouldParseNmea())
+  const auto connection = config_.mip_device_->connection();
+  if (connection != nullptr)
   {
-    for (auto& nmea_message : config_.mip_device_->nmeaMsgs())
+    if (connection->shouldParseNmea())
     {
-      // Determine the right frame ID based on the talker ID
-      const std::string& talker_id_str = nmea_message.sentence.substr(1, 2);
-      if (config_.nmea_talker_id_to_frame_id_mapping_.find(talker_id_str) != config_.nmea_talker_id_to_frame_id_mapping_.end())
-        nmea_message.header.frame_id = config_.nmea_talker_id_to_frame_id_mapping_.at(talker_id_str);
-      else
-        nmea_message.header.frame_id = config_.frame_id_;
-      publishers_.nmea_sentence_pub_->publish(nmea_message);
+      for (auto& nmea_message : connection->nmeaMsgs())
+      {
+        // Determine the right frame ID based on the talker ID
+        const std::string& talker_id_str = nmea_message.sentence.substr(1, 2);
+        if (config_.nmea_talker_id_to_frame_id_mapping_.find(talker_id_str) != config_.nmea_talker_id_to_frame_id_mapping_.end())
+          nmea_message.header.frame_id = config_.nmea_talker_id_to_frame_id_mapping_.at(talker_id_str);
+        else
+          nmea_message.header.frame_id = config_.frame_id_;
+        publishers_.nmea_sentence_pub_->publish(nmea_message);
+      }
     }
   }
 }
@@ -109,13 +113,17 @@ void NodeCommon::parseAndPublishAux()
   config_.aux_device_->device().update();
 
   // Publish the NMEA messages
-  if (config_.aux_device_->shouldParseNmea())
+  const auto connection = config_.aux_device_->connection();
+  if (connection != nullptr)
   {
-    for (auto& nmea_message : config_.aux_device_->nmeaMsgs())
+    if (connection->shouldParseNmea())
     {
-      // Assume that the aux port will only produce NMEA from GNSS1
-      nmea_message.header.frame_id = config_.gnss_frame_id_[GNSS1_ID];
-      publishers_.nmea_sentence_pub_->publish(nmea_message);
+      for (auto& nmea_message : connection->nmeaMsgs())
+      {
+        // Assume that the aux port will only produce NMEA from GNSS1
+        nmea_message.header.frame_id = config_.gnss_frame_id_[GNSS1_ID];
+        publishers_.nmea_sentence_pub_->publish(nmea_message);
+      }
     }
   }
 }
