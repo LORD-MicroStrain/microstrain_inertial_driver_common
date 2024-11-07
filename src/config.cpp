@@ -222,7 +222,7 @@ bool Config::connectDevice(RosNodeType* node)
       MICROSTRAIN_ERROR(node_, "Failed to open aux port");
       return false;
     }
-    aux_device_->shouldParseNmea(ntrip_interface_enable_);
+    aux_device_->connection()->shouldParseNmea(ntrip_interface_enable_);
   }
 
   return true;
@@ -1354,7 +1354,7 @@ bool Config::populateNmeaMessageFormat(RosNodeType* config_node, const std::stri
     formats->push_back(format);
 
     // Enable NMEA parsing on the main port
-    mip_device_->shouldParseNmea(true);
+    mip_device_->connection()->shouldParseNmea(true);
   }
   else
   {

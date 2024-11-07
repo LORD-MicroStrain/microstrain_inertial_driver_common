@@ -20,6 +20,10 @@
 namespace microstrain
 {
 
+static constexpr auto RAW_FILE_CONFIG_MAIN_READ_SERVICE = "raw_file_config/main/read";
+static constexpr auto RAW_FILE_CONFIG_MAIN_WRITE_SERVICE = "raw_file_config/main/write";
+static constexpr auto RAW_FILE_CONFIG_AUX_READ_SERVICE = "raw_file_config/aux/read";
+static constexpr auto RAW_FILE_CONFIG_AUX_WRITE_SERVICE = "raw_file_config/aux/write";
 static constexpr auto MIP_BASE_GET_DEVICE_INFORMATION_SERVICE = "mip/base/get_device_information";
 static constexpr auto MIP_3DM_CAPTURE_GYRO_BIAS_SERVICE = "mip/three_dm/capture_gyro_bias";
 static constexpr auto MIP_3DM_DEVICE_SETTINGS_SAVE_SERVICE = "mip/three_dm/device_settings/save";
@@ -51,6 +55,11 @@ public:
   bool configure();
 
   // Service functions. Too many to document
+  bool rawFileConfigMainRead(RawFileConfigReadSrv::Request& req, RawFileConfigReadSrv::Response& res);
+  bool rawFileConfigMainWrite(RawFileConfigWriteSrv::Request& req, RawFileConfigWriteSrv::Response& res);
+  bool rawFileConfigAuxRead(RawFileConfigReadSrv::Request& req, RawFileConfigReadSrv::Response& res);
+  bool rawFileConfigAuxWrite(RawFileConfigWriteSrv::Request& req, RawFileConfigWriteSrv::Response& res);
+
   bool mipBaseGetDeviceInformation(MipBaseGetDeviceInformationSrv::Request& req, MipBaseGetDeviceInformationSrv::Response& res);
 
   bool mip3dmCaptureGyroBias(Mip3dmCaptureGyroBiasSrv::Request& req, Mip3dmCaptureGyroBiasSrv::Response& res);
@@ -85,6 +94,11 @@ private:
   // Handles to the ROS node and the config
   RosNodeType* node_;
   Config* config_;
+
+  RosServiceType<RawFileConfigReadSrv>::SharedPtr raw_file_config_main_read_service_;
+  RosServiceType<RawFileConfigWriteSrv>::SharedPtr raw_file_config_main_write_service_;
+  RosServiceType<RawFileConfigReadSrv>::SharedPtr raw_file_config_aux_read_service_;
+  RosServiceType<RawFileConfigWriteSrv>::SharedPtr raw_file_config_aux_write_service_;
 
   RosServiceType<MipBaseGetDeviceInformationSrv>::SharedPtr mip_base_get_device_information_service_;
 

@@ -93,6 +93,9 @@ constexpr auto NUM_GNSS = 2;
 #include "std_srvs/Empty.h"
 #include "std_srvs/Trigger.h"
 
+#include "microstrain_inertial_msgs/RawFileConfigRead.h"
+#include "microstrain_inertial_msgs/RawFileConfigWrite.h"
+
 #include "microstrain_inertial_msgs/MipBaseGetDeviceInformation.h"
 #include "microstrain_inertial_msgs/Mip3dmCaptureGyroBias.h"
 
@@ -158,6 +161,9 @@ constexpr auto NUM_GNSS = 2;
 #else
 #include "tf2_geometry_msgs/tf2_geometry_msgs.h"
 #endif
+
+#include "microstrain_inertial_msgs/srv/raw_file_config_read.hpp"
+#include "microstrain_inertial_msgs/srv/raw_file_config_write.hpp"
 
 #include "microstrain_inertial_msgs/srv/mip_base_get_device_information.hpp"
 #include "microstrain_inertial_msgs/srv/mip3dm_capture_gyro_bias.hpp"
@@ -278,6 +284,9 @@ using RTCMMsg = ::rtcm_msgs::Message;
 // ROS1 Service Message Types
 using TriggerSrv = std_srvs::Trigger;
 using EmptySrv = std_srvs::Empty;
+
+using RawFileConfigReadSrv = ::microstrain_inertial_msgs::RawFileConfigRead;
+using RawFileConfigWriteSrv = ::microstrain_inertial_msgs::RawFileConfigWrite;
 
 using MipBaseGetDeviceInformationSrv = ::microstrain_inertial_msgs::MipBaseGetDeviceInformation;
 using Mip3dmCaptureGyroBiasSrv = ::microstrain_inertial_msgs::Mip3dmCaptureGyroBias;
@@ -593,6 +602,9 @@ using RTCMMsg = ::rtcm_msgs::msg::Message;
 // ROS2 Service Message Types
 using TriggerSrv = std_srvs::srv::Trigger;
 using EmptySrv = std_srvs::srv::Empty;
+
+using RawFileConfigReadSrv = microstrain_inertial_msgs::srv::RawFileConfigRead;
+using RawFileConfigWriteSrv = microstrain_inertial_msgs::srv::RawFileConfigWrite;
 
 using MipBaseGetDeviceInformationSrv = microstrain_inertial_msgs::srv::MipBaseGetDeviceInformation;
 using Mip3dmCaptureGyroBiasSrv = microstrain_inertial_msgs::srv::Mip3dmCaptureGyroBias;

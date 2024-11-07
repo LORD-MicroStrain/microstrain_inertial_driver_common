@@ -22,6 +22,16 @@ Services::Services(RosNodeType* node, Config* config) : node_(node), config_(con
 
 bool Services::configure()
 {
+  // Setup custom services
+  raw_file_config_main_read_service_ = createService<RawFileConfigReadSrv>(node_, RAW_FILE_CONFIG_MAIN_READ_SERVICE, &Services::rawFileConfigMainRead, this);
+  raw_file_config_main_write_service_ = createService<RawFileConfigWriteSrv>(node_, RAW_FILE_CONFIG_MAIN_WRITE_SERVICE, &Services::rawFileConfigMainWrite, this);
+  if (config_->aux_device_ != nullptr)
+  {
+    raw_file_config_aux_read_service_ = createService<RawFileConfigReadSrv>(node_, RAW_FILE_CONFIG_AUX_READ_SERVICE, &Services::rawFileConfigAuxRead, this);
+    raw_file_config_aux_write_service_ = createService<RawFileConfigWriteSrv>(node_, RAW_FILE_CONFIG_AUX_WRITE_SERVICE, &Services::rawFileConfigAuxWrite, this);
+  }
+
+  // Setup the MIP services
   {
     using namespace mip::commands_base;  // NOLINT(build/namespaces)
     mip_base_get_device_information_service_ = configureService<MipBaseGetDeviceInformationSrv, GetDeviceInfo>(MIP_BASE_GET_DEVICE_INFORMATION_SERVICE, &Services::mipBaseGetDeviceInformation);
@@ -38,6 +48,58 @@ bool Services::configure()
   }
 
   return true;
+}
+
+bool Services::rawFileConfigMainRead(RawFileConfigReadSrv::Request& req, RawFileConfigReadSrv::Response& res)
+{
+  // Make sure that the connection is initialized
+  const auto connection = config_->mip_device_->connection();
+  if (connection == nullptr)
+    return false;
+  
+  // Get the state of the connection
+  res.enable = connection->rawFileEnable();
+  res.file_path = connection->rawFilePath();
+  return true;
+}
+
+bool Services::rawFileConfigMainWrite(RawFileConfigWriteSrv::Request& req, RawFileConfigWriteSrv::Response& res)
+{
+  // Make sure that the connection is initialized
+  const auto connection = config_->mip_device_->connection();
+  if (connection == nullptr)
+    return false;
+
+  // Update the recording status of the connection
+  return connection->updateRecordingState(req.enable, req.file_path);
+}
+
+bool Services::rawFileConfigAuxRead(RawFileConfigReadSrv::Request& req, RawFileConfigReadSrv::Response& res)
+{
+  // Make sure that the connection is initialized
+  if (config_->aux_device_ == nullptr)
+    return false;
+  const auto connection = config_->aux_device_->connection();
+  if (connection == nullptr)
+    return false;
+  
+  // Get the state of the connection
+  res.enable = connection->rawFileEnable();
+  res.file_path = connection->rawFilePath();
+  return true;
+}
+
+bool Services::rawFileConfigAuxWrite(RawFileConfigWriteSrv::Request& req, RawFileConfigWriteSrv::Response& res)
+{
+  // Make sure that the connection is initialized
+  if (config_->aux_device_ == nullptr)
+    return false;
+  const auto connection = config_->aux_device_->connection();
+  if (connection == nullptr)
+    return false;
+
+  // Update the recording status of the connection
+  return connection->updateRecordingState(req.enable, req.file_path);
 }
 
 bool Services::mipBaseGetDeviceInformation(MipBaseGetDeviceInformationSrv::Request& req, MipBaseGetDeviceInformationSrv::Response& res)
