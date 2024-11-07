@@ -316,6 +316,15 @@ using ParamIntVector = std::vector<int32_t>;
 // ROS1 functions
 
 /**
+ * brief Checks whether the node is still running
+ * \return Whether the node is still running
+ */
+inline bool rosOk()
+{
+  return ros::ok();
+}
+
+/**
  * \brief Gets the current ROS time
  * \param node  Unused in this function as the ros time function is static
  * \return Current ROS time
@@ -630,6 +639,15 @@ using ParamIntVector = std::vector<int64_t>;
 // ROS2 functions
 
 /**
+ * brief Checks whether the node is still running
+ * \return Whether the node is still running
+ */
+inline bool rosOk()
+{
+  return rclcpp::ok();
+}
+
+/**
  * \brief Gets the current ROS time
  * \param node  Unused in this function as the ros time function is static
  * \return Current ROS time
@@ -836,8 +854,8 @@ createService(RosNodeType* node, const std::string& service, bool (ClassType::*s
 template <class ClassType>
 RosTimerType createTimer(RosNodeType* node, double hz, void (ClassType::*fp)(), ClassType* obj)
 {
-  std::chrono::milliseconds timer_interval_ms(static_cast<int>(1.0 / hz * 1000.0));
-  return node->template create_wall_timer(timer_interval_ms, [=]() { (obj->*fp)(); });
+  std::chrono::microseconds timer_interval_us(static_cast<int>(1.0 / hz * 1000000.0));
+  return node->template create_wall_timer(timer_interval_us, [=]() { (obj->*fp)(); });
 }
 
 /**
