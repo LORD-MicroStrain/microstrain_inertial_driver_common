@@ -212,7 +212,7 @@ bool RosConnection::recvFromDevice(uint8_t* buffer, size_t max_length, mip::Time
   const bool success = (connection_ != nullptr) ? connection_->recvFromDevice(buffer, max_length, timeout, count_out, timestamp_out) : false;
   if (success)
   {
-    *timestamp_out = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+    *timestamp_out = static_cast<mip::Timestamp>(getTimeRefSecs(rosTimeNow(node_)) * 1000.0);
 
     // Parse NMEA sentences if we were asked to
     if (should_parse_nmea_)
