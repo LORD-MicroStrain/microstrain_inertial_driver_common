@@ -21,6 +21,7 @@
 #include "mip/mip_all.hpp"
 
 #include "microstrain_inertial_driver_common/utils/ros_compat.h"
+#include "microstrain_inertial_driver_common/utils/clock_bias_monitor.h"
 #include "microstrain_inertial_driver_common/config.h"
 
 namespace microstrain
@@ -391,16 +392,19 @@ private:
    * \brief Updates the microstrain header contained in all MIP specific custom messages
    * \param mip_header The header to update
    * \param descriptor_set The descriptor set that the message comes from
+   * \param timestamp The timstamp that the data was collected at
+   * \param gps_timestamp Optional timestamp to use instead of the most recent GPS timestamp. Only used if non-null
   */
-  void updateMipHeader(MipHeaderMsg* mip_header, uint8_t descriptor_set) const;
+  void updateMipHeader(MipHeaderMsg* mip_header, uint8_t descriptor_set, mip::Timestamp timestamp, const mip::data_shared::GpsTimestamp* gps_timestamp = nullptr);
 
   /**
    * \brief Updates the header's timestamp to the type of timestamp based on the node's configuration
    * \param header The header to update the timestamp of
    * \param descriptor_set The descriptor set that should be used to lookup the timestamp if we want to use the device timestamp
    * \param timestamp The timestamp provided by the MIP SDK for when the packet was received
+   * \param gps_timestamp Optional timestamp to use instead of the most recent GPS timestamp. Only used if non-null
    */
-  void updateHeaderTime(RosHeaderType* header, uint8_t descriptor_set, mip::Timestamp timestamp);
+  void updateHeaderTime(RosHeaderType* header, uint8_t descriptor_set, mip::Timestamp timestamp, const mip::data_shared::GpsTimestamp* gps_timestamp = nullptr);
 
   /**
    * \brief Updates the header's timestamp to the UTC representation of the GPS timestamp
@@ -425,8 +429,11 @@ private:
   std::map<uint8_t, mip::data_shared::ReferenceTimestamp> reference_timestamp_mapping_;
   std::map<uint8_t, mip::data_shared::ReferenceTimeDelta> reference_time_delta_mapping_;
 
+  // Previous timestamp for each descriptor set. Only used for hybrid timestamping
+  std::map<uint8_t, double> previous_utc_timestamps_;
+
   // Older philo devices do not support ECEF position, so we will need to convert from LLH to ECEF ourselves
-  bool supports_filter_ecef_;
+  bool supports_filter_ecef_ = false;
 
   // Keep track of the filter state as the messages may override each other if we don't
   bool rtk_fixed_ = false;
@@ -437,6 +444,15 @@ private:
   // TF2 buffer lookup class
   TransformBufferType transform_buffer_;
   TransformListenerType transform_listener_;
+
+  // Keep track of the last GPS timestamp we received for dual antenna heading so we don't publish stale data
+  double last_dual_antenna_heading_gps_timestamp_secs_;
+
+  std::chrono::time_point<std::chrono::system_clock> start_time_;
+  double last_timestamp_ = 0;
+
+  // Clock model used to translate device time to ROS time for each descriptor set
+  ClockBiasMonitor clock_bias_monitor_ = ClockBiasMonitor(0.99, 1.0);
 };
 
 template<void (Publishers::*Callback)(const mip::PacketRef&, mip::Timestamp)>

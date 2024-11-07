@@ -69,6 +69,14 @@ raw_file_include_support_data : True
 # The directory to store the raw data file
 raw_file_directory : "/home/your_name"
 
+# Timestamp configuration
+#     0 - ROS time that the packet was received. This is the simplest, but also least accurate timestamp solution
+#     1 - GPS time. This will stamp the messages with the exact timestamps produced by the device.
+#         This is the most accurate solution, but will also produce timestamps starting at GPS time 0 until a valid GPS time is received,
+#         at which point the time will jump to the current UTC time. Useful for those doing their own timestamp processing
+#     2 - Hybrid. This will combine the two above methods to produce valid UTC times where the dt is very close to the device time dt.
+#         This is the easiest and most accurate solution for users looking to consume messages with no additional processing.
+timestamp_source : 2
 
 # ****************************************************************** 
 # Frame ID Settings 
@@ -149,9 +157,9 @@ gnss2_antenna_offset_source : 1
 gnss2_antenna_offset        : [0.0, 0.7, -1.0]
 
 # GNSS signal configuration
-gnss_glonass_enable : False
+gnss_glonass_enable : True
 gnss_galileo_enable : True
-gnss_beidou_enable  : False
+gnss_beidou_enable  : True
 
 
 # ****************************************************************** 
@@ -300,6 +308,12 @@ gps_leap_seconds                       : 18.0
 
 # (GQ7 only) Speed Lever Arm Configuration
 #   Lever Arm - In vehicle reference frame (meters)
+# Speed lever arm offset source
+#     0 - Disabled:  We will not configure the speed lever arm offset, or publish it as a transform
+#     1 - Manual:    We will use the provided vector to configure the device, and publish it as the transform between frame_id and odometer_frame_id
+#     2 - Transform: We will lookup the transform between frame_id and odometer_frame_id and use it to configure the device. We will ignore filter_speed_lever_arm
+# Speed lever arm offset vector in the vehicle frame wrt IMU origin (meters)
+filter_speed_lever_arm_source : 0
 filter_speed_lever_arm : [0.0, 0.5, -1.0]
 
 # (All, except GQ7, CV7, -10, and -15 products) Heading Source 0 = None, 1 = magnetic, 2 = GNSS velocity (note: see manual for limitations)  
@@ -322,10 +336,10 @@ filter_gnss_aiding_source_control: 1
 # ****************************************************************** 
 
 # Static IMU message covariance values (the device does not generate these) 
-imu_orientation_cov   : [0.01, 0, 0, 0, 0.01, 0, 0, 0, 0.01]
-imu_linear_cov        : [0.01, 0, 0, 0, 0.01, 0, 0, 0, 0.01]
-imu_angular_cov       : [0.01, 0, 0, 0, 0.01, 0, 0, 0, 0.01]
-imu_mag_cov           : [0.01, 0, 0, 0, 0.01, 0, 0, 0, 0.01]
+imu_orientation_cov   : [0.01, 0.0, 0.0, 0.0, 0.01, 0.0, 0.0, 0.0, 0.01]
+imu_linear_cov        : [0.01, 0.0, 0.0, 0.0, 0.01, 0.0, 0.0, 0.0, 0.01]
+imu_angular_cov       : [0.01, 0.0, 0.0, 0.0, 0.01, 0.0, 0.0, 0.0, 0.01]
+imu_mag_cov           : [0.01, 0.0, 0.0, 0.0, 0.01, 0.0, 0.0, 0.0, 0.01]
 imu_pressure_variance : 0.01
 
 # ****************************************************************** 

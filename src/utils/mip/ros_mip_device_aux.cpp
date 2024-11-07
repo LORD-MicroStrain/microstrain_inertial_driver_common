@@ -28,7 +28,7 @@ bool RosMipDeviceAux::configure(RosNodeType* config_node)
   int32_t baudrate;
   getParam<std::string>(config_node, "aux_port", port, "/dev/ttyACM1");
   getParam<int32_t>(config_node, "aux_baudrate", baudrate, 115200);
-  connection_ = std::unique_ptr<RosConnection>(new RosConnection(node_));
+  connection_ = std::make_shared<RosConnection>(node_);
   if (!connection_->connect(config_node, port, baudrate))
     return false;
 
