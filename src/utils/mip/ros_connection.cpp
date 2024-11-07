@@ -207,7 +207,7 @@ bool RosConnection::updateRecordingState(const bool should_record, const std::st
     MICROSTRAIN_INFO(node_, "Closing binary datafile at %s", record_file_path_.c_str());
     record_file_.close();
   }
-  
+
   // Try to open the new file if we were requested to record
   if (should_record)
   {

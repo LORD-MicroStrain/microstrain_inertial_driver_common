@@ -58,7 +58,7 @@ bool Services::rawFileConfigMainRead(RawFileConfigReadSrv::Request& req, RawFile
   const auto connection = config_->mip_device_->connection();
   if (connection == nullptr)
     return false;
-  
+
   // Get the state of the connection
   res.enable = connection->rawFileEnable();
   res.file_path = connection->rawFilePath();
@@ -71,7 +71,7 @@ bool Services::rawFileConfigMainWrite(RawFileConfigWriteSrv::Request& req, RawFi
   const auto connection = config_->mip_device_->connection();
   if (connection == nullptr)
     return false;
-  
+
   // Turn on factory support and aiding control if we are recording the binary. If not, we can't really turn them off, so just leave them on
   if (req.enable)
   {
@@ -118,7 +118,7 @@ bool Services::rawFileConfigAuxRead(RawFileConfigReadSrv::Request& req, RawFileC
   const auto connection = config_->aux_device_->connection();
   if (connection == nullptr)
     return false;
-  
+
   // Get the state of the connection
   res.enable = connection->rawFileEnable();
   res.file_path = connection->rawFilePath();
@@ -270,7 +270,7 @@ bool Services::mip3dmGpioStateRead(Mip3dmGpioStateReadSrv::Request& req, Mip3dmG
     MICROSTRAIN_DEBUG(node_, "Read GPIO state for pin %u: %d", req.pin, state);
   else
     MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to read GPIO state");
-  
+
   return !!mip_cmd_result;
 }
 
@@ -284,7 +284,7 @@ bool Services::mip3dmGpioStateWrite(Mip3dmGpioStateWriteSrv::Request& req, Mip3d
     MICROSTRAIN_DEBUG(node_, "Wrote GPIO state for pin %u", req.pin);
   else
     MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to write GPIO state");
-  
+
   return !!mip_cmd_result;
 }
 

@@ -14,6 +14,7 @@
 #include <string>
 #include <thread>
 #include <chrono>
+#include <memory>
 #include <iomanip>
 #include <stdexcept>
 

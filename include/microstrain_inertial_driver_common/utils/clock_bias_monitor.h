@@ -12,6 +12,8 @@
 #ifndef MICROSTRAIN_INERTIAL_DRIVER_COMMON_UTILS_CLOCK_BIAS_MONITOR_H
 #define MICROSTRAIN_INERTIAL_DRIVER_COMMON_UTILS_CLOCK_BIAS_MONITOR_H
 
+#include <vector>
+
 #include "microstrain_inertial_driver_common/utils/ros_compat.h"
 
 namespace microstrain
