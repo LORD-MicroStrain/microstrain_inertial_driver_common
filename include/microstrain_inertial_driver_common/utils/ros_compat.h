@@ -95,8 +95,6 @@ constexpr auto NUM_GNSS = 2;
 
 #include "microstrain_inertial_msgs/MipBaseGetDeviceInformation.h"
 #include "microstrain_inertial_msgs/Mip3dmCaptureGyroBias.h"
-#include "microstrain_inertial_msgs/Mip3dmGpioConfigurationRead.h"
-#include "microstrain_inertial_msgs/Mip3dmGpioConfigurationWrite.h"
 #include "microstrain_inertial_msgs/Mip3dmGpioStateRead.h"
 #include "microstrain_inertial_msgs/Mip3dmGpioStateWrite.h"
 
@@ -165,8 +163,6 @@ constexpr auto NUM_GNSS = 2;
 
 #include "microstrain_inertial_msgs/srv/mip_base_get_device_information.hpp"
 #include "microstrain_inertial_msgs/srv/mip3dm_capture_gyro_bias.hpp"
-#include "microstrain_inertial_msgs/srv/mip3dm_gpio_configuration_read.hpp"
-#include "microstrain_inertial_msgs/srv/mip3dm_gpio_configuration_write.hpp"
 #include "microstrain_inertial_msgs/srv/mip3dm_gpio_state_read.hpp"
 #include "microstrain_inertial_msgs/srv/mip3dm_gpio_state_write.hpp"
 #else
@@ -289,8 +285,6 @@ using EmptySrv = std_srvs::Empty;
 
 using MipBaseGetDeviceInformationSrv = ::microstrain_inertial_msgs::MipBaseGetDeviceInformation;
 using Mip3dmCaptureGyroBiasSrv = ::microstrain_inertial_msgs::Mip3dmCaptureGyroBias;
-using Mip3dmGpioConfigurationReadSrv = microstrain_inertial_msgs::Mip3dmGpioConfigurationRead;
-using Mip3dmGpioConfigurationWriteSrv = microstrain_inertial_msgs::Mip3dmGpioConfigurationWrite;
 using Mip3dmGpioStateReadSrv = microstrain_inertial_msgs::Mip3dmGpioStateRead;
 using Mip3dmGpioStateWriteSrv = microstrain_inertial_msgs::Mip3dmGpioStateWrite;
 
@@ -599,8 +593,6 @@ using EmptySrv = std_srvs::srv::Empty;
 
 using MipBaseGetDeviceInformationSrv = microstrain_inertial_msgs::srv::MipBaseGetDeviceInformation;
 using Mip3dmCaptureGyroBiasSrv = microstrain_inertial_msgs::srv::Mip3dmCaptureGyroBias;
-using Mip3dmGpioConfigurationReadSrv = microstrain_inertial_msgs::srv::Mip3dmGpioConfigurationRead;
-using Mip3dmGpioConfigurationWriteSrv = microstrain_inertial_msgs::srv::Mip3dmGpioConfigurationWrite;
 using Mip3dmGpioStateReadSrv = microstrain_inertial_msgs::srv::Mip3dmGpioStateRead;
 using Mip3dmGpioStateWriteSrv = microstrain_inertial_msgs::srv::Mip3dmGpioStateWrite;
 
