@@ -41,8 +41,8 @@ bool Services::configure()
     mip_3dm_capture_gyro_bias_service_ = configureService<Mip3dmCaptureGyroBiasSrv, CaptureGyroBias>(MIP_3DM_CAPTURE_GYRO_BIAS_SERVICE, &Services::mip3dmCaptureGyroBias);
     mip_3dm_device_settings_save_service_ = configureService<EmptySrv, DeviceSettings>(MIP_3DM_DEVICE_SETTINGS_SAVE_SERVICE, &Services::mip3dmDeviceSettingsSave);
     mip_3dm_device_settings_load_service_ = configureService<EmptySrv, DeviceSettings>(MIP_3DM_DEVICE_SETTINGS_LOAD_SERVICE, &Services::mip3dmDeviceSettingsLoad);
-    mip_3dm_gpio_state_read_service_ = configureService<Mip3dmGpioStateReadSrv, GpioConfig>(MIP_3DM_GPIO_STATE_READ, &Services::mip3dmGpioStateRead);
-    mip_3dm_gpio_state_write_service_ = configureService<Mip3dmGpioStateWriteSrv, GpioConfig>(MIP_3DM_GPIO_STATE_WRITE, &Services::mip3dmGpioStateWrite);
+    mip_3dm_gpio_state_read_service_ = configureService<Mip3dmGpioStateReadSrv, GpioConfig>(MIP_3DM_GPIO_STATE_READ_SERVICE, &Services::mip3dmGpioStateRead);
+    mip_3dm_gpio_state_write_service_ = configureService<Mip3dmGpioStateWriteSrv, GpioConfig>(MIP_3DM_GPIO_STATE_WRITE_SERVICE, &Services::mip3dmGpioStateWrite);
   }
   {
     using namespace mip::commands_filter;  // NOLINT(build/namespaces)

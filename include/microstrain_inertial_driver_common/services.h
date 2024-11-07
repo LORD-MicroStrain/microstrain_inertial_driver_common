@@ -28,8 +28,8 @@ static constexpr auto MIP_BASE_GET_DEVICE_INFORMATION_SERVICE = "mip/base/get_de
 static constexpr auto MIP_3DM_CAPTURE_GYRO_BIAS_SERVICE = "mip/three_dm/capture_gyro_bias";
 static constexpr auto MIP_3DM_DEVICE_SETTINGS_SAVE_SERVICE = "mip/three_dm/device_settings/save";
 static constexpr auto MIP_3DM_DEVICE_SETTINGS_LOAD_SERVICE = "mip/three_dm/device_settings/load";
-static constexpr auto MIP_3DM_GPIO_STATE_READ = "mip/three_dm/gpio_state/read";
-static constexpr auto MIP_3DM_GPIO_STATE_WRITE = "mip/three_dm/gpio_state/write";
+static constexpr auto MIP_3DM_GPIO_STATE_READ_SERVICE = "mip/three_dm/gpio_state/read";
+static constexpr auto MIP_3DM_GPIO_STATE_WRITE_SERVICE = "mip/three_dm/gpio_state/write";
 static constexpr auto MIP_FILTER_RESET_SERVICE = "mip/ekf/reset";
 
 /**
