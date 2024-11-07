@@ -71,6 +71,40 @@ bool Services::rawFileConfigMainWrite(RawFileConfigWriteSrv::Request& req, RawFi
   const auto connection = config_->mip_device_->connection();
   if (connection == nullptr)
     return false;
+  
+  // Turn on factory support and aiding control if we are recording the binary. If not, we can't really turn them off, so just leave them on
+  if (req.enable)
+  {
+    // Enable factory support
+    if (config_->mip_device_->supportsDescriptor(mip::commands_3dm::DESCRIPTOR_SET, mip::commands_3dm::CMD_CONFIGURE_FACTORY_STREAMING))
+    {
+      const mip::CmdResult mip_cmd_result = mip::commands_3dm::factoryStreaming(*(config_->mip_device_), mip::commands_3dm::FactoryStreaming::Action::MERGE, 0);
+      if (!mip_cmd_result)
+      {
+        MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to configure factory streaming channels");
+        return false;
+      }
+      else
+      {
+        MICROSTRAIN_DEBUG(node_, "Added factory streaming data");
+      }
+    }
+
+    // Also enable aiding command echo when collecting a factory support binary
+    if (config_->mip_device_->supportsDescriptor(mip::commands_aiding::DESCRIPTOR_SET, mip::commands_aiding::AidingEchoControl::FIELD_DESCRIPTOR))
+    {
+      const mip::CmdResult mip_cmd_result = mip::commands_aiding::writeAidingEchoControl(*(config_->mip_device_), mip::commands_aiding::AidingEchoControl::Mode::RESPONSE);
+      if (!mip_cmd_result)
+      {
+        MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to configure aiding echo control");
+        return false;
+      }
+      else
+      {
+        MICROSTRAIN_DEBUG(node_, "Added aiding messages to binary");
+      }
+    }
+  }
 
   // Update the recording status of the connection
   return connection->updateRecordingState(req.enable, req.file_path);
