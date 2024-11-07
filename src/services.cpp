@@ -41,6 +41,8 @@ bool Services::configure()
     mip_3dm_capture_gyro_bias_service_ = configureService<Mip3dmCaptureGyroBiasSrv, CaptureGyroBias>(MIP_3DM_CAPTURE_GYRO_BIAS_SERVICE, &Services::mip3dmCaptureGyroBias);
     mip_3dm_device_settings_save_service_ = configureService<EmptySrv, DeviceSettings>(MIP_3DM_DEVICE_SETTINGS_SAVE_SERVICE, &Services::mip3dmDeviceSettingsSave);
     mip_3dm_device_settings_load_service_ = configureService<EmptySrv, DeviceSettings>(MIP_3DM_DEVICE_SETTINGS_LOAD_SERVICE, &Services::mip3dmDeviceSettingsLoad);
+    mip_3dm_gpio_state_read_service_ = configureService<Mip3dmGpioStateReadSrv, GpioConfig>(MIP_3DM_GPIO_STATE_READ, &Services::mip3dmGpioStateRead);
+    mip_3dm_gpio_state_write_service_ = configureService<Mip3dmGpioStateWriteSrv, GpioConfig>(MIP_3DM_GPIO_STATE_WRITE, &Services::mip3dmGpioStateWrite);
   }
   {
     using namespace mip::commands_filter;  // NOLINT(build/namespaces)
@@ -69,6 +71,40 @@ bool Services::rawFileConfigMainWrite(RawFileConfigWriteSrv::Request& req, RawFi
   const auto connection = config_->mip_device_->connection();
   if (connection == nullptr)
     return false;
+  
+  // Turn on factory support and aiding control if we are recording the binary. If not, we can't really turn them off, so just leave them on
+  if (req.enable)
+  {
+    // Enable factory support
+    if (config_->mip_device_->supportsDescriptor(mip::commands_3dm::DESCRIPTOR_SET, mip::commands_3dm::CMD_CONFIGURE_FACTORY_STREAMING))
+    {
+      const mip::CmdResult mip_cmd_result = mip::commands_3dm::factoryStreaming(*(config_->mip_device_), mip::commands_3dm::FactoryStreaming::Action::MERGE, 0);
+      if (!mip_cmd_result)
+      {
+        MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to configure factory streaming channels");
+        return false;
+      }
+      else
+      {
+        MICROSTRAIN_DEBUG(node_, "Added factory streaming data");
+      }
+    }
+
+    // Also enable aiding command echo when collecting a factory support binary
+    if (config_->mip_device_->supportsDescriptor(mip::commands_aiding::DESCRIPTOR_SET, mip::commands_aiding::AidingEchoControl::FIELD_DESCRIPTOR))
+    {
+      const mip::CmdResult mip_cmd_result = mip::commands_aiding::writeAidingEchoControl(*(config_->mip_device_), mip::commands_aiding::AidingEchoControl::Mode::RESPONSE);
+      if (!mip_cmd_result)
+      {
+        MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to configure aiding echo control");
+        return false;
+      }
+      else
+      {
+        MICROSTRAIN_DEBUG(node_, "Added aiding messages to binary");
+      }
+    }
+  }
 
   // Update the recording status of the connection
   return connection->updateRecordingState(req.enable, req.file_path);
@@ -221,6 +257,34 @@ bool Services::mipFilterReset(EmptySrv::Request& req, EmptySrv::Response& res)
     config_->filter_state_ = static_cast<mip::data_filter::FilterMode>(0);
   }
 
+  return !!mip_cmd_result;
+}
+
+bool Services::mip3dmGpioStateRead(Mip3dmGpioStateReadSrv::Request& req, Mip3dmGpioStateReadSrv::Response& res)
+{
+  MICROSTRAIN_DEBUG(node_, "Reading GPIO state for pin %u", req.pin);
+
+  bool state;
+  const mip::CmdResult mip_cmd_result = mip::commands_3dm::readGpioState(*(config_->mip_device_), req.pin, &state);
+  if (!!mip_cmd_result)
+    MICROSTRAIN_DEBUG(node_, "Read GPIO state for pin %u: %d", req.pin, state);
+  else
+    MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to read GPIO state");
+  
+  return !!mip_cmd_result;
+}
+
+bool Services::mip3dmGpioStateWrite(Mip3dmGpioStateWriteSrv::Request& req, Mip3dmGpioStateWriteSrv::Response& res)
+{
+  MICROSTRAIN_DEBUG(node_, "Writing GPIO state for pin %u", req.pin);
+  MICROSTRAIN_DEBUG(node_, "  state = %d", req.state);
+
+  const mip::CmdResult mip_cmd_result = mip::commands_3dm::writeGpioState(*(config_->mip_device_), req.pin, req.state);
+  if (!!mip_cmd_result)
+    MICROSTRAIN_DEBUG(node_, "Wrote GPIO state for pin %u", req.pin);
+  else
+    MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to write GPIO state");
+  
   return !!mip_cmd_result;
 }
 
