@@ -22,6 +22,16 @@ Services::Services(RosNodeType* node, Config* config) : node_(node), config_(con
 
 bool Services::configure()
 {
+  // Setup custom services
+  raw_file_config_main_read_service_ = createService<RawFileConfigReadSrv>(node_, RAW_FILE_CONFIG_MAIN_READ_SERVICE, &Services::rawFileConfigMainRead, this);
+  raw_file_config_main_write_service_ = createService<RawFileConfigWriteSrv>(node_, RAW_FILE_CONFIG_MAIN_WRITE_SERVICE, &Services::rawFileConfigMainWrite, this);
+  if (config_->aux_device_ != nullptr)
+  {
+    raw_file_config_aux_read_service_ = createService<RawFileConfigReadSrv>(node_, RAW_FILE_CONFIG_AUX_READ_SERVICE, &Services::rawFileConfigAuxRead, this);
+    raw_file_config_aux_write_service_ = createService<RawFileConfigWriteSrv>(node_, RAW_FILE_CONFIG_AUX_WRITE_SERVICE, &Services::rawFileConfigAuxWrite, this);
+  }
+
+  // Setup the MIP services
   {
     using namespace mip::commands_base;  // NOLINT(build/namespaces)
     mip_base_get_device_information_service_ = configureService<MipBaseGetDeviceInformationSrv, GetDeviceInfo>(MIP_BASE_GET_DEVICE_INFORMATION_SERVICE, &Services::mipBaseGetDeviceInformation);
@@ -31,6 +41,8 @@ bool Services::configure()
     mip_3dm_capture_gyro_bias_service_ = configureService<Mip3dmCaptureGyroBiasSrv, CaptureGyroBias>(MIP_3DM_CAPTURE_GYRO_BIAS_SERVICE, &Services::mip3dmCaptureGyroBias);
     mip_3dm_device_settings_save_service_ = configureService<EmptySrv, DeviceSettings>(MIP_3DM_DEVICE_SETTINGS_SAVE_SERVICE, &Services::mip3dmDeviceSettingsSave);
     mip_3dm_device_settings_load_service_ = configureService<EmptySrv, DeviceSettings>(MIP_3DM_DEVICE_SETTINGS_LOAD_SERVICE, &Services::mip3dmDeviceSettingsLoad);
+    mip_3dm_gpio_state_read_service_ = configureService<Mip3dmGpioStateReadSrv, GpioConfig>(MIP_3DM_GPIO_STATE_READ_SERVICE, &Services::mip3dmGpioStateRead);
+    mip_3dm_gpio_state_write_service_ = configureService<Mip3dmGpioStateWriteSrv, GpioConfig>(MIP_3DM_GPIO_STATE_WRITE_SERVICE, &Services::mip3dmGpioStateWrite);
   }
   {
     using namespace mip::commands_filter;  // NOLINT(build/namespaces)
@@ -38,6 +50,92 @@ bool Services::configure()
   }
 
   return true;
+}
+
+bool Services::rawFileConfigMainRead(RawFileConfigReadSrv::Request& req, RawFileConfigReadSrv::Response& res)
+{
+  // Make sure that the connection is initialized
+  const auto connection = config_->mip_device_->connection();
+  if (connection == nullptr)
+    return false;
+
+  // Get the state of the connection
+  res.enable = connection->rawFileEnable();
+  res.file_path = connection->rawFilePath();
+  return true;
+}
+
+bool Services::rawFileConfigMainWrite(RawFileConfigWriteSrv::Request& req, RawFileConfigWriteSrv::Response& res)
+{
+  // Make sure that the connection is initialized
+  const auto connection = config_->mip_device_->connection();
+  if (connection == nullptr)
+    return false;
+
+  // Turn on factory support and aiding control if we are recording the binary. If not, we can't really turn them off, so just leave them on
+  if (req.enable)
+  {
+    // Enable factory support
+    if (config_->mip_device_->supportsDescriptor(mip::commands_3dm::DESCRIPTOR_SET, mip::commands_3dm::CMD_CONFIGURE_FACTORY_STREAMING))
+    {
+      const mip::CmdResult mip_cmd_result = mip::commands_3dm::factoryStreaming(*(config_->mip_device_), mip::commands_3dm::FactoryStreaming::Action::MERGE, 0);
+      if (!mip_cmd_result)
+      {
+        MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to configure factory streaming channels");
+        return false;
+      }
+      else
+      {
+        MICROSTRAIN_DEBUG(node_, "Added factory streaming data");
+      }
+    }
+
+    // Also enable aiding command echo when collecting a factory support binary
+    if (config_->mip_device_->supportsDescriptor(mip::commands_aiding::DESCRIPTOR_SET, mip::commands_aiding::AidingEchoControl::FIELD_DESCRIPTOR))
+    {
+      const mip::CmdResult mip_cmd_result = mip::commands_aiding::writeAidingEchoControl(*(config_->mip_device_), mip::commands_aiding::AidingEchoControl::Mode::RESPONSE);
+      if (!mip_cmd_result)
+      {
+        MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to configure aiding echo control");
+        return false;
+      }
+      else
+      {
+        MICROSTRAIN_DEBUG(node_, "Added aiding messages to binary");
+      }
+    }
+  }
+
+  // Update the recording status of the connection
+  return connection->updateRecordingState(req.enable, req.file_path);
+}
+
+bool Services::rawFileConfigAuxRead(RawFileConfigReadSrv::Request& req, RawFileConfigReadSrv::Response& res)
+{
+  // Make sure that the connection is initialized
+  if (config_->aux_device_ == nullptr)
+    return false;
+  const auto connection = config_->aux_device_->connection();
+  if (connection == nullptr)
+    return false;
+
+  // Get the state of the connection
+  res.enable = connection->rawFileEnable();
+  res.file_path = connection->rawFilePath();
+  return true;
+}
+
+bool Services::rawFileConfigAuxWrite(RawFileConfigWriteSrv::Request& req, RawFileConfigWriteSrv::Response& res)
+{
+  // Make sure that the connection is initialized
+  if (config_->aux_device_ == nullptr)
+    return false;
+  const auto connection = config_->aux_device_->connection();
+  if (connection == nullptr)
+    return false;
+
+  // Update the recording status of the connection
+  return connection->updateRecordingState(req.enable, req.file_path);
 }
 
 bool Services::mipBaseGetDeviceInformation(MipBaseGetDeviceInformationSrv::Request& req, MipBaseGetDeviceInformationSrv::Response& res)
@@ -158,6 +256,34 @@ bool Services::mipFilterReset(EmptySrv::Request& req, EmptySrv::Response& res)
     config_->map_to_earth_transform_valid_ = false;
     config_->filter_state_ = static_cast<mip::data_filter::FilterMode>(0);
   }
+
+  return !!mip_cmd_result;
+}
+
+bool Services::mip3dmGpioStateRead(Mip3dmGpioStateReadSrv::Request& req, Mip3dmGpioStateReadSrv::Response& res)
+{
+  MICROSTRAIN_DEBUG(node_, "Reading GPIO state for pin %u", req.pin);
+
+  bool state;
+  const mip::CmdResult mip_cmd_result = mip::commands_3dm::readGpioState(*(config_->mip_device_), req.pin, &state);
+  if (!!mip_cmd_result)
+    MICROSTRAIN_DEBUG(node_, "Read GPIO state for pin %u: %d", req.pin, state);
+  else
+    MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to read GPIO state");
+
+  return !!mip_cmd_result;
+}
+
+bool Services::mip3dmGpioStateWrite(Mip3dmGpioStateWriteSrv::Request& req, Mip3dmGpioStateWriteSrv::Response& res)
+{
+  MICROSTRAIN_DEBUG(node_, "Writing GPIO state for pin %u", req.pin);
+  MICROSTRAIN_DEBUG(node_, "  state = %d", req.state);
+
+  const mip::CmdResult mip_cmd_result = mip::commands_3dm::writeGpioState(*(config_->mip_device_), req.pin, req.state);
+  if (!!mip_cmd_result)
+    MICROSTRAIN_DEBUG(node_, "Wrote GPIO state for pin %u", req.pin);
+  else
+    MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to write GPIO state");
 
   return !!mip_cmd_result;
 }

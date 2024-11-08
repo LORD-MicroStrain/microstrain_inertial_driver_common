@@ -72,6 +72,9 @@ bool Config::configure(RosNodeType* node)
   getParam<int>(node, "reconnect_attempts", reconnect_attempts_, 0);
   getParam<bool>(node, "configure_after_reconnect", configure_after_reconnect_, true);
 
+  // Timestamp source
+  getParam<int>(node, "timestamp_source", timestamp_source_, 2);
+
   // Frame ID config
   getParam<std::string>(node, "frame_id", frame_id_, "imu_link");
   getParam<std::string>(node, "target_frame_id", target_frame_id_, "base_link");
@@ -133,8 +136,8 @@ bool Config::configure(RosNodeType* node)
 
   // GNSS 1/2
   std::vector<double> gnss_antenna_offset_double[NUM_GNSS];
-  getParam<int>(node, "gnss1_antenna_offset_source", gnss_antenna_offset_source_[GNSS1_ID], GNSS_ANTENNA_OFFSET_SOURCE_MANUAL);
-  getParam<int>(node, "gnss2_antenna_offset_source", gnss_antenna_offset_source_[GNSS2_ID], GNSS_ANTENNA_OFFSET_SOURCE_MANUAL);
+  getParam<int>(node, "gnss1_antenna_offset_source", gnss_antenna_offset_source_[GNSS1_ID], OFFSET_SOURCE_MANUAL);
+  getParam<int>(node, "gnss2_antenna_offset_source", gnss_antenna_offset_source_[GNSS2_ID], OFFSET_SOURCE_MANUAL);
   getParam<std::vector<double>>(node, "gnss1_antenna_offset", gnss_antenna_offset_double[GNSS1_ID], DEFAULT_VECTOR);
   getParam<std::vector<double>>(node, "gnss2_antenna_offset", gnss_antenna_offset_double[GNSS2_ID], DEFAULT_VECTOR);
 
@@ -164,6 +167,7 @@ bool Config::configure(RosNodeType* node)
   getParam<bool>(node, "filter_enable_vertical_gyro_constraint", filter_enable_vertical_gyro_constraint_, false);
   getParam<bool>(node, "filter_enable_gnss_antenna_cal", filter_enable_gnss_antenna_cal_, false);
   getParam<bool>(node, "filter_use_compensated_accel", filter_use_compensated_accel_, true);
+  getParam<int>(node, "filter_speed_lever_arm_source", filter_speed_lever_arm_source_, OFFSET_SOURCE_MANUAL);
   getParam<std::vector<double>>(node, "filter_speed_lever_arm", filter_speed_lever_arm_double, DEFAULT_VECTOR);
   filter_speed_lever_arm_ = std::vector<float>(filter_speed_lever_arm_double.begin(), filter_speed_lever_arm_double.end());
 
@@ -230,7 +234,7 @@ bool Config::connectDevice(RosNodeType* node)
       MICROSTRAIN_ERROR(node_, "Failed to open aux port");
       return false;
     }
-    aux_device_->shouldParseNmea(ntrip_interface_enable_);
+    aux_device_->connection()->shouldParseNmea(ntrip_interface_enable_);
   }
 
   return true;
@@ -333,20 +337,25 @@ bool Config::configureBase(RosNodeType* node)
   {
     if (set_baud)
     {
-      MICROSTRAIN_INFO(node_, "Note: Setting aux port baudrate to %d", aux_baudrate);
-      if (!(mip_cmd_result = mip::commands_base::writeCommSpeed(*mip_device_, 2, aux_baudrate)))
+      // Only set the baudrate if the device has an aux port (we can check by fetching the baudrate)
+      uint32_t tmp_baud;
+      if (!!(mip_cmd_result = mip::commands_base::readCommSpeed(*mip_device_, 2, &tmp_baud)))
       {
-        MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to write aux port baudrate");
-        return false;
-      }
-
-      // Reopen the aux port if it is already open
-      if (aux_device_ != nullptr)
-      {
-        if (!aux_device_->reconnect())
+        MICROSTRAIN_INFO(node_, "Note: Setting aux port baudrate to %d", aux_baudrate);
+        if (!(mip_cmd_result = mip::commands_base::writeCommSpeed(*mip_device_, 2, aux_baudrate)))
         {
-          MICROSTRAIN_ERROR(node_, "Failed to open aux port after configuring baudrate");
+          MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to write aux port baudrate");
           return false;
+        }
+
+        // Reopen the aux port if it is already open
+        if (aux_device_ != nullptr)
+        {
+          if (!aux_device_->reconnect())
+          {
+            MICROSTRAIN_ERROR(node_, "Failed to open aux port after configuring baudrate");
+            return false;
+          }
         }
       }
     }
@@ -648,7 +657,7 @@ bool Config::configure3DM(RosNodeType* node)
           MICROSTRAIN_INFO(node_, "Configuring low pass filter with:");
           MICROSTRAIN_INFO(node_, "  field_descriptor = 0x%02x", low_pass_filter_field_descriptor);
           MICROSTRAIN_INFO(node_, "  enable = %d", low_pass_filter_enable);
-          MICROSTRAIN_INFO(node_, "  auto = %d", low_pass_filter_auto);
+          MICROSTRAIN_INFO(node_, "  manual = %d", !low_pass_filter_auto);
           MICROSTRAIN_INFO(node_, "  frequency = %u", static_cast<uint16_t>(std::round(low_pass_filter_frequency)));
           if (!(mip_cmd_result = mip::commands_3dm::writeImuLowpassFilter(*mip_device_, low_pass_filter_field_descriptor, low_pass_filter_enable, !low_pass_filter_auto, static_cast<uint16_t>(std::round(low_pass_filter_frequency)), 0)))
           {
@@ -812,33 +821,20 @@ bool Config::configureFilter(RosNodeType* node)
   // If either antenna offset is configured with the transform selector, lookup the transform in the tf tree
   for (int i = 0; i < NUM_GNSS; i++)
   {
-    if (gnss_antenna_offset_source_[i] == GNSS_ANTENNA_OFFSET_SOURCE_TRANSFORM)
+    if (gnss_antenna_offset_source_[i] == OFFSET_SOURCE_TRANSFORM)
     {
-      // Wait until we can find the transform for the GQ7 antennas
-      std::string tf_error_string;
-      RosTimeType frame_time; setRosTime(&frame_time, 0, 0);
-      constexpr int32_t seconds_to_wait = 2;
-      while (!transform_buffer_->canTransform(frame_id_, gnss_frame_id_[i], frame_time, RosDurationType(seconds_to_wait, 0), &tf_error_string))
-      {
-        MICROSTRAIN_WARN(node_, "Timed out waiting for transform from %s to %s, tf error: %s", frame_id_.c_str(), gnss_frame_id_[i].c_str(), tf_error_string.c_str());
-      }
-
-      // Fetch the transform and modify it to the correct frame. If using the ROS vehicle frame, assume it is in the ROS vehicle frame, otherwise assume it is in the MicroStrain vehicle frame
-      const auto& gnss_antenna_to_driver_vehicle_frame_transform = transform_buffer_->lookupTransform(frame_id_, gnss_frame_id_[i], frame_time);
-      const tf2::Vector3 gnss_antenna_to_driver_vehicle_frame_translation_tf(gnss_antenna_to_driver_vehicle_frame_transform.transform.translation.x, gnss_antenna_to_driver_vehicle_frame_transform.transform.translation.y, gnss_antenna_to_driver_vehicle_frame_transform.transform.translation.z);
-      const tf2::Vector3& gnss_antenna_to_microstrain_vehicle_transform_tf = driver_vehicle_frame_to_microstrain_vehicle_frame_transform_tf_ * gnss_antenna_to_driver_vehicle_frame_translation_tf;
-
       // Override the antenna offset with the result from the transform tree
-      gnss_antenna_offset_[i][0] = gnss_antenna_to_microstrain_vehicle_transform_tf.getX();
-      gnss_antenna_offset_[i][1] = gnss_antenna_to_microstrain_vehicle_transform_tf.getY();
-      gnss_antenna_offset_[i][2] = gnss_antenna_to_microstrain_vehicle_transform_tf.getZ();
+      const tf2::Transform& gnss_antenna_to_microstrain_vehicle_transform_tf = lookupLeverArmOffsetInMicrostrainVehicleFrame(gnss_frame_id_[i]);
+      gnss_antenna_offset_[i][0] = gnss_antenna_to_microstrain_vehicle_transform_tf.getOrigin().x();
+      gnss_antenna_offset_[i][1] = gnss_antenna_to_microstrain_vehicle_transform_tf.getOrigin().y();
+      gnss_antenna_offset_[i][2] = gnss_antenna_to_microstrain_vehicle_transform_tf.getOrigin().z();
     }
   }
 
   // GNSS 1/2 antenna offsets
   if (mip_device_->supportsDescriptor(descriptor_set, mip::commands_filter::CMD_ANTENNA_OFFSET))
   {
-    if (gnss_antenna_offset_source_[GNSS1_ID] != GNSS_ANTENNA_OFFSET_SOURCE_OFF)
+    if (gnss_antenna_offset_source_[GNSS1_ID] != OFFSET_SOURCE_OFF)
     {
       MICROSTRAIN_INFO(node_, "Setting single antenna offset to [%f, %f, %f]",
           gnss_antenna_offset_[GNSS1_ID][0], gnss_antenna_offset_[GNSS1_ID][1], gnss_antenna_offset_[GNSS1_ID][2]);
@@ -850,12 +846,12 @@ bool Config::configureFilter(RosNodeType* node)
     }
     else
     {
-      MICROSTRAIN_INFO(node_, "Not configuring single antenna offset because gnss1_antenna_offset_source is %d", GNSS_ANTENNA_OFFSET_SOURCE_OFF);
+      MICROSTRAIN_INFO(node_, "Not configuring single antenna offset because gnss1_antenna_offset_source is %d", OFFSET_SOURCE_OFF);
     }
   }
   else if (mip_device_->supportsDescriptor(descriptor_set, mip::commands_filter::CMD_MULTI_ANTENNA_OFFSET))
   {
-    if (gnss_antenna_offset_source_[GNSS1_ID] != GNSS_ANTENNA_OFFSET_SOURCE_OFF)
+    if (gnss_antenna_offset_source_[GNSS1_ID] != OFFSET_SOURCE_OFF)
     {
       MICROSTRAIN_INFO(node_, "Setting GNSS1 antenna offset to [%f, %f, %f]",
           gnss_antenna_offset_[GNSS1_ID][0], gnss_antenna_offset_[GNSS1_ID][1], gnss_antenna_offset_[GNSS1_ID][2]);
@@ -867,10 +863,10 @@ bool Config::configureFilter(RosNodeType* node)
     }
     else
     {
-      MICROSTRAIN_INFO(node_, "Not configuring GNSS1 antenna offset because gnss1_antenna_offset_source is %d", GNSS_ANTENNA_OFFSET_SOURCE_OFF);
+      MICROSTRAIN_INFO(node_, "Not configuring GNSS1 antenna offset because gnss1_antenna_offset_source is %d", OFFSET_SOURCE_OFF);
     }
 
-    if (gnss_antenna_offset_source_[GNSS2_ID] != GNSS_ANTENNA_OFFSET_SOURCE_OFF)
+    if (gnss_antenna_offset_source_[GNSS2_ID] != OFFSET_SOURCE_OFF)
     {
       MICROSTRAIN_INFO(node_, "Setting GNSS2 antenna offset to [%f, %f, %f]",
           gnss_antenna_offset_[GNSS2_ID][0], gnss_antenna_offset_[GNSS2_ID][1], gnss_antenna_offset_[GNSS2_ID][2]);
@@ -882,7 +878,7 @@ bool Config::configureFilter(RosNodeType* node)
     }
     else
     {
-      MICROSTRAIN_INFO(node_, "Not configuring GNSS2 antenna offset because gnss2_antenna_offset_source is %d", GNSS_ANTENNA_OFFSET_SOURCE_OFF);
+      MICROSTRAIN_INFO(node_, "Not configuring GNSS2 antenna offset because gnss2_antenna_offset_source is %d", OFFSET_SOURCE_OFF);
     }
   }
   else
@@ -999,11 +995,21 @@ bool Config::configureFilter(RosNodeType* node)
   // Set the filter speed lever arm
   if (mip_device_->supportsDescriptor(descriptor_set, mip::commands_filter::CMD_SPEED_LEVER_ARM))
   {
-    MICROSTRAIN_INFO(node_, "Setting speed lever arm to: [%f, %f, %f]", filter_speed_lever_arm_[0], filter_speed_lever_arm_[1], filter_speed_lever_arm_[2]);
-    if (!(mip_cmd_result = mip::commands_filter::writeSpeedLeverArm(*mip_device_, 1, filter_speed_lever_arm_.data())))
+    if (filter_speed_lever_arm_source_ == OFFSET_SOURCE_TRANSFORM)
     {
-      MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to configure speed lever arm");
-      return false;
+      const auto& odometer_to_microstrain_vehicle_transform_tf = lookupLeverArmOffsetInMicrostrainVehicleFrame(odometer_frame_id_);
+      filter_speed_lever_arm_[0] = odometer_to_microstrain_vehicle_transform_tf.getOrigin().x();
+      filter_speed_lever_arm_[1] = odometer_to_microstrain_vehicle_transform_tf.getOrigin().y();
+      filter_speed_lever_arm_[2] = odometer_to_microstrain_vehicle_transform_tf.getOrigin().z();
+    }
+    if (filter_speed_lever_arm_source_ != OFFSET_SOURCE_OFF)
+    {
+      MICROSTRAIN_INFO(node_, "Setting speed lever arm to: [%f, %f, %f]", filter_speed_lever_arm_[0], filter_speed_lever_arm_[1], filter_speed_lever_arm_[2]);
+      if (!(mip_cmd_result = mip::commands_filter::writeSpeedLeverArm(*mip_device_, 1, filter_speed_lever_arm_.data())))
+      {
+        MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to configure speed lever arm");
+        return false;
+      }
     }
   }
   else
@@ -1360,13 +1366,72 @@ bool Config::populateNmeaMessageFormat(RosNodeType* config_node, const std::stri
     formats->push_back(format);
 
     // Enable NMEA parsing on the main port
-    mip_device_->shouldParseNmea(true);
+    mip_device_->connection()->shouldParseNmea(true);
   }
   else
   {
     MICROSTRAIN_DEBUG(node_, "Disabling %s%s NMEA sentence from the '%s' descriptor set becauese the data rate was 0", talker_id_string.c_str(), message_id_string.c_str(), descriptor_set_string.c_str());
   }
   return true;
+}
+
+tf2::Transform Config::lookupLeverArmOffsetInMicrostrainVehicleFrame(const std::string& target_frame_id)
+{
+  // Wait until we can find the transform for the requested frame id
+  std::string tf_error_string;
+  RosTimeType frame_time; setRosTime(&frame_time, 0, 0);
+  constexpr int32_t seconds_to_wait = 2;
+  while (!transform_buffer_->canTransform(frame_id_, target_frame_id, frame_time, RosDurationType(seconds_to_wait, 0), &tf_error_string) && rosOk())
+  {
+    MICROSTRAIN_WARN(node_, "Timed out waiting for transform from %s to %s, tf error: %s", frame_id_.c_str(), target_frame_id.c_str(), tf_error_string.c_str());
+  }
+
+  // Fetch the transform and modify it to the correct frame. If using the ROS vehicle frame, assume it is in the ROS vehicle frame, otherwise assume it is in the MicroStrain vehicle frame
+  const auto& target_frame_to_driver_vehicle_frame_transform = transform_buffer_->lookupTransform(frame_id_, target_frame_id, frame_time);
+  const tf2::Vector3 target_frame_to_driver_vehicle_frame_translation_tf(target_frame_to_driver_vehicle_frame_transform.transform.translation.x, target_frame_to_driver_vehicle_frame_transform.transform.translation.y, target_frame_to_driver_vehicle_frame_transform.transform.translation.z);
+  const tf2::Vector3& target_frame_to_microstrain_vehicle_frame_translation_tf = driver_vehicle_frame_to_microstrain_vehicle_frame_transform_tf_ * target_frame_to_driver_vehicle_frame_translation_tf;
+  const tf2::Transform target_frame_to_microstrain_vehicle_frame_transform_tf(tf2::Quaternion::getIdentity(), target_frame_to_microstrain_vehicle_frame_translation_tf);
+  return target_frame_to_microstrain_vehicle_frame_transform_tf;
+
+  /*
+  // If not using the enu frame, this can be plugged directly into the device, otherwise rotate it from the ROS body frame to our body frame
+  tf2::Transform target_frame_to_microstrain_vehicle_frame_transform_tf;
+  if (use_enu_frame_)
+  {
+    const auto& target_frame_to_ros_vehicle_frame_transform = transform_buffer_->lookupTransform(frame_id_, target_frame_id, frame_time);
+
+    tf2::Transform target_frame_to_ros_vehicle_frame_transform_tf;
+    tf2::fromMsg(target_frame_to_ros_vehicle_frame_transform.transform, target_frame_to_ros_vehicle_frame_transform_tf);
+
+    target_frame_to_microstrain_vehicle_frame_transform_tf = ros_vehicle_to_microstrain_vehicle_transform_tf_ * target_frame_to_ros_vehicle_frame_transform_tf;
+  }
+  else
+  {
+    const auto& target_frame_to_microstrain_vehicle_frame_transform = transform_buffer_->lookupTransform(frame_id_, target_frame_id, frame_time);
+    tf2::fromMsg(target_frame_to_microstrain_vehicle_frame_transform.transform, target_frame_to_microstrain_vehicle_frame_transform_tf);
+  }
+
+  return target_frame_to_microstrain_vehicle_frame_transform_tf;
+
+      // Wait until we can find the transform for the GQ7 antennas
+      std::string tf_error_string;
+      RosTimeType frame_time; setRosTime(&frame_time, 0, 0);
+      constexpr int32_t seconds_to_wait = 2;
+      while (!transform_buffer_->canTransform(frame_id_, gnss_frame_id_[i], frame_time, RosDurationType(seconds_to_wait, 0), &tf_error_string))
+      {
+        MICROSTRAIN_WARN(node_, "Timed out waiting for transform from %s to %s, tf error: %s", frame_id_.c_str(), gnss_frame_id_[i].c_str(), tf_error_string.c_str());
+      }
+
+      // Fetch the transform and modify it to the correct frame. If using the ROS vehicle frame, assume it is in the ROS vehicle frame, otherwise assume it is in the MicroStrain vehicle frame
+      const auto& gnss_antenna_to_driver_vehicle_frame_transform = transform_buffer_->lookupTransform(frame_id_, gnss_frame_id_[i], frame_time);
+      const tf2::Vector3 gnss_antenna_to_driver_vehicle_frame_translation_tf(gnss_antenna_to_driver_vehicle_frame_transform.transform.translation.x, gnss_antenna_to_driver_vehicle_frame_transform.transform.translation.y, gnss_antenna_to_driver_vehicle_frame_transform.transform.translation.z);
+      const tf2::Vector3& gnss_antenna_to_microstrain_vehicle_transform_tf = driver_vehicle_frame_to_microstrain_vehicle_frame_transform_tf_ * gnss_antenna_to_driver_vehicle_frame_translation_tf;
+
+      // Override the antenna offset with the result from the transform tree
+      gnss_antenna_offset_[i][0] = gnss_antenna_to_microstrain_vehicle_transform_tf.getX();
+      gnss_antenna_offset_[i][1] = gnss_antenna_to_microstrain_vehicle_transform_tf.getY();
+      gnss_antenna_offset_[i][2] = gnss_antenna_to_microstrain_vehicle_transform_tf.getZ();
+  */
 }
 
 }  // namespace microstrain

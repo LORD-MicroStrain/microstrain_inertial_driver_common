@@ -98,14 +98,10 @@ bool RosConnection::connect(RosNodeType* config_node, const std::string& port, c
   }
 
   // If the raw file is enabled, use a different connection type
-  getParam<bool>(config_node, "raw_file_enable", should_record_, false);
   try
   {
     MICROSTRAIN_INFO(node_, "Attempting to open serial port <%s> at <%d>", port.c_str(), baudrate);
-    if (should_record_)
-      connection_ = std::unique_ptr<RecordingSerialConnection>(new RecordingSerialConnection(&record_file_, nullptr, port, baudrate));
-    else
-      connection_ = std::unique_ptr<SerialConnection>(new SerialConnection(port, baudrate));
+    connection_ = std::unique_ptr<RecordingSerialConnection>(new RecordingSerialConnection(&record_file_, nullptr, port, baudrate));
   }
   catch (const std::exception& e)
   {
@@ -126,49 +122,42 @@ bool RosConnection::connect(RosNodeType* config_node, const std::string& port, c
 
 bool RosConnection::configure(RosNodeType* config_node, RosMipDevice* device)
 {
-  // Open raw data file, if enabled
-  if (should_record_)
+  // Setup the path to the raw file even if we are not recording
+  time_t raw_time;
+  struct tm curr_time;
+  char curr_time_buffer[100];
+
+  std::string raw_file_directory;
+  getParam<bool>(config_node, "raw_file_enable", should_record_, false);
+  getParam<std::string>(config_node, "raw_file_directory", raw_file_directory, std::string("."));
+
+  // Get the device info
+  mip::CmdResult mip_cmd_result;
+  mip::commands_base::BaseDeviceInfo device_info;
+  if (!(mip_cmd_result = device->getDeviceInfo(&device_info)))
   {
-    time_t raw_time;
-    struct tm curr_time;
-    char curr_time_buffer[100];
-
-    std::string raw_file_directory;
-    getParam<std::string>(config_node, "raw_file_directory", raw_file_directory, std::string("."));
-
-    // Get the device info
-    mip::CmdResult mip_cmd_result;
-    mip::commands_base::BaseDeviceInfo device_info;
-    if (!(mip_cmd_result = device->getDeviceInfo(&device_info)))
-    {
-      MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Unable to read device info for binary file");
-      return false;
-    }
-
-    // Get the current time
-    time(&raw_time);
-    localtime_r(&raw_time, &curr_time);
-    strftime(curr_time_buffer, sizeof(curr_time_buffer), "%y_%m_%d_%H_%M_%S", &curr_time);
-
-    std::string time_string(curr_time_buffer);
-
-    if (raw_file_directory.back() != '/')
-      raw_file_directory += "/";
-    std::string filename = raw_file_directory + device_info.model_name + std::string("_") +
-                           device_info.serial_number + std::string("_") + time_string + std::string(".bin");
-
-    record_file_.open(filename, std::ios::out | std::ios::binary | std::ios::trunc);
-
-    if (!record_file_.is_open())
-    {
-      MICROSTRAIN_ERROR(node_, "ERROR opening raw binary datafile at %s", filename.c_str());
-      return false;
-    }
-    else
-    {
-      MICROSTRAIN_INFO(node_, "Raw binary datafile opened at %s", filename.c_str());
-    }
+    MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Unable to read device info for binary file");
+    return false;
   }
+
+  // Get the current time
+  time(&raw_time);
+  localtime_r(&raw_time, &curr_time);
+  strftime(curr_time_buffer, sizeof(curr_time_buffer), "%y_%m_%d_%H_%M_%S", &curr_time);
+
+  std::string time_string(curr_time_buffer);
+
+  if (raw_file_directory.back() != '/')
+    raw_file_directory += "/";
+  record_file_path_ = raw_file_directory + device_info.model_name + std::string("_") +
+                          device_info.serial_number + std::string("_") + time_string + std::string(".bin");
+
+  // Open raw data file, if enabled
+  if (!updateRecordingState(should_record_, record_file_path_))
+  {
+    return false;
+  }
+
   return true;
 }
 
@@ -199,6 +188,51 @@ std::vector<NMEASentenceMsg> RosConnection::nmeaMsgs()
   return copy;
 }
 
+bool RosConnection::rawFileEnable()
+{
+  return should_record_;
+}
+
+std::string RosConnection::rawFilePath()
+{
+  return record_file_path_;
+}
+
+bool RosConnection::updateRecordingState(const bool should_record, const std::string& record_file_path)
+{
+  // If we are already recording, we need to close the file, but keep that in mind in case we fail to update
+  const bool was_recording = record_file_.is_open();
+  if (was_recording)
+  {
+    MICROSTRAIN_INFO(node_, "Closing binary datafile at %s", record_file_path_.c_str());
+    record_file_.close();
+  }
+
+  // Try to open the new file if we were requested to record
+  if (should_record)
+  {
+    record_file_.open(record_file_path, std::ios::out | std::ios::binary | std::ios::trunc);
+    if (!record_file_.is_open())
+    {
+      MICROSTRAIN_ERROR(node_, "ERROR opening raw binary datafile at %s", record_file_path.c_str());
+
+      // If we failed to open the new file, open the old one but do not truncate it
+      if (was_recording)
+        record_file_.open(record_file_path_, std::ios::out | std::ios::binary);
+      return false;
+    }
+    else
+    {
+      MICROSTRAIN_INFO(node_, "Raw binary datafile opened at %s", record_file_path.c_str());
+    }
+  }
+
+  // Update the state
+  should_record_ = should_record;
+  record_file_path_ = record_file_path;
+  return true;
+}
+
 bool RosConnection::sendToDevice(const uint8_t* data, size_t length)
 {
   if (connection_ != nullptr)
@@ -212,7 +246,7 @@ bool RosConnection::recvFromDevice(uint8_t* buffer, size_t max_length, mip::Time
   const bool success = (connection_ != nullptr) ? connection_->recvFromDevice(buffer, max_length, timeout, count_out, timestamp_out) : false;
   if (success)
   {
-    *timestamp_out = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+    *timestamp_out = static_cast<mip::Timestamp>(getTimeRefSecs(rosTimeNow(node_)) * 1000.0);
 
     // Parse NMEA sentences if we were asked to
     if (should_parse_nmea_)

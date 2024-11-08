@@ -14,6 +14,7 @@
 #include <string>
 #include <thread>
 #include <chrono>
+#include <memory>
 #include <iomanip>
 #include <stdexcept>
 
@@ -115,23 +116,9 @@ bool RosMipDevice::reconnect()
   return disconnect() && connect();
 }
 
-bool RosMipDevice::shouldParseNmea() const
+std::shared_ptr<RosConnection> RosMipDevice::connection()
 {
-  if (connection_ != nullptr)
-    return connection_->shouldParseNmea();
-  else
-    return false;
-}
-
-void RosMipDevice::shouldParseNmea(bool enable)
-{
-  if (connection_ != nullptr)
-    connection_->shouldParseNmea(enable);
-}
-
-std::vector<NMEASentenceMsg> RosMipDevice::nmeaMsgs()
-{
-  return connection_->nmeaMsgs();
+  return connection_;
 }
 
 mip::CmdResult RosMipDevice::getDeviceInfo(::mip::commands_base::BaseDeviceInfo* device_info)

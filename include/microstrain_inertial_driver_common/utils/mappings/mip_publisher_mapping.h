@@ -27,7 +27,7 @@ namespace microstrain
 {
 
 // Topic names
-static constexpr auto IMU_DATA_RAW_TOPIC = "/imu/data_raw";
+static constexpr auto IMU_DATA_RAW_TOPIC = "imu/data_raw";
 static constexpr auto IMU_DATA_TOPIC = "imu/data";
 static constexpr auto IMU_MAG_TOPIC = "imu/mag";
 static constexpr auto IMU_PRESSURE_TOPIC = "imu/pressure";
@@ -54,7 +54,7 @@ static constexpr auto FILTER_ODOMETRY_EARTH_TOPIC  = "ekf/odometry_earth";
 static constexpr auto FILTER_ODOMETRY_MAP_TOPIC = "ekf/odometry_map";
 static constexpr auto FILTER_DUAL_ANTENNA_HEADING_TOPIC = "ekf/dual_antenna_heading";
 
-static constexpr auto MIP_SENSOR_TEMPERATURE_STATISTICS_TOPIC = "mip/sensor/tempurature_statistics";
+static constexpr auto MIP_SENSOR_TEMPERATURE_STATISTICS_TOPIC = "mip/sensor/temperature_statistics";
 static constexpr auto MIP_SENSOR_OVERRANGE_STATUS_TOPIC = "mip/sensor/overrange_status";
 
 static constexpr auto MIP_GNSS1_FIX_INFO_TOPIC = "mip/gnss_1/fix_info";

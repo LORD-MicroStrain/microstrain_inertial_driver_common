@@ -93,8 +93,13 @@ constexpr auto NUM_GNSS = 2;
 #include "std_srvs/Empty.h"
 #include "std_srvs/Trigger.h"
 
+#include "microstrain_inertial_msgs/RawFileConfigRead.h"
+#include "microstrain_inertial_msgs/RawFileConfigWrite.h"
+
 #include "microstrain_inertial_msgs/MipBaseGetDeviceInformation.h"
 #include "microstrain_inertial_msgs/Mip3dmCaptureGyroBias.h"
+#include "microstrain_inertial_msgs/Mip3dmGpioStateRead.h"
+#include "microstrain_inertial_msgs/Mip3dmGpioStateWrite.h"
 
 /**
  * ROS2 Includes
@@ -159,8 +164,13 @@ constexpr auto NUM_GNSS = 2;
 #include "tf2_geometry_msgs/tf2_geometry_msgs.h"
 #endif
 
+#include "microstrain_inertial_msgs/srv/raw_file_config_read.hpp"
+#include "microstrain_inertial_msgs/srv/raw_file_config_write.hpp"
+
 #include "microstrain_inertial_msgs/srv/mip_base_get_device_information.hpp"
 #include "microstrain_inertial_msgs/srv/mip3dm_capture_gyro_bias.hpp"
+#include "microstrain_inertial_msgs/srv/mip3dm_gpio_state_read.hpp"
+#include "microstrain_inertial_msgs/srv/mip3dm_gpio_state_write.hpp"
 #else
 #error "Unsupported ROS version. -DMICROSTRAIN_ROS_VERSION must be set to 1 or 2"
 #endif
@@ -279,8 +289,13 @@ using RTCMMsg = ::rtcm_msgs::Message;
 using TriggerSrv = std_srvs::Trigger;
 using EmptySrv = std_srvs::Empty;
 
+using RawFileConfigReadSrv = ::microstrain_inertial_msgs::RawFileConfigRead;
+using RawFileConfigWriteSrv = ::microstrain_inertial_msgs::RawFileConfigWrite;
+
 using MipBaseGetDeviceInformationSrv = ::microstrain_inertial_msgs::MipBaseGetDeviceInformation;
 using Mip3dmCaptureGyroBiasSrv = ::microstrain_inertial_msgs::Mip3dmCaptureGyroBias;
+using Mip3dmGpioStateReadSrv = microstrain_inertial_msgs::Mip3dmGpioStateRead;
+using Mip3dmGpioStateWriteSrv = microstrain_inertial_msgs::Mip3dmGpioStateWrite;
 
 // ROS1 aliases not intended to be used outside this file
 using ParamIntVector = std::vector<int32_t>;
@@ -305,6 +320,15 @@ using ParamIntVector = std::vector<int32_t>;
 #define MICROSTRAIN_FATAL_ONCE(NOE, ...) ROS_FATAL_ONCE(__VA_ARGS__)
 
 // ROS1 functions
+
+/**
+ * brief Checks whether the node is still running
+ * \return Whether the node is still running
+ */
+inline bool rosOk()
+{
+  return ros::ok();
+}
 
 /**
  * \brief Gets the current ROS time
@@ -585,8 +609,13 @@ using RTCMMsg = ::rtcm_msgs::msg::Message;
 using TriggerSrv = std_srvs::srv::Trigger;
 using EmptySrv = std_srvs::srv::Empty;
 
+using RawFileConfigReadSrv = microstrain_inertial_msgs::srv::RawFileConfigRead;
+using RawFileConfigWriteSrv = microstrain_inertial_msgs::srv::RawFileConfigWrite;
+
 using MipBaseGetDeviceInformationSrv = microstrain_inertial_msgs::srv::MipBaseGetDeviceInformation;
 using Mip3dmCaptureGyroBiasSrv = microstrain_inertial_msgs::srv::Mip3dmCaptureGyroBias;
+using Mip3dmGpioStateReadSrv = microstrain_inertial_msgs::srv::Mip3dmGpioStateRead;
+using Mip3dmGpioStateWriteSrv = microstrain_inertial_msgs::srv::Mip3dmGpioStateWrite;
 
 // ROS2 aliases not intended to be used outside this file
 using ParamIntVector = std::vector<int64_t>;
@@ -616,6 +645,15 @@ using ParamIntVector = std::vector<int64_t>;
 #define MICROSTRAIN_FATAL_ONCE(NODE, ...) RCLCPP_FATAL_ONCE(NODE->get_logger(), __VA_ARGS__)
 
 // ROS2 functions
+
+/**
+ * brief Checks whether the node is still running
+ * \return Whether the node is still running
+ */
+inline bool rosOk()
+{
+  return rclcpp::ok();
+}
 
 /**
  * \brief Gets the current ROS time
@@ -824,8 +862,8 @@ createService(RosNodeType* node, const std::string& service, bool (ClassType::*s
 template <class ClassType>
 RosTimerType createTimer(RosNodeType* node, double hz, void (ClassType::*fp)(), ClassType* obj)
 {
-  std::chrono::milliseconds timer_interval_ms(static_cast<int>(1.0 / hz * 1000.0));
-  return node->template create_wall_timer(timer_interval_ms, [=]() { (obj->*fp)(); });
+  std::chrono::microseconds timer_interval_us(static_cast<int>(1.0 / hz * 1000000.0));
+  return node->template create_wall_timer(timer_interval_us, [=]() { (obj->*fp)(); });
 }
 
 /**

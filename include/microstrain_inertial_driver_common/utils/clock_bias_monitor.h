@@ -12,6 +12,8 @@
 #ifndef MICROSTRAIN_INERTIAL_DRIVER_COMMON_UTILS_CLOCK_BIAS_MONITOR_H
 #define MICROSTRAIN_INERTIAL_DRIVER_COMMON_UTILS_CLOCK_BIAS_MONITOR_H
 
+#include <vector>
+
 #include "microstrain_inertial_driver_common/utils/ros_compat.h"
 
 namespace microstrain
@@ -24,15 +26,16 @@ class ClockBiasMonitor
    * \brief Constructor
    * \param weight How much to weight the old bias estimate vs the new delta time. Closer to 1 means more weight on the old bias estimate
    * \param max_bias_estimate Max bias estimate before resetting to the current delta time. Helps prevents jumps and outliers
+   * \param average_size Number of measurements to collect before computing an average and starting
   */
-  explicit ClockBiasMonitor(const double weight = 0.5, const double max_bias_estimate = 1);
+  explicit ClockBiasMonitor(const double weight = 0.5, const double max_bias_estimate = 1, const size_t source_time_average_size = 10);
 
   /**
    * \brief Adds a new time. The system time should be from as close as possible to the device time
    * \param source_time The source time you want to convert from
    * \param target_time The target time we will calculate the bias for
   */
-  void addTime(const RosTimeType& source_time, const RosTimeType& target_time);
+  void addTime(const double source_time, const double target_time);
 
   /**
    * \brief Checks if the monitor has a bias estimate, this will be set to true, once addTime has been called once
@@ -47,12 +50,9 @@ class ClockBiasMonitor
   double getBiasEstimate() const;
 
   /**
-   * \brief Gets the time in system time given a system time and device time
-   * \param source_time The source time you want to convert from
-   * \param target_time The target time we will calculate the bias for
-   * \return The target time reflective of the system_time
-  */
-  RosTimeType getTime(const RosTimeType& system_time, const RosTimeType& device_time);
+   * \brief Resets the bias estimate
+   */
+  void reset();
 
  private:
   double weight_;  /// How much to weight the old bias estimate vs the new delta time. Closer to 1 means more weight on the old bias estimate
@@ -60,6 +60,9 @@ class ClockBiasMonitor
 
   bool have_bias_estimate_ = false;  /// Will be set to true after getting the bias estimate for the first time
   double bias_estimate_ = 0.0;  /// Saved bias estimate. Can be used to convert a device time to a system time
+
+  size_t delta_time_average_size_;  /// Number of source times we need to compute an average
+  std::vector<double> delta_time_average_vector_;  /// Will be used to accumulate source times before computing an average
 };
 
 }  // namespace microstrain

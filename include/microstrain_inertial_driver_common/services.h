@@ -20,10 +20,16 @@
 namespace microstrain
 {
 
+static constexpr auto RAW_FILE_CONFIG_MAIN_READ_SERVICE = "raw_file_config/main/read";
+static constexpr auto RAW_FILE_CONFIG_MAIN_WRITE_SERVICE = "raw_file_config/main/write";
+static constexpr auto RAW_FILE_CONFIG_AUX_READ_SERVICE = "raw_file_config/aux/read";
+static constexpr auto RAW_FILE_CONFIG_AUX_WRITE_SERVICE = "raw_file_config/aux/write";
 static constexpr auto MIP_BASE_GET_DEVICE_INFORMATION_SERVICE = "mip/base/get_device_information";
 static constexpr auto MIP_3DM_CAPTURE_GYRO_BIAS_SERVICE = "mip/three_dm/capture_gyro_bias";
 static constexpr auto MIP_3DM_DEVICE_SETTINGS_SAVE_SERVICE = "mip/three_dm/device_settings/save";
 static constexpr auto MIP_3DM_DEVICE_SETTINGS_LOAD_SERVICE = "mip/three_dm/device_settings/load";
+static constexpr auto MIP_3DM_GPIO_STATE_READ_SERVICE = "mip/three_dm/gpio_state/read";
+static constexpr auto MIP_3DM_GPIO_STATE_WRITE_SERVICE = "mip/three_dm/gpio_state/write";
 static constexpr auto MIP_FILTER_RESET_SERVICE = "mip/ekf/reset";
 
 /**
@@ -51,11 +57,18 @@ public:
   bool configure();
 
   // Service functions. Too many to document
+  bool rawFileConfigMainRead(RawFileConfigReadSrv::Request& req, RawFileConfigReadSrv::Response& res);
+  bool rawFileConfigMainWrite(RawFileConfigWriteSrv::Request& req, RawFileConfigWriteSrv::Response& res);
+  bool rawFileConfigAuxRead(RawFileConfigReadSrv::Request& req, RawFileConfigReadSrv::Response& res);
+  bool rawFileConfigAuxWrite(RawFileConfigWriteSrv::Request& req, RawFileConfigWriteSrv::Response& res);
+
   bool mipBaseGetDeviceInformation(MipBaseGetDeviceInformationSrv::Request& req, MipBaseGetDeviceInformationSrv::Response& res);
 
   bool mip3dmCaptureGyroBias(Mip3dmCaptureGyroBiasSrv::Request& req, Mip3dmCaptureGyroBiasSrv::Response& res);
   bool mip3dmDeviceSettingsSave(EmptySrv::Request& req, EmptySrv::Response& res);
   bool mip3dmDeviceSettingsLoad(EmptySrv::Request& req, EmptySrv::Response& res);
+  bool mip3dmGpioStateRead(Mip3dmGpioStateReadSrv::Request& req, Mip3dmGpioStateReadSrv::Response& res);
+  bool mip3dmGpioStateWrite(Mip3dmGpioStateWriteSrv::Request& req, Mip3dmGpioStateWriteSrv::Response& res);
 
   bool mipFilterReset(EmptySrv::Request& req, EmptySrv::Response& res);
 
@@ -86,11 +99,18 @@ private:
   RosNodeType* node_;
   Config* config_;
 
+  RosServiceType<RawFileConfigReadSrv>::SharedPtr raw_file_config_main_read_service_;
+  RosServiceType<RawFileConfigWriteSrv>::SharedPtr raw_file_config_main_write_service_;
+  RosServiceType<RawFileConfigReadSrv>::SharedPtr raw_file_config_aux_read_service_;
+  RosServiceType<RawFileConfigWriteSrv>::SharedPtr raw_file_config_aux_write_service_;
+
   RosServiceType<MipBaseGetDeviceInformationSrv>::SharedPtr mip_base_get_device_information_service_;
 
   RosServiceType<Mip3dmCaptureGyroBiasSrv>::SharedPtr mip_3dm_capture_gyro_bias_service_;
   RosServiceType<EmptySrv>::SharedPtr mip_3dm_device_settings_save_service_;
   RosServiceType<EmptySrv>::SharedPtr mip_3dm_device_settings_load_service_;
+  RosServiceType<Mip3dmGpioStateReadSrv>::SharedPtr mip_3dm_gpio_state_read_service_;
+  RosServiceType<Mip3dmGpioStateWriteSrv>::SharedPtr mip_3dm_gpio_state_write_service_;
 
   RosServiceType<EmptySrv>::SharedPtr mip_filter_reset_service_;
 };
