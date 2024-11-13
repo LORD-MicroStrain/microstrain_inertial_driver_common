@@ -616,11 +616,9 @@ void Publishers::handleSharedDeltaTicks(const mip::data_shared::DeltaTicks& delt
 void Publishers::handleSharedGpsTimestamp(const mip::data_shared::GpsTimestamp& gps_timestamp, const uint8_t descriptor_set, mip::Timestamp timestamp)
 {
   // If the timestamp came from the sensor descriptor set, update the clock bias monitor
+  const double collected_timestamp_secs = static_cast<double>(timestamp) / 1000.0;
   if (descriptor_set == mip::data_sensor::DESCRIPTOR_SET)
-  {
-    const double collected_timestamp_secs = static_cast<double>(timestamp) / 1000.0;
     clock_bias_monitor_.addTime(gpsTimestampSecs(gps_timestamp), collected_timestamp_secs);
-  }
 
   // Save the GPS timestamp
   gps_timestamp_mapping_[descriptor_set] = gps_timestamp;
@@ -629,6 +627,7 @@ void Publishers::handleSharedGpsTimestamp(const mip::data_shared::GpsTimestamp& 
   uint8_t gnss_index;
   switch (descriptor_set)
   {
+    case mip::data_gnss::DESCRIPTOR_SET:
     case mip::data_gnss::MIP_GNSS1_DATA_DESC_SET:
       gnss_index = 0;
       break;
@@ -639,7 +638,7 @@ void Publishers::handleSharedGpsTimestamp(const mip::data_shared::GpsTimestamp& 
       return;
   }
   auto gps_time_msg = gnss_time_pub_[gnss_index]->getMessageToUpdate();
-  gps_time_msg->header.stamp = rosTimeNow(node_);
+  setRosTime(&gps_time_msg->header.stamp, collected_timestamp_secs);
   setGpsTime(&gps_time_msg->time_ref, gps_timestamp);
 }
 
@@ -823,30 +822,14 @@ void Publishers::handleSensorTemperatureStatistics(const mip::data_sensor::Tempe
 
 void Publishers::handleGnssGpsTime(const mip::data_gnss::GpsTime& gps_time, const uint8_t descriptor_set, mip::Timestamp timestamp)
 {
-  // Convert the old philo timestamp into the new format and store it in the map
-  mip::data_shared::GpsTimestamp stored_timestamp;
-  stored_timestamp.tow = gps_time.tow;
-  stored_timestamp.week_number = gps_time.week_number;
-  stored_timestamp.valid_flags = gps_time.valid_flags;
-  gps_timestamp_mapping_[descriptor_set] = stored_timestamp;
+  // Convert the old philo timestamp into the new format
+  mip::data_shared::GpsTimestamp shared_gps_timestamp;
+  shared_gps_timestamp.tow = gps_time.tow;
+  shared_gps_timestamp.week_number = gps_time.week_number;
+  shared_gps_timestamp.valid_flags = gps_time.valid_flags;
 
-  // Also update the time ref messages
-  uint8_t gnss_index;
-  switch (descriptor_set)
-  {
-    case mip::data_gnss::DESCRIPTOR_SET:
-    case mip::data_gnss::MIP_GNSS1_DATA_DESC_SET:
-      gnss_index = 0;
-      break;
-    case mip::data_gnss::MIP_GNSS2_DATA_DESC_SET:
-      gnss_index = 1;
-      break;
-    default:
-      return;
-  }
-  auto gps_time_msg = gnss_time_pub_[gnss_index]->getMessageToUpdate();
-  gps_time_msg->header.stamp = rosTimeNow(node_);
-  setGpsTime(&gps_time_msg->time_ref, stored_timestamp);
+  // Send it to the shared timestamp handler
+  handleSharedGpsTimestamp(shared_gps_timestamp, descriptor_set, timestamp);
 }
 
 void Publishers::handleGnssPosLlh(const mip::data_gnss::PosLlh& pos_llh, const uint8_t descriptor_set, mip::Timestamp timestamp)

@@ -101,6 +101,12 @@ void NodeCommon::parseAndPublishMain()
           nmea_message.header.frame_id = config_.nmea_talker_id_to_frame_id_mapping_.at(talker_id_str);
         else
           nmea_message.header.frame_id = config_.frame_id_;
+
+        // If possible, update the header timestamp
+        if (config_.nmea_talker_id_to_descriptor_set_mapping_.find(talker_id_str) != config_.nmea_talker_id_to_descriptor_set_mapping_.end())
+          publishers_.updateHeaderTime(&nmea_message.header, config_.nmea_talker_id_to_descriptor_set_mapping_[talker_id_str], static_cast<mip::Timestamp>(getTimeRefSecs(nmea_message.header.stamp) * 1000.0));
+        
+        // Publish the NMEA sentence
         publishers_.nmea_sentence_pub_->publish(nmea_message);
       }
     }
@@ -122,6 +128,7 @@ void NodeCommon::parseAndPublishAux()
       {
         // Assume that the aux port will only produce NMEA from GNSS1
         nmea_message.header.frame_id = config_.gnss_frame_id_[GNSS1_ID];
+        publishers_.updateHeaderTime(&nmea_message.header, mip::data_gnss::MIP_GNSS1_DATA_DESC_SET, static_cast<mip::Timestamp>(getTimeRefSecs(nmea_message.header.stamp) * 1000.0));
         publishers_.nmea_sentence_pub_->publish(nmea_message);
       }
     }

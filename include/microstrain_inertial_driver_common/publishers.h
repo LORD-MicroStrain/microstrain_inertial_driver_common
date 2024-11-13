@@ -397,6 +397,8 @@ private:
   */
   void updateMipHeader(MipHeaderMsg* mip_header, uint8_t descriptor_set, mip::Timestamp timestamp, const mip::data_shared::GpsTimestamp* gps_timestamp = nullptr);
 
+ // Make the updateHeaderTime function public so that we can use it for NMEA messages
+ public:
   /**
    * \brief Updates the header's timestamp to the type of timestamp based on the node's configuration
    * \param header The header to update the timestamp of

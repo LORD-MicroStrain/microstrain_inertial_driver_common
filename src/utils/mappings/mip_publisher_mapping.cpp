@@ -170,13 +170,15 @@ bool MipPublisherMapping::configure(RosNodeType* config_node)
         return d.descriptor == mip::data_filter::DATA_COMPENSATED_ACCELERATION;
       }
       );
-      mip::DescriptorRate compensated_accel_rate = *compensated_accel_rate_iter;
       if (compensated_accel_rate_iter != descriptor_rates.end())
+      {
+        mip::DescriptorRate compensated_accel_rate = *compensated_accel_rate_iter;
         compensated_accel_rate_iter = descriptor_rates.erase(compensated_accel_rate_iter);
 
-      // Insert the new descriptor rate
-      compensated_accel_rate.descriptor = mip::data_filter::DATA_LINEAR_ACCELERATION;
-      descriptor_rates.insert(compensated_accel_rate_iter, compensated_accel_rate);
+        // Insert the new descriptor rate
+        compensated_accel_rate.descriptor = mip::data_filter::DATA_LINEAR_ACCELERATION;
+        descriptor_rates.insert(compensated_accel_rate_iter, compensated_accel_rate);
+      }
     }
   }
 
@@ -196,6 +198,34 @@ bool MipPublisherMapping::configure(RosNodeType* config_node)
   if (mip_device_->supportsDescriptor(mip::data_sensor::DESCRIPTOR_SET, mip::data_shared::DATA_REFERENCE_TIME))
   {
     streamSharedDescriptor<mip::data_shared::ReferenceTimestamp>();
+  }
+
+  // If the timestamp_mode is set to hybrid, we need the sensor GPS time to stream at the max data rate
+  int timestamp_source; getParam(config_node, "timestamp_source", timestamp_source, TIMESTAMP_SOURCE_HYBRID);
+  if (timestamp_source == TIMESTAMP_SOURCE_HYBRID)
+  {
+    if (streamed_descriptors_mapping_.find(mip::data_sensor::DESCRIPTOR_SET) == streamed_descriptors_mapping_.end())
+      streamed_descriptors_mapping_[mip::data_sensor::DESCRIPTOR_SET] = {};
+    auto& sensor_streamed_descriptors = streamed_descriptors_mapping_[mip::data_sensor::DESCRIPTOR_SET];
+
+    // Find and delete the timestamp streaming config if it exists
+    auto sensor_gps_timestamp_iter = std::find_if(sensor_streamed_descriptors.begin(), sensor_streamed_descriptors.end(), [](const mip::DescriptorRate& d)
+    {
+      return d.descriptor == mip::data_shared::DATA_GPS_TIME || d.descriptor == mip::data_sensor::DATA_TIME_STAMP_GPS;
+    }
+    );
+    if (sensor_gps_timestamp_iter != sensor_streamed_descriptors.end())
+      sensor_streamed_descriptors.erase(sensor_gps_timestamp_iter);
+    
+    // Add the timestamp streaming config to the beginning of the list at the max data rate
+    const float max_data_rate = getMaxDataRate();
+    if (max_data_rate != 0)
+    {
+      const uint8_t descriptor = mip_device_->supportsDescriptor(mip::data_sensor::DESCRIPTOR_SET, mip::data_shared::DATA_GPS_TIME) ? static_cast<uint8_t>(mip::data_shared::DATA_GPS_TIME) : static_cast<uint8_t>(mip::data_sensor::DATA_TIME_STAMP_GPS);
+      const uint16_t decimation = mip_device_->getDecimationFromHertz(mip::data_sensor::DESCRIPTOR_SET, max_data_rate);
+      MICROSTRAIN_DEBUG(node_, "Streaming 0x%02x%02x at %f because timestamp source is hybrid", mip::data_sensor::DESCRIPTOR_SET, descriptor, max_data_rate);
+      sensor_streamed_descriptors.insert(sensor_streamed_descriptors.begin(), {descriptor, decimation});
+    }
   }
 
   // Stream RTK data if the RTK dongle is enabled
