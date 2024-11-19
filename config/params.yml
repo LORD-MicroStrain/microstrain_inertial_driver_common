@@ -120,10 +120,16 @@ mount_to_frame_id_transform          : [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0] # [ x
 #     true  - position, velocity, and orientation are WRT the ENU frame
 #
 # Note: It is strongly recommended to leave this as True if you plan to integrate with other ROS tools
-# Note: If this is set to false, all "*_frame_id" variables will have "_ned" appended to them by the driver.
 # For more information, see: https://wiki.ros.org/microstrain_inertial_driver/use_enu_frame
 use_enu_frame : True
 
+# Controls if the driver outputs local level data in the ROS vehicle frame
+#     false - position, velocity, and orientation are in the Microstrain vehicle frame (native device frame)
+#     true  - position, velocity, and orientation are in the ROS vehicle frame
+#
+# Note: If this is set to false, and the device is sitting flat and level, it will appear that the device is upside down
+# For more information, see: https://wiki.ros.org/microstrain_inertial_driver/use_ros_vehicle_frame
+use_ros_vehicle_frame : True
 
 # ****************************************************************** 
 # GNSS Settings (only applicable for devices with GNSS) 
@@ -203,7 +209,7 @@ filter_enable_external_heading_aiding : False
 #     Reference frame =
 #         1 - WGS84 Earth-fixed, earth centered (ECEF) position, velocity, attitude
 #         2 - WGS84 Latitude, Longitude, height above ellipsoid position, NED velocity and attitude
-filter_init_condition_src              : 0
+filter_init_condition_src              : 3
 filter_auto_heading_alignment_selector : 1
 filter_init_reference_frame            : 2
 filter_init_position : [0.0, 0.0, 0.0]
@@ -271,8 +277,10 @@ filter_pps_source : 1
 #       The different options are provided as a convenience.
 #       Support for matrix and quaternion options is firmware version dependent (GQ7 supports Quaternion as of firmware 1.0.07)
 #       Quaternion order is [i, j, k, w]
-# Note: This can cause strange behavior when also using the ROS transform tree.
-#       It is recommended to not use this if you want to use the ROS transform tree unless you really know what you are doing
+# Note: GNSS antenna offsets are measured WRT to the 'vehicle' frame. If you change this transform, make sure your antenna offsets are measured properly.
+#       See https://files.microstrain.com/GQ7+User+Manual/user_manual_content/installation/Antenna.htm for more information.
+# Note: This transform does not take into account any transforms that may be in the ROS tf tree.
+#       If you attempt to use both, downstream consumers of the data that use the ROS tf tree will apply the same transform twice.
 filter_sensor2vehicle_frame_selector : 1
 filter_sensor2vehicle_frame_transformation_euler      : [0.0, 0.0, 0.0]
 filter_sensor2vehicle_frame_transformation_matrix     : [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0]

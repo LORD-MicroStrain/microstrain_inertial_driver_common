@@ -241,20 +241,12 @@ bool Publishers::configure()
     gnss_1_antenna_link_to_imu_link_transform.child_frame_id = config_->gnss_frame_id_[GNSS1_ID];
     gnss_1_antenna_link_to_imu_link_transform.transform.rotation = tf2::toMsg(tf2::Quaternion::getIdentity());
 
-    const tf2::Transform gnss_1_antenna_link_to_microstrain_vehicle_transform_tf(tf2::Quaternion::getIdentity(), tf2::Vector3(gnss_antenna_offsets[0], gnss_antenna_offsets[1], gnss_antenna_offsets[2]));
-    if (config_->use_enu_frame_)
-    {
-      const tf2::Transform gnss_1_antenna_link_to_ros_vehicle_transform_tf = config_->ros_vehicle_to_microstrain_vehicle_transform_tf_.inverse() * gnss_1_antenna_link_to_microstrain_vehicle_transform_tf;
-      gnss_1_antenna_link_to_imu_link_transform.transform.translation.x = gnss_1_antenna_link_to_ros_vehicle_transform_tf.getOrigin().getX();
-      gnss_1_antenna_link_to_imu_link_transform.transform.translation.y = gnss_1_antenna_link_to_ros_vehicle_transform_tf.getOrigin().getY();
-      gnss_1_antenna_link_to_imu_link_transform.transform.translation.z = gnss_1_antenna_link_to_ros_vehicle_transform_tf.getOrigin().getZ();
-    }
-    else
-    {
-      gnss_1_antenna_link_to_imu_link_transform.transform.translation.x = gnss_1_antenna_link_to_microstrain_vehicle_transform_tf.getOrigin().getX();
-      gnss_1_antenna_link_to_imu_link_transform.transform.translation.y = gnss_1_antenna_link_to_microstrain_vehicle_transform_tf.getOrigin().getY();
-      gnss_1_antenna_link_to_imu_link_transform.transform.translation.z = gnss_1_antenna_link_to_microstrain_vehicle_transform_tf.getOrigin().getZ();
-    }
+    const tf2::Vector3 gnss_1_antenna_link_to_microstrain_vehicle_translation_tf(gnss_antenna_offsets[0], gnss_antenna_offsets[1], gnss_antenna_offsets[2]);
+    const tf2::Vector3 gnss_1_antenna_link_to_driver_vehicle_translation_tf = config_->microstrain_vehicle_frame_to_driver_vehicle_frame_transform_tf_ * gnss_1_antenna_link_to_driver_vehicle_translation_tf;
+
+    gnss_1_antenna_link_to_imu_link_transform.transform.translation.x = gnss_1_antenna_link_to_driver_vehicle_translation_tf.getX();
+    gnss_1_antenna_link_to_imu_link_transform.transform.translation.y = gnss_1_antenna_link_to_driver_vehicle_translation_tf.getY();
+    gnss_1_antenna_link_to_imu_link_transform.transform.translation.z = gnss_1_antenna_link_to_driver_vehicle_translation_tf.getZ();
   }
   else if (config_->mip_device_->supportsDescriptor(mip::commands_filter::DESCRIPTOR_SET, mip::commands_filter::CMD_MULTI_ANTENNA_OFFSET))
   {
@@ -271,20 +263,12 @@ bool Publishers::configure()
       gnss_x_antenna_link_to_imu_link_transform.child_frame_id = config_->gnss_frame_id_[gnss_id];
       gnss_x_antenna_link_to_imu_link_transform.transform.rotation = tf2::toMsg(tf2::Quaternion::getIdentity());
 
-      const tf2::Transform gnss_x_antenna_link_to_microstrain_vehicle_transform_tf(tf2::Quaternion::getIdentity(), tf2::Vector3(gnss_antenna_offsets[0], gnss_antenna_offsets[1], gnss_antenna_offsets[2]));
-      if (config_->use_enu_frame_)
-      {
-        const tf2::Transform gnss_x_antenna_link_to_ros_vehicle_transform_tf = config_->ros_vehicle_to_microstrain_vehicle_transform_tf_.inverse() * gnss_x_antenna_link_to_microstrain_vehicle_transform_tf;
-        gnss_x_antenna_link_to_imu_link_transform.transform.translation.x = gnss_x_antenna_link_to_ros_vehicle_transform_tf.getOrigin().getX();
-        gnss_x_antenna_link_to_imu_link_transform.transform.translation.y = gnss_x_antenna_link_to_ros_vehicle_transform_tf.getOrigin().getY();
-        gnss_x_antenna_link_to_imu_link_transform.transform.translation.z = gnss_x_antenna_link_to_ros_vehicle_transform_tf.getOrigin().getZ();
-      }
-      else
-      {
-        gnss_x_antenna_link_to_imu_link_transform.transform.translation.x = gnss_x_antenna_link_to_microstrain_vehicle_transform_tf.getOrigin().getX();
-        gnss_x_antenna_link_to_imu_link_transform.transform.translation.y = gnss_x_antenna_link_to_microstrain_vehicle_transform_tf.getOrigin().getY();
-        gnss_x_antenna_link_to_imu_link_transform.transform.translation.z = gnss_x_antenna_link_to_microstrain_vehicle_transform_tf.getOrigin().getZ();
-      }
+      const tf2::Vector3 gnss_x_antenna_link_to_microstrain_vehicle_translation_tf(gnss_antenna_offsets[0], gnss_antenna_offsets[1], gnss_antenna_offsets[2]);
+      const tf2::Vector3 gnss_x_antenna_link_to_driver_vehicle_translation_tf = config_->microstrain_vehicle_frame_to_driver_vehicle_frame_transform_tf_ * gnss_x_antenna_link_to_driver_vehicle_translation_tf;
+
+      gnss_x_antenna_link_to_imu_link_transform.transform.translation.x = gnss_x_antenna_link_to_driver_vehicle_translation_tf.getX();
+      gnss_x_antenna_link_to_imu_link_transform.transform.translation.y = gnss_x_antenna_link_to_driver_vehicle_translation_tf.getY();
+      gnss_x_antenna_link_to_imu_link_transform.transform.translation.z = gnss_x_antenna_link_to_driver_vehicle_translation_tf.getZ();
     }
   }
 
@@ -304,20 +288,11 @@ bool Publishers::configure()
     odometer_link_to_imu_link_transform_.transform.rotation = tf2::toMsg(tf2::Quaternion::getIdentity());
 
     // If running in the ENU frame, transform from our vehicle frame to the ROS vehicle frame
-    const tf2::Transform odometer_link_to_microstrain_vehicle_transform_tf(tf2::Quaternion::getIdentity(), tf2::Vector3(speed_lever_arm[0], speed_lever_arm[1], speed_lever_arm[2]));
-    if (config_->use_enu_frame_)
-    {
-      const tf2::Transform odometer_link_to_ros_vehicle_transform_tf = config_->ros_vehicle_to_microstrain_vehicle_transform_tf_.inverse() * odometer_link_to_microstrain_vehicle_transform_tf;
-      odometer_link_to_imu_link_transform_.transform.translation.x = odometer_link_to_ros_vehicle_transform_tf.getOrigin().getX();
-      odometer_link_to_imu_link_transform_.transform.translation.y = odometer_link_to_ros_vehicle_transform_tf.getOrigin().getY();
-      odometer_link_to_imu_link_transform_.transform.translation.z = odometer_link_to_ros_vehicle_transform_tf.getOrigin().getZ();
-    }
-    else
-    {
-      odometer_link_to_imu_link_transform_.transform.translation.x = odometer_link_to_microstrain_vehicle_transform_tf.getOrigin().getX();
-      odometer_link_to_imu_link_transform_.transform.translation.y = odometer_link_to_microstrain_vehicle_transform_tf.getOrigin().getY();
-      odometer_link_to_imu_link_transform_.transform.translation.z = odometer_link_to_microstrain_vehicle_transform_tf.getOrigin().getZ();
-    }
+    const tf2::Vector3 odometer_link_to_microstrain_vehicle_translation_tf(speed_lever_arm[0], speed_lever_arm[1], speed_lever_arm[2]);
+    const tf2::Vector3 odometer_link_to_driver_vehicle_translation_tf = config_->microstrain_vehicle_frame_to_driver_vehicle_frame_transform_tf_ * odometer_link_to_driver_vehicle_translation_tf;
+    odometer_link_to_imu_link_transform_.transform.translation.x = odometer_link_to_driver_vehicle_translation_tf.getX();
+    odometer_link_to_imu_link_transform_.transform.translation.y = odometer_link_to_driver_vehicle_translation_tf.getY();
+    odometer_link_to_imu_link_transform_.transform.translation.z = odometer_link_to_driver_vehicle_translation_tf.getZ();
   }
 
   // Register callbacks for each data field we care about. Note that order is preserved here, so if a data field needs to be parsed before another, change it here.
@@ -451,14 +426,32 @@ bool Publishers::activate()
   // Static antenna offsets
   // Note: If streaming the antenna offset correction topic, correct the offsets with them
   if (config_->gnss_antenna_offset_source_[GNSS1_ID] == OFFSET_SOURCE_MANUAL)
+  {
     if (config_->mip_device_->supportsDescriptorSet(mip::data_gnss::DESCRIPTOR_SET) || config_->mip_device_->supportsDescriptorSet(mip::data_gnss::MIP_GNSS1_DATA_DESC_SET))
-      static_transform_broadcaster_->sendTransform(gnss_antenna_link_to_imu_link_transform_[GNSS1_ID]);
+    {
+      if (mip_filter_multi_antenna_offset_correction_pub_->dataRate() > 0)
+        transform_broadcaster_->sendTransform(gnss_antenna_link_to_imu_link_transform_[GNSS1_ID]);
+      else
+        static_transform_broadcaster_->sendTransform(gnss_antenna_link_to_imu_link_transform_[GNSS1_ID]);
+    }
+  }
   if (config_->gnss_antenna_offset_source_[GNSS2_ID] == OFFSET_SOURCE_MANUAL)
+  {
     if (config_->mip_device_->supportsDescriptorSet(mip::data_gnss::MIP_GNSS2_DATA_DESC_SET))
-      static_transform_broadcaster_->sendTransform(gnss_antenna_link_to_imu_link_transform_[GNSS2_ID]);
+    {
+      if (mip_filter_multi_antenna_offset_correction_pub_->dataRate() > 0)
+        transform_broadcaster_->sendTransform(gnss_antenna_link_to_imu_link_transform_[GNSS2_ID]);
+      else
+        static_transform_broadcaster_->sendTransform(gnss_antenna_link_to_imu_link_transform_[GNSS2_ID]);
+    }
+  }
   if (config_->filter_speed_lever_arm_source_ == OFFSET_SOURCE_MANUAL)
+  {
     if (config_->mip_device_->supportsDescriptor(mip::commands_filter::DESCRIPTOR_SET, mip::commands_filter::CMD_SPEED_LEVER_ARM))
+    {
       static_transform_broadcaster_->sendTransform(odometer_link_to_imu_link_transform_);
+    }
+  }
   return true;
 }
 
@@ -708,14 +701,15 @@ void Publishers::handleSensorDeltaTheta(const mip::data_sensor::DeltaTheta& delt
   // We use this delta measurement to exclude outliers and provide a more useful IMU measurement
   auto imu_msg = imu_pub_->getMessageToUpdate();
   updateHeaderTime(&(imu_msg->header), descriptor_set, timestamp);
-  imu_msg->angular_velocity.x = delta_theta.delta_theta[0] / delta_time;
-  imu_msg->angular_velocity.y = delta_theta.delta_theta[1] / delta_time;
-  imu_msg->angular_velocity.z = delta_theta.delta_theta[2] / delta_time;
-  if (config_->use_enu_frame_)
-  {
-    imu_msg->angular_velocity.y *= -1.0;
-    imu_msg->angular_velocity.z *= -1.0;
-  }
+  const tf2::Vector3 angular_velocity_in_microstrain_vehicle_frame(
+    delta_theta.delta_theta[0] / delta_time,
+    delta_theta.delta_theta[1] / delta_time,
+    delta_theta.delta_theta[2] / delta_time
+  );
+  const tf2::Vector3& angular_velocity_in_driver_vehicle_frame = config_->microstrain_vehicle_frame_to_driver_vehicle_frame_transform_tf_ * angular_velocity_in_microstrain_vehicle_frame;
+  imu_msg->angular_velocity.x = angular_velocity_in_driver_vehicle_frame.getX();
+  imu_msg->angular_velocity.y = angular_velocity_in_driver_vehicle_frame.getY();
+  imu_msg->angular_velocity.z = angular_velocity_in_driver_vehicle_frame.getZ();
 }
 
 void Publishers::handleSensorDeltaVelocity(const mip::data_sensor::DeltaVelocity& delta_velocity, const uint8_t descriptor_set, mip::Timestamp timestamp)
@@ -729,14 +723,15 @@ void Publishers::handleSensorDeltaVelocity(const mip::data_sensor::DeltaVelocity
 
   auto imu_msg = imu_pub_->getMessageToUpdate();
   updateHeaderTime(&(imu_msg->header), descriptor_set, timestamp);
-  imu_msg->linear_acceleration.x = USTRAIN_G * delta_velocity.delta_velocity[0] / delta_time;
-  imu_msg->linear_acceleration.y = USTRAIN_G * delta_velocity.delta_velocity[1] / delta_time;
-  imu_msg->linear_acceleration.z = USTRAIN_G * delta_velocity.delta_velocity[2] / delta_time;
-  if (config_->use_enu_frame_)
-  {
-    imu_msg->linear_acceleration.y *= -1.0;
-    imu_msg->linear_acceleration.z *= -1.0;
-  }
+  const tf2::Vector3 linear_acceleration_in_microstrain_vehicle_frame(
+    USTRAIN_G * delta_velocity.delta_velocity[0] / delta_time,
+    USTRAIN_G * delta_velocity.delta_velocity[1] / delta_time,
+    USTRAIN_G * delta_velocity.delta_velocity[2] / delta_time
+  );
+  const tf2::Vector3& linear_acceleration_in_driver_vehicle_frame = config_->microstrain_vehicle_frame_to_driver_vehicle_frame_transform_tf_ * linear_acceleration_in_microstrain_vehicle_frame;
+  imu_msg->linear_acceleration.x = linear_acceleration_in_driver_vehicle_frame.getX();
+  imu_msg->linear_acceleration.y = linear_acceleration_in_driver_vehicle_frame.getY();
+  imu_msg->linear_acceleration.z = linear_acceleration_in_driver_vehicle_frame.getZ();
 }
 
 void Publishers::handleSensorCompQuaternion(const mip::data_sensor::CompQuaternion& comp_quaternion, const uint8_t descriptor_set, mip::Timestamp timestamp)
@@ -744,30 +739,20 @@ void Publishers::handleSensorCompQuaternion(const mip::data_sensor::CompQuaterni
   // Rotate the quaternion into the correct frame
   auto imu_msg = imu_pub_->getMessageToUpdate();
   updateHeaderTime(&(imu_msg->header), descriptor_set, timestamp);
-  const tf2::Transform microstrain_vehicle_to_ned_transform_tf(tf2::Quaternion(comp_quaternion.q[1], comp_quaternion.q[2], comp_quaternion.q[3], comp_quaternion.q[0]));
-  if (config_->use_enu_frame_)
-  {
-    const tf2::Transform ros_vehicle_to_enu_transform_tf = config_->ned_to_enu_transform_tf_ * microstrain_vehicle_to_ned_transform_tf * config_->ros_vehicle_to_microstrain_vehicle_transform_tf_;
-    imu_msg->orientation = tf2::toMsg(ros_vehicle_to_enu_transform_tf.getRotation());
-  }
-  else
-  {
-    imu_msg->orientation = tf2::toMsg(microstrain_vehicle_to_ned_transform_tf.getRotation());
-  }
+  const tf2::Transform microstrain_vehicle_frame_to_microstrain_global_frame_transform_tf(tf2::Quaternion(comp_quaternion.q[1], comp_quaternion.q[2], comp_quaternion.q[3], comp_quaternion.q[0]));
+  const tf2::Transform& driver_vehicle_frame_to_driver_global_frame_transform_tf = config_->microstrain_global_frame_to_driver_global_frame_transform_tf_ * microstrain_vehicle_frame_to_microstrain_global_frame_transform_tf * config_->driver_vehicle_frame_to_microstrain_vehicle_frame_transform_tf_;
+  imu_msg->orientation = tf2::toMsg(driver_vehicle_frame_to_driver_global_frame_transform_tf.getRotation());
 }
 
 void Publishers::handleSensorScaledMag(const mip::data_sensor::ScaledMag& scaled_mag, const uint8_t descriptor_set, mip::Timestamp timestamp)
 {
   auto mag_msg = mag_pub_->getMessageToUpdate();
   updateHeaderTime(&(mag_msg->header), descriptor_set, timestamp);
-  mag_msg->magnetic_field.x = scaled_mag.scaled_mag[0] / 10000;
-  mag_msg->magnetic_field.y = scaled_mag.scaled_mag[1] / 10000;
-  mag_msg->magnetic_field.z = scaled_mag.scaled_mag[2] / 10000;
-  if (config_->use_enu_frame_)
-  {
-    mag_msg->magnetic_field.y *= -1.0;
-    mag_msg->magnetic_field.z *= -1.0;
-  }
+  const tf2::Vector3 magnetic_field_in_microstrain_vehicle_frame(scaled_mag.scaled_mag[0], scaled_mag.scaled_mag[1], scaled_mag.scaled_mag[2]);
+  const tf2::Vector3& magnetic_field_in_driver_vehicle_frame = config_->microstrain_vehicle_frame_to_driver_vehicle_frame_transform_tf_ * magnetic_field_in_microstrain_vehicle_frame;
+  mag_msg->magnetic_field.x = magnetic_field_in_driver_vehicle_frame.getX() / 10000;
+  mag_msg->magnetic_field.y = magnetic_field_in_driver_vehicle_frame.getX() / 10000;
+  mag_msg->magnetic_field.z = magnetic_field_in_driver_vehicle_frame.getX() / 10000;
 }
 
 void Publishers::handleSensorScaledPressure(const mip::data_sensor::ScaledPressure& scaled_pressure, const uint8_t descriptor_set, mip::Timestamp timestamp)
@@ -875,19 +860,12 @@ void Publishers::handleGnssVelNed(const mip::data_gnss::VelNed& vel_ned, const u
   // GNSS velocity message
   auto gnss_velocity_msg = gnss_velocity_pub_[gnss_index]->getMessageToUpdate();
   updateHeaderTime(&(gnss_velocity_msg->header), descriptor_set, timestamp);
-  if (config_->use_enu_frame_)
-  {
-    gnss_velocity_msg->twist.twist.linear.x = vel_ned.v[1];
-    gnss_velocity_msg->twist.twist.linear.y = vel_ned.v[0];
-    gnss_velocity_msg->twist.twist.linear.z = -vel_ned.v[2];
-  }
-  else
-  {
-    gnss_velocity_msg->twist.twist.linear.x = vel_ned.v[0];
-    gnss_velocity_msg->twist.twist.linear.y = vel_ned.v[1];
-    gnss_velocity_msg->twist.twist.linear.z = vel_ned.v[2];
-  }
-  double velocity_covariance = pow(vel_ned.speed_accuracy, 2);
+  const tf2::Vector3 velocity_in_microstrain_global_frame(vel_ned.v[0], vel_ned.v[1], vel_ned.v[2]);
+  const tf2::Vector3& velocity_in_driver_global_frame = config_->microstrain_global_frame_to_driver_global_frame_transform_tf_ * velocity_in_microstrain_global_frame;
+  const double velocity_covariance = pow(vel_ned.speed_accuracy, 2);
+  gnss_velocity_msg->twist.twist.linear.x = velocity_in_driver_global_frame.getX();
+  gnss_velocity_msg->twist.twist.linear.y = velocity_in_driver_global_frame.getY();
+  gnss_velocity_msg->twist.twist.linear.z = velocity_in_driver_global_frame.getZ();
   gnss_velocity_msg->twist.covariance[0] = velocity_covariance;
   gnss_velocity_msg->twist.covariance[7] = velocity_covariance;
   gnss_velocity_msg->twist.covariance[14] = velocity_covariance;
@@ -900,39 +878,31 @@ void Publishers::handleGnssVelNed(const mip::data_gnss::VelNed& vel_ned, const u
   config_->geocentric_converter_.Reverse(gnss_odometry_msg->pose.pose.position.x, gnss_odometry_msg->pose.pose.position.y, gnss_odometry_msg->pose.pose.position.z, lat, lon, alt);
 
   // Convert the course over ground to the correct frame
-  tf2::Quaternion ned_to_microstrain_vehicle_quaternion_tf;
-  ned_to_microstrain_vehicle_quaternion_tf.setRPY(0, 0, vel_ned.heading * M_PI / 180);
-  const tf2::Transform ned_to_microstrain_vehicle_transform_tf(ned_to_microstrain_vehicle_quaternion_tf);
+  tf2::Quaternion microstrain_global_frame_to_microstrain_vehicle_frame_quaternion_tf;
+  microstrain_global_frame_to_microstrain_vehicle_frame_quaternion_tf.setRPY(0, 0, vel_ned.heading * M_PI / 180);
+  const tf2::Transform microstrain_global_frame_to_microstrain_vehicle_frame_transform_tf(microstrain_global_frame_to_microstrain_vehicle_frame_quaternion_tf);
+  const tf2::Transform microstrain_vehicle_frame_to_microstrain_global_frame_transform_tf = microstrain_global_frame_to_microstrain_vehicle_frame_transform_tf.inverse();
+
+  tf2::Transform earth_to_driver_global_frame_transform_tf;
   if (config_->use_enu_frame_)
-  {
-    const tf2::Transform earth_to_enu_transform_tf(ecefToEnuTransform(lat, lon));
-    const tf2::Transform ros_vehicle_to_earth_transform_tf = earth_to_enu_transform_tf.inverse() * config_->ned_to_enu_transform_tf_ * ned_to_microstrain_vehicle_transform_tf.inverse() * config_->ros_vehicle_to_microstrain_vehicle_transform_tf_;
-    gnss_odometry_msg->pose.pose.orientation = tf2::toMsg(ros_vehicle_to_earth_transform_tf.getRotation());
-  }
+    earth_to_driver_global_frame_transform_tf = tf2::Transform(ecefToEnuTransform(lat, lon));
   else
-  {
-    const tf2::Transform earth_to_ned_transform_tf(ecefToNedTransform(lat, lon));
-    const tf2::Transform microstrain_vehicle_to_earth_transform_tf = earth_to_ned_transform_tf.inverse() * ned_to_microstrain_vehicle_transform_tf.inverse();
-    gnss_odometry_msg->pose.pose.orientation = tf2::toMsg(microstrain_vehicle_to_earth_transform_tf.getRotation());
-  }
+    earth_to_driver_global_frame_transform_tf = tf2::Transform(ecefToNedTransform(lat, lon));
+  const tf2::Transform& driver_global_frame_to_earth_transform_tf = earth_to_driver_global_frame_transform_tf.inverse();
+  const tf2::Transform& driver_vehicle_frame_to_earth_transform_tf =
+    driver_global_frame_to_earth_transform_tf *
+    config_->microstrain_global_frame_to_driver_global_frame_transform_tf_ *
+    microstrain_vehicle_frame_to_microstrain_global_frame_transform_tf *
+    config_->driver_vehicle_frame_to_microstrain_vehicle_frame_transform_tf_;
+  gnss_odometry_msg->pose.pose.orientation = tf2::toMsg(driver_vehicle_frame_to_earth_transform_tf.getRotation());
+
   gnss_odometry_msg->pose.covariance[35] = vel_ned.heading_accuracy;
 
   // Rotate the velocity to the sensor frame for the odometry message
-  const tf2::Vector3 imu_velocity_in_ned_frame(vel_ned.v[0], vel_ned.v[1], vel_ned.v[2]);
-  if (config_->use_enu_frame_)
-  {
-    const tf2::Vector3 imu_velocity_in_ros_vehicle_frame = config_->ros_vehicle_to_microstrain_vehicle_transform_tf_.inverse() * ned_to_microstrain_vehicle_transform_tf * imu_velocity_in_ned_frame;
-    gnss_odometry_msg->twist.twist.linear.x = imu_velocity_in_ros_vehicle_frame.getX();
-    gnss_odometry_msg->twist.twist.linear.y = imu_velocity_in_ros_vehicle_frame.getY();
-    gnss_odometry_msg->twist.twist.linear.z = imu_velocity_in_ros_vehicle_frame.getZ();
-  }
-  else
-  {
-    const tf2::Vector3 imu_velocity_in_microstrain_vehicle_frame = ned_to_microstrain_vehicle_transform_tf * imu_velocity_in_ned_frame;
-    gnss_odometry_msg->twist.twist.linear.x = imu_velocity_in_microstrain_vehicle_frame.getX();
-    gnss_odometry_msg->twist.twist.linear.y = imu_velocity_in_microstrain_vehicle_frame.getY();
-    gnss_odometry_msg->twist.twist.linear.z = imu_velocity_in_microstrain_vehicle_frame.getZ();
-  }
+  const tf2::Vector3 velocity_in_driver_vehicle_frame = config_->microstrain_vehicle_frame_to_driver_vehicle_frame_transform_tf_ * microstrain_global_frame_to_microstrain_vehicle_frame_transform_tf * velocity_in_microstrain_global_frame;
+  gnss_odometry_msg->twist.twist.linear.x = velocity_in_driver_vehicle_frame.getX();
+  gnss_odometry_msg->twist.twist.linear.y = velocity_in_driver_vehicle_frame.getY();
+  gnss_odometry_msg->twist.twist.linear.z = velocity_in_driver_vehicle_frame.getZ();
   gnss_odometry_msg->twist.covariance = gnss_velocity_msg->twist.covariance;
 }
 
@@ -1399,7 +1369,7 @@ void Publishers::handleFilterPositionLlhUncertainty(const mip::data_filter::Posi
   const double n = pow(position_llh_uncertainty.north, 2);
   const double e = pow(position_llh_uncertainty.east, 2);
   const double d = pow(position_llh_uncertainty.down, 2);
-  const PoseWithCovarianceStampedMsg::_pose_type::_covariance_type ned_frame_covariance =
+  const PoseWithCovarianceStampedMsg::_pose_type::_covariance_type microstrain_global_frame_covariance =
   {
     n, 0, 0, 0, 0, 0,
     0, e, 0, 0, 0, 0,
@@ -1408,37 +1378,25 @@ void Publishers::handleFilterPositionLlhUncertainty(const mip::data_filter::Posi
     0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0
   };
-  const PoseWithCovarianceStampedMsg::_pose_type::_covariance_type enu_frame_covariance = tf2::transformCovariance(ned_frame_covariance, config_->ned_to_enu_transform_tf_);
+  const PoseWithCovarianceStampedMsg::_pose_type::_covariance_type driver_global_frame_covariance = tf2::transformCovariance(microstrain_global_frame_covariance, config_->microstrain_global_frame_to_driver_global_frame_transform_tf_);
 
   // Filter fix message
   auto filter_llh_position_msg = filter_llh_position_pub_->getMessageToUpdate();
   updateHeaderTime(&(filter_llh_position_msg->header), descriptor_set, timestamp);
   filter_llh_position_msg->position_covariance_type = NavSatFixMsg::COVARIANCE_TYPE_DIAGONAL_KNOWN;
-  if (config_->use_enu_frame_)
-  {
-    filter_llh_position_msg->position_covariance[0] = enu_frame_covariance[0];
-    filter_llh_position_msg->position_covariance[4] = enu_frame_covariance[7];
-    filter_llh_position_msg->position_covariance[8] = enu_frame_covariance[14];
-  }
-  else
-  {
-    filter_llh_position_msg->position_covariance[0] = ned_frame_covariance[0];
-    filter_llh_position_msg->position_covariance[4] = ned_frame_covariance[7];
-    filter_llh_position_msg->position_covariance[8] = ned_frame_covariance[14];
-  }
+  filter_llh_position_msg->position_covariance[0] = driver_global_frame_covariance[0];
+  filter_llh_position_msg->position_covariance[4] = driver_global_frame_covariance[7];
+  filter_llh_position_msg->position_covariance[8] = driver_global_frame_covariance[14];
 
   // Filter relative odometry message (not counted as updating)
   auto filter_odometry_map_msg = filter_odometry_map_pub_->getMessage();
-  if (config_->use_enu_frame_)
-    setTranslationCovarianceOnCovariance(&filter_odometry_map_msg->pose.covariance, getTranslationCovarianceFromCovariance(enu_frame_covariance));
-  else
-    setTranslationCovarianceOnCovariance(&filter_odometry_map_msg->pose.covariance, getTranslationCovarianceFromCovariance(ned_frame_covariance));
+  setTranslationCovarianceOnCovariance(&filter_odometry_map_msg->pose.covariance, getTranslationCovarianceFromCovariance(driver_global_frame_covariance));
 
   // If the device does not support ECEF uncertainty, rotate this uncertainty into the ECEF frame and process it
   if (!supports_filter_ecef_)
   {
-    const tf2::Transform ecef_to_ned_transform(ecefToNedTransform(filter_llh_position_msg->latitude, filter_llh_position_msg->longitude));
-    const PoseWithCovarianceStampedMsg::_pose_type::_covariance_type ecef_frame_covariance = tf2::transformCovariance(ned_frame_covariance, ecef_to_ned_transform.inverse());
+    const tf2::Transform microstrain_global_frame_to_ecef_frame_transform_tf(ecefToNedTransform(filter_llh_position_msg->latitude, filter_llh_position_msg->longitude).inverse());
+    const PoseWithCovarianceStampedMsg::_pose_type::_covariance_type ecef_frame_covariance = tf2::transformCovariance(microstrain_global_frame_covariance, microstrain_global_frame_to_ecef_frame_transform_tf);
     mip::data_filter::EcefPosUncertainty ecef_pos_uncertainty;
     ecef_pos_uncertainty.pos_uncertainty =
     {
@@ -1452,32 +1410,6 @@ void Publishers::handleFilterPositionLlhUncertainty(const mip::data_filter::Posi
 
 void Publishers::handleFilterAttitudeQuaternion(const mip::data_filter::AttitudeQuaternion& attitude_quaternion, const uint8_t descriptor_set, mip::Timestamp timestamp)
 {
-  // Filter odometry message rotated to ECEF (not counted as updating)
-  auto filter_odometry_earth_msg = filter_odometry_earth_pub_->getMessage();
-
-  // Convert the ECEF coordinates to LLH so we can lookup the rotation
-  double lat, lon, alt;
-  config_->geocentric_converter_.Reverse(filter_odometry_earth_msg->pose.pose.position.x, filter_odometry_earth_msg->pose.pose.position.y, filter_odometry_earth_msg->pose.pose.position.z, lat, lon, alt);
-
-  // Put the orientation into the ECEF frame for our earth messages
-  const tf2::Transform microstrain_vehicle_to_ned_transform_tf(tf2::Quaternion(attitude_quaternion.q[1], attitude_quaternion.q[2], attitude_quaternion.q[3], attitude_quaternion.q[0]));
-  if (config_->use_enu_frame_)
-  {
-    const tf2::Transform earth_to_enu_transform_tf(ecefToEnuTransform(lat, lon));
-    const tf2::Transform ros_vehicle_to_earth_transform_tf = earth_to_enu_transform_tf.inverse() * config_->ned_to_enu_transform_tf_ * microstrain_vehicle_to_ned_transform_tf * config_->ros_vehicle_to_microstrain_vehicle_transform_tf_;
-    imu_link_to_earth_transform_tf_stamped_.setBasis(ros_vehicle_to_earth_transform_tf.getBasis());
-    filter_odometry_earth_msg->pose.pose.orientation = tf2::toMsg(ros_vehicle_to_earth_transform_tf.getRotation());
-  }
-  else
-  {
-    const tf2::Transform earth_to_ned_transform_tf(ecefToNedTransform(lat, lon));
-    const tf2::Transform microstrain_vehicle_to_earth_transform_tf = earth_to_ned_transform_tf.inverse() * microstrain_vehicle_to_ned_transform_tf;
-    imu_link_to_earth_transform_tf_stamped_.setBasis(microstrain_vehicle_to_earth_transform_tf.getBasis());
-    filter_odometry_earth_msg->pose.pose.orientation = tf2::toMsg(microstrain_vehicle_to_earth_transform_tf.getRotation());
-  }
-  imu_link_to_earth_transform_tf_stamped_.stamp_ = tf2_ros::fromMsg(rosTimeNow(node_));
-  imu_link_to_earth_transform_attitude_updated_ = true;
-
   // Filtered IMU message
   auto filter_imu_msg = filter_imu_pub_->getMessageToUpdate();
   updateHeaderTime(&(filter_imu_msg->header), descriptor_set, timestamp);
@@ -1486,21 +1418,31 @@ void Publishers::handleFilterAttitudeQuaternion(const mip::data_filter::Attitude
   auto filter_odometry_map_msg = filter_odometry_map_pub_->getMessage();
 
   // Put the orientation into the NED/ENU frame for our map messages
-  if (config_->use_enu_frame_)
-  {
-    const tf2::Transform ros_vehicle_to_enu_transform_tf = config_->ned_to_enu_transform_tf_ * microstrain_vehicle_to_ned_transform_tf * config_->ros_vehicle_to_microstrain_vehicle_transform_tf_;
-    imu_link_to_map_transform_tf_stamped_.setBasis(ros_vehicle_to_enu_transform_tf.getBasis());
-    filter_odometry_map_msg->pose.pose.orientation = tf2::toMsg(ros_vehicle_to_enu_transform_tf.getRotation());
-    filter_imu_msg->orientation = tf2::toMsg(ros_vehicle_to_enu_transform_tf.getRotation());
-  }
-  else
-  {
-    imu_link_to_map_transform_tf_stamped_.setBasis(microstrain_vehicle_to_ned_transform_tf.getBasis());
-    filter_odometry_map_msg->pose.pose.orientation = tf2::toMsg(microstrain_vehicle_to_ned_transform_tf.getRotation());
-    filter_imu_msg->orientation = tf2::toMsg(microstrain_vehicle_to_ned_transform_tf.getRotation());
-  }
+  const tf2::Transform microstrain_vehicle_frame_to_microstrain_global_frame_transform_tf(tf2::Quaternion(attitude_quaternion.q[1], attitude_quaternion.q[2], attitude_quaternion.q[3], attitude_quaternion.q[0]));
+  const tf2::Transform& driver_vehicle_frame_to_driver_global_frame_transform_tf = config_->microstrain_global_frame_to_driver_global_frame_transform_tf_ * microstrain_vehicle_frame_to_microstrain_global_frame_transform_tf * config_->driver_vehicle_frame_to_microstrain_vehicle_frame_transform_tf_;
+  filter_odometry_map_msg->pose.pose.orientation = tf2::toMsg(driver_vehicle_frame_to_driver_global_frame_transform_tf.getRotation());
+  filter_imu_msg->orientation = filter_odometry_map_msg->pose.pose.orientation;
+
+  imu_link_to_map_transform_tf_stamped_.setBasis(driver_vehicle_frame_to_driver_global_frame_transform_tf.getBasis());
   imu_link_to_map_transform_tf_stamped_.stamp_ = tf2_ros::fromMsg(rosTimeNow(node_));
   imu_link_to_map_transform_attitude_updated_ = true;
+
+  // Filter odometry message rotated to ECEF (not counted as updating)
+  auto filter_odometry_earth_msg = filter_odometry_earth_pub_->getMessage();
+
+  // Convert the ECEF coordinates to LLH so we can lookup the rotation
+  double lat, lon, alt;
+  config_->geocentric_converter_.Reverse(filter_odometry_earth_msg->pose.pose.position.x, filter_odometry_earth_msg->pose.pose.position.y, filter_odometry_earth_msg->pose.pose.position.z, lat, lon, alt);
+
+  // Put the orientation into the ECEF frame for our earth messages
+  const tf2::Transform& driver_global_frame_to_earth_transform_tf = config_->use_enu_frame_ ? tf2::Transform(ecefToEnuTransform(lat, lon).inverse()) : tf2::Transform(ecefToNedTransform(lat, lon).inverse());
+  const tf2::Transform& driver_vehicle_frame_to_earth_frame_transform_tf = driver_global_frame_to_earth_transform_tf * driver_vehicle_frame_to_driver_global_frame_transform_tf;
+  filter_odometry_earth_msg->pose.pose.orientation = tf2::toMsg(driver_vehicle_frame_to_earth_frame_transform_tf.getRotation());
+
+  imu_link_to_earth_transform_tf_stamped_.setBasis(driver_vehicle_frame_to_earth_frame_transform_tf.getBasis());
+  imu_link_to_earth_transform_tf_stamped_.stamp_ = tf2_ros::fromMsg(rosTimeNow(node_));
+  imu_link_to_earth_transform_attitude_updated_ = true;
+
 }
 
 void Publishers::handleFilterEulerAnglesUncertainty(const mip::data_filter::EulerAnglesUncertainty& euler_angles_uncertainty, const uint8_t descriptor_set, mip::Timestamp timestamp)
@@ -1511,7 +1453,7 @@ void Publishers::handleFilterEulerAnglesUncertainty(const mip::data_filter::Eule
   const double r = pow(euler_angles_uncertainty.roll, 2);
   const double p = pow(euler_angles_uncertainty.pitch, 2);
   const double y = pow(euler_angles_uncertainty.yaw, 2);
-  const PoseWithCovarianceStampedMsg::_pose_type::_covariance_type ned_frame_covariance =
+  const PoseWithCovarianceStampedMsg::_pose_type::_covariance_type microstrain_global_frame_covariance =
   {
     0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0,
@@ -1520,15 +1462,12 @@ void Publishers::handleFilterEulerAnglesUncertainty(const mip::data_filter::Eule
     0, 0, 0, 0, p, 0,
     0, 0, 0, 0, 0, y
   };
-  const PoseWithCovarianceStampedMsg::_pose_type::_covariance_type enu_frame_covariance = tf2::transformCovariance(ned_frame_covariance, config_->ned_to_enu_transform_tf_);
+  const PoseWithCovarianceStampedMsg::_pose_type::_covariance_type driver_global_frame_covariance = tf2::transformCovariance(microstrain_global_frame_covariance, config_->microstrain_global_frame_to_driver_global_frame_transform_tf_);
 
   // Filtered IMU message
   auto filter_imu_msg = filter_imu_pub_->getMessageToUpdate();
   updateHeaderTime(&(filter_imu_msg->header), descriptor_set, timestamp);
-  if (config_->use_enu_frame_)
-    filter_imu_msg->orientation_covariance = getRotationCovarianceFromCovariance(enu_frame_covariance);
-  else
-    filter_imu_msg->orientation_covariance = getRotationCovarianceFromCovariance(ned_frame_covariance);
+  filter_imu_msg->orientation_covariance = getRotationCovarianceFromCovariance(driver_global_frame_covariance);
 
   // Filter odometry message (not counted as updating)
   auto filter_odometry_earth_msg = filter_odometry_earth_pub_->getMessage();
@@ -1537,16 +1476,13 @@ void Publishers::handleFilterEulerAnglesUncertainty(const mip::data_filter::Eule
   // NOTE: We view the NED frame and microstrain vehicle frame as the same here since there is no transform between them.
   double lat, lon, height;
   config_->geocentric_converter_.Reverse(filter_odometry_earth_msg->pose.pose.position.x, filter_odometry_earth_msg->pose.pose.position.y, filter_odometry_earth_msg->pose.pose.position.z, lat, lon, height);
-  const tf2::Transform ecef_to_ned_transform(ecefToNedTransform(lat, lon));
-  const PoseWithCovarianceStampedMsg::_pose_type::_covariance_type ecef_frame_covariance = tf2::transformCovariance(ned_frame_covariance, ecef_to_ned_transform.inverse());
+  const tf2::Transform microstrain_global_frame_to_ecef_frame_transform_tf(ecefToNedTransform(lat, lon).inverse());
+  const PoseWithCovarianceStampedMsg::_pose_type::_covariance_type ecef_frame_covariance = tf2::transformCovariance(microstrain_global_frame_covariance, microstrain_global_frame_to_ecef_frame_transform_tf);
   setRotationCovarianceOnCovariance(&filter_odometry_earth_msg->pose.covariance, getRotationCovarianceFromCovariance(ecef_frame_covariance));
 
   // Filter relative odometry message (not counted as updating)
   auto filter_odometry_map_msg = filter_odometry_map_pub_->getMessage();
-  if (config_->use_enu_frame_)
-    setRotationCovarianceOnCovariance(&filter_odometry_map_msg->pose.covariance, getRotationCovarianceFromCovariance(enu_frame_covariance));
-  else
-    setRotationCovarianceOnCovariance(&filter_odometry_map_msg->pose.covariance, getRotationCovarianceFromCovariance(ned_frame_covariance));
+  setRotationCovarianceOnCovariance(&filter_odometry_map_msg->pose.covariance, getRotationCovarianceFromCovariance(driver_global_frame_covariance));
 }
 
 void Publishers::handleFilterVelocityNed(const mip::data_filter::VelocityNed& velocity_ned, const uint8_t descriptor_set, mip::Timestamp timestamp)
@@ -1807,23 +1743,14 @@ void Publishers::handleFilterMultiAntennaOffsetCorrection(const mip::data_filter
   mip_filter_multi_antenna_offset_correction_msg->offset[2] = multi_antenna_offset_correction.offset[2];
   mip_filter_multi_antenna_offset_correction_pub_->publish(*mip_filter_multi_antenna_offset_correction_msg);
 
-  const tf2::Transform gnss_x_antenna_correction_to_microstrain_vehicle_tf(tf2::Quaternion::getIdentity(), tf2::Vector3(multi_antenna_offset_correction.offset[0], multi_antenna_offset_correction.offset[1], multi_antenna_offset_correction.offset[2]));
+  const tf2::Transform gnss_x_antenna_correction_to_microstrain_vehicle_frame_tf(tf2::Quaternion::getIdentity(), tf2::Vector3(multi_antenna_offset_correction.offset[0], multi_antenna_offset_correction.offset[1], multi_antenna_offset_correction.offset[2]));
+  const tf2::Transform gnss_x_antenna_correction_to_driver_vehicle_frame_tf = config_->microstrain_vehicle_frame_to_driver_vehicle_frame_transform_tf_ * gnss_x_antenna_correction_to_microstrain_vehicle_frame_tf;
   TransformStampedMsg gnss_x_antenna_to_imu_link_transform = gnss_antenna_link_to_imu_link_transform_[multi_antenna_offset_correction.receiver_id - 1];
   gnss_x_antenna_to_imu_link_transform.header.stamp = rosTimeNow(node_);
-  if (config_->use_enu_frame_)
-  {
-    const tf2::Transform gnss_x_antenna_correction_to_ros_vehicle_tf = config_->ros_vehicle_to_microstrain_vehicle_transform_tf_.inverse() * gnss_x_antenna_correction_to_microstrain_vehicle_tf;
-    gnss_x_antenna_to_imu_link_transform.transform.translation.x += gnss_x_antenna_correction_to_ros_vehicle_tf.getOrigin().getX();
-    gnss_x_antenna_to_imu_link_transform.transform.translation.y += gnss_x_antenna_correction_to_ros_vehicle_tf.getOrigin().getY();
-    gnss_x_antenna_to_imu_link_transform.transform.translation.z += gnss_x_antenna_correction_to_ros_vehicle_tf.getOrigin().getZ();
-  }
-  else
-  {
-    gnss_x_antenna_to_imu_link_transform.transform.translation.x += gnss_x_antenna_correction_to_microstrain_vehicle_tf.getOrigin().getX();
-    gnss_x_antenna_to_imu_link_transform.transform.translation.y += gnss_x_antenna_correction_to_microstrain_vehicle_tf.getOrigin().getY();
-    gnss_x_antenna_to_imu_link_transform.transform.translation.z += gnss_x_antenna_correction_to_microstrain_vehicle_tf.getOrigin().getZ();
-  }
-  static_transform_broadcaster_->sendTransform(gnss_x_antenna_to_imu_link_transform);
+  gnss_x_antenna_to_imu_link_transform.transform.translation.x += gnss_x_antenna_correction_to_driver_vehicle_frame_tf.getOrigin().getX();
+  gnss_x_antenna_to_imu_link_transform.transform.translation.y += gnss_x_antenna_correction_to_driver_vehicle_frame_tf.getOrigin().getY();
+  gnss_x_antenna_to_imu_link_transform.transform.translation.z += gnss_x_antenna_correction_to_driver_vehicle_frame_tf.getOrigin().getZ();
+  transform_broadcaster_->sendTransform(gnss_x_antenna_to_imu_link_transform);
 }
 
 void Publishers::handleFilterGnssDualAntennaStatus(const mip::data_filter::GnssDualAntennaStatus& gnss_dual_antenna_status, const uint8_t descriptor_set, mip::Timestamp timestamp)
@@ -1841,18 +1768,11 @@ void Publishers::handleFilterGnssDualAntennaStatus(const mip::data_filter::GnssD
   // Filter Dual Antenna Status (pose version)
   auto filter_dual_antenna_heading_msg = filter_dual_antenna_heading_pub_->getMessageToUpdate();
   updateHeaderTime(&(filter_dual_antenna_heading_msg->header), descriptor_set, timestamp, &gps_timestamp);
-  tf2::Quaternion microstrain_vehicle_to_ned_quaternion_tf;
-  microstrain_vehicle_to_ned_quaternion_tf.setRPY(0, 0, gnss_dual_antenna_status.heading);
-  tf2::Transform microstrain_vehicle_to_ned_transform_tf(microstrain_vehicle_to_ned_quaternion_tf);
-  if (config_->use_enu_frame_)
-  {
-    const tf2::Transform ros_vehicle_to_enu_transform_tf = config_->ned_to_enu_transform_tf_ * microstrain_vehicle_to_ned_transform_tf * config_->ros_vehicle_to_microstrain_vehicle_transform_tf_;
-    filter_dual_antenna_heading_msg->pose.pose.orientation = tf2::toMsg(ros_vehicle_to_enu_transform_tf.getRotation());
-  }
-  else
-  {
-    filter_dual_antenna_heading_msg->pose.pose.orientation = tf2::toMsg(microstrain_vehicle_to_ned_transform_tf.getRotation());
-  }
+  tf2::Quaternion microstrain_vehicle_frame_to_microstrain_global_frame_quaternion_tf;
+  microstrain_vehicle_frame_to_microstrain_global_frame_quaternion_tf.setRPY(0, 0, gnss_dual_antenna_status.heading);
+  const tf2::Transform microstrain_vehicle_frame_to_microstrain_global_frame_transform_tf(microstrain_vehicle_frame_to_microstrain_global_frame_quaternion_tf);
+  const tf2::Transform driver_vehicle_frame_to_driver_global_frame_transform_tf = config_->microstrain_global_frame_to_driver_global_frame_transform_tf_ * microstrain_vehicle_frame_to_microstrain_global_frame_transform_tf * config_->driver_vehicle_frame_to_microstrain_vehicle_frame_transform_tf_;
+  filter_dual_antenna_heading_msg->pose.pose.orientation = tf2::toMsg(driver_vehicle_frame_to_driver_global_frame_transform_tf.getRotation());
   filter_dual_antenna_heading_msg->pose.covariance[35] = pow(gnss_dual_antenna_status.heading_unc, 2);
 
   // Filter GNSS Dual Antenna status

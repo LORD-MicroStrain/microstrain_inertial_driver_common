@@ -349,7 +349,7 @@ void Subscribers::externalHeadingEnuCallback(const PoseWithCovarianceStampedMsg&
   double r, p, y;
   tf2::Quaternion q;
   tf2::fromMsg(heading.pose.pose.orientation, q);
-  q = config_->ned_to_enu_transform_tf_.inverse() * q;
+  q = config_->enu_to_ned_transform_tf_ * q;
   tf2::Matrix3x3 m(q);
   m.getRPY(r, p, y);
 
@@ -461,47 +461,36 @@ uint8_t Subscribers::getSensorIdFromFrameId(const std::string& frame_id)
       RosTimeType frame_time; setRosTime(&frame_time, 0, 0);
       if (transform_buffer_->canTransform(config_->frame_id_, frame_id, frame_time, RosDurationType(0, 0), &tf_error_string))
       {
-        // Populate the reference frame command from the transform. Convert from ROS vehicle frame to Microstrain vehicle frame if operating in enu mode
-        auto vehicle_to_sensor_transform = transform_buffer_->lookupTransform(config_->frame_id_, frame_id, frame_time);
-        if (config_->use_enu_frame_)
-        {
-          tf2::Transform ros_vehicle_to_sensor_transform_tf, microstrain_vehicle_to_sensor_transform_tf;
-          tf2::fromMsg(vehicle_to_sensor_transform.transform, ros_vehicle_to_sensor_transform_tf);
-          const tf2::Vector3& ros_vehicle_to_sensor_translation_tf = ros_vehicle_to_sensor_transform_tf.getOrigin();
-          const tf2::Quaternion& ros_vehicle_to_sensor_rotation_tf = ros_vehicle_to_sensor_transform_tf.getRotation();
-          const tf2::Vector3& microstrain_vehicle_to_sensor_translation_tf = config_->ros_vehicle_to_microstrain_vehicle_transform_tf_ * ros_vehicle_to_sensor_translation_tf;
-          const tf2::Quaternion& microstrain_vehicle_to_sensor_rotation_tf = config_->ros_vehicle_to_microstrain_vehicle_transform_tf_ * ros_vehicle_to_sensor_rotation_tf;
-          microstrain_vehicle_to_sensor_transform_tf.setOrigin(microstrain_vehicle_to_sensor_translation_tf);
-          microstrain_vehicle_to_sensor_transform_tf.setRotation(microstrain_vehicle_to_sensor_rotation_tf);
-          vehicle_to_sensor_transform.transform = tf2::toMsg(microstrain_vehicle_to_sensor_transform_tf);
-        }
+        // Convert the transform from the driver vehicle frame to the microstrain vehicle frame
+        const auto& driver_vehicle_frame_to_sensor_transform = transform_buffer_->lookupTransform(config_->frame_id_, frame_id, frame_time);
+        const tf2::Vector3 driver_vehicle_frame_to_sensor_translation_tf(driver_vehicle_frame_to_sensor_transform.transform.translation.x, driver_vehicle_frame_to_sensor_transform.transform.translation.y, driver_vehicle_frame_to_sensor_transform.transform.translation.z);
+        const tf2::Quaternion driver_vehicle_frame_to_sensor_rotation_tf(driver_vehicle_frame_to_sensor_transform.transform.rotation.x, driver_vehicle_frame_to_sensor_transform.transform.rotation.y, driver_vehicle_frame_to_sensor_transform.transform.rotation.z, driver_vehicle_frame_to_sensor_transform.transform.rotation.w);
+        const tf2::Vector3& microstrain_vehicle_frame_to_sensor_translation_tf = config_->driver_vehicle_frame_to_microstrain_vehicle_frame_transform_tf_ * driver_vehicle_frame_to_sensor_translation_tf;
+        const tf2::Quaternion& microstrain_vehicle_frame_to_sensor_rotation_tf = config_->driver_vehicle_frame_to_microstrain_vehicle_frame_transform_tf_ * driver_vehicle_frame_to_sensor_rotation_tf;
+
+        // Populate the frame config command with the transform in the microstrain vehicle frame
         mip::commands_aiding::FrameConfig frame_config;
         frame_config.format = mip::commands_aiding::FrameConfig::Format::QUATERNION;
         frame_config.frame_id = external_frame_ids_size_ + 1;
         frame_config.function = mip::FunctionSelector::WRITE;
         frame_config.translation = {
-          static_cast<float>(vehicle_to_sensor_transform.transform.translation.x),
-          static_cast<float>(vehicle_to_sensor_transform.transform.translation.y),
-          static_cast<float>(vehicle_to_sensor_transform.transform.translation.z)
+          static_cast<float>(microstrain_vehicle_frame_to_sensor_translation_tf.getX()),
+          static_cast<float>(microstrain_vehicle_frame_to_sensor_translation_tf.getY()),
+          static_cast<float>(microstrain_vehicle_frame_to_sensor_translation_tf.getZ())
         };
         frame_config.rotation.quaternion = {
-          static_cast<float>(vehicle_to_sensor_transform.transform.rotation.w),
-          static_cast<float>(vehicle_to_sensor_transform.transform.rotation.x),
-          static_cast<float>(vehicle_to_sensor_transform.transform.rotation.y),
-          static_cast<float>(vehicle_to_sensor_transform.transform.rotation.z)
+          static_cast<float>(microstrain_vehicle_frame_to_sensor_rotation_tf.getW()),
+          static_cast<float>(microstrain_vehicle_frame_to_sensor_rotation_tf.getX()),
+          static_cast<float>(microstrain_vehicle_frame_to_sensor_rotation_tf.getY()),
+          static_cast<float>(microstrain_vehicle_frame_to_sensor_rotation_tf.getZ())
         };
 
         // This is a little expensive to do for debug, but should only happen rarely
-        const tf2::Quaternion q(
-          vehicle_to_sensor_transform.transform.rotation.x,
-          vehicle_to_sensor_transform.transform.rotation.y,
-          vehicle_to_sensor_transform.transform.rotation.z,
-          vehicle_to_sensor_transform.transform.rotation.w);
-        const tf2::Matrix3x3 m(q);
+        const tf2::Matrix3x3 m(microstrain_vehicle_frame_to_sensor_rotation_tf);
         double r, p, y;
         m.getRPY(r, p, y);
         MICROSTRAIN_INFO(node_, "Associating MIP frame %u with ROS frame %s", frame_config.frame_id, frame_id.c_str());
-        MICROSTRAIN_INFO(node_, "  Front (meters): %f, Right (meters): %f, Down (meters): %f", vehicle_to_sensor_transform.transform.translation.x, vehicle_to_sensor_transform.transform.translation.y, vehicle_to_sensor_transform.transform.translation.z);
+        MICROSTRAIN_INFO(node_, "  Front (meters): %f, Right (meters): %f, Down (meters): %f", frame_config.translation[0], frame_config.translation[1], frame_config.translation[2]);
         MICROSTRAIN_INFO(node_, "  Roll (degrees): %f, Pitch (degrees): %f, Yaw (degrees): %f", r * 180 / M_PI, p * 180 / M_PI, y * 180 / M_PI);
 
         // Attempt to send the command
