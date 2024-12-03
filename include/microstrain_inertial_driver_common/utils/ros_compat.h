@@ -628,15 +628,15 @@ using ParamIntVector = std::vector<int64_t>;
 #define MICROSTRAIN_FATAL(NODE, ...) RCLCPP_FATAL(NODE->get_logger(), __VA_ARGS__)
 
 #define MICROSTRAIN_DEBUG_THROTTLE(NODE, PERIOD, ...)                                                                  \
-  RCLCPP_DEBUG_THROTTLE(NODE->get_logger(), *NODE->get_clock(), PERIOD, __VA_ARGS__)
+  RCLCPP_DEBUG_THROTTLE(NODE->get_logger(), *NODE->get_clock(), PERIOD * 1000, __VA_ARGS__)
 #define MICROSTRAIN_INFO_THROTTLE(NODE, PERIOD, ...)                                                                  \
-  RCLCPP_INFO_THROTTLE(NODE->get_logger(), *NODE->get_clock(), PERIOD, __VA_ARGS__)
+  RCLCPP_INFO_THROTTLE(NODE->get_logger(), *NODE->get_clock(), PERIOD * 1000, __VA_ARGS__)
 #define MICROSTRAIN_WARN_THROTTLE(NODE, PERIOD, ...)                                                                  \
-  RCLCPP_WARN_THROTTLE(NODE->get_logger(), *NODE->get_clock(), PERIOD, __VA_ARGS__)
+  RCLCPP_WARN_THROTTLE(NODE->get_logger(), *NODE->get_clock(), PERIOD * 1000, __VA_ARGS__)
 #define MICROSTRAIN_ERROR_THROTTLE(NODE, PERIOD, ...)                                                                  \
-  RCLCPP_ERROR_THROTTLE(NODE->get_logger(), *NODE->get_clock(), PERIOD, __VA_ARGS__)
+  RCLCPP_ERROR_THROTTLE(NODE->get_logger(), *NODE->get_clock(), PERIOD * 1000, __VA_ARGS__)
 #define MICROSTRAIN_FATAL_THROTTLE(NODE, PERIOD, ...)                                                                  \
-  RCLCPP_FATAL_THROTTLE(NODE->get_logger(), *NODE->get_clock(), PERIOD, __VA_ARGS__)
+  RCLCPP_FATAL_THROTTLE(NODE->get_logger(), *NODE->get_clock(), PERIOD * 1000, __VA_ARGS__)
 
 #define MICROSTRAIN_DEBUG_ONCE(NODE, ...) RCLCPP_DEBUG_ONCE(NODE->get_logger(), __VA_ARGS__)
 #define MICROSTRAIN_INFO_ONCE(NODE, ...) RCLCPP_INFO_ONCE(NODE->get_logger(), __VA_ARGS__)
