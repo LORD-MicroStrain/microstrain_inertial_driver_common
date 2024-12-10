@@ -1291,7 +1291,7 @@ void Publishers::handleFilterEcefPos(const mip::data_filter::EcefPos& ecef_pos, 
     (RosMipDevice::isPhilo(config_->mip_device_->device_info_) && config_->filter_state_ == mip::data_filter::FilterMode::GX5_RUN_SOLUTION_VALID) ||
     (RosMipDevice::isProspect(config_->mip_device_->device_info_) && config_->filter_state_ == mip::data_filter::FilterMode::FULL_NAV)
   );
-  if (!config_->map_to_earth_transform_valid_ && config_->filter_relative_pos_source_ == REL_POS_SOURCE_AUTO && full_nav)
+  if (config_->tf_mode_ == TF_MODE_RELATIVE && !config_->map_to_earth_transform_valid_ && config_->filter_relative_pos_source_ == REL_POS_SOURCE_AUTO && full_nav)
   {
     // Find the rotation between ECEF and NED/ENU for this position
     double lat, lon, alt;
