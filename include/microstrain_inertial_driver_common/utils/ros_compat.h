@@ -89,6 +89,7 @@ constexpr auto NUM_GNSS = 2;
 #include "microstrain_inertial_msgs/MipFilterAidingMeasurementSummary.h"
 #include "microstrain_inertial_msgs/MipFilterGnssDualAntennaStatus.h"
 #include "microstrain_inertial_msgs/MipSystemBuiltInTest.h"
+#include "microstrain_inertial_msgs/MipSystemTimeSyncStatus.h"
 
 #include "std_srvs/Empty.h"
 #include "std_srvs/Trigger.h"
@@ -156,6 +157,7 @@ constexpr auto NUM_GNSS = 2;
 #include "microstrain_inertial_msgs/msg/mip_filter_aiding_measurement_summary.hpp"
 #include "microstrain_inertial_msgs/msg/mip_filter_gnss_dual_antenna_status.hpp"
 #include "microstrain_inertial_msgs/msg/mip_system_built_in_test.hpp"
+#include "microstrain_inertial_msgs/msg/mip_system_time_sync_status.hpp"
 
 // .h header was deprecated in rolling and will likely be removed in future releases.
 #if MICROSTRAIN_ROLLING == 1 || MICROSTRAIN_HUMBLE == 1
@@ -271,6 +273,7 @@ using MipFilterMultiAntennaOffsetCorrectionMsg = ::microstrain_inertial_msgs::Mi
 using MipFilterAidingMeasurementSummaryMsg = ::microstrain_inertial_msgs::MipFilterAidingMeasurementSummary;
 using MipFilterGnssDualAntennaStatusMsg = ::microstrain_inertial_msgs::MipFilterGnssDualAntennaStatus;
 using MipSystemBuiltInTestMsg = ::microstrain_inertial_msgs::MipSystemBuiltInTest;
+using MipSystemTimeSyncStatusMsg = ::microstrain_inertial_msgs::MipSystemTimeSyncStatus;
 
 using TransformStampedMsg = ::geometry_msgs::TransformStamped;
 
@@ -591,6 +594,7 @@ using MipFilterMultiAntennaOffsetCorrectionMsg = ::microstrain_inertial_msgs::ms
 using MipFilterAidingMeasurementSummaryMsg = ::microstrain_inertial_msgs::msg::MipFilterAidingMeasurementSummary;
 using MipFilterGnssDualAntennaStatusMsg = ::microstrain_inertial_msgs::msg::MipFilterGnssDualAntennaStatus;
 using MipSystemBuiltInTestMsg = ::microstrain_inertial_msgs::msg::MipSystemBuiltInTest;
+using MipSystemTimeSyncStatusMsg = ::microstrain_inertial_msgs::msg::MipSystemTimeSyncStatus;
 
 using TransformStampedMsg = ::geometry_msgs::msg::TransformStamped;
 

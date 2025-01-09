@@ -461,6 +461,9 @@ const std::map<std::string, FieldWrapper::SharedPtrVec> MipPublisherMapping::sta
   {MIP_SYSTEM_BUILT_IN_TEST_TOPIC, {
     FieldWrapperType<mip::data_system::BuiltInTest>::initialize(),
   }},
+  {MIP_SYSTEM_TIME_SYNC_STATUS_TOPIC, {
+    FieldWrapperType<mip::data_system::TimeSyncStatus>::initialize(),
+  }},
 };
 
 const std::map<std::string, std::string> MipPublisherMapping::static_topic_to_data_rate_config_key_mapping_ =
@@ -518,7 +521,8 @@ const std::map<std::string, std::string> MipPublisherMapping::static_topic_to_da
   {MIP_FILTER_GNSS_DUAL_ANTENNA_STATUS_TOPIC,        "mip_filter_gnss_dual_antenna_status_data_rate"},
 
   // MIP System (0xA0) data rates
-  {MIP_SYSTEM_BUILT_IN_TEST_TOPIC, "mip_system_built_in_test_data_rate"},
+  {MIP_SYSTEM_BUILT_IN_TEST_TOPIC,    "mip_system_built_in_test_data_rate"},
+  {MIP_SYSTEM_TIME_SYNC_STATUS_TOPIC, "mip_system_time_sync_status_data_rate"},
 };
 
 }  // namespace microstrain

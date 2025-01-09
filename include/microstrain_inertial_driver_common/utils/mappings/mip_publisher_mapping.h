@@ -74,6 +74,7 @@ static constexpr auto MIP_FILTER_GNSS_DUAL_ANTENNA_STATUS_TOPIC = "mip/ekf/gnss_
 static constexpr auto MIP_FILTER_AIDING_MEASUREMENT_SUMMARY_TOPIC = "mip/ekf/aiding_measurement_summary";
 
 static constexpr auto MIP_SYSTEM_BUILT_IN_TEST_TOPIC = "mip/system/built_in_test";
+static constexpr auto MIP_SYSTEM_TIME_SYNC_STATUS_TOPIC = "mip/system/time_sync_status";
 
 static constexpr auto NMEA_SENTENCE_TOPIC = "nmea";
 
