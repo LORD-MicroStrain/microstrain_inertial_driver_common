@@ -82,6 +82,20 @@ class RosMipDevice
   static bool isPhilo(const mip::commands_base::BaseDeviceInfo& device_info);
 
   /**
+   * \brief Determines if the given device info is from a GQ7
+   * \param device_info Populated and null terminated string version of the device info struct fetched from a device
+   * \return true if the device is a GQ7, false otherwise
+  */
+  static bool isGq7(const mip::commands_base::BaseDeviceInfo& device_info);
+
+  /**
+   * \brief Determines if the given device info is from a CV7
+   * \param device_info Populated and null terminated string version of the device info struct fetched from a device
+   * \return true if the device is a CV7, false otherwise
+  */
+  static bool isCv7(const mip::commands_base::BaseDeviceInfo& device_info);
+
+  /**
    * \brief Sends data to the device
    * \param data Byte array to send to the device
    * \param data_len Length in bytes of the data array
@@ -117,22 +131,10 @@ class RosMipDevice
   bool reconnect();
 
   /**
-   * \brief Gets whether or not this connection is parsing NMEA
-   * \return Whether or not this connection is parsing NMEA
-  */
-  bool shouldParseNmea() const;
-
-  /**
-   * \brief Configures the connection object to attempt to parse or not attempt to parse NMEA sentences
-   * \param enable Whether or not to enable NMEA parsing
-  */
-  void shouldParseNmea(bool enable);
-
-  /**
-   * \brief Returns the NMEA messages collected by the connection, and clears the list of messages on the connection object
-   * \return List of NMEA messages collected by the connection
+   * \brief Gets the connection object
+   * \return The connection object
    */
-  std::vector<NMEASentenceMsg> nmeaMsgs();
+  std::shared_ptr<RosConnection> connection();
 
   /**
    * \brief Gets the device info from the device, and modifies the strings to be usable from C/C++
@@ -158,7 +160,7 @@ class RosMipDevice
 
   RosNodeType* node_;  /// Reference to the ROS node that created this object
 
-  std::unique_ptr<RosConnection> connection_;  // Pointer to the MIP connection
+  std::shared_ptr<RosConnection> connection_;  // Pointer to the MIP connection
   std::unique_ptr<::mip::DeviceInterface> device_;  // Pointer to the device. Public so that functions that do not need to be wrapped can be called directly
 
   uint8_t buffer_[1024];  // Buffer to use for the MIP device

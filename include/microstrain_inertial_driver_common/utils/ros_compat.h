@@ -78,6 +78,7 @@ constexpr auto NUM_GNSS = 2;
 
 #include "microstrain_inertial_msgs/MipHeader.h"
 #include "microstrain_inertial_msgs/MipSensorOverrangeStatus.h"
+#include "microstrain_inertial_msgs/MipSensorTemperatureStatistics.h"
 #include "microstrain_inertial_msgs/MipGnssFixInfo.h"
 #include "microstrain_inertial_msgs/MipGnssSbasInfo.h"
 #include "microstrain_inertial_msgs/MipGnssRfErrorDetection.h"
@@ -87,12 +88,18 @@ constexpr auto NUM_GNSS = 2;
 #include "microstrain_inertial_msgs/MipFilterMultiAntennaOffsetCorrection.h"
 #include "microstrain_inertial_msgs/MipFilterAidingMeasurementSummary.h"
 #include "microstrain_inertial_msgs/MipFilterGnssDualAntennaStatus.h"
+#include "microstrain_inertial_msgs/MipSystemBuiltInTest.h"
 
 #include "std_srvs/Empty.h"
 #include "std_srvs/Trigger.h"
 
+#include "microstrain_inertial_msgs/RawFileConfigRead.h"
+#include "microstrain_inertial_msgs/RawFileConfigWrite.h"
+
 #include "microstrain_inertial_msgs/MipBaseGetDeviceInformation.h"
 #include "microstrain_inertial_msgs/Mip3dmCaptureGyroBias.h"
+#include "microstrain_inertial_msgs/Mip3dmGpioStateRead.h"
+#include "microstrain_inertial_msgs/Mip3dmGpioStateWrite.h"
 
 /**
  * ROS2 Includes
@@ -138,6 +145,7 @@ constexpr auto NUM_GNSS = 2;
 
 #include "microstrain_inertial_msgs/msg/mip_header.hpp"
 #include "microstrain_inertial_msgs/msg/mip_sensor_overrange_status.hpp"
+#include "microstrain_inertial_msgs/msg/mip_sensor_temperature_statistics.hpp"
 #include "microstrain_inertial_msgs/msg/mip_gnss_fix_info.hpp"
 #include "microstrain_inertial_msgs/msg/mip_gnss_sbas_info.hpp"
 #include "microstrain_inertial_msgs/msg/mip_gnss_rf_error_detection.hpp"
@@ -147,6 +155,7 @@ constexpr auto NUM_GNSS = 2;
 #include "microstrain_inertial_msgs/msg/mip_filter_multi_antenna_offset_correction.hpp"
 #include "microstrain_inertial_msgs/msg/mip_filter_aiding_measurement_summary.hpp"
 #include "microstrain_inertial_msgs/msg/mip_filter_gnss_dual_antenna_status.hpp"
+#include "microstrain_inertial_msgs/msg/mip_system_built_in_test.hpp"
 
 // .h header was deprecated in rolling and will likely be removed in future releases.
 #if MICROSTRAIN_ROLLING == 1 || MICROSTRAIN_HUMBLE == 1
@@ -155,8 +164,13 @@ constexpr auto NUM_GNSS = 2;
 #include "tf2_geometry_msgs/tf2_geometry_msgs.h"
 #endif
 
+#include "microstrain_inertial_msgs/srv/raw_file_config_read.hpp"
+#include "microstrain_inertial_msgs/srv/raw_file_config_write.hpp"
+
 #include "microstrain_inertial_msgs/srv/mip_base_get_device_information.hpp"
 #include "microstrain_inertial_msgs/srv/mip3dm_capture_gyro_bias.hpp"
+#include "microstrain_inertial_msgs/srv/mip3dm_gpio_state_read.hpp"
+#include "microstrain_inertial_msgs/srv/mip3dm_gpio_state_write.hpp"
 #else
 #error "Unsupported ROS version. -DMICROSTRAIN_ROS_VERSION must be set to 1 or 2"
 #endif
@@ -246,6 +260,7 @@ using HumanReadableStatusMsg = ::microstrain_inertial_msgs::HumanReadableStatus;
 
 using MipHeaderMsg = ::microstrain_inertial_msgs::MipHeader;
 using MipSensorOverrangeStatusMsg = ::microstrain_inertial_msgs::MipSensorOverrangeStatus;
+using MipSensorTemperatureStatisticsMsg = ::microstrain_inertial_msgs::MipSensorTemperatureStatistics;
 using MipGnssFixInfoMsg = ::microstrain_inertial_msgs::MipGnssFixInfo;
 using MipGnssSbasInfoMsg = ::microstrain_inertial_msgs::MipGnssSbasInfo;
 using MipGnssRfErrorDetectionMsg = ::microstrain_inertial_msgs::MipGnssRfErrorDetection;
@@ -255,6 +270,7 @@ using MipFilterStatusMsg = ::microstrain_inertial_msgs::MipFilterStatus;
 using MipFilterMultiAntennaOffsetCorrectionMsg = ::microstrain_inertial_msgs::MipFilterMultiAntennaOffsetCorrection;
 using MipFilterAidingMeasurementSummaryMsg = ::microstrain_inertial_msgs::MipFilterAidingMeasurementSummary;
 using MipFilterGnssDualAntennaStatusMsg = ::microstrain_inertial_msgs::MipFilterGnssDualAntennaStatus;
+using MipSystemBuiltInTestMsg = ::microstrain_inertial_msgs::MipSystemBuiltInTest;
 
 using TransformStampedMsg = ::geometry_msgs::TransformStamped;
 
@@ -273,8 +289,13 @@ using RTCMMsg = ::rtcm_msgs::Message;
 using TriggerSrv = std_srvs::Trigger;
 using EmptySrv = std_srvs::Empty;
 
+using RawFileConfigReadSrv = ::microstrain_inertial_msgs::RawFileConfigRead;
+using RawFileConfigWriteSrv = ::microstrain_inertial_msgs::RawFileConfigWrite;
+
 using MipBaseGetDeviceInformationSrv = ::microstrain_inertial_msgs::MipBaseGetDeviceInformation;
 using Mip3dmCaptureGyroBiasSrv = ::microstrain_inertial_msgs::Mip3dmCaptureGyroBias;
+using Mip3dmGpioStateReadSrv = microstrain_inertial_msgs::Mip3dmGpioStateRead;
+using Mip3dmGpioStateWriteSrv = microstrain_inertial_msgs::Mip3dmGpioStateWrite;
 
 // ROS1 aliases not intended to be used outside this file
 using ParamIntVector = std::vector<int32_t>;
@@ -301,9 +322,9 @@ using ParamIntVector = std::vector<int32_t>;
 // ROS1 functions
 
 /**
- * \brief Checks whether ROS is currently running
- * \return Whether ROS is currently running
-*/
+ * \brief Checks whether the node is still running
+ * \return Whether the node is still running
+ */
 inline bool rosOk()
 {
   return ros::ok();
@@ -559,6 +580,7 @@ using HumanReadableStatusMsg = ::microstrain_inertial_msgs::msg::HumanReadableSt
 
 using MipHeaderMsg = ::microstrain_inertial_msgs::msg::MipHeader;
 using MipSensorOverrangeStatusMsg = ::microstrain_inertial_msgs::msg::MipSensorOverrangeStatus;
+using MipSensorTemperatureStatisticsMsg = ::microstrain_inertial_msgs::msg::MipSensorTemperatureStatistics;
 using MipGnssFixInfoMsg = ::microstrain_inertial_msgs::msg::MipGnssFixInfo;
 using MipGnssSbasInfoMsg = ::microstrain_inertial_msgs::msg::MipGnssSbasInfo;
 using MipGnssRfErrorDetectionMsg = ::microstrain_inertial_msgs::msg::MipGnssRfErrorDetection;
@@ -567,8 +589,8 @@ using MipFilterStatusMsg = ::microstrain_inertial_msgs::msg::MipFilterStatus;
 using MipFilterGnssPositionAidingStatusMsg = ::microstrain_inertial_msgs::msg::MipFilterGnssPositionAidingStatus;
 using MipFilterMultiAntennaOffsetCorrectionMsg = ::microstrain_inertial_msgs::msg::MipFilterMultiAntennaOffsetCorrection;
 using MipFilterAidingMeasurementSummaryMsg = ::microstrain_inertial_msgs::msg::MipFilterAidingMeasurementSummary;
-
 using MipFilterGnssDualAntennaStatusMsg = ::microstrain_inertial_msgs::msg::MipFilterGnssDualAntennaStatus;
+using MipSystemBuiltInTestMsg = ::microstrain_inertial_msgs::msg::MipSystemBuiltInTest;
 
 using TransformStampedMsg = ::geometry_msgs::msg::TransformStamped;
 
@@ -587,8 +609,13 @@ using RTCMMsg = ::rtcm_msgs::msg::Message;
 using TriggerSrv = std_srvs::srv::Trigger;
 using EmptySrv = std_srvs::srv::Empty;
 
+using RawFileConfigReadSrv = microstrain_inertial_msgs::srv::RawFileConfigRead;
+using RawFileConfigWriteSrv = microstrain_inertial_msgs::srv::RawFileConfigWrite;
+
 using MipBaseGetDeviceInformationSrv = microstrain_inertial_msgs::srv::MipBaseGetDeviceInformation;
 using Mip3dmCaptureGyroBiasSrv = microstrain_inertial_msgs::srv::Mip3dmCaptureGyroBias;
+using Mip3dmGpioStateReadSrv = microstrain_inertial_msgs::srv::Mip3dmGpioStateRead;
+using Mip3dmGpioStateWriteSrv = microstrain_inertial_msgs::srv::Mip3dmGpioStateWrite;
 
 // ROS2 aliases not intended to be used outside this file
 using ParamIntVector = std::vector<int64_t>;
@@ -601,15 +628,15 @@ using ParamIntVector = std::vector<int64_t>;
 #define MICROSTRAIN_FATAL(NODE, ...) RCLCPP_FATAL(NODE->get_logger(), __VA_ARGS__)
 
 #define MICROSTRAIN_DEBUG_THROTTLE(NODE, PERIOD, ...)                                                                  \
-  RCLCPP_DEBUG_THROTTLE(NODE->get_logger(), *NODE->get_clock(), PERIOD, __VA_ARGS__)
+  RCLCPP_DEBUG_THROTTLE(NODE->get_logger(), *NODE->get_clock(), PERIOD * 1000, __VA_ARGS__)
 #define MICROSTRAIN_INFO_THROTTLE(NODE, PERIOD, ...)                                                                  \
-  RCLCPP_INFO_THROTTLE(NODE->get_logger(), *NODE->get_clock(), PERIOD, __VA_ARGS__)
+  RCLCPP_INFO_THROTTLE(NODE->get_logger(), *NODE->get_clock(), PERIOD * 1000, __VA_ARGS__)
 #define MICROSTRAIN_WARN_THROTTLE(NODE, PERIOD, ...)                                                                  \
-  RCLCPP_WARN_THROTTLE(NODE->get_logger(), *NODE->get_clock(), PERIOD, __VA_ARGS__)
+  RCLCPP_WARN_THROTTLE(NODE->get_logger(), *NODE->get_clock(), PERIOD * 1000, __VA_ARGS__)
 #define MICROSTRAIN_ERROR_THROTTLE(NODE, PERIOD, ...)                                                                  \
-  RCLCPP_ERROR_THROTTLE(NODE->get_logger(), *NODE->get_clock(), PERIOD, __VA_ARGS__)
+  RCLCPP_ERROR_THROTTLE(NODE->get_logger(), *NODE->get_clock(), PERIOD * 1000, __VA_ARGS__)
 #define MICROSTRAIN_FATAL_THROTTLE(NODE, PERIOD, ...)                                                                  \
-  RCLCPP_FATAL_THROTTLE(NODE->get_logger(), *NODE->get_clock(), PERIOD, __VA_ARGS__)
+  RCLCPP_FATAL_THROTTLE(NODE->get_logger(), *NODE->get_clock(), PERIOD * 1000, __VA_ARGS__)
 
 #define MICROSTRAIN_DEBUG_ONCE(NODE, ...) RCLCPP_DEBUG_ONCE(NODE->get_logger(), __VA_ARGS__)
 #define MICROSTRAIN_INFO_ONCE(NODE, ...) RCLCPP_INFO_ONCE(NODE->get_logger(), __VA_ARGS__)
@@ -620,9 +647,9 @@ using ParamIntVector = std::vector<int64_t>;
 // ROS2 functions
 
 /**
- * \brief Checks whether ROS is currently running
- * \return Whether ROS is currently running
-*/
+ * \brief Checks whether the node is still running
+ * \return Whether the node is still running
+ */
 inline bool rosOk()
 {
   return rclcpp::ok();
@@ -835,8 +862,8 @@ createService(RosNodeType* node, const std::string& service, bool (ClassType::*s
 template <class ClassType>
 RosTimerType createTimer(RosNodeType* node, double hz, void (ClassType::*fp)(), ClassType* obj)
 {
-  std::chrono::milliseconds timer_interval_ms(static_cast<int>(1.0 / hz * 1000.0));
-  return node->template create_wall_timer(timer_interval_ms, [=]() { (obj->*fp)(); });
+  std::chrono::microseconds timer_interval_us(static_cast<int>(1.0 / hz * 1000000.0));
+  return node->template create_wall_timer(timer_interval_us, [=]() { (obj->*fp)(); });
 }
 
 /**

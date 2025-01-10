@@ -104,6 +104,26 @@ class RosConnection : public mip::Connection
    */
   std::vector<NMEASentenceMsg> nmeaMsgs();
 
+  /**
+   * \brief Gets whether we are recording to a raw file
+   * \return Whether the raw file is enabled
+   */
+  bool rawFileEnable();
+
+  /**
+   * \brief Gets the raw file path where data is being recorded
+   * \return Empty string if data is not being recorded
+   */
+  std::string rawFilePath();
+
+  /**
+   * \brief Updates the recording state, so will either start, or stop recording or switch files if needed
+   * \param should_record Whether or not we should be recording data
+   * \param record_file_path The full path to where the data should be recorded
+   * \return Whether or not the state was able to be updated
+   */
+  bool updateRecordingState(const bool should_record, const std::string& record_file_path);
+
   // Implemented in order to satisfy the requirements for the MIP connection
   bool sendToDevice(const uint8_t* data, size_t length) final;
   bool recvFromDevice(uint8_t* buffer, size_t max_length, mip::Timeout timeout, size_t* count_out, mip::Timestamp* timestamp_out) final;
@@ -125,6 +145,7 @@ class RosConnection : public mip::Connection
   mip::Timeout base_reply_timeout_;  /// Base reply timeout given the type of connection configured
 
   bool should_record_;  /// Whether or not we should record binary data on this connection
+  std::string record_file_path_;  /// The path to where data will be recorded
   std::ofstream record_file_;  /// The file that the binary data should be recorded to
 
   bool should_parse_nmea_;  /// Whether or not we should attempt to parse and extract NMEA sentences on this connection

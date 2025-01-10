@@ -14,6 +14,7 @@
 #include <string>
 #include <thread>
 #include <chrono>
+#include <memory>
 #include <iomanip>
 #include <stdexcept>
 
@@ -67,6 +68,22 @@ bool RosMipDevice::isPhilo(const mip::commands_base::BaseDeviceInfo& device_info
   return false;
 }
 
+bool RosMipDevice::isGq7(const mip::commands_base::BaseDeviceInfo& device_info)
+{
+  const std::string& model_name = device_info.model_name;
+  if (model_name.find("GQ7") != std::string::npos)
+    return true;
+  return false;
+}
+
+bool RosMipDevice::isCv7(const mip::commands_base::BaseDeviceInfo& device_info)
+{
+  const std::string& model_name = device_info.model_name;
+  if (model_name.find("CV7") != std::string::npos)
+    return true;
+  return false;
+}
+
 bool RosMipDevice::send(const uint8_t* data, size_t data_len)
 {
   return connection_->sendToDevice(data, data_len);
@@ -99,23 +116,9 @@ bool RosMipDevice::reconnect()
   return disconnect() && connect();
 }
 
-bool RosMipDevice::shouldParseNmea() const
+std::shared_ptr<RosConnection> RosMipDevice::connection()
 {
-  if (connection_ != nullptr)
-    return connection_->shouldParseNmea();
-  else
-    return false;
-}
-
-void RosMipDevice::shouldParseNmea(bool enable)
-{
-  if (connection_ != nullptr)
-    connection_->shouldParseNmea(enable);
-}
-
-std::vector<NMEASentenceMsg> RosMipDevice::nmeaMsgs()
-{
-  return connection_->nmeaMsgs();
+  return connection_;
 }
 
 mip::CmdResult RosMipDevice::getDeviceInfo(::mip::commands_base::BaseDeviceInfo* device_info)

@@ -27,6 +27,7 @@ namespace microstrain
 {
 
 // Topic names
+static constexpr auto IMU_DATA_RAW_TOPIC = "imu/data_raw";
 static constexpr auto IMU_DATA_TOPIC = "imu/data";
 static constexpr auto IMU_MAG_TOPIC = "imu/mag";
 static constexpr auto IMU_PRESSURE_TOPIC = "imu/pressure";
@@ -53,6 +54,7 @@ static constexpr auto FILTER_ODOMETRY_EARTH_TOPIC  = "ekf/odometry_earth";
 static constexpr auto FILTER_ODOMETRY_MAP_TOPIC = "ekf/odometry_map";
 static constexpr auto FILTER_DUAL_ANTENNA_HEADING_TOPIC = "ekf/dual_antenna_heading";
 
+static constexpr auto MIP_SENSOR_TEMPERATURE_STATISTICS_TOPIC = "mip/sensor/temperature_statistics";
 static constexpr auto MIP_SENSOR_OVERRANGE_STATUS_TOPIC = "mip/sensor/overrange_status";
 
 static constexpr auto MIP_GNSS1_FIX_INFO_TOPIC = "mip/gnss_1/fix_info";
@@ -70,6 +72,8 @@ static constexpr auto MIP_FILTER_GNSS_POSITION_AIDING_STATUS_TOPIC = "mip/ekf/gn
 static constexpr auto MIP_FILTER_MULTI_ANTENNA_OFFSET_CORRECTION_TOPIC = "mip/ekf/multi_antenna_offset_correction";
 static constexpr auto MIP_FILTER_GNSS_DUAL_ANTENNA_STATUS_TOPIC = "mip/ekf/gnss_dual_antenna_status";
 static constexpr auto MIP_FILTER_AIDING_MEASUREMENT_SUMMARY_TOPIC = "mip/ekf/aiding_measurement_summary";
+
+static constexpr auto MIP_SYSTEM_BUILT_IN_TEST_TOPIC = "mip/system/built_in_test";
 
 static constexpr auto NMEA_SENTENCE_TOPIC = "nmea";
 
