@@ -204,10 +204,11 @@ void MipPublisherMapping::streamSharedDescriptor()
     if (mip_device_->supportsDescriptor(descriptor_set, MipType::FIELD_DESCRIPTOR))
     {
       // Stream the field descriptor at the highest rate among the descriptor set
-      const uint16_t hertz = getMaxDataRate(descriptor_set);
+      const float hertz = getMaxDataRate(descriptor_set);
       if (hertz != 0)
       {
         const uint16_t decimation = mip_device_->getDecimationFromHertz(descriptor_set, hertz);
+        MICROSTRAIN_DEBUG(node_, "Streaming shared descriptor 0x%02x%02x at %0.4f hertz", descriptor_set, MipType::FIELD_DESCRIPTOR, hertz);
         streamed_descriptor_mapping.second.insert(streamed_descriptor_mapping.second.begin(), {MipType::FIELD_DESCRIPTOR, decimation});
       }
     }
@@ -224,7 +225,7 @@ void MipPublisherMapping::streamAtDescriptorSetRate()
     if (streamed_descriptors_mapping_.find(DescriptorSet) != streamed_descriptors_mapping_.end())
     {
       // Stream the field descriptor at the highest rate among the descriptor set
-      const uint16_t hertz = getMaxDataRate(DescriptorSet);
+      const float hertz = getMaxDataRate(DescriptorSet);
       const uint16_t decimation = mip_device_->getDecimationFromHertz(DescriptorSet, hertz);
       auto& streamed_descriptors_mapping_vec = streamed_descriptors_mapping_[DescriptorSet];
       streamed_descriptors_mapping_vec.insert(streamed_descriptors_mapping_vec.begin(), {MipType::FIELD_DESCRIPTOR, decimation});
