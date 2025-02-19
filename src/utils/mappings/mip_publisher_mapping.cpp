@@ -289,6 +289,35 @@ bool MipPublisherMapping::shouldPublish(const std::string& topic) const
   return canPublish(topic) && (data_rate != DATA_RATE_OFF || data_rate == DATA_RATE_DO_NOT_STREAM);
 }
 
+bool MipPublisherMapping::getInfoForRosPublisher(const std::string& ros_publisher, MipPublisherMappingInfo* publisher_info) const
+{
+  std::string data_rate_key = ros_publisher + "_data_rate";
+
+  // Hack because I was dumb when naming imu_data_raw_rate
+  if (data_rate_key == "imu_raw_data_rate" || data_rate_key == "imu_data_raw_data_rate")
+    data_rate_key = "imu_data_raw_rate";
+
+  // Get the topic name for the data rate
+  const auto& topic_iter = std::find_if(static_topic_to_data_rate_config_key_mapping_.begin(), static_topic_to_data_rate_config_key_mapping_.end(), [data_rate_key](const auto& item)
+  {
+    return item.second == data_rate_key;
+  });
+  if (topic_iter == static_topic_to_data_rate_config_key_mapping_.end())
+    return false;
+  const std::string& topic_name = topic_iter->first;
+  
+  // Find the publisher info for the topic name
+  if (topic_info_mapping_.find(topic_name) != topic_info_mapping_.end())
+  {
+    *publisher_info = topic_info_mapping_.at(topic_name);
+    return true;
+  }
+  else
+  {
+    return false;
+  }
+}
+
 const std::map<std::string, FieldWrapper::SharedPtrVec> MipPublisherMapping::static_topic_to_mip_type_mapping_ =
 {
   // /imu* topic mappings

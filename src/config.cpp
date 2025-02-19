@@ -555,7 +555,7 @@ bool Config::configure3DM(RosNodeType* node)
   {
     if (events_config)
     {
-      EventsYaml events_yaml(node_);
+      EventsYaml events_yaml(node_, mip_publisher_mapping_);
       if (!events_yaml.parseAndWriteEventConfig(mip_device_, events_config_file))
       {
         MICROSTRAIN_ERROR(node_, "Failed to configure events");

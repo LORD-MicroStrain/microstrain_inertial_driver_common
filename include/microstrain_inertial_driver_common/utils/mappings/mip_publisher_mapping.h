@@ -167,6 +167,14 @@ class MipPublisherMapping
    */
   bool shouldPublish(const std::string& topic) const;
 
+  /**
+   * \brief Gets the information for a ROS publisher given the "ros_publisher" type
+   * \param ros_publisher Should be the string before "_data_rate" in the params file. For example, for filter IMU data, you should pass filter_imu
+   * \param publisher_info Will be populated with the publisher info for the requested ros_publisher
+   * \return True if the publisher info could be found and the publisher_info is populated, false if it could not be found
+   */
+  bool getInfoForRosPublisher(const std::string& ros_publisher, MipPublisherMappingInfo* publisher_info) const;
+
   // Static mappings for topics. Note that this map contains all possible topics regardless of what the device supports
   static const std::map<std::string, FieldWrapper::SharedPtrVec> static_topic_to_mip_type_mapping_;  /// Mapping between topics and MIP types which can be used to lookup the descriptor set and field descriptors for a topic.
   static const std::map<std::string, std::string> static_topic_to_data_rate_config_key_mapping_;  /// Mapping between topics and the keys in the config used to configure their data rates

@@ -23,7 +23,7 @@ inline std::string getYamlTypeString(const YAML::Node& node)
   }
 }
 
-EventsYaml::EventsYaml(RosNodeType* node) : node_(node)
+EventsYaml::EventsYaml(RosNodeType* node, std::shared_ptr<MipPublisherMapping> mip_publisher_mapping) : node_(node), mip_publisher_mapping_(mip_publisher_mapping)
 {
 }
 
@@ -90,7 +90,7 @@ bool EventsYaml::parseAndWriteEventConfig(std::shared_ptr<RosMipDeviceMain>& mip
   return true;
 }
 
-bool EventsYaml::parseAndWriteEventTriggerConfig(std::shared_ptr<RosMipDeviceMain>& mip_device, const YAML::Node& triggers_yaml)
+bool EventsYaml::parseAndWriteEventTriggerConfig(std::shared_ptr<RosMipDeviceMain>& mip_device, YAML::Node triggers_yaml)
 {
   // Before we parse the yaml, check that we support each type, and check how many we support
   mip::CmdResult mip_cmd_result;
@@ -153,11 +153,16 @@ bool EventsYaml::parseAndWriteEventTriggerConfig(std::shared_ptr<RosMipDeviceMai
       MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to write event trigger configuration");
       return false;
     }
+    if (!(mip_cmd_result = mip::commands_3dm::writeEventControl(*mip_device, event_trigger.instance, mip::commands_3dm::EventControl::Mode::ENABLED)))
+    {
+      MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to enable event trigger configuration");
+      return false;
+    }
   }
   return true;
 }
 
-bool EventsYaml::parseAndWriteEventActionConfig(std::shared_ptr<RosMipDeviceMain>& mip_device, const YAML::Node& actions_yaml)
+bool EventsYaml::parseAndWriteEventActionConfig(std::shared_ptr<RosMipDeviceMain>& mip_device, YAML::Node actions_yaml)
 {
   // Before we parse the yaml, check that we support each type, and check how many we support
   mip::CmdResult mip_cmd_result;
@@ -173,7 +178,7 @@ bool EventsYaml::parseAndWriteEventActionConfig(std::shared_ptr<RosMipDeviceMain
   // Parse the individual configuration sections
   MICROSTRAIN_DEBUG(node_, "Parsing 'actions' section of events config");
   std::vector<mip::commands_3dm::EventAction> event_actions;
-  YAML::Node gpio_actions_yaml, message_actions_yaml;
+  YAML::Node gpio_actions_yaml, message_actions_yaml, ros_message_actions_yaml;
   if ((gpio_actions_yaml = actions_yaml["gpio"]))
   {
     if (!parseEventGpioActionConfig(gpio_actions_yaml, &event_actions))
@@ -191,6 +196,15 @@ bool EventsYaml::parseAndWriteEventActionConfig(std::shared_ptr<RosMipDeviceMain
   else
   {
     MICROSTRAIN_DEBUG(node_, "No 'message' section of 'actions' config, not configuring any message actions");
+  }
+  if ((ros_message_actions_yaml = actions_yaml["ros_message"]))
+  {
+    if (!parseEventRosMesasgeActionConfig(mip_device, ros_message_actions_yaml, &event_actions))
+      return false;
+  }
+  else
+  {
+    MICROSTRAIN_DEBUG(node_, "No 'ros_message' section of 'actions' config, not configuring and ROS message actions");
   }
 
   // Make sure that we don't have too many actions
@@ -447,6 +461,88 @@ bool EventsYaml::parseEventMessageActionConfig(std::shared_ptr<RosMipDeviceMain>
       }
 
       message_event_actions->push_back(message_action);
+    }
+    catch (const std::runtime_error& r)
+    {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+bool EventsYaml::parseEventRosMesasgeActionConfig(std::shared_ptr<RosMipDeviceMain>& mip_device, const YAML::Node& ros_message_actions_yaml, std::vector<mip::commands_3dm::EventAction>* ros_message_event_actions)
+{
+  // Make sure that the type is a sequence or else we won't be able to iterate properly
+  if (!ros_message_actions_yaml.IsSequence())
+  {
+    MICROSTRAIN_ERROR(node_, "Event actions 'ros_message' key must contain a sequence, but was of type %s", getYamlTypeString(ros_message_actions_yaml).c_str());
+    return false;
+  }
+
+  // Iterate the entries and parse them into MIP objects
+  for (const YAML::Node& ros_message_action_yaml : ros_message_actions_yaml)
+  {
+    mip::commands_3dm::EventAction message_action;
+    message_action.type = mip::commands_3dm::EventAction::Type::MESSAGE;
+    try
+    {
+      message_action.instance = getRequiredKeyFromYaml<uint16_t>(ros_message_action_yaml, "instance");
+      message_action.trigger = getRequiredKeyFromYaml<uint16_t>(ros_message_action_yaml, "trigger_instance");
+
+      // Find the message type based on the requested publisher
+      std::string ros_publisher_type = getRequiredKeyFromYaml<std::string>(ros_message_action_yaml, "ros_publisher");
+
+      // Make sure that the requested type is valid for the device
+      MipPublisherMappingInfo publisher_info;
+      const bool has_ros_publisher_type = mip_publisher_mapping_->getInfoForRosPublisher(ros_publisher_type, &publisher_info);
+      if (!has_ros_publisher_type)
+      {
+        MICROSTRAIN_ERROR(node_, "Requested 'ros_publisher' %s could not be found. Either it is not available at all, or not available on this device", ros_publisher_type.c_str());
+        return false;
+      }
+
+      // Add event source and timestamp to the packet if it isn't already there
+      const auto& event_source_iter = std::find_if(publisher_info.descriptors.begin(), publisher_info.descriptors.end(), [](const auto& item)
+      {
+        return item.field_descriptor == mip::data_shared::DATA_EVENT_SOURCE;
+      });
+      if (event_source_iter == publisher_info.descriptors.end())
+        publisher_info.descriptors.insert(publisher_info.descriptors.begin(), {mip::data_shared::DESCRIPTOR_SET, mip::data_shared::DATA_EVENT_SOURCE});
+      const auto& timestamp_iter = std::find_if(publisher_info.descriptors.begin(), publisher_info.descriptors.end(), [](const auto& item)
+      {
+        return item.field_descriptor == mip::data_shared::DATA_GPS_TIME;
+      });
+      if (timestamp_iter == publisher_info.descriptors.end())
+        publisher_info.descriptors.insert(publisher_info.descriptors.begin(), {mip::data_shared::DESCRIPTOR_SET, mip::data_shared::DATA_GPS_TIME});
+
+      // An event can only ever contain descriptors from one descriptor set, and can not contain more than 12 descriptors, so make sure the requested message type is valid
+      if (publisher_info.descriptor_sets.size() != 1)
+      {
+        MICROSTRAIN_ERROR(node_, "Ros publisher type %s cannot be configured as an event because it contains data from multiple descriptor sets", ros_publisher_type.c_str());
+        return false;
+      }
+      if (publisher_info.descriptors.size() > 12)
+      {
+        MICROSTRAIN_ERROR(node_, "Ros publisher type %s cannot be configured as an event cannot contain more than 12 descriptors", ros_publisher_type.c_str());
+        return false;
+      }
+
+      // Now that we know we have valid data for this type, populate the action object
+      message_action.parameters.message.desc_set = publisher_info.descriptor_sets[0];
+      message_action.parameters.message.num_fields = publisher_info.descriptors.size();
+      for (int i = 0; i < publisher_info.descriptors.size(); i++)
+        message_action.parameters.message.descriptors[i] = publisher_info.descriptors[i].field_descriptor;
+      
+      double actual_hertz;
+      float desired_hertz = getRequiredKeyFromYaml<float>(ros_message_action_yaml, "hertz");
+      message_action.parameters.message.decimation = mip_device->getDecimationFromHertz(message_action.parameters.message.desc_set, desired_hertz, &actual_hertz);
+      if (actual_hertz != desired_hertz)
+        MICROSTRAIN_WARN(node_, "Descriptor set 0x%02x does not support running at the %f hertz. The closest we can do is %f", message_action.parameters.message.desc_set, desired_hertz, actual_hertz);
+      
+      ros_message_event_actions->push_back(message_action);
+
+      // TODO: We also need to add this information to a list so the publisher class can check if it should publish
     }
     catch (const std::runtime_error& r)
     {
