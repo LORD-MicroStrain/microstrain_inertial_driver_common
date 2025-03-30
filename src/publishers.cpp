@@ -1615,9 +1615,9 @@ void Publishers::handleFilterVelocityNedUncertainty(const mip::data_filter::Velo
   //       Since all it does is negate the y and z axis, but that gets squared anyways.
   // NOTE: We view the NED frame and microstrain vehicle frame as the same here since there is no transform between them.
   auto filter_odometry_map_msg = filter_odometry_map_pub_->getMessage();
-  filter_odometry_map_msg->twist.covariance[21] = pow(velocity_ned_uncertainty.north, 2);
-  filter_odometry_map_msg->twist.covariance[28] = pow(velocity_ned_uncertainty.east, 2);
-  filter_odometry_map_msg->twist.covariance[35] = pow(velocity_ned_uncertainty.down, 2);
+  filter_odometry_map_msg->twist.covariance[0] = pow(velocity_ned_uncertainty.north, 2);
+  filter_odometry_map_msg->twist.covariance[7] = pow(velocity_ned_uncertainty.east, 2);
+  filter_odometry_map_msg->twist.covariance[14] = pow(velocity_ned_uncertainty.down, 2);
 
   // Filter odometry message (not counted as updating)
   auto filter_odometry_earth_msg = filter_odometry_earth_pub_->getMessageToUpdate();

@@ -518,6 +518,10 @@ mip_filter_gnss_dual_antenna_status_data_rate        : 0  # Rate of mip/filter/g
 mip_filter_aiding_measurement_summary_data_rate      : 0  # Rate of mip/filter/aiding_measurement_summary topic
 
 
+# Event Configuration (CV7, GV7, CV7-INS, GV7-INS only)
+events_config: false
+events_config_file: "/path/to/events.yml"
+
 # ****************************************************************** 
 # NMEA streaming settings
 # ****************************************************************** 

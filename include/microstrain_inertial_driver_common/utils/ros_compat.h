@@ -322,7 +322,7 @@ using ParamIntVector = std::vector<int32_t>;
 // ROS1 functions
 
 /**
- * brief Checks whether the node is still running
+ * \brief Checks whether the node is still running
  * \return Whether the node is still running
  */
 inline bool rosOk()
@@ -647,7 +647,7 @@ using ParamIntVector = std::vector<int64_t>;
 // ROS2 functions
 
 /**
- * brief Checks whether the node is still running
+ * \brief Checks whether the node is still running
  * \return Whether the node is still running
  */
 inline bool rosOk()
