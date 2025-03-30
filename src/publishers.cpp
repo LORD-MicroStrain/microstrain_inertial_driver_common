@@ -115,6 +115,8 @@ bool Publishers::configure()
   for (const auto& pub : mip_gnss_fix_info_pub_) pub->configure(node_, config_);
   for (const auto& pub : mip_gnss_sbas_info_pub_) pub->configure(node_, config_);
   for (const auto& pub : mip_gnss_rf_error_detection_pub_) pub->configure(node_, config_);
+  for (const auto& pub : mip_gnss_satellite_status_pub_) pub->configure(node_, config_);
+  for (const auto& pub : mip_gnss_raw_pub_) pub->configure(node_, config_);
 
   if (config_->rtk_dongle_enable_ && config_->mip_device_->supportsDescriptor(mip::data_gnss::MIP_GNSS3_DATA_DESC_SET, mip::data_gnss::DATA_RTK_CORRECTIONS_STATUS))
     mip_gnss_corrections_rtk_corrections_status_pub_->configure(node_);
@@ -360,6 +362,8 @@ bool Publishers::configure()
     registerDataCallback<mip::data_gnss::FixInfo, &Publishers::handleGnssFixInfo>(gnss_descriptor_set);
     registerDataCallback<mip::data_gnss::SbasInfo, &Publishers::handleGnssSbasInfo>(gnss_descriptor_set);
     registerDataCallback<mip::data_gnss::RfErrorDetection, &Publishers::handleGnssRfErrorDetection>(gnss_descriptor_set);
+    registerDataCallback<mip::data_gnss::SatelliteStatus, &Publishers::handleGnssSatelliteStatus>(gnss_descriptor_set);
+    registerDataCallback<mip::data_gnss::Raw, &Publishers::handleGnssRaw>(gnss_descriptor_set);
   }
 
   // Note: It is important to make sure this is after the GNSS1/2 callbacks
@@ -429,6 +433,8 @@ bool Publishers::activate()
   for (const auto& pub : mip_gnss_fix_info_pub_) pub->activate();
   for (const auto& pub : mip_gnss_sbas_info_pub_) pub->activate();
   for (const auto& pub : mip_gnss_rf_error_detection_pub_) pub->activate();
+  for (const auto& pub : mip_gnss_satellite_status_pub_) pub->activate();
+  for (const auto& pub : mip_gnss_raw_pub_) pub->activate();
 
   mip_gnss_corrections_rtk_corrections_status_pub_->activate();
 
@@ -489,6 +495,8 @@ bool Publishers::deactivate()
   for (const auto& pub : mip_gnss_fix_info_pub_) pub->deactivate();
   for (const auto& pub : mip_gnss_sbas_info_pub_) pub->deactivate();
   for (const auto& pub : mip_gnss_rf_error_detection_pub_) pub->deactivate();
+  for (const auto& pub : mip_gnss_satellite_status_pub_) pub->deactivate();
+  for (const auto& pub : mip_gnss_raw_pub_) pub->deactivate();
 
   mip_gnss_corrections_rtk_corrections_status_pub_->deactivate();
 
@@ -1044,6 +1052,99 @@ void Publishers::handleGnssSbasInfo(const mip::data_gnss::SbasInfo& sbas_info, c
   mip_gnss_sbas_info_msg->sbas_status.integrity_available = sbas_info.sbas_status.integrityAvailable();
   mip_gnss_sbas_info_msg->sbas_status.test_mode = sbas_info.sbas_status.testMode();
   mip_gnss_sbas_info_pub_[gnss_index]->publish(*mip_gnss_sbas_info_msg);
+}
+
+void Publishers::handleGnssSatelliteStatus(const mip::data_gnss::SatelliteStatus& satellite_status, const uint8_t descriptor_set, mip::Timestamp timestamp)
+{
+  // Find the right index for the message
+  uint8_t gnss_index;
+  switch (descriptor_set)
+  {
+    case mip::data_gnss::MIP_GNSS1_DATA_DESC_SET:
+      gnss_index = 0;
+      break;
+    case mip::data_gnss::MIP_GNSS2_DATA_DESC_SET:
+      gnss_index = 1;
+      break;
+    default:
+      return;  // Nothing to do if the descriptor set is not something we recognize
+  }
+
+  // Different message depending on descriptor
+  auto mip_gnss_satellite_status_msg = mip_gnss_satellite_status_pub_[gnss_index]->getMessage();
+  updateMipHeader(&(mip_gnss_satellite_status_msg->header), descriptor_set);
+
+  mip_gnss_satellite_status_msg->gnss_id = static_cast<uint8_t>(satellite_status.gnss_id);
+  mip_gnss_satellite_status_msg->satellite_id = static_cast<uint8_t>(satellite_status.satellite_id);
+  mip_gnss_satellite_status_msg->elevation = satellite_status.elevation;
+  mip_gnss_satellite_status_msg->azimuth = satellite_status.azimuth;
+  mip_gnss_satellite_status_msg->health = satellite_status.health;
+
+  mip_gnss_satellite_status_msg->valid_flags.tow = satellite_status.valid_flags.tow();
+  mip_gnss_satellite_status_msg->valid_flags.week_number = satellite_status.valid_flags.weekNumber();
+  mip_gnss_satellite_status_msg->valid_flags.gnss_id = satellite_status.valid_flags.gnssId();
+  mip_gnss_satellite_status_msg->valid_flags.satellite_id = satellite_status.valid_flags.satelliteId();
+  mip_gnss_satellite_status_msg->valid_flags.elevation = satellite_status.valid_flags.elevation();
+  mip_gnss_satellite_status_msg->valid_flags.azimuth = satellite_status.valid_flags.azimuth();
+  mip_gnss_satellite_status_msg->valid_flags.health = satellite_status.valid_flags.health();
+
+  mip_gnss_satellite_status_pub_[gnss_index]->publish(*mip_gnss_satellite_status_msg);
+}
+
+void Publishers::handleGnssRaw(const mip::data_gnss::Raw& raw, const uint8_t descriptor_set, mip::Timestamp timestamp)
+{
+  // Find the right index for the message
+  uint8_t gnss_index;
+  switch (descriptor_set)
+  {
+    case mip::data_gnss::MIP_GNSS1_DATA_DESC_SET:
+      gnss_index = 0;
+      break;
+    case mip::data_gnss::MIP_GNSS2_DATA_DESC_SET:
+      gnss_index = 1;
+      break;
+    default:
+      return;  // Nothing to do if the descriptor set is not something we recognize
+  }
+
+  // Different message depending on descriptor
+  auto mip_gnss_raw_msg = mip_gnss_raw_pub_[gnss_index]->getMessage();
+  updateMipHeader(&(mip_gnss_raw_msg->header), descriptor_set);
+
+  mip_gnss_raw_msg->index = raw.index;
+  mip_gnss_raw_msg->count = raw.count;
+  mip_gnss_raw_msg->receiver_id = raw.receiver_id;
+  mip_gnss_raw_msg->tracking_channel = raw.tracking_channel;
+  mip_gnss_raw_msg->gnss_id = static_cast<uint8_t>(raw.gnss_id);
+  mip_gnss_raw_msg->satellite_id = raw.satellite_id;
+  mip_gnss_raw_msg->signal_id = static_cast<uint8_t>(raw.signal_id);
+  mip_gnss_raw_msg->signal_strength = raw.signal_strength;
+  mip_gnss_raw_msg->quality = static_cast<uint8_t>(raw.quality);
+  mip_gnss_raw_msg->pseudorange = raw.carrier_phase;
+  mip_gnss_raw_msg->doppler = raw.doppler;
+  mip_gnss_raw_msg->range_uncertainty = raw.range_uncert;
+  mip_gnss_raw_msg->phase_uncertainty = raw.phase_uncert;
+  mip_gnss_raw_msg->doppler_uncertainty = raw.doppler_uncert;
+  mip_gnss_raw_msg->lock_time = raw.lock_time;
+
+  mip_gnss_raw_msg->valid_flags.tow = raw.valid_flags.tow();
+  mip_gnss_raw_msg->valid_flags.week_number = raw.valid_flags.weekNumber();
+  mip_gnss_raw_msg->valid_flags.receiver_id = raw.valid_flags.receiverId();
+  mip_gnss_raw_msg->valid_flags.tracking_channel = raw.valid_flags.trackingChannel();
+  mip_gnss_raw_msg->valid_flags.gnss_id = raw.valid_flags.gnssId();
+  mip_gnss_raw_msg->valid_flags.satellite_id = raw.valid_flags.satelliteId();
+  mip_gnss_raw_msg->valid_flags.signal_id = raw.valid_flags.signalId();
+  mip_gnss_raw_msg->valid_flags.signal_strength = raw.valid_flags.signalStrength();
+  mip_gnss_raw_msg->valid_flags.quality = raw.valid_flags.quality();
+  mip_gnss_raw_msg->valid_flags.pseudorange = raw.valid_flags.pseudorange();
+  mip_gnss_raw_msg->valid_flags.carrier_phase = raw.valid_flags.carrierPhase();
+  mip_gnss_raw_msg->valid_flags.doppler = raw.valid_flags.doppler();
+  mip_gnss_raw_msg->valid_flags.range_uncertainty = raw.valid_flags.rangeUncertainty();
+  mip_gnss_raw_msg->valid_flags.carrier_phase_uncertainty = raw.valid_flags.carrierPhaseUncertainty();
+  mip_gnss_raw_msg->valid_flags.doppler_uncertainty = raw.valid_flags.dopplerUncertainty();
+  mip_gnss_raw_msg->valid_flags.lock_time = raw.valid_flags.lockTime();
+
+  mip_gnss_raw_pub_[gnss_index]->publish(*mip_gnss_raw_msg);
 }
 
 void Publishers::handleRtkCorrectionsStatus(const mip::data_gnss::RtkCorrectionsStatus& rtk_corrections_status, const uint8_t descriptor_set, mip::Timestamp timestamp)
