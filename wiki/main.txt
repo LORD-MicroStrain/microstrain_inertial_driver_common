@@ -147,6 +147,7 @@ See the message definitions for links to their MIP fields as well as field docum
  * '''/mip/ekf/gnss_dual_antenna_status''' [[http://docs.ros.org/en/api/microstrain_inertial_msgs/html/msg/MipFilterGnssDualAntennaStatus.html|microstrain_inertial_msgs/MipFilterGnssDualAntennaStatus]]
  * '''/mip/ekf/aiding_measurement_summary''' [[http://docs.ros.org/en/api/microstrain_inertial_msgs/html/msg/MipFilterAidingMeasurementSummary.html|microstrain_inertial_msgs/MipFilterAidingMeasurementSummary]]
  * '''/mip/system/built_in_test''' [[http://docs.ros.org/en/api/microstrain_inertial_msgs/html/msg/MipSystemBuiltInTest.html|microstrain_inertial_msgs/MipSystemBuiltInTest]]
+ * '''/mip/system/time_sync_status''' [[http://docs.ros.org/en/api/microstrain_inertial_msgs/html/msg/MipSystemTimeSyncStatus.html|microstrain_inertial_msgs/MipSystemTimeSyncStatus]]
 
 === Other Messages ===
 The following topics do not fall into any of the above categories and are likely addons to the device not specifically from the MIP protocol
