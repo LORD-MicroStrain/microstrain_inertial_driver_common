@@ -126,6 +126,7 @@ bool Publishers::configure()
   mip_filter_gnss_dual_antenna_status_pub_->configure(node_, config_);
 
   mip_system_built_in_test_pub_->configure(node_, config_);
+  mip_system_time_sync_status_pub_->configure(node_, config_);
 
   const bool will_publish_nmea = (config_->mip_device_->connection() != nullptr && config_->mip_device_->connection()->shouldParseNmea()) ||
                                  (config_->aux_device_ != nullptr && config_->aux_device_->connection() != nullptr && config_->aux_device_->connection()->shouldParseNmea());
@@ -322,7 +323,7 @@ bool Publishers::configure()
 
   // Register callbacks for each data field we care about. Note that order is preserved here, so if a data field needs to be parsed before another, change it here.
   // Prospect shared field callbacks
-  for (const uint8_t descriptor_set : std::initializer_list<uint8_t>{mip::data_sensor::DESCRIPTOR_SET, mip::data_gnss::DESCRIPTOR_SET, mip::data_gnss::MIP_GNSS1_DATA_DESC_SET, mip::data_gnss::MIP_GNSS2_DATA_DESC_SET, mip::data_gnss::MIP_GNSS3_DATA_DESC_SET, mip::data_filter::DESCRIPTOR_SET})
+  for (const uint8_t descriptor_set : std::initializer_list<uint8_t>{mip::data_sensor::DESCRIPTOR_SET, mip::data_gnss::DESCRIPTOR_SET, mip::data_gnss::MIP_GNSS1_DATA_DESC_SET, mip::data_gnss::MIP_GNSS2_DATA_DESC_SET, mip::data_gnss::MIP_GNSS3_DATA_DESC_SET, mip::data_filter::DESCRIPTOR_SET, mip::data_system::DESCRIPTOR_SET})
   {
     registerDataCallback<mip::data_shared::EventSource, &Publishers::handleSharedEventSource>(descriptor_set);
     registerDataCallback<mip::data_shared::Ticks, &Publishers::handleSharedTicks>(descriptor_set);
@@ -394,6 +395,7 @@ bool Publishers::configure()
 
   // System callbacks
   registerDataCallback<mip::data_system::BuiltInTest, &Publishers::handleSystemBuiltInTest>();
+  registerDataCallback<mip::data_system::TimeSyncStatus, &Publishers::handleSystemTimeSyncStatus>();
 
   // After packet callback
   registerPacketCallback<&Publishers::handleAfterPacket>();
@@ -439,6 +441,7 @@ bool Publishers::activate()
   mip_filter_gnss_dual_antenna_status_pub_->activate();
 
   mip_system_built_in_test_pub_->activate();
+  mip_system_time_sync_status_pub_->activate();
 
   nmea_sentence_pub_->activate();
 
@@ -499,6 +502,7 @@ bool Publishers::deactivate()
   mip_filter_gnss_dual_antenna_status_pub_->deactivate();
 
   mip_system_built_in_test_pub_->deactivate();
+  mip_system_time_sync_status_pub_->deactivate();
 
   nmea_sentence_pub_->deactivate();
   return true;
@@ -664,7 +668,9 @@ void Publishers::handleSensorGpsTimestamp(const mip::data_sensor::GpsTimestamp& 
   mip::data_shared::GpsTimestamp stored_timestamp;
   stored_timestamp.tow = gps_timestamp.tow;
   stored_timestamp.week_number = gps_timestamp.week_number;
-  stored_timestamp.valid_flags = gps_timestamp.valid_flags;
+  stored_timestamp.valid_flags.tow(gps_timestamp.valid_flags.towValid());
+  stored_timestamp.valid_flags.weekNumber(gps_timestamp.valid_flags.weekNumberValid());
+  stored_timestamp.valid_flags.timeValid(gps_timestamp.valid_flags.towValid() && gps_timestamp.valid_flags.weekNumberValid());
   handleSharedGpsTimestamp(stored_timestamp, descriptor_set, timestamp);
 }
 
@@ -2081,6 +2087,15 @@ void Publishers::handleSystemBuiltInTest(const mip::data_system::BuiltInTest& bu
   }
 }
 
+void Publishers::handleSystemTimeSyncStatus(const mip::data_system::TimeSyncStatus& time_sync_status, const uint8_t descriptor_set, mip::Timestamp timestamp)
+{
+  auto mip_system_time_sync_status_msg = mip_system_time_sync_status_pub_->getMessage();
+  updateMipHeader(&(mip_system_time_sync_status_msg->header), descriptor_set, timestamp);
+  mip_system_time_sync_status_msg->time_sync = time_sync_status.time_sync;
+  mip_system_time_sync_status_msg->last_pps_rcvd = time_sync_status.last_pps_rcvd;
+  mip_system_time_sync_status_pub_->publish(*mip_system_time_sync_status_msg);
+}
+
 void Publishers::handleAfterPacket(const mip::PacketRef& packet, mip::Timestamp timestamp)
 {
   // Publish all the messages that have been updated
@@ -2128,6 +2143,9 @@ void Publishers::updateMipHeader(MipHeaderMsg* mip_header, uint8_t descriptor_se
     gps_timestamp_copy = gps_timestamp_mapping_.at(descriptor_set);
   mip_header->gps_timestamp.week_number = gps_timestamp_copy.week_number;
   mip_header->gps_timestamp.tow = gps_timestamp_copy.tow;
+  mip_header->gps_timestamp.valid_flags.tow = gps_timestamp_copy.valid_flags.tow();
+  mip_header->gps_timestamp.valid_flags.week_number = gps_timestamp_copy.valid_flags.weekNumber();
+  mip_header->gps_timestamp.valid_flags.time_valid = gps_timestamp_copy.valid_flags.timeValid();
 }
 
 void Publishers::updateHeaderTime(RosHeaderType* header, uint8_t descriptor_set, mip::Timestamp timestamp, const mip::data_shared::GpsTimestamp* gps_timestamp)
