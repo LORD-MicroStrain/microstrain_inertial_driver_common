@@ -2145,6 +2145,7 @@ void Publishers::updateMipHeader(MipHeaderMsg* mip_header, uint8_t descriptor_se
   mip_header->gps_timestamp.tow = gps_timestamp_copy.tow;
   mip_header->gps_timestamp.valid_flags.tow = gps_timestamp_copy.valid_flags.tow();
   mip_header->gps_timestamp.valid_flags.week_number = gps_timestamp_copy.valid_flags.weekNumber();
+  mip_header->gps_timestamp.valid_flags.time_valid = gps_timestamp_copy.valid_flags.timeValid();
 }
 
 void Publishers::updateHeaderTime(RosHeaderType* header, uint8_t descriptor_set, mip::Timestamp timestamp, const mip::data_shared::GpsTimestamp* gps_timestamp)
