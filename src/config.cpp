@@ -41,22 +41,25 @@ Config::Config(RosNodeType* node) : node_(node)
   // Initialize the transform buffer and listener ahead of time
   transform_buffer_ = createTransformBuffer(node_);
   transform_listener_ = createTransformListener(transform_buffer_);
+
+  // Store some transform definitions
+  ned_to_enu_transform_tf_ = tf2::Transform(tf2::Matrix3x3(
+      0,  1,  0,
+      1,  0,  0,
+      0,  0, -1
+  ));
+  enu_to_ned_transform_tf_ = ned_to_enu_transform_tf_.inverse();
+
+  microstrain_vehicle_frame_to_ros_vehicle_frame_transform_tf_ = tf2::Transform(tf2::Matrix3x3(
+      1,  0,  0,
+      0, -1,  0,
+      0,  0, -1
+  ));
+  ros_vehicle_frame_to_microstrain_vehicle_frame_transform_tf_ = microstrain_vehicle_frame_to_ros_vehicle_frame_transform_tf_.inverse();
 }
 
 bool Config::configure(RosNodeType* node)
 {
-  // Initialize some default and static config
-  ned_to_enu_transform_tf_ = tf2::Transform(tf2::Matrix3x3(
-    0, 1, 0,
-    1, 0, 0,
-    0, 0, -1
-  ));
-  ros_vehicle_to_microstrain_vehicle_transform_tf_ = tf2::Transform(tf2::Matrix3x3(
-    1,  0,  0,
-    0, -1,  0,
-    0,  0, -1
-  ));
-
   ///
   /// Generic configuration used by the rest of the driver
   ///
@@ -81,18 +84,27 @@ bool Config::configure(RosNodeType* node)
   getParam<std::string>(node, "gnss1_frame_id", gnss_frame_id_[GNSS1_ID], "gnss_1_antenna_link");
   getParam<std::string>(node, "gnss2_frame_id", gnss_frame_id_[GNSS2_ID], "gnss_2_antenna_link");
   getParam<std::string>(node, "odometer_frame_id", odometer_frame_id_, "odometer_link");
-  getParam<bool>(node, "use_enu_frame", use_enu_frame_, false);
+
+  // Driver frame configuration
+  getParam<bool>(node, "use_enu_frame", use_enu_frame_, true);
+  getParam<bool>(node, "use_ros_vehicle_frame", use_ros_vehicle_frame_, true);
+
+  // The definition of the "driver" world frame and vehicle frame differs depending on use_enu_frame and use_ros_vehicle_frame
+  if (use_enu_frame_)
+    microstrain_global_frame_to_driver_global_frame_transform_tf_ = ned_to_enu_transform_tf_;
+  else
+    microstrain_global_frame_to_driver_global_frame_transform_tf_ = tf2::Transform::getIdentity();
+  driver_global_frame_to_microstrain_global_frame_transform_tf_ = microstrain_global_frame_to_driver_global_frame_transform_tf_.inverse();
+
+  if (use_ros_vehicle_frame_)
+    microstrain_vehicle_frame_to_driver_vehicle_frame_transform_tf_ = microstrain_vehicle_frame_to_ros_vehicle_frame_transform_tf_;
+  else
+    microstrain_vehicle_frame_to_driver_vehicle_frame_transform_tf_ = tf2::Transform::getIdentity();
+  driver_vehicle_frame_to_microstrain_vehicle_frame_transform_tf_ = microstrain_vehicle_frame_to_driver_vehicle_frame_transform_tf_.inverse();
 
   // tf config
   getParam<int32_t>(node, "tf_mode", tf_mode_, TF_MODE_GLOBAL);
   getParam<bool>(node, "publish_mount_to_frame_id_transform", publish_mount_to_frame_id_transform_, true);
-
-  // If using the NED frame, append that to the map frame ID
-  if (!use_enu_frame_)
-  {
-    constexpr char ned_suffix[] = "_ned";
-    map_frame_id_ += ned_suffix;
-  }
 
   // Configure the static transforms
   std::vector<double> mount_to_frame_id_transform_vec;
@@ -1374,6 +1386,14 @@ tf2::Transform Config::lookupLeverArmOffsetInMicrostrainVehicleFrame(const std::
     MICROSTRAIN_WARN(node_, "Timed out waiting for transform from %s to %s, tf error: %s", frame_id_.c_str(), target_frame_id.c_str(), tf_error_string.c_str());
   }
 
+  // Fetch the transform and modify it to the correct frame. If using the ROS vehicle frame, assume it is in the ROS vehicle frame, otherwise assume it is in the MicroStrain vehicle frame
+  const auto& target_frame_to_driver_vehicle_frame_transform = transform_buffer_->lookupTransform(frame_id_, target_frame_id, frame_time);
+  const tf2::Vector3 target_frame_to_driver_vehicle_frame_translation_tf(target_frame_to_driver_vehicle_frame_transform.transform.translation.x, target_frame_to_driver_vehicle_frame_transform.transform.translation.y, target_frame_to_driver_vehicle_frame_transform.transform.translation.z);
+  const tf2::Vector3& target_frame_to_microstrain_vehicle_frame_translation_tf = driver_vehicle_frame_to_microstrain_vehicle_frame_transform_tf_ * target_frame_to_driver_vehicle_frame_translation_tf;
+  const tf2::Transform target_frame_to_microstrain_vehicle_frame_transform_tf(tf2::Quaternion::getIdentity(), target_frame_to_microstrain_vehicle_frame_translation_tf);
+  return target_frame_to_microstrain_vehicle_frame_transform_tf;
+
+  /*
   // If not using the enu frame, this can be plugged directly into the device, otherwise rotate it from the ROS body frame to our body frame
   tf2::Transform target_frame_to_microstrain_vehicle_frame_transform_tf;
   if (use_enu_frame_)
@@ -1392,6 +1412,26 @@ tf2::Transform Config::lookupLeverArmOffsetInMicrostrainVehicleFrame(const std::
   }
 
   return target_frame_to_microstrain_vehicle_frame_transform_tf;
+
+      // Wait until we can find the transform for the GQ7 antennas
+      std::string tf_error_string;
+      RosTimeType frame_time; setRosTime(&frame_time, 0, 0);
+      constexpr int32_t seconds_to_wait = 2;
+      while (!transform_buffer_->canTransform(frame_id_, gnss_frame_id_[i], frame_time, RosDurationType(seconds_to_wait, 0), &tf_error_string))
+      {
+        MICROSTRAIN_WARN(node_, "Timed out waiting for transform from %s to %s, tf error: %s", frame_id_.c_str(), gnss_frame_id_[i].c_str(), tf_error_string.c_str());
+      }
+
+      // Fetch the transform and modify it to the correct frame. If using the ROS vehicle frame, assume it is in the ROS vehicle frame, otherwise assume it is in the MicroStrain vehicle frame
+      const auto& gnss_antenna_to_driver_vehicle_frame_transform = transform_buffer_->lookupTransform(frame_id_, gnss_frame_id_[i], frame_time);
+      const tf2::Vector3 gnss_antenna_to_driver_vehicle_frame_translation_tf(gnss_antenna_to_driver_vehicle_frame_transform.transform.translation.x, gnss_antenna_to_driver_vehicle_frame_transform.transform.translation.y, gnss_antenna_to_driver_vehicle_frame_transform.transform.translation.z);
+      const tf2::Vector3& gnss_antenna_to_microstrain_vehicle_transform_tf = driver_vehicle_frame_to_microstrain_vehicle_frame_transform_tf_ * gnss_antenna_to_driver_vehicle_frame_translation_tf;
+
+      // Override the antenna offset with the result from the transform tree
+      gnss_antenna_offset_[i][0] = gnss_antenna_to_microstrain_vehicle_transform_tf.getX();
+      gnss_antenna_offset_[i][1] = gnss_antenna_to_microstrain_vehicle_transform_tf.getY();
+      gnss_antenna_offset_[i][2] = gnss_antenna_to_microstrain_vehicle_transform_tf.getZ();
+  */
 }
 
 }  // namespace microstrain
