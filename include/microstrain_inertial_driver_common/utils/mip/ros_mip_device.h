@@ -170,12 +170,12 @@ class RosMipDevice
  * \brief Helper macro for logging an error that occurs with the MIP SDK
  * \param node The ROS node object
  * \param mip_cmd_result The result of the MIP command that should be logged as an error
- * \param log Log string to log as an error
+ * \param ... Arguments to pass to the ROS logger
  */
-#define MICROSTRAIN_MIP_SDK_ERROR(node, mip_cmd_result, log) \
+#define MICROSTRAIN_MIP_SDK_ERROR(node, mip_cmd_result, ...) \
   do \
   { \
-    MICROSTRAIN_ERROR(node, log); \
+    MICROSTRAIN_ERROR(node, __VA_ARGS__); \
     MICROSTRAIN_ERROR(node, "  Error(%d): %s", mip_cmd_result.value, mip_cmd_result.name()); \
   } while (0)
 

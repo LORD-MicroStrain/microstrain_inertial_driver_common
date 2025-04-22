@@ -280,6 +280,7 @@ public:
 
   // MIP System (0xA0) publishers
   Publisher<MipSystemBuiltInTestMsg>::SharedPtr mip_system_built_in_test_pub_ = Publisher<MipSystemBuiltInTestMsg>::initialize(MIP_SYSTEM_BUILT_IN_TEST_TOPIC);
+  Publisher<MipSystemTimeSyncStatusMsg>::SharedPtr mip_system_time_sync_status_pub_ = Publisher<MipSystemTimeSyncStatusMsg>::initialize(MIP_SYSTEM_TIME_SYNC_STATUS_TOPIC);
 
   // NMEA sentence publisher
   Publisher<NMEASentenceMsg>::SharedPtr nmea_sentence_pub_ = Publisher<NMEASentenceMsg>::initialize(NMEA_SENTENCE_TOPIC);
@@ -380,6 +381,7 @@ private:
 
   // Callbacks to handle system data from the device
   void handleSystemBuiltInTest(const mip::data_system::BuiltInTest& built_in_test, const uint8_t descriptor_set, mip::Timestamp timestamp);
+  void handleSystemTimeSyncStatus(const mip::data_system::TimeSyncStatus& time_sync_status, const uint8_t descriptor_set, mip::Timestamp timestamp);
 
   /**
    * \brief Called after a packet has been processed.
