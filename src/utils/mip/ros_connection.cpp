@@ -27,7 +27,7 @@ namespace microstrain
 
 constexpr auto NMEA_MAX_LENGTH = 82;
 
-RosConnection::RosConnection(RosNodeType* node) : node_(node)
+RosConnection::RosConnection(RosNodeType* node) : node_(node), should_parse_nmea_(false)
 {
 }
 
