@@ -615,6 +615,11 @@ void Publishers::handleSharedDeltaTicks(const mip::data_shared::DeltaTicks& delt
 
 void Publishers::handleSharedGpsTimestamp(const mip::data_shared::GpsTimestamp& gps_timestamp, const uint8_t descriptor_set, mip::Timestamp timestamp)
 {
+  if (event_source_mapping_.find(descriptor_set) != event_source_mapping_.end() && event_source_mapping_.at(descriptor_set).trigger_id != 0)
+  {
+    MICROSTRAIN_DEBUG(node_, "Received filter GPS timestamp for event %u", event_source_mapping_.at(descriptor_set).trigger_id);
+  }
+
   // If the timestamp came from the sensor descriptor set, update the clock bias monitor
   if (descriptor_set == mip::data_sensor::DESCRIPTOR_SET)
   {
@@ -1452,6 +1457,11 @@ void Publishers::handleFilterPositionLlhUncertainty(const mip::data_filter::Posi
 
 void Publishers::handleFilterAttitudeQuaternion(const mip::data_filter::AttitudeQuaternion& attitude_quaternion, const uint8_t descriptor_set, mip::Timestamp timestamp)
 {
+  if (event_source_mapping_.find(descriptor_set) != event_source_mapping_.end() && event_source_mapping_.at(descriptor_set).trigger_id != 0)
+  {
+    MICROSTRAIN_DEBUG(node_, "Received filter attitude quaternion for event %u", event_source_mapping_.at(descriptor_set).trigger_id);
+  }
+
   // Filter odometry message rotated to ECEF (not counted as updating)
   auto filter_odometry_earth_msg = filter_odometry_earth_pub_->getMessage();
 
@@ -1646,6 +1656,10 @@ void Publishers::handleFilterEcefVelocityUncertainty(const mip::data_filter::Ece
 
 void Publishers::handleFilterCompAngularRate(const mip::data_filter::CompAngularRate& comp_angular_rate, const uint8_t descriptor_set, mip::Timestamp timestamp)
 {
+  if (event_source_mapping_.find(descriptor_set) != event_source_mapping_.end() && event_source_mapping_.at(descriptor_set).trigger_id != 0)
+  {
+    MICROSTRAIN_DEBUG(node_, "Received filter comp angular rate for event %u", event_source_mapping_.at(descriptor_set).trigger_id);
+  }
   // Filtered IMU message
   auto filter_imu_msg = filter_imu_pub_->getMessageToUpdate();
   updateHeaderTime(&(filter_imu_msg->header), descriptor_set, timestamp);
@@ -1711,6 +1725,10 @@ void Publishers::handleFilterCompAccel(const mip::data_filter::CompAccel& comp_a
 
 void Publishers::handleFilterLinearAccel(const mip::data_filter::LinearAccel& linear_accel, const uint8_t descriptor_set, mip::Timestamp timestamp)
 {
+  if (event_source_mapping_.find(descriptor_set) != event_source_mapping_.end() && event_source_mapping_.at(descriptor_set).trigger_id != 0)
+  {
+    MICROSTRAIN_DEBUG(node_, "Received filter linear accel for event %u", event_source_mapping_.at(descriptor_set).trigger_id);
+  }
   if (!config_->filter_use_compensated_accel_)
   {
     auto filter_imu_msg = filter_imu_pub_->getMessageToUpdate();
@@ -2088,7 +2106,11 @@ void Publishers::handleAfterPacket(const mip::PacketRef& packet, mip::Timestamp 
 
   // Reset some shared descriptors. These are unique to the packets, and we do not want to cache them past this packet
   if (event_source_mapping_.find(packet.descriptorSet()) != event_source_mapping_.end())
+  {
+    if (event_source_mapping_.at(packet.descriptorSet()).trigger_id != 0)
+      MICROSTRAIN_DEBUG(node_, "--- Finished processing event packet ---");
     event_source_mapping_[packet.descriptorSet()].trigger_id = 0;
+  }
 
   // Reset whether or not we have RTK
   rtk_fixed_ = false;
