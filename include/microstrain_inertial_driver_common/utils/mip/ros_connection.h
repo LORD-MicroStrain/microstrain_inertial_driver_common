@@ -141,15 +141,15 @@ class RosConnection : public mip::Connection
   RosNodeType* node_;  /// Reference to the ROS node that created this connection
 
   std::unique_ptr<mip::Connection> connection_;  /// Connection object used to actually interact with the device
-  mip::Timeout parse_timeout_;  /// Parse timeout given the type of connection configured
-  mip::Timeout base_reply_timeout_;  /// Base reply timeout given the type of connection configured
+  mip::Timeout parse_timeout_ = 0;  /// Parse timeout given the type of connection configured
+  mip::Timeout base_reply_timeout_ = 0;  /// Base reply timeout given the type of connection configured
 
-  bool should_record_;  /// Whether or not we should record binary data on this connection
+  bool should_record_ = false;  /// Whether or not we should record binary data on this connection
   std::string record_file_path_;  /// The path to where data will be recorded
   std::ofstream record_file_;  /// The file that the binary data should be recorded to
 
-  bool should_parse_nmea_;  /// Whether or not we should attempt to parse and extract NMEA sentences on this connection
-  std::string nmea_string_;  /// Cached data read from the port, used to extraxt NMEA messages
+  bool should_parse_nmea_ = false;  /// Whether or not we should attempt to parse and extract NMEA sentences on this connection
+  std::string nmea_string_ = "";  /// Cached data read from the port, used to extraxt NMEA messages
   std::vector<NMEASentenceMsg> nmea_msgs_;  /// List of NMEA messages received by this connection
 };
 

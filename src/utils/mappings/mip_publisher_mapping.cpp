@@ -78,6 +78,10 @@ MipPublisherMapping::MipPublisherMapping(RosNodeType* node, const std::shared_pt
       {
         MICROSTRAIN_DEBUG(node_, "Note: The device does not support field 0x%02x%02x associated with topic %s", descriptor_set, field_descriptor, topic.c_str());
       }
+      else
+      {
+        MICROSTRAIN_DEBUG(node_, "Note: The device does not support descriptor set 0x%02x associated with topic %s", descriptor_set, topic.c_str());
+      }
     }
     if (topic_info_mapping_.find(topic) == topic_info_mapping_.end())
       MICROSTRAIN_INFO(node_, "Note: The device does not support publishing the topic %s", topic.c_str());
