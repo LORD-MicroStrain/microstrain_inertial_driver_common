@@ -20,7 +20,7 @@ namespace microstrain
 
 constexpr auto NMEA_MAX_LENGTH = 82;
 
-void logCallbackProxy(void* user, mip_log_level level, const char* fmt, va_list args)
+void logCallbackProxy(void* user, microstrain_log_level level, const char* fmt, va_list args)
 {
   // Convert the varargs into a string
   std::string log_str;
@@ -128,23 +128,23 @@ void NodeCommon::parseAndPublishAux()
   }
 }
 
-void NodeCommon::logCallback(const mip_log_level level, const std::string& log_str)
+void NodeCommon::logCallback(const microstrain_log_level level, const std::string& log_str)
 {
   switch (level)
   {
-    case MIP_LOG_LEVEL_FATAL:
+    case MICROSTRAIN_LOG_LEVEL_FATAL:
       MICROSTRAIN_FATAL(node_, "%s", log_str.c_str());
       break;
-    case MIP_LOG_LEVEL_ERROR:
+    case MICROSTRAIN_LOG_LEVEL_ERROR:
       MICROSTRAIN_ERROR(node_, "%s", log_str.c_str());
       break;
-    case MIP_LOG_LEVEL_WARN:
+    case MICROSTRAIN_LOG_LEVEL_WARN:
       MICROSTRAIN_WARN(node_, "%s", log_str.c_str());
       break;
-    case MIP_LOG_LEVEL_INFO:
+    case MICROSTRAIN_LOG_LEVEL_INFO:
       MICROSTRAIN_INFO(node_, "%s", log_str.c_str());
       break;
-    case MIP_LOG_LEVEL_DEBUG:
+    case MICROSTRAIN_LOG_LEVEL_DEBUG:
       MICROSTRAIN_DEBUG(node_, "%s", log_str.c_str());
       break;
   }
@@ -159,7 +159,7 @@ bool NodeCommon::initialize(RosNodeType* init_node)
   services_ = Services(node_, &config_);
 
   // Initialize the MIP SDK logger
-  MIP_LOG_INIT(&logCallbackProxy, MIP_LOG_LEVEL_INFO, this);
+  MICROSTRAIN_LOG_INIT(&logCallbackProxy, MICROSTRAIN_LOG_LEVEL_INFO, this);
 
   return true;
 }

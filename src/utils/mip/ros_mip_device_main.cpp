@@ -40,7 +40,7 @@ bool RosMipDeviceMain::configure(RosNodeType* config_node)
 
   // Setup the device interface
   mip::CmdResult mip_cmd_result;
-  device_ = std::unique_ptr<mip::DeviceInterface>(new mip::DeviceInterface(connection_.get(), buffer_, sizeof(buffer_), connection_->parseTimeout(), connection_->baseReplyTimeout()));
+  device_ = std::unique_ptr<mip::Interface>(new mip::Interface(connection_.get(), connection_->parseTimeout(), connection_->baseReplyTimeout()));
 
   // At this point, we have connected to the device but if it is streaming.
   // Reading information may fail. Retry setting to idle a few times to accomodate
@@ -224,7 +224,7 @@ mip::CmdResult RosMipDeviceMain::updateBaseRate(const uint8_t descriptor_set)
       case mip::data_sensor::DESCRIPTOR_SET:
         return mip::commands_3dm::imuGetBaseRate(*device_, &(base_rates_[descriptor_set]));
       case mip::data_gnss::DESCRIPTOR_SET:
-        return mip::commands_3dm::gpsGetBaseRate(*device_, &(base_rates_[descriptor_set]));
+        return mip::commands_3dm::gnssGetBaseRate(*device_, &(base_rates_[descriptor_set]));
       case mip::data_filter::DESCRIPTOR_SET:
         return mip::commands_3dm::filterGetBaseRate(*device_, &(base_rates_[descriptor_set]));
       default:
@@ -254,7 +254,7 @@ mip::CmdResult RosMipDeviceMain::readMessageFormat(uint8_t descriptor_set, uint8
       case mip::data_sensor::DESCRIPTOR_SET:
         return mip::commands_3dm::readImuMessageFormat(*device_, num_descriptors, num_descriptors_max, descriptors);
       case mip::data_gnss::DESCRIPTOR_SET:
-        return mip::commands_3dm::readGpsMessageFormat(*device_, num_descriptors, num_descriptors_max, descriptors);
+        return mip::commands_3dm::readGnssMessageFormat(*device_, num_descriptors, num_descriptors_max, descriptors);
       case mip::data_filter::DESCRIPTOR_SET:
         return mip::commands_3dm::readFilterMessageFormat(*device_, num_descriptors, num_descriptors_max, descriptors);
       default:
@@ -277,7 +277,7 @@ mip::CmdResult RosMipDeviceMain::writeMessageFormat(uint8_t descriptor_set, uint
       case mip::data_sensor::DESCRIPTOR_SET:
         return mip::commands_3dm::writeImuMessageFormat(*device_, num_descriptors, descriptors);
       case mip::data_gnss::DESCRIPTOR_SET:
-        return mip::commands_3dm::writeGpsMessageFormat(*device_, num_descriptors, descriptors);
+        return mip::commands_3dm::writeGnssMessageFormat(*device_, num_descriptors, descriptors);
       case mip::data_filter::DESCRIPTOR_SET:
         return mip::commands_3dm::writeFilterMessageFormat(*device_, num_descriptors, descriptors);
       default:

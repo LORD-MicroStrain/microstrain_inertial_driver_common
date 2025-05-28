@@ -310,7 +310,7 @@ private:
    * \param descriptor_set The descriptor set to register the packet callback for
    * \param after_fields Whether this callback should be triggered before or after the field callbacks
    */
-  template<void (Publishers::*Callback)(const mip::PacketRef&, mip::Timestamp)>
+  template<void (Publishers::*Callback)(const mip::PacketView&, mip::Timestamp)>
   void registerPacketCallback(const uint8_t descriptor_set = mip::C::MIP_DISPATCH_ANY_DESCRIPTOR, bool after_fields = true);
 
   /**
@@ -388,7 +388,7 @@ private:
    * \param packet The packet that was processed
    * \param timestamp The timestamp of when the packet was received
   */
-  void handleAfterPacket(const mip::PacketRef& packet, mip::Timestamp timestamp);
+  void handleAfterPacket(const mip::PacketView& packet, mip::Timestamp timestamp);
 
   /**
    * \brief Updates the microstrain header contained in all MIP specific custom messages
@@ -457,7 +457,7 @@ private:
   ClockBiasMonitor clock_bias_monitor_ = ClockBiasMonitor(0.99, 1.0);
 };
 
-template<void (Publishers::*Callback)(const mip::PacketRef&, mip::Timestamp)>
+template<void (Publishers::*Callback)(const mip::PacketView&, mip::Timestamp)>
 void Publishers::registerPacketCallback(const uint8_t descriptor_set, bool after_fields)
 {
   // Regsiter a handler for the callback

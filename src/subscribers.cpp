@@ -62,7 +62,7 @@ bool Subscribers::activate()
     MICROSTRAIN_INFO(node_, "Subscribing to %s for external GPS Velocity in the ECEF frame", EXT_VEL_ECEF_TOPIC);
     external_vel_ecef_sub_ = createSubscriber<>(node_, EXT_VEL_ECEF_TOPIC, 1000, &Subscribers::externalVelEcefCallback, this);
   }
-  if (config_->subscribe_ext_vel_body_ && config_->mip_device_->supportsDescriptor(mip::commands_aiding::DESCRIPTOR_SET, mip::commands_aiding::CMD_VEL_ODOM))
+  if (config_->subscribe_ext_vel_body_ && config_->mip_device_->supportsDescriptor(mip::commands_aiding::DESCRIPTOR_SET, mip::commands_aiding::CMD_VEL_BODY_FRAME))
   {
     MICROSTRAIN_INFO(node_, "Subscribing to %s for external Velocity in the Body frame", EXT_VEL_BODY_TOPIC);
     external_vel_body_sub_ = createSubscriber<>(node_, EXT_VEL_BODY_TOPIC, 1000, &Subscribers::externalVelBodyCallback, this);
@@ -132,7 +132,7 @@ void Subscribers::externalGnssPositionCallback(const NavSatFixMsg& fix)
   }
 
   // Get the sensor ID from the frame ID
-  mip::commands_aiding::LlhPos llh_pos;
+  mip::commands_aiding::PosLlh llh_pos;
   llh_pos.time.reserved = 1;
   llh_pos.time.timebase = mip::commands_aiding::Time::Timebase::TIME_OF_ARRIVAL;
   if ((llh_pos.frame_id = getSensorIdFromFrameId(fix.header.frame_id)) == 0)
@@ -156,14 +156,14 @@ void Subscribers::externalGnssPositionCallback(const NavSatFixMsg& fix)
   llh_pos.uncertainty[2] = sqrt(fix.position_covariance[8]);
 
   mip::CmdResult mip_cmd_result;
-  if (!(mip_cmd_result = config_->mip_device_->device().runCommand<mip::commands_aiding::LlhPos>(llh_pos)))
+  if (!(mip_cmd_result = config_->mip_device_->device().runCommand<mip::commands_aiding::PosLlh>(llh_pos)))
     MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to send aiding LLH position aiding command");
 }
 
 void Subscribers::externalVelNedCallback(const TwistWithCovarianceStampedMsg& vel)
 {
   // Get the sensor ID from the frame ID
-  mip::commands_aiding::NedVel ned_vel;
+  mip::commands_aiding::VelNed ned_vel;
   ned_vel.time.reserved = 1;
   ned_vel.time.timebase = mip::commands_aiding::Time::Timebase::TIME_OF_ARRIVAL;
   if ((ned_vel.frame_id = getSensorIdFromFrameId(vel.header.frame_id)) == 0)
@@ -190,14 +190,14 @@ void Subscribers::externalVelNedCallback(const TwistWithCovarianceStampedMsg& ve
   }
 
   mip::CmdResult mip_cmd_result;
-  if (!(mip_cmd_result = config_->mip_device_->device().runCommand<mip::commands_aiding::NedVel>(ned_vel)))
+  if (!(mip_cmd_result = config_->mip_device_->device().runCommand<mip::commands_aiding::VelNed>(ned_vel)))
     MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to send NED velocity aiding command");
 }
 
 void Subscribers::externalVelEnuCallback(const TwistWithCovarianceStampedMsg& vel)
 {
   // Get the sensor ID from the frame ID
-  mip::commands_aiding::NedVel ned_vel;
+  mip::commands_aiding::VelNed ned_vel;
   ned_vel.time.reserved = 1;
   ned_vel.time.timebase = mip::commands_aiding::Time::Timebase::TIME_OF_ARRIVAL;
   if ((ned_vel.frame_id = getSensorIdFromFrameId(vel.header.frame_id)) == 0)
@@ -224,14 +224,14 @@ void Subscribers::externalVelEnuCallback(const TwistWithCovarianceStampedMsg& ve
   }
 
   mip::CmdResult mip_cmd_result;
-  if (!(mip_cmd_result = config_->mip_device_->device().runCommand<mip::commands_aiding::NedVel>(ned_vel)))
+  if (!(mip_cmd_result = config_->mip_device_->device().runCommand<mip::commands_aiding::VelNed>(ned_vel)))
     MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to send ENU velocity aiding command");
 }
 
 void Subscribers::externalVelEcefCallback(const TwistWithCovarianceStampedMsg& vel)
 {
   // Get the sensor ID from the frame ID
-  mip::commands_aiding::EcefVel ecef_vel;
+  mip::commands_aiding::VelEcef ecef_vel;
   ecef_vel.time.reserved = 1;
   ecef_vel.time.timebase = mip::commands_aiding::Time::Timebase::TIME_OF_ARRIVAL;
   if ((ecef_vel.frame_id = getSensorIdFromFrameId(vel.header.frame_id)) == 0)
@@ -258,14 +258,14 @@ void Subscribers::externalVelEcefCallback(const TwistWithCovarianceStampedMsg& v
   }
 
   mip::CmdResult mip_cmd_result;
-  if (!(mip_cmd_result = config_->mip_device_->device().runCommand<mip::commands_aiding::EcefVel>(ecef_vel)))
+  if (!(mip_cmd_result = config_->mip_device_->device().runCommand<mip::commands_aiding::VelEcef>(ecef_vel)))
     MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to send ECEF velocity aiding command");
 }
 
 void Subscribers::externalVelBodyCallback(const TwistWithCovarianceStampedMsg& vel)
 {
   // Get the sensor ID from the frame ID
-  mip::commands_aiding::VehicleFixedFrameVelocity vehicle_fixed_frame_velocity;
+  mip::commands_aiding::VelBodyFrame vehicle_fixed_frame_velocity;
   vehicle_fixed_frame_velocity.time.reserved = 1;
   vehicle_fixed_frame_velocity.time.timebase = mip::commands_aiding::Time::Timebase::TIME_OF_ARRIVAL;
   if ((vehicle_fixed_frame_velocity.frame_id = getSensorIdFromFrameId(vel.header.frame_id)) == 0)
@@ -292,14 +292,14 @@ void Subscribers::externalVelBodyCallback(const TwistWithCovarianceStampedMsg& v
   }
 
   mip::CmdResult mip_cmd_result;
-  if (!(mip_cmd_result = config_->mip_device_->device().runCommand<mip::commands_aiding::VehicleFixedFrameVelocity>(vehicle_fixed_frame_velocity)))
+  if (!(mip_cmd_result = config_->mip_device_->device().runCommand<mip::commands_aiding::VelBodyFrame>(vehicle_fixed_frame_velocity)))
     MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to send body frame velocity command");
 }
 
 void Subscribers::externalHeadingNedCallback(const PoseWithCovarianceStampedMsg& heading)
 {
   // Fill out the time of the message
-  mip::commands_aiding::TrueHeading true_heading;
+  mip::commands_aiding::HeadingTrue true_heading;
   true_heading.time.reserved = 1;
   true_heading.time.timebase = mip::commands_aiding::Time::Timebase::TIME_OF_ARRIVAL;
   if ((true_heading.frame_id = getSensorIdFromFrameId(heading.header.frame_id)) == 0)
@@ -325,14 +325,14 @@ void Subscribers::externalHeadingNedCallback(const PoseWithCovarianceStampedMsg&
   true_heading.uncertainty = sqrt(heading.pose.covariance[35]);
 
   mip::CmdResult mip_cmd_result;
-  if (!(mip_cmd_result = config_->mip_device_->device().runCommand<mip::commands_aiding::TrueHeading>(true_heading)))
+  if (!(mip_cmd_result = config_->mip_device_->device().runCommand<mip::commands_aiding::HeadingTrue>(true_heading)))
     MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to send external heading command");
 }
 
 void Subscribers::externalHeadingEnuCallback(const PoseWithCovarianceStampedMsg& heading)
 {
   // Fill out the time of the message
-  mip::commands_aiding::TrueHeading true_heading;
+  mip::commands_aiding::HeadingTrue true_heading;
   true_heading.time.reserved = 1;
   true_heading.time.timebase = mip::commands_aiding::Time::Timebase::TIME_OF_ARRIVAL;
   if ((true_heading.frame_id = getSensorIdFromFrameId(heading.header.frame_id)) == 0)
@@ -359,7 +359,7 @@ void Subscribers::externalHeadingEnuCallback(const PoseWithCovarianceStampedMsg&
   true_heading.uncertainty = sqrt(heading.pose.covariance[35]);
 
   mip::CmdResult mip_cmd_result;
-  if (!(mip_cmd_result = config_->mip_device_->device().runCommand<mip::commands_aiding::TrueHeading>(true_heading)))
+  if (!(mip_cmd_result = config_->mip_device_->device().runCommand<mip::commands_aiding::HeadingTrue>(true_heading)))
     MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to send external heading command");
 }
 
@@ -425,10 +425,17 @@ void Subscribers::externalPressureCallback(const FluidPressureMsg& fluid_pressur
 void Subscribers::rtcmCallback(const RTCMMsg& rtcm)
 {
   MICROSTRAIN_DEBUG(node_, "Received RTCM message of size %lu", rtcm.message.size());
-  if (config_->aux_device_)
+  if (config_->rtcm_on_main_port_)
+  {
+    if (!config_->mip_device_->send(rtcm.message.data(), rtcm.message.size()))
+      MICROSTRAIN_ERROR(node_, "Failed to write RTCM to main port");
+    else
+      MICROSTRAIN_DEBUG(node_, "Successfully wrote RTCM message of size %lu to main port", rtcm.message.size());
+  }
+  else if (config_->aux_device_)
   {
     if (!config_->aux_device_->send(rtcm.message.data(), rtcm.message.size()))
-      MICROSTRAIN_ERROR(node_, "Failed to write RTCM to device");
+      MICROSTRAIN_ERROR(node_, "Failed to write RTCM to aux port");
     else
       MICROSTRAIN_DEBUG(node_, "Successfully wrote RTCM message of size %lu to aux port", rtcm.message.size());
   }

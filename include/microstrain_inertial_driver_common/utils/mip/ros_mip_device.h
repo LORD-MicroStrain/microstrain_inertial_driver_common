@@ -19,7 +19,7 @@
 #include <algorithm>
 #include <functional>
 
-#include "mip/mip_device.hpp"
+#include "mip/mip_interface.hpp"
 
 #include "mip/definitions/commands_base.hpp"
 #include "mip/definitions/commands_3dm.hpp"
@@ -52,7 +52,7 @@ class RosMipDevice
    * \brief Convenience operator to allow this class to be used in place of a mip::DeviceInterface.
    *        Will throw if the device has not been initialized
    */
-  operator mip::DeviceInterface&()
+  operator mip::Interface&()
   {
     if (device_ != nullptr)
       return *device_;
@@ -65,7 +65,7 @@ class RosMipDevice
    *        Will throw if the device has not been initialized
    * \return Reference to the device interface in this object
    */
-  mip::DeviceInterface& device();
+  mip::Interface& device();
 
   /**
    * \brief Determines if the given device info is from a prospect device
@@ -94,6 +94,13 @@ class RosMipDevice
    * \return true if the device is a CV7, false otherwise
   */
   static bool isCv7(const mip::commands_base::BaseDeviceInfo& device_info);
+
+  /**
+   * \brief Determines if the given device info is from a CV7-GNSS/INS
+   * \param device_info Populated and null terminated string version of the device info struct fetched from a device
+   * \return true if the device is a CV7-GNSS/INS, false otherwise
+  */
+  static bool isCv7GnssIns(const mip::commands_base::BaseDeviceInfo& device_info);
 
   /**
    * \brief Sends data to the device
@@ -161,7 +168,7 @@ class RosMipDevice
   RosNodeType* node_;  /// Reference to the ROS node that created this object
 
   std::shared_ptr<RosConnection> connection_;  // Pointer to the MIP connection
-  std::unique_ptr<::mip::DeviceInterface> device_;  // Pointer to the device. Public so that functions that do not need to be wrapped can be called directly
+  std::unique_ptr<::mip::Interface> device_;  // Pointer to the device. Public so that functions that do not need to be wrapped can be called directly
 
   uint8_t buffer_[1024];  // Buffer to use for the MIP device
 };
