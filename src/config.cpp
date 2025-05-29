@@ -228,7 +228,6 @@ bool Config::connectDevice(RosNodeType* node)
       }
       aux_device_->connection()->shouldParseNmea(ntrip_interface_enable_);
     }
-
   }
 
   return true;
