@@ -119,7 +119,7 @@ bool RosMipDeviceMain::configure(RosNodeType* config_node)
     #######################)", device_info_.model_name, device_info_.serial_number, firmwareVersionString(device_info_.firmware_version).c_str());
 
   // If the main name of the port contains "GNSS" it is likely we are talking to the aux port, so log a warning
-  if (std::string(device_info_.model_name).find("GNSS") != std::string::npos)
+  if (!RosMipDevice::isCv7GnssIns(device_info_) && std::string(device_info_.model_name).find("GNSS") != std::string::npos)
   {
     MICROSTRAIN_WARN(node_, "Note: The configured main port appears to actually be the aux port.");
     MICROSTRAIN_WARN(node_, "      Double check that the \"port\" option is configured to the main port of the device.");
