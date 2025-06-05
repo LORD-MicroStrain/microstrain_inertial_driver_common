@@ -16,8 +16,8 @@
 #include <memory>
 #include <iomanip>
 
-#include "mip/platform/serial_connection.hpp"
-#include "mip/extras/recording_connection.hpp"
+#include "microstrain/connections/serial/serial_connection.hpp"
+#include "microstrain/connections/recording/recording_connection.hpp"
 
 #include "microstrain_inertial_driver_common/utils/mip/ros_connection.h"
 #include "microstrain_inertial_driver_common/utils/mip/ros_mip_device.h"
@@ -58,8 +58,8 @@ bool RosConnection::disconnect()
 bool RosConnection::connect(RosNodeType* config_node, const std::string& port, const int32_t baudrate)
 {
   // Some convenient typedefs
-  using SerialConnection = mip::platform::SerialConnection;
-  using RecordingSerialConnection = mip::extras::RecordingConnectionWrapper<SerialConnection>;
+  using SerialConnection = microstrain::connections::SerialConnection;
+  using RecordingSerialConnection = microstrain::connections::RecordingConnectionWrapper<SerialConnection>;
 
   // If we were asked to, poll the port until it exists
   bool poll_port;
@@ -147,10 +147,13 @@ bool RosConnection::configure(RosNodeType* config_node, RosMipDevice* device)
 
   std::string time_string(curr_time_buffer);
 
+  // Replace any slashes in the file name
+  std::string raw_file_name = device_info.model_name + std::string("_") + device_info.serial_number + std::string("_") + time_string + std::string(".bin");
+  std::replace(raw_file_name.begin(), raw_file_name.end(), '/', '_');
+
   if (raw_file_directory.back() != '/')
     raw_file_directory += "/";
-  record_file_path_ = raw_file_directory + device_info.model_name + std::string("_") +
-                          device_info.serial_number + std::string("_") + time_string + std::string(".bin");
+  record_file_path_ = raw_file_directory + raw_file_name;
 
   // Open raw data file, if enabled
   if (!updateRecordingState(should_record_, record_file_path_))
@@ -241,16 +244,16 @@ bool RosConnection::sendToDevice(const uint8_t* data, size_t length)
     return false;
 }
 
-bool RosConnection::recvFromDevice(uint8_t* buffer, size_t max_length, mip::Timeout timeout, size_t* count_out, mip::Timestamp* timestamp_out)
+bool RosConnection::recvFromDevice(uint8_t* buffer, size_t max_length, unsigned int wait_time_ms, size_t* length_out, microstrain::EmbeddedTimestamp* timestamp_out)
 {
-  const bool success = (connection_ != nullptr) ? connection_->recvFromDevice(buffer, max_length, timeout, count_out, timestamp_out) : false;
+  const bool success = (connection_ != nullptr) ? connection_->recvFromDevice(buffer, max_length, wait_time_ms, length_out, timestamp_out) : false;
   if (success)
   {
-    *timestamp_out = static_cast<mip::Timestamp>(getTimeRefSecs(rosTimeNow(node_)) * 1000.0);
+    *timestamp_out = static_cast<microstrain::EmbeddedTimestamp>(getTimeRefSecs(rosTimeNow(node_)) * 1000.0);
 
     // Parse NMEA sentences if we were asked to
     if (should_parse_nmea_)
-      extractNmea(buffer, *count_out);
+      extractNmea(buffer, *length_out);
   }
   return success;
 }

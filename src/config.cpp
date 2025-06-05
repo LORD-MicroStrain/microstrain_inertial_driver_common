@@ -25,8 +25,8 @@
 #include "mip/definitions/data_sensor.hpp"
 #include "mip/definitions/data_gnss.hpp"
 #include "mip/definitions/data_filter.hpp"
-#include "mip/platform/serial_connection.hpp"
-#include "mip/extras/recording_connection.hpp"
+#include "microstrain/connections/serial/serial_connection.hpp"
+#include "microstrain/connections/recording/recording_connection.hpp"
 
 #include "microstrain_inertial_driver_common/utils/mappings/mip_mapping.h"
 #include "microstrain_inertial_driver_common/config.h"
@@ -216,13 +216,18 @@ bool Config::connectDevice(RosNodeType* node)
   // Connect the aux port
   if (ntrip_interface_enable_)
   {
-    aux_device_ = std::make_shared<RosMipDeviceAux>(node_);
-    if (!aux_device_->configure(node))
+    // The GQ7 is the only device that supports opening an aux port in this way right now
+    if (RosMipDevice::isGq7(mip_device_->device_info_))
     {
-      MICROSTRAIN_ERROR(node_, "Failed to open aux port");
-      return false;
+      // Otherwise, this is probably a GQ7 and we need to open the aux port
+      aux_device_ = std::make_shared<RosMipDeviceAux>(node_);
+      if (!aux_device_->configure(node))
+      {
+        MICROSTRAIN_ERROR(node_, "Failed to open aux port");
+        return false;
+      }
+      aux_device_->connection()->shouldParseNmea(ntrip_interface_enable_);
     }
-    aux_device_->connection()->shouldParseNmea(ntrip_interface_enable_);
   }
 
   return true;
@@ -258,13 +263,14 @@ bool Config::setupDevice(RosNodeType* node)
     if (!configureBase(node) ||
         !configure3DM(node) ||
         !configureGNSS(node) ||
-        !configureFilter(node))
+        !configureFilter(node) ||
+        !configureSystem(node))
       return false;
 
     // Save the settings to the device, if enabled
     if (save_settings)
     {
-      if (mip_device_->supportsDescriptor(mip::commands_3dm::DESCRIPTOR_SET, mip::commands_3dm::CMD_DEVICE_SETTINGS))
+      if (mip_device_->supportsDescriptor(mip::commands_3dm::DESCRIPTOR_SET, mip::commands_3dm::CMD_DEVICE_STARTUP_SETTINGS))
       {
         MICROSTRAIN_INFO(node_, "Saving the launch file configuration settings to the device");
         if (!(mip_cmd_result = mip::commands_3dm::saveDeviceSettings(*mip_device_)))
@@ -487,9 +493,9 @@ bool Config::configure3DM(RosNodeType* node)
         }
 
         // Also enable aiding command echo when collecting a factory support binary
-        if (mip_device_->supportsDescriptor(mip::commands_aiding::DESCRIPTOR_SET, mip::commands_aiding::AidingEchoControl::FIELD_DESCRIPTOR))
+        if (mip_device_->supportsDescriptor(mip::commands_aiding::DESCRIPTOR_SET, mip::commands_aiding::EchoControl::FIELD_DESCRIPTOR))
         {
-          if (!(mip_cmd_result = mip::commands_aiding::writeAidingEchoControl(*mip_device_, mip::commands_aiding::AidingEchoControl::Mode::RESPONSE)))
+          if (!(mip_cmd_result = mip::commands_aiding::writeEchoControl(*mip_device_, mip::commands_aiding::EchoControl::Mode::RESPONSE)))
           {
             MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to configure aiding echo control");
             return false;
@@ -548,22 +554,22 @@ bool Config::configure3DM(RosNodeType* node)
   // NMEA Message format
   if (mip_device_->supportsDescriptor(descriptor_set, mip::commands_3dm::CMD_NMEA_MESSAGE_FORMAT))
   {
+    /// Get the talker IDs for the descriptor sets that need them
+    int32_t gnss1_nmea_talker_id, gnss2_nmea_talker_id, filter_nmea_talker_id;
+    getParam<int32_t>(node, "gnss1_nmea_talker_id", gnss1_nmea_talker_id, 0);
+    getParam<int32_t>(node, "gnss2_nmea_talker_id", gnss2_nmea_talker_id, 0);
+    getParam<int32_t>(node, "filter_nmea_talker_id", filter_nmea_talker_id, 0);
+
+    // Save the talker IDs to a map so we can look up the right frame IDs
+    nmea_talker_id_to_frame_id_mapping_[MipMapping::nmeaFormatTalkerIdString(static_cast<mip::commands_3dm::NmeaMessage::TalkerID>(gnss1_nmea_talker_id))] = gnss_frame_id_[GNSS1_ID];
+    nmea_talker_id_to_frame_id_mapping_[MipMapping::nmeaFormatTalkerIdString(static_cast<mip::commands_3dm::NmeaMessage::TalkerID>(gnss2_nmea_talker_id))] = gnss_frame_id_[GNSS2_ID];
+    nmea_talker_id_to_frame_id_mapping_[MipMapping::nmeaFormatTalkerIdString(static_cast<mip::commands_3dm::NmeaMessage::TalkerID>(filter_nmea_talker_id))] = frame_id_;
+
     if (nmea_message_config)
     {
-      /// Get the talker IDs for the descriptor sets that need them
-      int32_t gnss1_nmea_talker_id, gnss2_nmea_talker_id, filter_nmea_talker_id;
-      getParam<int32_t>(node, "gnss1_nmea_talker_id", gnss1_nmea_talker_id, 0);
-      getParam<int32_t>(node, "gnss2_nmea_talker_id", gnss2_nmea_talker_id, 0);
-      getParam<int32_t>(node, "filter_nmea_talker_id", filter_nmea_talker_id, 0);
-
-      // Save the talker IDs to a map so we can look up the right frame IDs
-      nmea_talker_id_to_frame_id_mapping_[MipMapping::nmeaFormatTalkerIdString(static_cast<mip::commands_3dm::NmeaMessage::TalkerID>(gnss1_nmea_talker_id))] = gnss_frame_id_[GNSS1_ID];
-      nmea_talker_id_to_frame_id_mapping_[MipMapping::nmeaFormatTalkerIdString(static_cast<mip::commands_3dm::NmeaMessage::TalkerID>(gnss2_nmea_talker_id))] = gnss_frame_id_[GNSS2_ID];
-      nmea_talker_id_to_frame_id_mapping_[MipMapping::nmeaFormatTalkerIdString(static_cast<mip::commands_3dm::NmeaMessage::TalkerID>(filter_nmea_talker_id))] = frame_id_;
-
       // Populate the NMEA message config options
       std::vector<mip::commands_3dm::NmeaMessage> formats;
-      if (!populateNmeaMessageFormat(node, "imu_nmea_prkr_data_rate", mip::commands_3dm::NmeaMessage::TalkerID::IGNORED, mip::data_sensor::DESCRIPTOR_SET, mip::commands_3dm::NmeaMessage::MessageID::PKRR, &formats) ||
+      if (!populateNmeaMessageFormat(node, "imu_nmea_prkr_data_rate", mip::commands_3dm::NmeaMessage::TalkerID::IGNORED, mip::data_sensor::DESCRIPTOR_SET, mip::commands_3dm::NmeaMessage::MessageID::MSRR, &formats) ||
           !populateNmeaMessageFormat(node, "gnss1_nmea_gga_data_rate", static_cast<mip::commands_3dm::NmeaMessage::TalkerID>(gnss1_nmea_talker_id), mip::data_gnss::MIP_GNSS1_DATA_DESC_SET, mip::commands_3dm::NmeaMessage::MessageID::GGA, &formats) ||
           !populateNmeaMessageFormat(node, "gnss1_nmea_gll_data_rate", static_cast<mip::commands_3dm::NmeaMessage::TalkerID>(gnss1_nmea_talker_id), mip::data_gnss::MIP_GNSS1_DATA_DESC_SET, mip::commands_3dm::NmeaMessage::MessageID::GLL, &formats) ||
           !populateNmeaMessageFormat(node, "gnss1_nmea_gsv_data_rate", static_cast<mip::commands_3dm::NmeaMessage::TalkerID>(gnss1_nmea_talker_id), mip::data_gnss::MIP_GNSS1_DATA_DESC_SET, mip::commands_3dm::NmeaMessage::MessageID::GSV, &formats) ||
@@ -582,7 +588,7 @@ bool Config::configure3DM(RosNodeType* node)
           !populateNmeaMessageFormat(node, "filter_nmea_gll_data_rate", static_cast<mip::commands_3dm::NmeaMessage::TalkerID>(filter_nmea_talker_id), mip::data_filter::DESCRIPTOR_SET, mip::commands_3dm::NmeaMessage::MessageID::GLL, &formats) ||
           !populateNmeaMessageFormat(node, "filter_nmea_rmc_data_rate", static_cast<mip::commands_3dm::NmeaMessage::TalkerID>(filter_nmea_talker_id), mip::data_filter::DESCRIPTOR_SET, mip::commands_3dm::NmeaMessage::MessageID::RMC, &formats) ||
           !populateNmeaMessageFormat(node, "filter_nmea_hdt_data_rate", static_cast<mip::commands_3dm::NmeaMessage::TalkerID>(filter_nmea_talker_id), mip::data_filter::DESCRIPTOR_SET, mip::commands_3dm::NmeaMessage::MessageID::HDT, &formats) ||
-          !populateNmeaMessageFormat(node, "filter_nmea_prka_data_rate", static_cast<mip::commands_3dm::NmeaMessage::TalkerID>(filter_nmea_talker_id), mip::data_filter::DESCRIPTOR_SET, mip::commands_3dm::NmeaMessage::MessageID::PKRA, &formats))
+          !populateNmeaMessageFormat(node, "filter_nmea_prka_data_rate", static_cast<mip::commands_3dm::NmeaMessage::TalkerID>(filter_nmea_talker_id), mip::data_filter::DESCRIPTOR_SET, mip::commands_3dm::NmeaMessage::MessageID::MSRA, &formats))
         return false;
 
       // Send them to the device
@@ -699,12 +705,25 @@ bool Config::configureGNSS(RosNodeType* node)
   // GNSS Signal confiuration
   if (mip_device_->supportsDescriptor(descriptor_set, mip::commands_gnss::CMD_SIGNAL_CONFIGURATION))
   {
-    uint8_t gnss_gps_enable = 3;
-    uint8_t gnss_glonass_enable = gnss_glonass_enable_bool ? 3 : 0;
-    uint8_t gnss_galileo_enable = gnss_galileo_enable_bool ? 3 : 0;
-    uint8_t gnss_beidou_enable = gnss_beidou_enable_bool ? 3 : 0;
+    // If using the CV7-GNSS-INS, we need a different bitfield since it supports L1 and L5 while older products support L1 and L2
+    uint8_t gnss_gps_enable, gnss_glonass_enable, gnss_galileo_enable, gnss_beidou_enable;
+    if (RosMipDevice::isCv7GnssIns(mip_device_->device_info_))
+    {
+      gnss_gps_enable = 5;
+      gnss_glonass_enable = gnss_glonass_enable_bool ? 1 : 0;
+      gnss_galileo_enable = gnss_galileo_enable_bool ? 5 : 0;
+      gnss_beidou_enable  = gnss_beidou_enable_bool  ? 5 : 0;
+    }
+    else
+    {
+      gnss_gps_enable = 3;
+      gnss_glonass_enable = gnss_glonass_enable_bool ? 3 : 0;
+      gnss_galileo_enable = gnss_galileo_enable_bool ? 3 : 0;
+      gnss_beidou_enable  = gnss_beidou_enable_bool  ? 3 : 0;
+    }
     uint8_t reserved[4];
     MICROSTRAIN_INFO(node_, "Setting GNSS Signal Configuration to:");
+    MICROSTRAIN_INFO(node_, "  gps_enable = %d", gnss_gps_enable);
     MICROSTRAIN_INFO(node_, "  glonass_enable = %d", gnss_glonass_enable);
     MICROSTRAIN_INFO(node_, "  galileo_enable = %d", gnss_galileo_enable);
     MICROSTRAIN_INFO(node_, "  beidou_enable = %d", gnss_beidou_enable);
@@ -1213,6 +1232,84 @@ bool Config::configureFilter(RosNodeType* node)
   return true;
 }
 
+bool Config::configureSystem(RosNodeType* node)
+{
+  mip::CmdResult mip_cmd_result;
+  const uint8_t descriptor_set = mip::commands_filter::DESCRIPTOR_SET;
+
+  // If the user is requesting NTRIP and this is a 3DM-CV7-GNSS/INS, we need to do some extra configuration
+  if (ntrip_interface_enable_ && RosMipDevice::isCv7GnssIns(mip_device_->device_info_))
+  {
+    // Note that we should send RTCM to the main port
+    rtcm_on_main_port_ = true;
+
+    // If the device doesn't support the interface control command, we are on an interface that doesn't support NTRIP
+    if (!mip_device_->supportsDescriptor(mip::commands_system::DESCRIPTOR_SET, mip::commands_system::CMD_INTERFACE_CONTROL))
+    {
+      MICROSTRAIN_ERROR(node_, "Cannot configure NTRIP interface when connected to non-MAIN interface. Please connect to either the first USB or UART interface to use NTRIP.");
+      return false;
+    }
+
+    // Configure the MAIN port to output NMEA and accept RTCM
+    const mip::commands_system::CommsProtocol protocols_in = mip::commands_system::CommsProtocol::MIP | mip::commands_system::CommsProtocol::RTCM;
+    const mip::commands_system::CommsProtocol protocols_out = mip::commands_system::CommsProtocol::MIP | mip::commands_system::CommsProtocol::NMEA;
+    MICROSTRAIN_INFO(node_, "Setting interface control for MAIN to:");
+    MICROSTRAIN_INFO(node_, "  incoming protocols = %d", static_cast<uint32_t>(protocols_in));
+    MICROSTRAIN_INFO(node_, "  outgoing protocols = %d", static_cast<uint32_t>(protocols_out));
+    if (!(mip_cmd_result = mip::commands_system::writeInterfaceControl(*mip_device_, mip::commands_system::CommsInterface::MAIN, protocols_in, protocols_out)))
+    {
+      MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to configure interface control");
+      return false;
+    }
+
+    // This is a bit strange, but we need to enable a GGA NMEA sentence in order to use the NTRIP interface
+    // So check if one is enabled, and if none of them are enabled, force one to be enabled
+    bool nmea_message_config;
+    float gnss1_gga_data_rate, gnss2_gga_data_rate, filter_gga_data_rate;
+    getParam<bool>(node, "nmea_message_config", nmea_message_config, false);
+    getParamFloat(node, "gnss1_nmea_gga_data_rate", gnss1_gga_data_rate, 0.0);
+    getParamFloat(node, "gnss2_nmea_gga_data_rate", gnss2_gga_data_rate, 0.0);
+    getParamFloat(node, "filter_nmea_gga_data_rate", filter_gga_data_rate, 0.0);
+    if (!nmea_message_config || std::max({ gnss1_gga_data_rate, gnss2_gga_data_rate, filter_gga_data_rate }) <= 0)
+    {
+      // Read the existing NMEA message format so we can update it
+      uint8_t nmea_messages_count;
+      mip::commands_3dm::NmeaMessage nmea_messages[255];
+      if (!(mip_cmd_result = mip::commands_3dm::readNmeaMessageFormat(*mip_device_, &nmea_messages_count, sizeof(nmea_messages) / sizeof(nmea_messages[0]), nmea_messages)))
+      {
+        MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Unable to read NMEA message format, so we cannot update it for NTRIP");
+        return false;
+      }
+      std::vector<mip::commands_3dm::NmeaMessage> nmea_messages_vector(nmea_messages, nmea_messages + nmea_messages_count);
+
+      // Enable the GNSS1 GGA sentence
+      setParam<float>(node, "gnss1_nmea_gga_data_rate", 1.0);
+
+      // Add the GGA sentence to the NMEA message formats
+      int32_t gnss1_nmea_talker_id;
+      getParam<int32_t>(node, "gnss1_nmea_talker_id", gnss1_nmea_talker_id, 0);
+      if (!populateNmeaMessageFormat(node, "gnss1_nmea_gga_data_rate", static_cast<mip::commands_3dm::NmeaMessage::TalkerID>(gnss1_nmea_talker_id), mip::data_gnss::MIP_GNSS1_DATA_DESC_SET, mip::commands_3dm::NmeaMessage::MessageID::GGA, &nmea_messages_vector))
+      {
+        MICROSTRAIN_ERROR(node_, "Failed to update message format to include GGA sentence required for NTRIP");
+        return false;
+      }
+
+      // Update the device to stream that message
+      if (!(mip_cmd_result = mip::commands_3dm::writeNmeaMessageFormat(*mip_device_, nmea_messages_vector.size(), nmea_messages_vector.data())))
+      {
+        MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to configure GGA sentence required for NTRIP");
+        return false;
+      }
+    }
+  }
+  else
+  {
+    rtcm_on_main_port_ = false;
+  }
+
+  return true;
+}
+
 bool Config::configureFilterAidingMeasurement(const mip::commands_filter::AidingMeasurementEnable::AidingSource aiding_source, const bool enable)
 {
   // Find the name of the aiding measurement so we can log some info about it
@@ -1328,10 +1425,20 @@ bool Config::populateNmeaMessageFormat(RosNodeType* config_node, const std::stri
     // Note that it is TECHNICALLY valid to have multiple configurations for the same NMEA sentence, but I can think of no reason why it would be useful, so we will also error on that
     if (format.talker_id != mip::commands_3dm::NmeaMessage::TalkerID::IGNORED)
     {
-      for (const auto& existing_format : *formats)
+      for (auto format_it = formats->begin(); format_it != formats->end();)
       {
+        const auto& existing_format = *format_it;
+
         if (existing_format.message_id == format.message_id && existing_format.talker_id == format.talker_id)
         {
+          // If this is the exact same message, remove the existing message so we can add the new one
+          if (existing_format.source_desc_set == format.source_desc_set)
+          {
+            format_it = formats->erase(format_it);
+            continue;
+          }
+
+          // If this is from a different descriptor set, this is either an error or warning
           if (!nmea_message_allow_duplicate_talker_ids_)
           {
             MICROSTRAIN_ERROR(node_, "There is already an existing NMEA message with message ID: %s and talker ID: %s from the '%s' descriptor set.", message_id_string.c_str(), talker_id_string.c_str(), MipMapping::descriptorSetString(existing_format.source_desc_set).c_str());
@@ -1343,6 +1450,7 @@ bool Config::populateNmeaMessageFormat(RosNodeType* config_node, const std::stri
             MICROSTRAIN_WARN(node_, "  Configuration will continue, but you will not be able to differentiate between %s%s NMEA sentences from the '%s' descriptor set and the '%s' descriptor set when they are published", talker_id_string.c_str(), message_id_string.c_str(), descriptor_set_string.c_str(), MipMapping::descriptorSetString(existing_format.source_desc_set).c_str());
           }
         }
+        format_it++;
       }
     }
 

@@ -91,9 +91,9 @@ bool Services::rawFileConfigMainWrite(RawFileConfigWriteSrv::Request& req, RawFi
     }
 
     // Also enable aiding command echo when collecting a factory support binary
-    if (config_->mip_device_->supportsDescriptor(mip::commands_aiding::DESCRIPTOR_SET, mip::commands_aiding::AidingEchoControl::FIELD_DESCRIPTOR))
+    if (config_->mip_device_->supportsDescriptor(mip::commands_aiding::DESCRIPTOR_SET, mip::commands_aiding::EchoControl::FIELD_DESCRIPTOR))
     {
-      const mip::CmdResult mip_cmd_result = mip::commands_aiding::writeAidingEchoControl(*(config_->mip_device_), mip::commands_aiding::AidingEchoControl::Mode::RESPONSE);
+      const mip::CmdResult mip_cmd_result = mip::commands_aiding::writeEchoControl(*(config_->mip_device_), mip::commands_aiding::EchoControl::Mode::RESPONSE);
       if (!mip_cmd_result)
       {
         MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to configure aiding echo control");

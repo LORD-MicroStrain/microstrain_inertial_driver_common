@@ -2096,7 +2096,7 @@ void Publishers::handleSystemTimeSyncStatus(const mip::data_system::TimeSyncStat
   mip_system_time_sync_status_pub_->publish(*mip_system_time_sync_status_msg);
 }
 
-void Publishers::handleAfterPacket(const mip::PacketRef& packet, mip::Timestamp timestamp)
+void Publishers::handleAfterPacket(const mip::PacketView& packet, mip::Timestamp timestamp)
 {
   // Publish all the messages that have been updated
   publish();

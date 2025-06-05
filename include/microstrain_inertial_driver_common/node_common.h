@@ -17,7 +17,7 @@
 #include <vector>
 #include <fstream>
 
-#include "mip/mip_logging.h"
+#include "microstrain/logging.h"
 
 #include "microstrain_inertial_driver_common/config.h"
 #include "microstrain_inertial_driver_common/publishers.h"
@@ -44,7 +44,7 @@ public:
   void parseAndPublishAux();
 
   // Logging callback used by the MIP SDK
-  void logCallback(const mip_log_level level, const std::string& log_str);
+  void logCallback(const microstrain_log_level level, const std::string& log_str);
 
 protected:
   /**
