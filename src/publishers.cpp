@@ -2168,21 +2168,36 @@ void Publishers::updateHeaderTime(RosHeaderType* header, uint8_t descriptor_set,
   }
   else if (config_->timestamp_source_ == TIMESTAMP_SOURCE_HYBRID)
   {
+    // If the GPS timestamp is set and we have seeded the clock bias monitor with enough data to get a bias, we can attempt to use it
     double utc_timestamp = 0;
-    if (clock_bias_monitor_.hasBiasEstimate())
+    const double gps_timestamp_secs = gpsTimestampSecs(gps_timestamp_copy);
+
+    if (gps_timestamp_secs != 0 && clock_bias_monitor_.hasBiasEstimate())
     {
-      const double current_utc_timestamp = gpsTimestampSecs(gps_timestamp_copy) - clock_bias_monitor_.getBiasEstimate();
+      // Determine the hybrid timestamp by subtracting the bias from the GPS timestamp seconds. This should result in a UTC timestamp
+      const double current_utc_timestamp = gps_timestamp_secs - clock_bias_monitor_.getBiasEstimate();
+
+      // Make sure that we have not jumped backwards in time. If we have, we need to reset the clock bias monitor
       const double previous_utc_timestamp = previous_utc_timestamps_.find(descriptor_set) != previous_utc_timestamps_.end() ? previous_utc_timestamps_.at(descriptor_set) : 0;
       const double utc_timestamp_dt = current_utc_timestamp - previous_utc_timestamp;
       if (utc_timestamp_dt >= 0)
+      {
         utc_timestamp = current_utc_timestamp;
+      }
       else
+      {
+        MICROSTRAIN_WARN(node_, "Resetting clock bias monitor because the 0x%02x descriptor set moved back in time %.06f", descriptor_set, utc_timestamp_dt);
         clock_bias_monitor_.reset();
+      }
       if (current_utc_timestamp != previous_utc_timestamp)
         previous_utc_timestamps_[descriptor_set] = current_utc_timestamp;
     }
+
+    // If we were not able to compute the hybrid timestamp, default to the ROS timestamp
     if (utc_timestamp == 0)
       utc_timestamp = static_cast<double>(timestamp) / 1000.0;
+
+    // Parse out the pieces of the timestamp into a format ROS can understand
     double utc_timestamp_seconds;
     const double utc_timestamp_subseconds = modf(utc_timestamp, &utc_timestamp_seconds);
     setRosTime(&header->stamp, static_cast<int32_t>(utc_timestamp_seconds), static_cast<int32_t>(utc_timestamp_subseconds * 1000000000));
