@@ -454,11 +454,25 @@ bool Publishers::activate()
   // Static antenna offsets
   // Note: If streaming the antenna offset correction topic, correct the offsets with them
   if (config_->gnss_antenna_offset_source_[GNSS1_ID] == OFFSET_SOURCE_MANUAL)
+  {
     if (config_->mip_device_->supportsDescriptorSet(mip::data_gnss::DESCRIPTOR_SET) || config_->mip_device_->supportsDescriptorSet(mip::data_gnss::MIP_GNSS1_DATA_DESC_SET))
-      static_transform_broadcaster_->sendTransform(gnss_antenna_link_to_imu_link_transform_[GNSS1_ID]);
+    {
+      if (mip_filter_multi_antenna_offset_correction_pub_->dataRate() > 0)
+        transform_broadcaster_->sendTransform(gnss_antenna_link_to_imu_link_transform_[GNSS1_ID]);
+      else
+        static_transform_broadcaster_->sendTransform(gnss_antenna_link_to_imu_link_transform_[GNSS1_ID]);
+    }
+  }
   if (config_->gnss_antenna_offset_source_[GNSS2_ID] == OFFSET_SOURCE_MANUAL)
+  {
     if (config_->mip_device_->supportsDescriptorSet(mip::data_gnss::MIP_GNSS2_DATA_DESC_SET))
-      static_transform_broadcaster_->sendTransform(gnss_antenna_link_to_imu_link_transform_[GNSS2_ID]);
+    {
+      if (mip_filter_multi_antenna_offset_correction_pub_->dataRate() > 0)
+        transform_broadcaster_->sendTransform(gnss_antenna_link_to_imu_link_transform_[GNSS2_ID]);
+      else
+        static_transform_broadcaster_->sendTransform(gnss_antenna_link_to_imu_link_transform_[GNSS2_ID]);
+    }
+  }
   if (config_->filter_speed_lever_arm_source_ == OFFSET_SOURCE_MANUAL)
     if (config_->mip_device_->supportsDescriptor(mip::commands_filter::DESCRIPTOR_SET, mip::commands_filter::CMD_SPEED_LEVER_ARM))
       static_transform_broadcaster_->sendTransform(odometer_link_to_imu_link_transform_);
@@ -1829,7 +1843,7 @@ void Publishers::handleFilterMultiAntennaOffsetCorrection(const mip::data_filter
     gnss_x_antenna_to_imu_link_transform.transform.translation.y += gnss_x_antenna_correction_to_microstrain_vehicle_tf.getOrigin().getY();
     gnss_x_antenna_to_imu_link_transform.transform.translation.z += gnss_x_antenna_correction_to_microstrain_vehicle_tf.getOrigin().getZ();
   }
-  static_transform_broadcaster_->sendTransform(gnss_x_antenna_to_imu_link_transform);
+  transform_broadcaster_->sendTransform(gnss_x_antenna_to_imu_link_transform);
 }
 
 void Publishers::handleFilterGnssDualAntennaStatus(const mip::data_filter::GnssDualAntennaStatus& gnss_dual_antenna_status, const uint8_t descriptor_set, mip::Timestamp timestamp)
@@ -2175,22 +2189,7 @@ void Publishers::updateHeaderTime(RosHeaderType* header, uint8_t descriptor_set,
     if (gps_timestamp_secs != 0 && clock_bias_monitor_.hasBiasEstimate())
     {
       // Determine the hybrid timestamp by subtracting the bias from the GPS timestamp seconds. This should result in a UTC timestamp
-      const double current_utc_timestamp = gps_timestamp_secs - clock_bias_monitor_.getBiasEstimate();
-
-      // Make sure that we have not jumped backwards in time. If we have, we need to reset the clock bias monitor
-      const double previous_utc_timestamp = previous_utc_timestamps_.find(descriptor_set) != previous_utc_timestamps_.end() ? previous_utc_timestamps_.at(descriptor_set) : 0;
-      const double utc_timestamp_dt = current_utc_timestamp - previous_utc_timestamp;
-      if (utc_timestamp_dt >= 0)
-      {
-        utc_timestamp = current_utc_timestamp;
-      }
-      else
-      {
-        MICROSTRAIN_WARN(node_, "Resetting clock bias monitor because the 0x%02x descriptor set moved back in time %.06f", descriptor_set, utc_timestamp_dt);
-        clock_bias_monitor_.reset();
-      }
-      if (current_utc_timestamp != previous_utc_timestamp)
-        previous_utc_timestamps_[descriptor_set] = current_utc_timestamp;
+      utc_timestamp = gps_timestamp_secs - clock_bias_monitor_.getBiasEstimate();
     }
 
     // If we were not able to compute the hybrid timestamp, default to the ROS timestamp
