@@ -71,6 +71,7 @@ bool Config::configure(RosNodeType* node)
 
   // Timestamp source
   getParam<int>(node, "timestamp_source", timestamp_source_, 2);
+  MICROSTRAIN_INFO(node_, "Timestamp source set to: %d", timestamp_source_);
 
   // Frame ID config
   getParam<std::string>(node, "frame_id", frame_id_, "imu_link");

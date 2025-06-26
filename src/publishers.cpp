@@ -133,6 +133,11 @@ bool Publishers::configure()
   if (will_publish_nmea)
     nmea_sentence_pub_->configure(node_);
 
+  if (config_->debug_)
+  {
+    debug_clock_bias_pub_->configure(node_);
+  }
+
   // Frame ID configuration
   imu_raw_pub_->getMessage()->header.frame_id = config_->frame_id_;
   imu_pub_->getMessage()->header.frame_id = config_->frame_id_;
@@ -445,6 +450,8 @@ bool Publishers::activate()
 
   nmea_sentence_pub_->activate();
 
+  debug_clock_bias_pub_->activate();
+
   // Publish the static transforms
   if (config_->tf_mode_ != TF_MODE_OFF && config_->filter_relative_pos_config_ && config_->filter_relative_pos_source_ == REL_POS_SOURCE_MANUAL)
     static_transform_broadcaster_->sendTransform(config_->map_to_earth_transform_);
@@ -519,6 +526,8 @@ bool Publishers::deactivate()
   mip_system_time_sync_status_pub_->deactivate();
 
   nmea_sentence_pub_->deactivate();
+
+  debug_clock_bias_pub_->deactivate();
   return true;
 }
 
@@ -547,6 +556,8 @@ void Publishers::publish()
   filter_odometry_earth_pub_->publish();
   filter_odometry_map_pub_->publish();
   filter_dual_antenna_heading_pub_->publish();
+
+  debug_clock_bias_pub_->publish();
 
   // Publish the dynamic transforms after the messages have been filled out
   std::string tf_error_string;
@@ -638,6 +649,14 @@ void Publishers::handleSharedGpsTimestamp(const mip::data_shared::GpsTimestamp& 
   {
     const double collected_timestamp_secs = static_cast<double>(timestamp) / 1000.0;
     clock_bias_monitor_.addTime(gpsTimestampSecs(gps_timestamp), collected_timestamp_secs);
+
+    // Update the time in the debug message
+    if (clock_bias_monitor_.hasBiasEstimate())
+    {
+      auto debug_clock_bias_msg = debug_clock_bias_pub_->getMessageToUpdate();
+      setGpsTime(&debug_clock_bias_msg->header.stamp, gps_timestamp);
+      setRosTime(&debug_clock_bias_msg->time_ref, clock_bias_monitor_.getBiasEstimate());
+    }
   }
 
   // Save the GPS timestamp
