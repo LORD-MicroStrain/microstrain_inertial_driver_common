@@ -99,8 +99,28 @@ public:
   // Whether we will use the ENU or NED frame for global frame data
   bool use_enu_frame_;
 
+  // Whether we will use the ROS vehicle or Microstrain vehicle frame for local frame data
+  bool use_ros_vehicle_frame_;
+
+  // Transform used to transform from the NED frame to the ENU frame
   tf2::Transform ned_to_enu_transform_tf_;
-  tf2::Transform ros_vehicle_to_microstrain_vehicle_transform_tf_;
+  tf2::Transform enu_to_ned_transform_tf_;  // This will just be the inverse of the above transform
+
+  // Transform used to transform from the MicroStrain vehicle frame to the ROS vehicle frame
+  tf2::Transform microstrain_vehicle_frame_to_ros_vehicle_frame_transform_tf_;
+  tf2::Transform ros_vehicle_frame_to_microstrain_vehicle_frame_transform_tf_;  // This will just be the inverse of the above transform
+
+  // Transform used to transform from the microstrain global frame to the driver global frame.
+  //   If the driver is configured with use_enu_frame = true, this will transform NED -> ENU
+  //   If the driver is configured with use_enu_frame = false, this will transform NED -> NED (identity transform)
+  tf2::Transform microstrain_global_frame_to_driver_global_frame_transform_tf_;
+  tf2::Transform driver_global_frame_to_microstrain_global_frame_transform_tf_;  // This will just be the inverse of the above transform
+
+  // Transform used to transform from the microstrain vehicle frame to the driver vehicle frame.
+  //   If the driver is configured with use_ros_vehicle_frame = true, this will transform Microstrain Vehicle Frame -> ROS Vehicle Frame
+  //   If the driver is configured with use_ros_vehicle_frame = false, this will transform Microstrain Vehicle Frame -> Microstrain Vehicle Frame (identity transform)
+  tf2::Transform microstrain_vehicle_frame_to_driver_vehicle_frame_transform_tf_;
+  tf2::Transform driver_vehicle_frame_to_microstrain_vehicle_frame_transform_tf_;  // This will just be the inverse of the above transform
 
   // Whether to enable the hardware odometer through the GPIO pins
   bool enable_hardware_odometer_;
