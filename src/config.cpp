@@ -629,35 +629,42 @@ bool Config::configure3DM(RosNodeType* node)
       for (const auto& low_pass_filter_entry : low_pass_filter_settings)
       {
         const uint8_t low_pass_filter_field_descriptor = std::get<0>(low_pass_filter_entry);
-        const bool low_pass_filter_enable = std::get<1>(low_pass_filter_entry);
-        const bool low_pass_filter_auto = std::get<2>(low_pass_filter_entry);
-        const float low_pass_filter_frequency = std::get<3>(low_pass_filter_entry);
-        if (supports_low_pass_filter_settings)
+        if (mip_device_->supportsDescriptor(mip::data_sensor::DESCRIPTOR_SET, low_pass_filter_field_descriptor))
         {
-          MICROSTRAIN_INFO(node_, "Configuring low pass filter with:");
-          MICROSTRAIN_INFO(node_, "  descriptor_set = 0x%02x", mip::data_sensor::DESCRIPTOR_SET);
-          MICROSTRAIN_INFO(node_, "  field_descriptor = 0x%02x", low_pass_filter_field_descriptor);
-          MICROSTRAIN_INFO(node_, "  enable = %d", low_pass_filter_enable);
-          MICROSTRAIN_INFO(node_, "  manual = %d", !low_pass_filter_auto);
-          MICROSTRAIN_INFO(node_, "  frequency = %f", low_pass_filter_frequency);
-          if (!(mip_cmd_result = mip::commands_3dm::writeLowpassFilter(*mip_device_, mip::data_sensor::DESCRIPTOR_SET, low_pass_filter_field_descriptor, low_pass_filter_enable, !low_pass_filter_auto, low_pass_filter_frequency)))
+          const bool low_pass_filter_enable = std::get<1>(low_pass_filter_entry);
+          const bool low_pass_filter_auto = std::get<2>(low_pass_filter_entry);
+          const float low_pass_filter_frequency = std::get<3>(low_pass_filter_entry);
+          if (supports_low_pass_filter_settings)
           {
-            MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to configure low pass filter settings");
-            return false;
+            MICROSTRAIN_INFO(node_, "Configuring low pass filter with:");
+            MICROSTRAIN_INFO(node_, "  descriptor_set = 0x%02x", mip::data_sensor::DESCRIPTOR_SET);
+            MICROSTRAIN_INFO(node_, "  field_descriptor = 0x%02x", low_pass_filter_field_descriptor);
+            MICROSTRAIN_INFO(node_, "  enable = %d", low_pass_filter_enable);
+            MICROSTRAIN_INFO(node_, "  manual = %d", !low_pass_filter_auto);
+            MICROSTRAIN_INFO(node_, "  frequency = %f", low_pass_filter_frequency);
+            if (!(mip_cmd_result = mip::commands_3dm::writeLowpassFilter(*mip_device_, mip::data_sensor::DESCRIPTOR_SET, low_pass_filter_field_descriptor, low_pass_filter_enable, !low_pass_filter_auto, low_pass_filter_frequency)))
+            {
+              MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to configure low pass filter settings");
+              return false;
+            }
+          }
+          else
+          {
+            MICROSTRAIN_INFO(node_, "Configuring low pass filter with:");
+            MICROSTRAIN_INFO(node_, "  field_descriptor = 0x%02x", low_pass_filter_field_descriptor);
+            MICROSTRAIN_INFO(node_, "  enable = %d", low_pass_filter_enable);
+            MICROSTRAIN_INFO(node_, "  manual = %d", !low_pass_filter_auto);
+            MICROSTRAIN_INFO(node_, "  frequency = %u", static_cast<uint16_t>(std::round(low_pass_filter_frequency)));
+            if (!(mip_cmd_result = mip::commands_3dm::writeImuLowpassFilter(*mip_device_, low_pass_filter_field_descriptor, low_pass_filter_enable, !low_pass_filter_auto, static_cast<uint16_t>(std::round(low_pass_filter_frequency)), 0)))
+            {
+              MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to configure low pass filter settings");
+              return false;
+            }
           }
         }
         else
         {
-          MICROSTRAIN_INFO(node_, "Configuring low pass filter with:");
-          MICROSTRAIN_INFO(node_, "  field_descriptor = 0x%02x", low_pass_filter_field_descriptor);
-          MICROSTRAIN_INFO(node_, "  enable = %d", low_pass_filter_enable);
-          MICROSTRAIN_INFO(node_, "  manual = %d", !low_pass_filter_auto);
-          MICROSTRAIN_INFO(node_, "  frequency = %u", static_cast<uint16_t>(std::round(low_pass_filter_frequency)));
-          if (!(mip_cmd_result = mip::commands_3dm::writeImuLowpassFilter(*mip_device_, low_pass_filter_field_descriptor, low_pass_filter_enable, !low_pass_filter_auto, static_cast<uint16_t>(std::round(low_pass_filter_frequency)), 0)))
-          {
-            MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to configure low pass filter settings");
-            return false;
-          }
+          MICROSTRAIN_INFO(node_, "Note: The device does not support low pass filter for 0x%02x%02x", mip::data_sensor::DESCRIPTOR_SET, low_pass_filter_field_descriptor);
         }
       }
     }
