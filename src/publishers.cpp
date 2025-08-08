@@ -1829,7 +1829,7 @@ void Publishers::handleFilterMultiAntennaOffsetCorrection(const mip::data_filter
     gnss_x_antenna_to_imu_link_transform.transform.translation.y += gnss_x_antenna_correction_to_microstrain_vehicle_tf.getOrigin().getY();
     gnss_x_antenna_to_imu_link_transform.transform.translation.z += gnss_x_antenna_correction_to_microstrain_vehicle_tf.getOrigin().getZ();
   }
-  static_transform_broadcaster_->sendTransform(gnss_x_antenna_to_imu_link_transform);
+  transform_broadcaster_->sendTransform(gnss_x_antenna_to_imu_link_transform);
 }
 
 void Publishers::handleFilterGnssDualAntennaStatus(const mip::data_filter::GnssDualAntennaStatus& gnss_dual_antenna_status, const uint8_t descriptor_set, mip::Timestamp timestamp)
