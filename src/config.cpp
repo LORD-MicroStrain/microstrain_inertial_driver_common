@@ -29,6 +29,7 @@
 #include "microstrain/connections/recording/recording_connection.hpp"
 
 #include "microstrain_inertial_driver_common/utils/mappings/mip_mapping.h"
+#include "microstrain_inertial_driver_common/utils/events_yaml.h"
 #include "microstrain_inertial_driver_common/config.h"
 
 namespace microstrain
@@ -193,7 +194,7 @@ bool Config::configure(RosNodeType* node)
   {
     MICROSTRAIN_WARN(node_, "No relative position configured. We will not publish relative odometry or transforms.");
     MICROSTRAIN_WARN(node_, "  Please configure relative position to publish relative position data");
-    setParam<float>(node, mip_publisher_mapping_->static_topic_to_data_rate_config_key_mapping_.at(FILTER_ODOMETRY_MAP_TOPIC).c_str(), DATA_CLASS_DATA_RATE_DO_NOT_STREAM);
+    setParam<float>(node, mip_publisher_mapping_->static_topic_to_data_rate_config_key_mapping_.at(FILTER_ODOMETRY_MAP_TOPIC).c_str(), DATA_RATE_OFF);
   }
 
   // Connect to the device and set it up if we were asked to
@@ -366,6 +367,8 @@ bool Config::configure3DM(RosNodeType* node)
 {
   // Read local config
   bool gpio_config;
+  bool events_config;
+  std::string events_config_file;
   bool nmea_message_config;
   int filter_pps_source;
   float hardware_odometer_scaling;
@@ -382,6 +385,8 @@ bool Config::configure3DM(RosNodeType* node)
   bool pressure_low_pass_filter_enable, pressure_low_pass_filter_auto;
   float pressure_low_pass_filter_frequency;
   getParam<bool>(node, "gpio_config", gpio_config, false);
+  getParam<bool>(node, "events_config", events_config, false);
+  getParam<std::string>(node, "events_config_file", events_config_file, "");
   getParam<bool>(node, "nmea_message_config", nmea_message_config, false);
   getParam<int32_t>(node, "filter_pps_source", filter_pps_source, 1);
   getParam<float>(node, "odometer_scaling", hardware_odometer_scaling, 0.0);
@@ -549,6 +554,28 @@ bool Config::configure3DM(RosNodeType* node)
   else
   {
     MICROSTRAIN_INFO(node_, "Note: The device does not support the SBAS settings command");
+  }
+
+  // Let the Event Yaml file parser handle the event yaml configuration
+  if (mip_device_->supportsDescriptor(descriptor_set, mip::commands_3dm::CMD_EVENT_ACTION_CONFIG) && mip_device_->supportsDescriptor(descriptor_set, mip::commands_3dm::CMD_EVENT_TRIGGER_CONFIG))
+  {
+    if (events_config)
+    {
+      EventsYaml events_yaml(node_, mip_publisher_mapping_);
+      if (!events_yaml.parseAndWriteEventConfig(mip_device_, events_config_file))
+      {
+        MICROSTRAIN_ERROR(node_, "Failed to configure events");
+        return false;
+      }
+    }
+    else
+    {
+      MICROSTRAIN_INFO(node_, "Not configuring events because 'events_config' is false");
+    }
+  }
+  else
+  {
+    MICROSTRAIN_INFO(node_, "Note: The device does not support the event configuration commands");
   }
 
   // NMEA Message format

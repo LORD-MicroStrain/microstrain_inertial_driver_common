@@ -47,17 +47,17 @@ void NodeCommon::parseAndPublishMain()
   // This should receive all packets, populate ROS messages and publish them as well
   if (!config_.mip_device_->device().update())
   {
-    MICROSTRAIN_ERROR(node_, "Unable to update device");
+    MICROSTRAIN_ERROR(node_, "Unable to update main port");
 
     // Attempt a reconnect
     bool reconnected = false;
     int reconnect_attempt = 0;
-    while (reconnect_attempt++ < config_.reconnect_attempts_)
+    while (reconnect_attempt++ < config_.reconnect_attempts_ && rosOk())
     {
-      MICROSTRAIN_WARN(node_, "Reconnect attempt %d...", reconnect_attempt);
+      MICROSTRAIN_WARN(node_, "Main port reconnect attempt %d...", reconnect_attempt);
       if (config_.mip_device_->reconnect())
       {
-        MICROSTRAIN_INFO(node_, "Successfully reconnected to the device");
+        MICROSTRAIN_INFO(node_, "Successfully reconnected to the main port");
         if (config_.configure_after_reconnect_)
         {
           MICROSTRAIN_INFO(node_, "Reconfiguring device...");
@@ -83,7 +83,7 @@ void NodeCommon::parseAndPublishMain()
 
     if (!reconnected)
     {
-      throw std::runtime_error("Device disconnected");
+      throw std::runtime_error("Main port disconnected");
     }
   }
 
@@ -110,7 +110,34 @@ void NodeCommon::parseAndPublishMain()
 void NodeCommon::parseAndPublishAux()
 {
   // This should receive all packets and populate NMEA messages
-  config_.aux_device_->device().update();
+  if (!config_.aux_device_->device().update())
+  {
+    MICROSTRAIN_ERROR(node_, "Unable to update aux port");
+
+    // Attempt a reconnect
+    bool reconnected = false;
+    int reconnect_attempt = 0;
+    while (reconnect_attempt++ < config_.reconnect_attempts_ && rosOk())
+    {
+      MICROSTRAIN_WARN(node_, "Aux port reconnect attempt %d...", reconnect_attempt);
+      if (config_.aux_device_->reconnect())
+      {
+        MICROSTRAIN_INFO(node_, "Successfully reconnected to the aux port");
+
+        // Reconnected
+        reconnected = true;
+        break;
+      }
+
+      // Wait between attempts
+      std::this_thread::sleep_for(std::chrono::seconds(5));
+    }
+
+    if (!reconnected)
+    {
+      throw std::runtime_error("Device disconnected");
+    }
+  }
 
   // Publish the NMEA messages
   const auto connection = config_.aux_device_->connection();
