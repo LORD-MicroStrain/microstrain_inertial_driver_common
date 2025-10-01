@@ -272,12 +272,19 @@ bool Config::setupDevice(RosNodeType* node)
     {
       if (mip_device_->supportsDescriptor(mip::commands_3dm::DESCRIPTOR_SET, mip::commands_3dm::CMD_DEVICE_STARTUP_SETTINGS))
       {
+        // We need to change the timeout to allow for this longer command
+        const int32_t old_mip_sdk_timeout = mip_device_->device().baseReplyTimeout();
+        mip_device_->device().setBaseReplyTimeout(5000);
+
         MICROSTRAIN_INFO(node_, "Saving the launch file configuration settings to the device");
         if (!(mip_cmd_result = mip::commands_3dm::saveDeviceSettings(*mip_device_)))
         {
           MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to save device settings");
           return false;
         }
+
+        // Reset the timeout
+        mip_device_->device().setBaseReplyTimeout(old_mip_sdk_timeout);
       }
       else
       {
@@ -1248,6 +1255,27 @@ bool Config::configureSystem(RosNodeType* node)
     {
       MICROSTRAIN_ERROR(node_, "Cannot configure NTRIP interface when connected to non-MAIN interface. Please connect to either the first USB or UART interface to use NTRIP.");
       return false;
+    }
+
+    // We need to make sure that the other ports are not streaming NMEA or receiving RTCM since that is only supported on a single port, so disable them on everything
+    const std::vector<mip::commands_system::CommsInterface> non_main_interfaces  // These interfaces should have no communication enabled at all
+    {
+      mip::commands_system::CommsInterface::UART_1,
+      mip::commands_system::CommsInterface::UART_2,
+      mip::commands_system::CommsInterface::UART_3,
+      mip::commands_system::CommsInterface::USB_1,
+      mip::commands_system::CommsInterface::USB_2,
+    };
+    for (const mip::commands_system::CommsInterface non_main_interface : non_main_interfaces)
+    {
+      const mip::commands_system::CommsProtocol protocols_in = static_cast<mip::commands_system::CommsProtocol>(0);
+      const mip::commands_system::CommsProtocol protocols_out = static_cast<mip::commands_system::CommsProtocol>(0);
+      MICROSTRAIN_DEBUG(node_, "Disabling interface %d", static_cast<int32_t>(non_main_interface));
+      if (!(mip_cmd_result = mip::commands_system::writeInterfaceControl(*mip_device_, non_main_interface, protocols_in, protocols_out)))
+      {
+        MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to disable interface %d", static_cast<int32_t>(non_main_interface));
+        return false;
+      }
     }
 
     // Configure the MAIN port to output NMEA and accept RTCM
