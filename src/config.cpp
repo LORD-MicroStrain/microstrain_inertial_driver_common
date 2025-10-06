@@ -1313,9 +1313,14 @@ bool Config::configureSystem(RosNodeType* node)
       // Enable the GNSS1 GGA sentence
       setParam<float>(node, "gnss1_nmea_gga_data_rate", 1.0);
 
-      // Add the GGA sentence to the NMEA message formats
+      // Because this is the second time we are reading this parameter, it is possible it was already initialized as 0 if it was not set.
+      // That is an invalid configuration, so if it is 0, just default it to GNSS
       int32_t gnss1_nmea_talker_id;
-      getParam<int32_t>(node, "gnss1_nmea_talker_id", gnss1_nmea_talker_id, 0);
+      getParam<int32_t>(node, "gnss1_nmea_talker_id", gnss1_nmea_talker_id, static_cast<int32_t>(mip::commands_3dm::NmeaMessage::TalkerID::GNSS));
+      if (gnss1_nmea_talker_id < 1)
+        gnss1_nmea_talker_id = static_cast<int32_t>(mip::commands_3dm::NmeaMessage::TalkerID::GNSS);
+
+      // Add the GGA sentence to the NMEA message formats
       if (!populateNmeaMessageFormat(node, "gnss1_nmea_gga_data_rate", static_cast<mip::commands_3dm::NmeaMessage::TalkerID>(gnss1_nmea_talker_id), mip::data_gnss::MIP_GNSS1_DATA_DESC_SET, mip::commands_3dm::NmeaMessage::MessageID::GGA, &nmea_messages_vector))
       {
         MICROSTRAIN_ERROR(node_, "Failed to update message format to include GGA sentence required for NTRIP");
