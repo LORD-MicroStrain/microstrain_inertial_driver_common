@@ -71,6 +71,7 @@ bool Config::configure(RosNodeType* node)
 
   // Timestamp source
   getParam<int>(node, "timestamp_source", timestamp_source_, 2);
+  MICROSTRAIN_INFO(node_, "Timestamp source set to: %d", timestamp_source_);
 
   // Frame ID config
   getParam<std::string>(node, "frame_id", frame_id_, "imu_link");
@@ -543,6 +544,11 @@ bool Config::configure3DM(RosNodeType* node)
     MICROSTRAIN_INFO(node_, "  enable corrections = %d", sbas_enable_corrections);
     MICROSTRAIN_INFO(node_, "  apply integrity = %d", sbas_apply_integrity);
     MICROSTRAIN_INFO(node_, "  prns: %s", prn_ss.str().c_str());
+
+    // Increase timeout to allow time for the receivers to respond
+    const int32_t old_mip_sdk_timeout = mip_device_->device().baseReplyTimeout();
+    mip_device_->device().setBaseReplyTimeout(old_mip_sdk_timeout + 400);
+
     mip::commands_3dm::GnssSbasSettings::SBASOptions sbas_options;
     sbas_options.enableRanging(sbas_enable_ranging);
     sbas_options.enableCorrections(sbas_enable_corrections);
@@ -552,6 +558,9 @@ bool Config::configure3DM(RosNodeType* node)
       MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to configure SBAS settings");
       return false;
     }
+
+    // Reset the timeout
+    mip_device_->device().setBaseReplyTimeout(old_mip_sdk_timeout);
   }
   else
   {

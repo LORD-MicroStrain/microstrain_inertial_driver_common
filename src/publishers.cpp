@@ -133,6 +133,11 @@ bool Publishers::configure()
   if (will_publish_nmea)
     nmea_sentence_pub_->configure(node_);
 
+  if (config_->debug_)
+  {
+    debug_clock_bias_pub_->configure(node_);
+  }
+
   // Frame ID configuration
   imu_raw_pub_->getMessage()->header.frame_id = config_->frame_id_;
   imu_pub_->getMessage()->header.frame_id = config_->frame_id_;
@@ -445,6 +450,8 @@ bool Publishers::activate()
 
   nmea_sentence_pub_->activate();
 
+  debug_clock_bias_pub_->activate();
+
   // Publish the static transforms
   if (config_->tf_mode_ != TF_MODE_OFF && config_->filter_relative_pos_config_ && config_->filter_relative_pos_source_ == REL_POS_SOURCE_MANUAL)
     static_transform_broadcaster_->sendTransform(config_->map_to_earth_transform_);
@@ -454,11 +461,25 @@ bool Publishers::activate()
   // Static antenna offsets
   // Note: If streaming the antenna offset correction topic, correct the offsets with them
   if (config_->gnss_antenna_offset_source_[GNSS1_ID] == OFFSET_SOURCE_MANUAL)
+  {
     if (config_->mip_device_->supportsDescriptorSet(mip::data_gnss::DESCRIPTOR_SET) || config_->mip_device_->supportsDescriptorSet(mip::data_gnss::MIP_GNSS1_DATA_DESC_SET))
-      static_transform_broadcaster_->sendTransform(gnss_antenna_link_to_imu_link_transform_[GNSS1_ID]);
+    {
+      if (mip_filter_multi_antenna_offset_correction_pub_->dataRate() > 0)
+        transform_broadcaster_->sendTransform(gnss_antenna_link_to_imu_link_transform_[GNSS1_ID]);
+      else
+        static_transform_broadcaster_->sendTransform(gnss_antenna_link_to_imu_link_transform_[GNSS1_ID]);
+    }
+  }
   if (config_->gnss_antenna_offset_source_[GNSS2_ID] == OFFSET_SOURCE_MANUAL)
+  {
     if (config_->mip_device_->supportsDescriptorSet(mip::data_gnss::MIP_GNSS2_DATA_DESC_SET))
-      static_transform_broadcaster_->sendTransform(gnss_antenna_link_to_imu_link_transform_[GNSS2_ID]);
+    {
+      if (mip_filter_multi_antenna_offset_correction_pub_->dataRate() > 0)
+        transform_broadcaster_->sendTransform(gnss_antenna_link_to_imu_link_transform_[GNSS2_ID]);
+      else
+        static_transform_broadcaster_->sendTransform(gnss_antenna_link_to_imu_link_transform_[GNSS2_ID]);
+    }
+  }
   if (config_->filter_speed_lever_arm_source_ == OFFSET_SOURCE_MANUAL)
     if (config_->mip_device_->supportsDescriptor(mip::commands_filter::DESCRIPTOR_SET, mip::commands_filter::CMD_SPEED_LEVER_ARM))
       static_transform_broadcaster_->sendTransform(odometer_link_to_imu_link_transform_);
@@ -505,6 +526,8 @@ bool Publishers::deactivate()
   mip_system_time_sync_status_pub_->deactivate();
 
   nmea_sentence_pub_->deactivate();
+
+  debug_clock_bias_pub_->deactivate();
   return true;
 }
 
@@ -533,6 +556,8 @@ void Publishers::publish()
   filter_odometry_earth_pub_->publish();
   filter_odometry_map_pub_->publish();
   filter_dual_antenna_heading_pub_->publish();
+
+  debug_clock_bias_pub_->publish();
 
   // Publish the dynamic transforms after the messages have been filled out
   std::string tf_error_string;
@@ -624,6 +649,14 @@ void Publishers::handleSharedGpsTimestamp(const mip::data_shared::GpsTimestamp& 
   {
     const double collected_timestamp_secs = static_cast<double>(timestamp) / 1000.0;
     clock_bias_monitor_.addTime(gpsTimestampSecs(gps_timestamp), collected_timestamp_secs);
+
+    // Update the time in the debug message
+    if (clock_bias_monitor_.hasBiasEstimate())
+    {
+      auto debug_clock_bias_msg = debug_clock_bias_pub_->getMessageToUpdate();
+      setGpsTime(&debug_clock_bias_msg->header.stamp, gps_timestamp);
+      setRosTime(&debug_clock_bias_msg->time_ref, clock_bias_monitor_.getBiasEstimate());
+    }
   }
 
   // Save the GPS timestamp
@@ -1829,7 +1862,7 @@ void Publishers::handleFilterMultiAntennaOffsetCorrection(const mip::data_filter
     gnss_x_antenna_to_imu_link_transform.transform.translation.y += gnss_x_antenna_correction_to_microstrain_vehicle_tf.getOrigin().getY();
     gnss_x_antenna_to_imu_link_transform.transform.translation.z += gnss_x_antenna_correction_to_microstrain_vehicle_tf.getOrigin().getZ();
   }
-  static_transform_broadcaster_->sendTransform(gnss_x_antenna_to_imu_link_transform);
+  transform_broadcaster_->sendTransform(gnss_x_antenna_to_imu_link_transform);
 }
 
 void Publishers::handleFilterGnssDualAntennaStatus(const mip::data_filter::GnssDualAntennaStatus& gnss_dual_antenna_status, const uint8_t descriptor_set, mip::Timestamp timestamp)
@@ -2168,21 +2201,21 @@ void Publishers::updateHeaderTime(RosHeaderType* header, uint8_t descriptor_set,
   }
   else if (config_->timestamp_source_ == TIMESTAMP_SOURCE_HYBRID)
   {
+    // If the GPS timestamp is set and we have seeded the clock bias monitor with enough data to get a bias, we can attempt to use it
     double utc_timestamp = 0;
-    if (clock_bias_monitor_.hasBiasEstimate())
+    const double gps_timestamp_secs = gpsTimestampSecs(gps_timestamp_copy);
+
+    if (gps_timestamp_secs != 0 && clock_bias_monitor_.hasBiasEstimate())
     {
-      const double current_utc_timestamp = gpsTimestampSecs(gps_timestamp_copy) - clock_bias_monitor_.getBiasEstimate();
-      const double previous_utc_timestamp = previous_utc_timestamps_.find(descriptor_set) != previous_utc_timestamps_.end() ? previous_utc_timestamps_.at(descriptor_set) : 0;
-      const double utc_timestamp_dt = current_utc_timestamp - previous_utc_timestamp;
-      if (utc_timestamp_dt >= 0)
-        utc_timestamp = current_utc_timestamp;
-      else
-        clock_bias_monitor_.reset();
-      if (current_utc_timestamp != previous_utc_timestamp)
-        previous_utc_timestamps_[descriptor_set] = current_utc_timestamp;
+      // Determine the hybrid timestamp by subtracting the bias from the GPS timestamp seconds. This should result in a UTC timestamp
+      utc_timestamp = gps_timestamp_secs - clock_bias_monitor_.getBiasEstimate();
     }
+
+    // If we were not able to compute the hybrid timestamp, default to the ROS timestamp
     if (utc_timestamp == 0)
       utc_timestamp = static_cast<double>(timestamp) / 1000.0;
+
+    // Parse out the pieces of the timestamp into a format ROS can understand
     double utc_timestamp_seconds;
     const double utc_timestamp_subseconds = modf(utc_timestamp, &utc_timestamp_seconds);
     setRosTime(&header->stamp, static_cast<int32_t>(utc_timestamp_seconds), static_cast<int32_t>(utc_timestamp_subseconds * 1000000000));

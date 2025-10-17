@@ -78,6 +78,8 @@ static constexpr auto MIP_SYSTEM_TIME_SYNC_STATUS_TOPIC = "mip/system/time_sync_
 
 static constexpr auto NMEA_SENTENCE_TOPIC = "nmea";
 
+static constexpr auto DEBUG_CLOCK_BIAS_TOPIC = "debug/clock_bias";
+
 // Some other constants
 static constexpr float FIELD_DATA_RATE_USE_DATA_CLASS = -1;
 static constexpr float DATA_CLASS_DATA_RATE_DO_NOT_STREAM = 0;

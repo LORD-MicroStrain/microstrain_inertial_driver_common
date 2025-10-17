@@ -285,6 +285,9 @@ public:
   // NMEA sentence publisher
   Publisher<NMEASentenceMsg>::SharedPtr nmea_sentence_pub_ = Publisher<NMEASentenceMsg>::initialize(NMEA_SENTENCE_TOPIC);
 
+  // Debug publishers
+  Publisher<TimeReferenceMsg>::SharedPtr debug_clock_bias_pub_ = Publisher<TimeReferenceMsg>::initialize(DEBUG_CLOCK_BIAS_TOPIC);
+
   // Transform Broadcasters
   StaticTransformBroadcasterType static_transform_broadcaster_ = nullptr;
   TransformBroadcasterType transform_broadcaster_ = nullptr;
