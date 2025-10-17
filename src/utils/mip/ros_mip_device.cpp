@@ -30,7 +30,7 @@ RosMipDevice::RosMipDevice(RosNodeType* node) : node_(node)
 {
 }
 
-mip::DeviceInterface& RosMipDevice::device()
+mip::Interface& RosMipDevice::device()
 {
   if (device_ != nullptr)
     return *device_;
@@ -80,6 +80,14 @@ bool RosMipDevice::isCv7(const mip::commands_base::BaseDeviceInfo& device_info)
 {
   const std::string& model_name = device_info.model_name;
   if (model_name.find("CV7") != std::string::npos)
+    return true;
+  return false;
+}
+
+bool RosMipDevice::isCv7GnssIns(const mip::commands_base::BaseDeviceInfo& device_info)
+{
+  const std::string& model_name = device_info.model_name;
+  if (model_name.find("CV7-GNSS") != std::string::npos)
     return true;
   return false;
 }

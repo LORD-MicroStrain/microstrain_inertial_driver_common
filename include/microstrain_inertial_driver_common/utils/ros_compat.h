@@ -89,6 +89,7 @@ constexpr auto NUM_GNSS = 2;
 #include "microstrain_inertial_msgs/MipFilterAidingMeasurementSummary.h"
 #include "microstrain_inertial_msgs/MipFilterGnssDualAntennaStatus.h"
 #include "microstrain_inertial_msgs/MipSystemBuiltInTest.h"
+#include "microstrain_inertial_msgs/MipSystemTimeSyncStatus.h"
 
 #include "std_srvs/Empty.h"
 #include "std_srvs/Trigger.h"
@@ -156,6 +157,7 @@ constexpr auto NUM_GNSS = 2;
 #include "microstrain_inertial_msgs/msg/mip_filter_aiding_measurement_summary.hpp"
 #include "microstrain_inertial_msgs/msg/mip_filter_gnss_dual_antenna_status.hpp"
 #include "microstrain_inertial_msgs/msg/mip_system_built_in_test.hpp"
+#include "microstrain_inertial_msgs/msg/mip_system_time_sync_status.hpp"
 
 // .h header was deprecated in rolling and will likely be removed in future releases.
 #if MICROSTRAIN_ROLLING == 1 || MICROSTRAIN_HUMBLE == 1
@@ -271,6 +273,7 @@ using MipFilterMultiAntennaOffsetCorrectionMsg = ::microstrain_inertial_msgs::Mi
 using MipFilterAidingMeasurementSummaryMsg = ::microstrain_inertial_msgs::MipFilterAidingMeasurementSummary;
 using MipFilterGnssDualAntennaStatusMsg = ::microstrain_inertial_msgs::MipFilterGnssDualAntennaStatus;
 using MipSystemBuiltInTestMsg = ::microstrain_inertial_msgs::MipSystemBuiltInTest;
+using MipSystemTimeSyncStatusMsg = ::microstrain_inertial_msgs::MipSystemTimeSyncStatus;
 
 using TransformStampedMsg = ::geometry_msgs::TransformStamped;
 
@@ -305,7 +308,7 @@ using ParamIntVector = std::vector<int32_t>;
 #define MICROSTRAIN_INFO(NODE, ...) ROS_INFO(__VA_ARGS__)
 #define MICROSTRAIN_WARN(NODE, ...) ROS_WARN(__VA_ARGS__)
 #define MICROSTRAIN_ERROR(NODE, ...) ROS_ERROR(__VA_ARGS__)
-#define MICROSTRAIN_FATAL(NOE, ...) ROS_FATAL(__VA_ARGS__)
+#define MICROSTRAIN_FATAL(NODE, ...) ROS_FATAL(__VA_ARGS__)
 
 #define MICROSTRAIN_DEBUG_THROTTLE(NODE, PERIOD, ...) ROS_DEBUG_THROTTLE(PERIOD, __VA_ARGS__)
 #define MICROSTRAIN_INFO_THROTTLE(NODE, PERIOD, ...) ROS_INFO_THROTTLE(PERIOD, __VA_ARGS__)
@@ -591,6 +594,7 @@ using MipFilterMultiAntennaOffsetCorrectionMsg = ::microstrain_inertial_msgs::ms
 using MipFilterAidingMeasurementSummaryMsg = ::microstrain_inertial_msgs::msg::MipFilterAidingMeasurementSummary;
 using MipFilterGnssDualAntennaStatusMsg = ::microstrain_inertial_msgs::msg::MipFilterGnssDualAntennaStatus;
 using MipSystemBuiltInTestMsg = ::microstrain_inertial_msgs::msg::MipSystemBuiltInTest;
+using MipSystemTimeSyncStatusMsg = ::microstrain_inertial_msgs::msg::MipSystemTimeSyncStatus;
 
 using TransformStampedMsg = ::geometry_msgs::msg::TransformStamped;
 
@@ -628,15 +632,15 @@ using ParamIntVector = std::vector<int64_t>;
 #define MICROSTRAIN_FATAL(NODE, ...) RCLCPP_FATAL(NODE->get_logger(), __VA_ARGS__)
 
 #define MICROSTRAIN_DEBUG_THROTTLE(NODE, PERIOD, ...)                                                                  \
-  RCLCPP_DEBUG_THROTTLE(NODE->get_logger(), *NODE->get_clock(), PERIOD, __VA_ARGS__)
+  RCLCPP_DEBUG_THROTTLE(NODE->get_logger(), *NODE->get_clock(), PERIOD * 1000, __VA_ARGS__)
 #define MICROSTRAIN_INFO_THROTTLE(NODE, PERIOD, ...)                                                                  \
-  RCLCPP_INFO_THROTTLE(NODE->get_logger(), *NODE->get_clock(), PERIOD, __VA_ARGS__)
+  RCLCPP_INFO_THROTTLE(NODE->get_logger(), *NODE->get_clock(), PERIOD * 1000, __VA_ARGS__)
 #define MICROSTRAIN_WARN_THROTTLE(NODE, PERIOD, ...)                                                                  \
-  RCLCPP_WARN_THROTTLE(NODE->get_logger(), *NODE->get_clock(), PERIOD, __VA_ARGS__)
+  RCLCPP_WARN_THROTTLE(NODE->get_logger(), *NODE->get_clock(), PERIOD * 1000, __VA_ARGS__)
 #define MICROSTRAIN_ERROR_THROTTLE(NODE, PERIOD, ...)                                                                  \
-  RCLCPP_ERROR_THROTTLE(NODE->get_logger(), *NODE->get_clock(), PERIOD, __VA_ARGS__)
+  RCLCPP_ERROR_THROTTLE(NODE->get_logger(), *NODE->get_clock(), PERIOD * 1000, __VA_ARGS__)
 #define MICROSTRAIN_FATAL_THROTTLE(NODE, PERIOD, ...)                                                                  \
-  RCLCPP_FATAL_THROTTLE(NODE->get_logger(), *NODE->get_clock(), PERIOD, __VA_ARGS__)
+  RCLCPP_FATAL_THROTTLE(NODE->get_logger(), *NODE->get_clock(), PERIOD * 1000, __VA_ARGS__)
 
 #define MICROSTRAIN_DEBUG_ONCE(NODE, ...) RCLCPP_DEBUG_ONCE(NODE->get_logger(), __VA_ARGS__)
 #define MICROSTRAIN_INFO_ONCE(NODE, ...) RCLCPP_INFO_ONCE(NODE->get_logger(), __VA_ARGS__)

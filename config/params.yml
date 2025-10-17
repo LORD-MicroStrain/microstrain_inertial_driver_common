@@ -517,6 +517,8 @@ mip_filter_gnss_dual_antenna_status_data_rate        : 0  # Rate of mip/filter/g
                                                           #       If either are set to a higher value, this message will be published at that rate.
 mip_filter_aiding_measurement_summary_data_rate      : 0  # Rate of mip/filter/aiding_measurement_summary topic
 
+mip_system_built_in_test_data_rate    : 0  # Rate of mip/system/built_in_test topic
+mip_system_time_sync_status_data_rate : 0  # Rate of mip/system/time_sync_status topic
 
 # ****************************************************************** 
 # NMEA streaming settings

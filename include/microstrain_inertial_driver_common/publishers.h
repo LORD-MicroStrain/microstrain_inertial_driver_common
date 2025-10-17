@@ -280,6 +280,7 @@ public:
 
   // MIP System (0xA0) publishers
   Publisher<MipSystemBuiltInTestMsg>::SharedPtr mip_system_built_in_test_pub_ = Publisher<MipSystemBuiltInTestMsg>::initialize(MIP_SYSTEM_BUILT_IN_TEST_TOPIC);
+  Publisher<MipSystemTimeSyncStatusMsg>::SharedPtr mip_system_time_sync_status_pub_ = Publisher<MipSystemTimeSyncStatusMsg>::initialize(MIP_SYSTEM_TIME_SYNC_STATUS_TOPIC);
 
   // NMEA sentence publisher
   Publisher<NMEASentenceMsg>::SharedPtr nmea_sentence_pub_ = Publisher<NMEASentenceMsg>::initialize(NMEA_SENTENCE_TOPIC);
@@ -309,7 +310,7 @@ private:
    * \param descriptor_set The descriptor set to register the packet callback for
    * \param after_fields Whether this callback should be triggered before or after the field callbacks
    */
-  template<void (Publishers::*Callback)(const mip::PacketRef&, mip::Timestamp)>
+  template<void (Publishers::*Callback)(const mip::PacketView&, mip::Timestamp)>
   void registerPacketCallback(const uint8_t descriptor_set = mip::C::MIP_DISPATCH_ANY_DESCRIPTOR, bool after_fields = true);
 
   /**
@@ -380,13 +381,14 @@ private:
 
   // Callbacks to handle system data from the device
   void handleSystemBuiltInTest(const mip::data_system::BuiltInTest& built_in_test, const uint8_t descriptor_set, mip::Timestamp timestamp);
+  void handleSystemTimeSyncStatus(const mip::data_system::TimeSyncStatus& time_sync_status, const uint8_t descriptor_set, mip::Timestamp timestamp);
 
   /**
    * \brief Called after a packet has been processed.
    * \param packet The packet that was processed
    * \param timestamp The timestamp of when the packet was received
   */
-  void handleAfterPacket(const mip::PacketRef& packet, mip::Timestamp timestamp);
+  void handleAfterPacket(const mip::PacketView& packet, mip::Timestamp timestamp);
 
   /**
    * \brief Updates the microstrain header contained in all MIP specific custom messages
@@ -455,7 +457,7 @@ private:
   ClockBiasMonitor clock_bias_monitor_ = ClockBiasMonitor(0.99, 1.0);
 };
 
-template<void (Publishers::*Callback)(const mip::PacketRef&, mip::Timestamp)>
+template<void (Publishers::*Callback)(const mip::PacketView&, mip::Timestamp)>
 void Publishers::registerPacketCallback(const uint8_t descriptor_set, bool after_fields)
 {
   // Regsiter a handler for the callback

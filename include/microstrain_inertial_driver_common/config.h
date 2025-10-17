@@ -167,6 +167,7 @@ public:
   // RTK config
   bool rtk_dongle_enable_;
   bool ntrip_interface_enable_;
+  bool rtcm_on_main_port_;
 
   // Static covariance vectors
   std::vector<double> imu_linear_cov_;
@@ -236,6 +237,13 @@ private:
    * \return true if configuration was successful and false if configuration failed
    */
   bool configureFilter(RosNodeType* node);
+
+  /**
+   * \brief Configures System settings on the inertial device (descriptor set 0x7F)
+   * \param node  The ROS node that contains configuration information. For ROS1 this is the private node handle ("~")
+   * \return true if the configuration was successful and false if configuration failed
+   */
+  bool configureSystem(RosNodeType* node);
 
   /**
    * \brief Enables or disables a filter aiding measurement and handles if the aiding measurement is not supported by this particular device

@@ -34,7 +34,7 @@ bool RosMipDeviceAux::configure(RosNodeType* config_node)
 
   // Setup the device interface
   mip::CmdResult mip_cmd_result;
-  device_ = std::unique_ptr<mip::DeviceInterface>(new mip::DeviceInterface(connection_.get(), buffer_, sizeof(buffer_), connection_->parseTimeout(), connection_->baseReplyTimeout()));
+  device_ = std::unique_ptr<mip::Interface>(new mip::Interface(connection_.get(), connection_->parseTimeout(), connection_->baseReplyTimeout()));
 
   // Print the device info
   mip::commands_base::BaseDeviceInfo device_info;
