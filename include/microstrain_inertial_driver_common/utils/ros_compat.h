@@ -867,7 +867,12 @@ template <class ClassType>
 RosTimerType createTimer(RosNodeType* node, double hz, void (ClassType::*fp)(), ClassType* obj)
 {
   std::chrono::microseconds timer_interval_us(static_cast<int>(1.0 / hz * 1000000.0));
-  return node->template create_wall_timer(timer_interval_us, [=]() { (obj->*fp)(); });
+  return rclcpp::create_timer(
+    node,
+    std::make_shared<rclcpp::Clock>(RCL_STEADY_TIME),
+    timer_interval_us,
+    [=]() { (obj->*fp)(); }
+  );
 }
 
 /**
