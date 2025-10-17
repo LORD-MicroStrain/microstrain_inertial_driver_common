@@ -272,12 +272,19 @@ bool Config::setupDevice(RosNodeType* node)
     {
       if (mip_device_->supportsDescriptor(mip::commands_3dm::DESCRIPTOR_SET, mip::commands_3dm::CMD_DEVICE_STARTUP_SETTINGS))
       {
+        // We need to change the timeout to allow for this longer command
+        const int32_t old_mip_sdk_timeout = mip_device_->device().baseReplyTimeout();
+        mip_device_->device().setBaseReplyTimeout(5000);
+
         MICROSTRAIN_INFO(node_, "Saving the launch file configuration settings to the device");
         if (!(mip_cmd_result = mip::commands_3dm::saveDeviceSettings(*mip_device_)))
         {
           MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to save device settings");
           return false;
         }
+
+        // Reset the timeout
+        mip_device_->device().setBaseReplyTimeout(old_mip_sdk_timeout);
       }
       else
       {
@@ -1257,6 +1264,27 @@ bool Config::configureSystem(RosNodeType* node)
       return false;
     }
 
+    // We need to make sure that the other ports are not streaming NMEA or receiving RTCM since that is only supported on a single port, so disable them on everything
+    const std::vector<mip::commands_system::CommsInterface> non_main_interfaces  // These interfaces should have no communication enabled at all
+    {
+      mip::commands_system::CommsInterface::UART_1,
+      mip::commands_system::CommsInterface::UART_2,
+      mip::commands_system::CommsInterface::UART_3,
+      mip::commands_system::CommsInterface::USB_1,
+      mip::commands_system::CommsInterface::USB_2,
+    };
+    for (const mip::commands_system::CommsInterface non_main_interface : non_main_interfaces)
+    {
+      const mip::commands_system::CommsProtocol protocols_in = static_cast<mip::commands_system::CommsProtocol>(0);
+      const mip::commands_system::CommsProtocol protocols_out = static_cast<mip::commands_system::CommsProtocol>(0);
+      MICROSTRAIN_DEBUG(node_, "Disabling interface %d", static_cast<int32_t>(non_main_interface));
+      if (!(mip_cmd_result = mip::commands_system::writeInterfaceControl(*mip_device_, non_main_interface, protocols_in, protocols_out)))
+      {
+        MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to disable interface %d", static_cast<int32_t>(non_main_interface));
+        return false;
+      }
+    }
+
     // Configure the MAIN port to output NMEA and accept RTCM
     const mip::commands_system::CommsProtocol protocols_in = mip::commands_system::CommsProtocol::MIP | mip::commands_system::CommsProtocol::RTCM;
     const mip::commands_system::CommsProtocol protocols_out = mip::commands_system::CommsProtocol::MIP | mip::commands_system::CommsProtocol::NMEA;
@@ -1292,9 +1320,14 @@ bool Config::configureSystem(RosNodeType* node)
       // Enable the GNSS1 GGA sentence
       setParam<float>(node, "gnss1_nmea_gga_data_rate", 1.0);
 
-      // Add the GGA sentence to the NMEA message formats
+      // Because this is the second time we are reading this parameter, it is possible it was already initialized as 0 if it was not set.
+      // That is an invalid configuration, so if it is 0, just default it to GNSS
       int32_t gnss1_nmea_talker_id;
-      getParam<int32_t>(node, "gnss1_nmea_talker_id", gnss1_nmea_talker_id, 0);
+      getParam<int32_t>(node, "gnss1_nmea_talker_id", gnss1_nmea_talker_id, static_cast<int32_t>(mip::commands_3dm::NmeaMessage::TalkerID::GNSS));
+      if (gnss1_nmea_talker_id < 1)
+        gnss1_nmea_talker_id = static_cast<int32_t>(mip::commands_3dm::NmeaMessage::TalkerID::GNSS);
+
+      // Add the GGA sentence to the NMEA message formats
       if (!populateNmeaMessageFormat(node, "gnss1_nmea_gga_data_rate", static_cast<mip::commands_3dm::NmeaMessage::TalkerID>(gnss1_nmea_talker_id), mip::data_gnss::MIP_GNSS1_DATA_DESC_SET, mip::commands_3dm::NmeaMessage::MessageID::GGA, &nmea_messages_vector))
       {
         MICROSTRAIN_ERROR(node_, "Failed to update message format to include GGA sentence required for NTRIP");
