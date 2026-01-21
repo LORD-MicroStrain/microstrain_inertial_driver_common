@@ -501,10 +501,14 @@ mip_sensor_temperature_statistics_data_rate : 0  # Rate of mip/sensor/temperatur
 mip_gnss1_fix_info_data_rate           : 0  # Rate of mip/gnss_1/fix_info topic
 mip_gnss1_sbas_info_data_rate          : 0  # Rate of mip/gnss_1/sbas_info topic
 mip_gnss1_rf_error_detection_data_rate : 0  # Rate of mip/gnss_1/rf_error_detection
+mip_gnss1_satellite_status_data_rate   : 0  # Rate of mip/gnss_1/satellite_status
+mip_gnss1_raw_data_rate                : 0  # Rate of mip/gnss_1/raw
 
 mip_gnss2_fix_info_data_rate           : 0  # Rate of mip/gnss_1/fix_info topic
 mip_gnss2_sbas_info_data_rate          : 0  # Rate of mip/gnss_2/sbas_info topic
 mip_gnss2_rf_error_detection_data_rate : 0  # Rate of mip/gnss_2/rf_error_detection
+mip_gnss2_satellite_status_data_rate   : 0  # Rate of mip/gnss_2/satellite_status
+mip_gnss2_raw_data_rate                : 0  # Rate of mip/gnss_2/raw
 
 mip_filter_status_data_rate                          : 0  # Rate of mip/filter/status topic
 mip_filter_gnss_position_aiding_status_data_rate     : 0  # Rate of mip/filter/gnss_aiding_status
