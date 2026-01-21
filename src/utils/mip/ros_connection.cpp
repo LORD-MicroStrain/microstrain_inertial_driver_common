@@ -75,6 +75,10 @@ bool RosConnection::connect(RosNodeType* config_node, const std::string& port, c
     struct stat port_stat;
     while (stat(port.c_str(), &port_stat) != 0 && (poll_tries++ < poll_max_tries || poll_max_tries == -1))
     {
+      // If ROS isn't running anymore, return false
+      if (!rosOk())
+        return false;
+
       // If the error isn't that the file does not exist, polling won't help, so we can fail here
       if (errno != ENOENT)
       {

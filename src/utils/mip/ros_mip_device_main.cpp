@@ -163,9 +163,9 @@ bool RosMipDeviceMain::configure(RosNodeType* config_node)
 mip::CmdResult RosMipDeviceMain::forceIdle()
 {
   // Setting to idle may fail the first couple times, so call it a few times in case the device is streaming too much data
-  mip::CmdResult result;
+  mip::CmdResult result = mip::CmdResult::NACK_COMMAND_FAILED;
   uint8_t set_to_idle_tries = 0;
-  while (set_to_idle_tries++ < 3)
+  while (set_to_idle_tries++ < 3 && rosOk())
   {
     if (!!(result = mip::commands_base::setIdle(*device_)))
       break;
