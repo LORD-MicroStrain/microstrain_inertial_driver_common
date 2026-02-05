@@ -31,6 +31,8 @@ bool Services::configure()
     raw_file_config_aux_write_service_ = createService<RawFileConfigWriteSrv>(node_, RAW_FILE_CONFIG_AUX_WRITE_SERVICE, &Services::rawFileConfigAuxWrite, this);
   }
 
+  
+
   // Setup the MIP services
   {
     using namespace mip::commands_base;  // NOLINT(build/namespaces)
@@ -47,6 +49,10 @@ bool Services::configure()
   {
     using namespace mip::commands_filter;  // NOLINT(build/namespaces)
     mip_filter_reset_service_ = configureService<EmptySrv, Reset>(MIP_FILTER_RESET_SERVICE, &Services::mipFilterReset);
+  }
+  {
+    using namespace mip::commands_system;
+    mip_enable_conservative_rtk_service_ = configureService<EmptySrv, CommMode>(MIP_CONSERVATIVE_RTK_ENABLE_SERVICE, &Services::mipEnableConservativeRTKMode);
   }
 
   return true;
@@ -307,15 +313,15 @@ bool Services::mipEnableConservativeRTKMode(EmptySrv::Request& req, EmptySrv::Re
     MICROSTRAIN_DEBUG(node_, "Failed to write bytes to receiver");
 
 
-  const mip::CmdResult mip_cmd_result = mip::commands_system::writeCommMode(*(config_->mip_device_), 0x01); //put the device back into normal mode
-  if (!!mip_cmd_result)
+  const mip::CmdResult mip_cmd_result_1 = mip::commands_system::writeCommMode(*(config_->mip_device_), 0x01); //put the device back into normal mode
+  if (!!mip_cmd_result_1)
     MICROSTRAIN_DEBUG(node_, "Device returned to Normal Mode.");
   else
-    MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to set the receiver to normal mode. Power cycle device.");
+    MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result_1, "Failed to set the receiver to normal mode. Power cycle device.");
 
 
 //  bool res = mip::Interface::sendToDevice(data, size);
 
 
 }
-}  // namespace microstrain
+}  // namespace microstrain;
