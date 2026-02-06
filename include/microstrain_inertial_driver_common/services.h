@@ -31,7 +31,6 @@ static constexpr auto MIP_3DM_DEVICE_SETTINGS_LOAD_SERVICE = "mip/three_dm/devic
 static constexpr auto MIP_3DM_GPIO_STATE_READ_SERVICE = "mip/three_dm/gpio_state/read";
 static constexpr auto MIP_3DM_GPIO_STATE_WRITE_SERVICE = "mip/three_dm/gpio_state/write";
 static constexpr auto MIP_FILTER_RESET_SERVICE = "mip/ekf/reset";
-static constexpr auto MIP_CONSERVATIVE_RTK_ENABLE_SERVICE = "mip/system/comm_mode";
 
 /**
  * Contains service functions and service handles
@@ -116,7 +115,6 @@ private:
   RosServiceType<Mip3dmGpioStateWriteSrv>::SharedPtr mip_3dm_gpio_state_write_service_;
 
   RosServiceType<EmptySrv>::SharedPtr mip_filter_reset_service_;
-  RosServiceType<EmptySrv>::SharedPtr mip_enable_conservative_rtk_service_;
 };
 
 template<typename ServiceType>

@@ -1356,6 +1356,60 @@ bool Config::configureSystem(RosNodeType* node)
     rtcm_on_main_port_ = false;
   }
 
+  //Enable conservative RTK solution
+  bool enable_conservative_rtk;
+  getParam<bool>(node, "enable_conservative_rtk", enable_conservative_rtk, false); 
+
+  if (enable_conservative_rtk)
+  {
+    const mip::CmdResult mip_cmd_result = mip::commands_system::writeCommMode(*mip_device_, 0x05);
+    if (!!mip_cmd_result)
+      MICROSTRAIN_DEBUG(node_, "Device in Direct mode to Receiver 1");
+    else
+      MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to set receiver 1 to direct mode.");
+
+    sleep(1);
+    //Here, we need to send the raw configuration bytes to the receiver to enable CAR mode for the RTK algorithm.
+    //First, define the UBX configuration bytes in a buffer. These are the raw bytes requred to write the RTK-Conservative Ambiguity Resolution mode to the receiver's Flash (change to RAM). 
+    uint8_t data[] = {0xB5, 0x62, 0x06, 0x8A, 0x09, 0x00, 0x00, 0x01, 0x00, 0x00, 0x11, 0x00, 0x14, 0x20, 0x05, 0xe4, 0x07 };
+    size_t size = 17;
+
+    bool result = mip_device_->send(data, size);
+    
+    if (!!result)
+      MICROSTRAIN_DEBUG(node_, "Receiver configuration bytes sent sucessfully.");
+    else 
+      MICROSTRAIN_DEBUG(node_, "Failed to write bytes to receiver");
+    sleep(1);
+
+    const mip::CmdResult mip_cmd_result_1 = mip::commands_system::writeCommMode(*mip_device_, 0x06);
+    if (!!mip_cmd_result_1)
+      MICROSTRAIN_DEBUG(node_, "Device in Direct mode to Receiver 2");
+    else
+      MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result_1, "Failed to set receiver 2 to direct mode.");
+
+    sleep(1);
+    //Here, we need to send the raw configuration bytes to the receiver to enable CAR mode for the RTK algorithm.
+    //First, define the UBX configuration bytes in a buffer. These are the raw bytes requred to write the RTK-Conservative Ambiguity Resolution mode to the receiver's Flash (change to RAM). 
+
+    bool result_1 = mip_device_->send(data, size);
+
+    if (!!result_1)
+      MICROSTRAIN_DEBUG(node_, "Receiver configuration bytes sent sucessfully.");
+    else 
+      MICROSTRAIN_DEBUG(node_, "Failed to write bytes to receiver");
+    sleep(1);
+    const mip::CmdResult mip_cmd_result_2 = mip::commands_system::writeCommMode(*mip_device_, 0x01); //put the device back into normal mode
+    if (!!mip_cmd_result_2)
+      MICROSTRAIN_DEBUG(node_, "Device returned to Normal Mode.");
+    else
+      MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result_1, "Failed to set the receiver to normal mode. Power cycle device.");
+  
+      MICROSTRAIN_INFO(node_, "Conservative RTK mode enabled on Receiver 1 and Receiver 2");
+  }
+  
+
+
   return true;
 }
 

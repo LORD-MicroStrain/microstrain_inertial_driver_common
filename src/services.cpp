@@ -50,10 +50,6 @@ bool Services::configure()
     using namespace mip::commands_filter;  // NOLINT(build/namespaces)
     mip_filter_reset_service_ = configureService<EmptySrv, Reset>(MIP_FILTER_RESET_SERVICE, &Services::mipFilterReset);
   }
-  {
-    using namespace mip::commands_system;
-    mip_enable_conservative_rtk_service_ = configureService<EmptySrv, CommMode>(MIP_CONSERVATIVE_RTK_ENABLE_SERVICE, &Services::mipEnableConservativeRTKMode);
-  }
 
   return true;
 }
@@ -292,36 +288,5 @@ bool Services::mip3dmGpioStateWrite(Mip3dmGpioStateWriteSrv::Request& req, Mip3d
     MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to write GPIO state");
 
   return !!mip_cmd_result;
-}
-bool Services::mipEnableConservativeRTKMode(EmptySrv::Request& req, EmptySrv::Response& res)
-{
-  const mip::CmdResult mip_cmd_result = mip::commands_system::writeCommMode(*(config_->mip_device_), 0x05);
-  if (!!mip_cmd_result)
-    MICROSTRAIN_DEBUG(node_, "Device in Direct mode to Receiver 1");
-  else
-    MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to set the receiver to directo mode.");
-
-
-  //Here, we need to send the raw configuration bytes to the receiver to enable CAR mode for the RTK algorithm.
-  //First, define the UBX configuration bytes in a buffer. These are the raw bytes requred to write the RTK-Conservative Ambiguity Resolution mode to the receiver's RAM. 
-  uint8_t data[] = {0xB5, 0x62, 0x06, 0x8A, 0x09, 0x00, 0x00, 0x01, 0x00, 0x00, 0x11, 0x00, 0x14, 0x20, 0x05, 0xe4, 0x07 };
-  size_t size = 17;
-  bool result = (config_->mip_device_)->send(data, size);
-  if (!!result)
-    MICROSTRAIN_DEBUG(node_, "Receiver configuration bytes sent sucessfully.");
-  else 
-    MICROSTRAIN_DEBUG(node_, "Failed to write bytes to receiver");
-
-
-  const mip::CmdResult mip_cmd_result_1 = mip::commands_system::writeCommMode(*(config_->mip_device_), 0x01); //put the device back into normal mode
-  if (!!mip_cmd_result_1)
-    MICROSTRAIN_DEBUG(node_, "Device returned to Normal Mode.");
-  else
-    MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result_1, "Failed to set the receiver to normal mode. Power cycle device.");
-
-
-//  bool res = mip::Interface::sendToDevice(data, size);
-
-
 }
 }  // namespace microstrain;
