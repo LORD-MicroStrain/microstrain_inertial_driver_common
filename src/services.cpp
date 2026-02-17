@@ -30,7 +30,6 @@ bool Services::configure()
     raw_file_config_aux_read_service_ = createService<RawFileConfigReadSrv>(node_, RAW_FILE_CONFIG_AUX_READ_SERVICE, &Services::rawFileConfigAuxRead, this);
     raw_file_config_aux_write_service_ = createService<RawFileConfigWriteSrv>(node_, RAW_FILE_CONFIG_AUX_WRITE_SERVICE, &Services::rawFileConfigAuxWrite, this);
   }
-
   
 
   // Setup the MIP services
@@ -289,4 +288,4 @@ bool Services::mip3dmGpioStateWrite(Mip3dmGpioStateWriteSrv::Request& req, Mip3d
 
   return !!mip_cmd_result;
 }
-}  // namespace microstrain;
+}  // namespace microstrain

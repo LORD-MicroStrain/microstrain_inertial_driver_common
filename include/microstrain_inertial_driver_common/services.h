@@ -72,7 +72,6 @@ public:
 
   bool mipFilterReset(EmptySrv::Request& req, EmptySrv::Response& res);
 
-  bool mipEnableConservativeRTKMode(EmptySrv::Request& req, EmptySrv::Response& res);
   
 private:
   /**
