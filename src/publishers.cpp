@@ -81,6 +81,29 @@ Publishers::Publishers(RosNodeType* node, Config* config)
   transform_listener_ = createTransformListener(transform_buffer_);
 }
 
+// Helper function to return GNSS index
+uint8_t getGNSSIndex(const uint8_t gnss_descriptor_set)
+{
+  switch (gnss_descriptor_set)
+  {
+    case mip::data_gnss::DESCRIPTOR_SET:
+    case mip::data_gnss::MIP_GNSS1_DATA_DESC_SET:
+      return 0;
+      break;
+    case mip::data_gnss::MIP_GNSS2_DATA_DESC_SET:
+      return 1;
+      break;
+    case mip::data_gnss::MIP_GNSS4_DATA_DESC_SET:
+      return 2;
+      break;
+    case mip::data_gnss::MIP_GNSS5_DATA_DESC_SET:
+      return 3;
+      break;
+    default:
+      return 0; // TODO: ask rob about default case
+  }
+}
+
 bool Publishers::configure()
 {
   imu_raw_pub_->configure(node_, config_);
@@ -88,7 +111,7 @@ bool Publishers::configure()
   mag_pub_->configure(node_, config_);
   pressure_pub_->configure(node_, config_);
   wheel_speed_pub_->configure(node_, config_);
-
+ 
   for (const auto& pub : gnss_llh_position_pub_) pub->configure(node_, config_);
   for (const auto& pub : gnss_velocity_pub_) pub->configure(node_, config_);
   for (const auto& pub : gnss_velocity_ecef_pub_) pub->configure(node_, config_);
@@ -145,12 +168,17 @@ bool Publishers::configure()
   pressure_pub_->getMessage()->header.frame_id = config_->frame_id_;
   wheel_speed_pub_->getMessage()->header.frame_id = config_->odometer_frame_id_;
 
+  MICROSTRAIN_DEBUG(node_, "configured all publishers before gnss");//TODO: REMOVE
+  printf("testing testing \n");
   for (int i = 0; i < gnss_llh_position_pub_.size(); i++) gnss_llh_position_pub_[i]->getMessage()->header.frame_id = config_->gnss_frame_id_[i];
+  MICROSTRAIN_DEBUG(node_, "configured all publishers after first gnss");//TODO: REMOVE
   for (int i = 0; i < gnss_velocity_pub_.size(); i++) gnss_velocity_pub_[i]->getMessage()->header.frame_id = config_->gnss_frame_id_[i];
   for (int i = 0; i < gnss_velocity_ecef_pub_.size(); i++) gnss_velocity_ecef_pub_[i]->getMessage()->header.frame_id = config_->gnss_frame_id_[i];
   for (int i = 0; i < gnss_odometry_pub_.size(); i++) gnss_odometry_pub_[i]->getMessage()->header.frame_id = config_->earth_frame_id_;
   for (int i = 0; i < gnss_odometry_pub_.size(); i++) gnss_odometry_pub_[i]->getMessage()->child_frame_id = config_->gnss_frame_id_[i];
   for (int i = 0; i < gnss_time_pub_.size(); i++) gnss_time_pub_[i]->getMessage()->header.frame_id = config_->gnss_frame_id_[i];
+
+  MICROSTRAIN_DEBUG(node_, "configured all publishers after gnss"); //TODO: REMOVE
 
   filter_human_readable_status_pub_->getMessage()->header.frame_id = config_->frame_id_;
   filter_imu_pub_->getMessage()->header.frame_id = config_->frame_id_;
@@ -328,7 +356,7 @@ bool Publishers::configure()
 
   // Register callbacks for each data field we care about. Note that order is preserved here, so if a data field needs to be parsed before another, change it here.
   // Prospect shared field callbacks
-  for (const uint8_t descriptor_set : std::initializer_list<uint8_t>{mip::data_sensor::DESCRIPTOR_SET, mip::data_gnss::DESCRIPTOR_SET, mip::data_gnss::MIP_GNSS1_DATA_DESC_SET, mip::data_gnss::MIP_GNSS2_DATA_DESC_SET, mip::data_gnss::MIP_GNSS3_DATA_DESC_SET, mip::data_filter::DESCRIPTOR_SET, mip::data_system::DESCRIPTOR_SET})
+  for (const uint8_t descriptor_set : std::initializer_list<uint8_t>{mip::data_sensor::DESCRIPTOR_SET, mip::data_gnss::DESCRIPTOR_SET, mip::data_gnss::MIP_GNSS1_DATA_DESC_SET, mip::data_gnss::MIP_GNSS2_DATA_DESC_SET, mip::data_gnss::MIP_GNSS3_DATA_DESC_SET, mip::data_gnss::MIP_GNSS4_DATA_DESC_SET, mip::data_gnss::MIP_GNSS5_DATA_DESC_SET, mip::data_filter::DESCRIPTOR_SET, mip::data_system::DESCRIPTOR_SET})
   {
     registerDataCallback<mip::data_shared::EventSource, &Publishers::handleSharedEventSource>(descriptor_set);
     registerDataCallback<mip::data_shared::Ticks, &Publishers::handleSharedTicks>(descriptor_set);
@@ -356,8 +384,8 @@ bool Publishers::configure()
   registerDataCallback<mip::data_sensor::OverrangeStatus, &Publishers::handleSensorOverrangeStatus>();
   registerDataCallback<mip::data_sensor::TemperatureAbs, &Publishers::handleSensorTemperatureStatistics>();
 
-  // GNSS1/2 callbacks
-  for (const uint8_t gnss_descriptor_set : std::initializer_list<uint8_t>{mip::data_gnss::DESCRIPTOR_SET, mip::data_gnss::MIP_GNSS1_DATA_DESC_SET, mip::data_gnss::MIP_GNSS2_DATA_DESC_SET})
+  // GNSS1/2 callbacks and GNSS4/5 callbacks
+  for (const uint8_t gnss_descriptor_set : std::initializer_list<uint8_t>{mip::data_gnss::DESCRIPTOR_SET, mip::data_gnss::MIP_GNSS1_DATA_DESC_SET, mip::data_gnss::MIP_GNSS2_DATA_DESC_SET, mip::data_gnss::MIP_GNSS4_DATA_DESC_SET, mip::data_gnss::MIP_GNSS5_DATA_DESC_SET})
   {
     registerDataCallback<mip::data_gnss::PosLlh, &Publishers::handleGnssPosLlh>(gnss_descriptor_set);
     registerDataCallback<mip::data_gnss::VelNed, &Publishers::handleGnssVelNed>(gnss_descriptor_set);
@@ -369,7 +397,7 @@ bool Publishers::configure()
   }
 
   // Note: It is important to make sure this is after the GNSS1/2 callbacks
-  for (const uint8_t gnss_descriptor_set : std::initializer_list<uint8_t>{mip::data_gnss::MIP_GNSS1_DATA_DESC_SET, mip::data_gnss::MIP_GNSS2_DATA_DESC_SET})
+  for (const uint8_t gnss_descriptor_set : std::initializer_list<uint8_t>{mip::data_gnss::MIP_GNSS1_DATA_DESC_SET, mip::data_gnss::MIP_GNSS2_DATA_DESC_SET, mip::data_gnss::MIP_GNSS4_DATA_DESC_SET, mip::data_gnss::MIP_GNSS5_DATA_DESC_SET})
   {
     registerDataCallback<mip::data_gnss::GpsTime, &Publishers::handleGnssGpsTime>(gnss_descriptor_set);
   }
@@ -663,18 +691,8 @@ void Publishers::handleSharedGpsTimestamp(const mip::data_shared::GpsTimestamp& 
   gps_timestamp_mapping_[descriptor_set] = gps_timestamp;
 
   // Update the GPS time message for this descriptor
-  uint8_t gnss_index;
-  switch (descriptor_set)
-  {
-    case mip::data_gnss::MIP_GNSS1_DATA_DESC_SET:
-      gnss_index = 0;
-      break;
-    case mip::data_gnss::MIP_GNSS2_DATA_DESC_SET:
-      gnss_index = 1;
-      break;
-    default:
-      return;
-  }
+  uint8_t gnss_index = getGNSSIndex(descriptor_set);
+
   auto gps_time_msg = gnss_time_pub_[gnss_index]->getMessageToUpdate();
   gps_time_msg->header.stamp = rosTimeNow(node_);
   setGpsTime(&gps_time_msg->time_ref, gps_timestamp);
@@ -870,19 +888,7 @@ void Publishers::handleGnssGpsTime(const mip::data_gnss::GpsTime& gps_time, cons
   gps_timestamp_mapping_[descriptor_set] = stored_timestamp;
 
   // Also update the time ref messages
-  uint8_t gnss_index;
-  switch (descriptor_set)
-  {
-    case mip::data_gnss::DESCRIPTOR_SET:
-    case mip::data_gnss::MIP_GNSS1_DATA_DESC_SET:
-      gnss_index = 0;
-      break;
-    case mip::data_gnss::MIP_GNSS2_DATA_DESC_SET:
-      gnss_index = 1;
-      break;
-    default:
-      return;
-  }
+  uint8_t gnss_index = getGNSSIndex(descriptor_set);
   auto gps_time_msg = gnss_time_pub_[gnss_index]->getMessageToUpdate();
   gps_time_msg->header.stamp = rosTimeNow(node_);
   setGpsTime(&gps_time_msg->time_ref, stored_timestamp);
@@ -891,8 +897,7 @@ void Publishers::handleGnssGpsTime(const mip::data_gnss::GpsTime& gps_time, cons
 void Publishers::handleGnssPosLlh(const mip::data_gnss::PosLlh& pos_llh, const uint8_t descriptor_set, mip::Timestamp timestamp)
 {
   // Different message depending on the descriptor set
-  const uint8_t gnss_index = (descriptor_set == mip::data_gnss::DESCRIPTOR_SET || descriptor_set == mip::data_gnss::MIP_GNSS1_DATA_DESC_SET) ? GNSS1_ID : GNSS2_ID;
-
+  uint8_t gnss_index = getGNSSIndex(descriptor_set);
   // GNSS navsatfix message
   auto gnss_llh_position_msg = gnss_llh_position_pub_[gnss_index]->getMessageToUpdate();
   updateHeaderTime(&(gnss_llh_position_msg->header), descriptor_set, timestamp);
@@ -909,8 +914,7 @@ void Publishers::handleGnssPosLlh(const mip::data_gnss::PosLlh& pos_llh, const u
 void Publishers::handleGnssVelNed(const mip::data_gnss::VelNed& vel_ned, const uint8_t descriptor_set, mip::Timestamp timestamp)
 {
   // Different message depending on the descriptor set
-  const uint8_t gnss_index = (descriptor_set == mip::data_gnss::DESCRIPTOR_SET || descriptor_set == mip::data_gnss::MIP_GNSS1_DATA_DESC_SET) ? GNSS1_ID : GNSS2_ID;
-
+  uint8_t gnss_index = getGNSSIndex(descriptor_set);
   // GNSS velocity message
   auto gnss_velocity_msg = gnss_velocity_pub_[gnss_index]->getMessageToUpdate();
   updateHeaderTime(&(gnss_velocity_msg->header), descriptor_set, timestamp);
@@ -978,7 +982,8 @@ void Publishers::handleGnssVelNed(const mip::data_gnss::VelNed& vel_ned, const u
 void Publishers::handleGnssPosEcef(const mip::data_gnss::PosEcef& pos_ecef, const uint8_t descriptor_set, mip::Timestamp timestamp)
 {
   // Different message depending on the descriptor set
-  const uint8_t gnss_index = (descriptor_set == mip::data_gnss::DESCRIPTOR_SET || descriptor_set == mip::data_gnss::MIP_GNSS1_DATA_DESC_SET) ? GNSS1_ID : GNSS2_ID;
+  uint8_t gnss_index = getGNSSIndex(descriptor_set);
+
   auto gnss_odometry_msg = gnss_odometry_pub_[gnss_index]->getMessageToUpdate();
   updateHeaderTime(&(gnss_odometry_msg->header), descriptor_set, timestamp);
   gnss_odometry_msg->pose.pose.position.x = pos_ecef.x[0];
@@ -992,7 +997,7 @@ void Publishers::handleGnssPosEcef(const mip::data_gnss::PosEcef& pos_ecef, cons
 void Publishers::handleGnssVelEcef(const mip::data_gnss::VelEcef& vel_ecef, const uint8_t descriptor_set, mip::Timestamp timestamp)
 {
   // Different message depending on the descriptor set
-  const uint8_t gnss_index = (descriptor_set == mip::data_gnss::DESCRIPTOR_SET || descriptor_set == mip::data_gnss::MIP_GNSS1_DATA_DESC_SET) ? GNSS1_ID : GNSS2_ID;
+  const uint8_t gnss_index = getGNSSIndex(descriptor_set);
   auto gnss_velocity_ecef_msg = gnss_velocity_ecef_pub_[gnss_index]->getMessageToUpdate();
   updateHeaderTime(&(gnss_velocity_ecef_msg->header), descriptor_set, timestamp);
   gnss_velocity_ecef_msg->twist.twist.linear.x = vel_ecef.v[0];
@@ -1006,7 +1011,7 @@ void Publishers::handleGnssVelEcef(const mip::data_gnss::VelEcef& vel_ecef, cons
 void Publishers::handleGnssFixInfo(const mip::data_gnss::FixInfo& fix_info, const uint8_t descriptor_set, mip::Timestamp timestamp)
 {
   // Different message depending on the descriptor set
-  const uint8_t gnss_index = (descriptor_set == mip::data_gnss::DESCRIPTOR_SET || descriptor_set == mip::data_gnss::MIP_GNSS1_DATA_DESC_SET) ? GNSS1_ID : GNSS2_ID;
+  const uint8_t gnss_index = getGNSSIndex(descriptor_set);
 
   // GNSS Fix info message
   auto mip_gnss_fix_info_msg = mip_gnss_fix_info_pub_[gnss_index]->getMessage();
@@ -1032,18 +1037,7 @@ void Publishers::handleGnssFixInfo(const mip::data_gnss::FixInfo& fix_info, cons
 void Publishers::handleGnssRfErrorDetection(const mip::data_gnss::RfErrorDetection& rf_error_detection, const uint8_t descriptor_set, mip::Timestamp timestamp)
 {
   // Find the right index for the message
-  uint8_t gnss_index;
-  switch (descriptor_set)
-  {
-    case mip::data_gnss::MIP_GNSS1_DATA_DESC_SET:
-      gnss_index = 0;
-      break;
-    case mip::data_gnss::MIP_GNSS2_DATA_DESC_SET:
-      gnss_index = 1;
-      break;
-    default:
-      return;  // Nothing to do if the descriptor set is not something we recognize
-  }
+  uint8_t gnss_index = getGNSSIndex(descriptor_set);
 
   // Different message depending on the descriptor set
   auto mip_gnss_rf_error_detection_msg = mip_gnss_rf_error_detection_pub_[gnss_index]->getMessage();
@@ -1057,18 +1051,7 @@ void Publishers::handleGnssRfErrorDetection(const mip::data_gnss::RfErrorDetecti
 void Publishers::handleGnssSbasInfo(const mip::data_gnss::SbasInfo& sbas_info, const uint8_t descriptor_set, mip::Timestamp timestamp)
 {
   // Find the right index for the message
-  uint8_t gnss_index;
-  switch (descriptor_set)
-  {
-    case mip::data_gnss::MIP_GNSS1_DATA_DESC_SET:
-      gnss_index = 0;
-      break;
-    case mip::data_gnss::MIP_GNSS2_DATA_DESC_SET:
-      gnss_index = 1;
-      break;
-    default:
-      return;  // Nothing to do if the descriptor set is not something we recognize
-  }
+  uint8_t gnss_index = getGNSSIndex(descriptor_set);
 
   // Different message depending on descriptor
   auto mip_gnss_sbas_info_msg = mip_gnss_sbas_info_pub_[gnss_index]->getMessage();

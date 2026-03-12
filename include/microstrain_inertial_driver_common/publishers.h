@@ -242,11 +242,11 @@ public:
   Publisher<TwistWithCovarianceStampedMsg>::SharedPtr wheel_speed_pub_ = Publisher<TwistWithCovarianceStampedMsg>::initialize(IMU_WHEEL_SPEED_TOPIC);
 
   // GNSS publishers
-  Publisher<NavSatFixMsg>::SharedPtrVec                  gnss_llh_position_pub_  = Publisher<NavSatFixMsg>::initializeVec({GNSS1_LLH_POSITION_TOPIC, GNSS2_FIX_TOPIC});
-  Publisher<TwistWithCovarianceStampedMsg>::SharedPtrVec gnss_velocity_pub_      = Publisher<TwistWithCovarianceStampedMsg>::initializeVec({GNSS1_VELOCITY_TOPIC, GNSS2_VELOCITY_TOPIC});
-  Publisher<TwistWithCovarianceStampedMsg>::SharedPtrVec gnss_velocity_ecef_pub_ = Publisher<TwistWithCovarianceStampedMsg>::initializeVec({GNSS1_VELOCITY_ECEF_TOPIC, GNSS2_VELOCITY_ECEF_TOPIC});
-  Publisher<OdometryMsg>::SharedPtrVec                   gnss_odometry_pub_      = Publisher<OdometryMsg>::initializeVec({GNSS1_ODOMETRY_TOPIC, GNSS2_ODOMETRY_TOPIC});
-  Publisher<TimeReferenceMsg>::SharedPtrVec              gnss_time_pub_          = Publisher<TimeReferenceMsg>::initializeVec({GNSS1_TIME_REF_TOPIC, GNSS2_TIME_REF_TOPIC});
+  Publisher<NavSatFixMsg>::SharedPtrVec                  gnss_llh_position_pub_  = Publisher<NavSatFixMsg>::initializeVec({GNSS1_LLH_POSITION_TOPIC, GNSS2_FIX_TOPIC, GNSS4_FIX_TOPIC, GNSS5_FIX_TOPIC}); 
+  Publisher<TwistWithCovarianceStampedMsg>::SharedPtrVec gnss_velocity_pub_      = Publisher<TwistWithCovarianceStampedMsg>::initializeVec({GNSS1_VELOCITY_TOPIC, GNSS2_VELOCITY_TOPIC, GNSS4_VELOCITY_TOPIC, GNSS5_VELOCITY_TOPIC});
+  Publisher<TwistWithCovarianceStampedMsg>::SharedPtrVec gnss_velocity_ecef_pub_ = Publisher<TwistWithCovarianceStampedMsg>::initializeVec({GNSS1_VELOCITY_ECEF_TOPIC, GNSS2_VELOCITY_ECEF_TOPIC, GNSS4_VELOCITY_ECEF_TOPIC, GNSS5_VELOCITY_ECEF_TOPIC});
+  Publisher<OdometryMsg>::SharedPtrVec                   gnss_odometry_pub_      = Publisher<OdometryMsg>::initializeVec({GNSS1_ODOMETRY_TOPIC, GNSS2_ODOMETRY_TOPIC, GNSS4_ODOMETRY_TOPIC, GNSS5_ODOMETRY_TOPIC});
+  Publisher<TimeReferenceMsg>::SharedPtrVec              gnss_time_pub_          = Publisher<TimeReferenceMsg>::initializeVec({GNSS1_TIME_REF_TOPIC, GNSS2_TIME_REF_TOPIC, GNSS4_TIME_REF_TOPIC, GNSS5_TIME_REF_TOPIC});
 
   // Filter publishers
   Publisher<HumanReadableStatusMsg>::SharedPtr            filter_human_readable_status_pub_ = Publisher<HumanReadableStatusMsg>::initialize(FILTER_HUMAN_READABLE_STATUS_TOPIC);
