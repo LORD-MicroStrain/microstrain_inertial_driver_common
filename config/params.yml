@@ -476,6 +476,22 @@ gnss2_velocity_ecef_data_rate  : 0  # Rate of gnss_2/velocity_ecef topic
 gnss2_odometry_earth_data_rate : 0  # Rate of gnss_2/odometry_earth topic
 gnss2_time_data_rate           : 0  # Rate of gnss_2/time topic
 
+gnss4_llh_position_data_rate   : 2 # Rate of gnss_4/llh_position topic
+gnss4_velocity_data_rate       : 2 # Rate of gnss_4/velocity topic
+gnss4_velocity_ecef_data_rate  : 0 # Rate of gnss_4/velocity topic
+                                    # Note: gnss2_odometry_earth_data_rate depends on the contents of this message.
+                                    #       If it is set to a higher value, this message will be published at that rate.
+gnss4_odometry_earth_data_rate : 0 # Rate of gnss_4/odometry_earth topic
+gnss4_time_data_rate           : 0 # Rate of gnss_4/time topic
+
+gnss5_llh_position_data_rate   : 2 # Rate of gnss_5/llh_position topic
+gnss5_velocity_data_rate       : 2 # Rate of gnss_5/velocity topic
+gnss5_velocity_ecef_data_rate  : 0 # Rate of gnss_5/velocity topic
+                                    # Note: gnss2_odometry_earth_data_rate depends on the contents of this message.
+                                    #       If it is set to a higher value, this message will be published at that rate.
+gnss5_odometry_earth_data_rate : 0 # Rate of gnss_5/odometry_earth topic
+gnss5_time_data_rate           : 0 # Rate of gnss_5/time topic
+
 # The speed at which the individual Filter publishers will publish at.
 filter_human_readable_status_data_rate : 1  # Rate of ekf/status
 filter_imu_data_rate                   : 0  # Rate of ekf/imu/data topic

@@ -2133,11 +2133,15 @@ void Publishers::updateMipHeader(MipHeaderMsg* mip_header, uint8_t descriptor_se
   // Update the ROS header with the ROS timestamp
   updateHeaderTime(&mip_header->header, descriptor_set, timestamp, gps_timestamp);
 
-  // Default frame ID is determined by the descriptor set
+  // Default frame ID is determined by the descriptor set TODO: UPDATE
   if (descriptor_set == mip::data_gnss::DESCRIPTOR_SET || descriptor_set == mip::data_gnss::MIP_GNSS1_DATA_DESC_SET)
     mip_header->header.frame_id = config_->gnss_frame_id_[GNSS1_ID];
   else if (descriptor_set == mip::data_gnss::MIP_GNSS2_DATA_DESC_SET)
     mip_header->header.frame_id = config_->gnss_frame_id_[GNSS2_ID];
+  else if (descriptor_set == mip::data_gnss::MIP_GNSS4_DATA_DESC_SET)
+    mip_header->header.frame_id = config_->gnss_frame_id_[GNSS4_ID];
+  else if (descriptor_set == mip::data_gnss::MIP_GNSS5_DATA_DESC_SET)
+    mip_header->header.frame_id = config_->gnss_frame_id_[GNSS5_ID];
   else
     mip_header->header.frame_id = config_->frame_id_;
 

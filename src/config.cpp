@@ -81,6 +81,8 @@ bool Config::configure(RosNodeType* node)
   getParam<std::string>(node, "earth_frame_id", earth_frame_id_, "earth");
   getParam<std::string>(node, "gnss1_frame_id", gnss_frame_id_[GNSS1_ID], "gnss_1_antenna_link");
   getParam<std::string>(node, "gnss2_frame_id", gnss_frame_id_[GNSS2_ID], "gnss_2_antenna_link");
+  getParam<std::string>(node, "gnss4_frame_id", gnss_frame_id_[GNSS4_ID], "gnss_4_antenna_link");
+  getParam<std::string>(node, "gnss5_frame_id", gnss_frame_id_[GNSS5_ID], "gnss_5_antenna_link");
   getParam<std::string>(node, "odometer_frame_id", odometer_frame_id_, "odometer_link");
   getParam<bool>(node, "use_enu_frame", use_enu_frame_, false);
 
