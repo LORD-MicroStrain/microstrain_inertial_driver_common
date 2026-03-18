@@ -161,6 +161,15 @@ gnss_glonass_enable : True
 gnss_galileo_enable : True
 gnss_beidou_enable  : True
 
+# ******************************************************************
+# Septentrio Aiding settings for 7-Series and Nova Development Board
+# ******************************************************************
+
+# If enabled, the septentrio_input_port will have Septentrio Binary Protocol input enabled, 
+# and have the baudrate configured to 4000000 baud which is required for Septentrio aiding. 
+# 
+septentrio_input_enable : False # Enable Sepentrio Binary Protocol input on a specified port (If )
+septentrio_input_port   : 0x13  # Port to enable Sepntrio Binary protocol on, default value of UART3 (0x13) for use with Nova Development Board
 
 # ****************************************************************** 
 # RTK Settings (only applicable for devices with RTK support (e.g. GQ7) )
