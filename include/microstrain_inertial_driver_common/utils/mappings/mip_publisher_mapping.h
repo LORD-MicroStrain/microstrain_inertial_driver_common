@@ -77,6 +77,12 @@ static constexpr auto MIP_GNSS2_FIX_INFO_TOPIC = "mip/gnss_2/fix_info";
 static constexpr auto MIP_GNSS2_SBAS_INFO_TOPIC = "mip/gnss_2/sbas_info";
 static constexpr auto MIP_GNSS2_RF_ERROR_DETECTION_TOPIC = "mip/gnss_2/rf_error_detection";
 
+static constexpr auto MIP_GNSS4_FIX_INFO_TOPIC = "mip/gnss_4/fix_info";
+static constexpr auto MIP_GNSS4_RF_ERROR_DETECTION_TOPIC = "mip/gnss_4/rf_error_detection";
+
+static constexpr auto MIP_GNSS5_FIX_INFO_TOPIC = "mip/gnss_5/fix_info";
+static constexpr auto MIP_GNSS5_RF_ERROR_DETECTION_TOPIC = "mip/gnss_5/rf_error_detection";
+
 static constexpr auto MIP_GNSS_CORRECTIONS_RTK_CORRECTIONS_STATUS_TOPIC = "mip/gnss_corrections/rtk_corrections_status";
 
 static constexpr auto MIP_FILTER_STATUS_TOPIC = "mip/ekf/status";

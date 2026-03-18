@@ -264,9 +264,9 @@ public:
   Publisher<MipSensorTemperatureStatisticsMsg>::SharedPtr mip_sensor_temperature_statistics_pub_ = Publisher<MipSensorTemperatureStatisticsMsg>::initialize(MIP_SENSOR_TEMPERATURE_STATISTICS_TOPIC);
 
   // MIP GNSS (0x81, 0x91, 0x92) publishers
-  Publisher<MipGnssFixInfoMsg>::SharedPtrVec          mip_gnss_fix_info_pub_           = Publisher<MipGnssFixInfoMsg>::initializeVec({MIP_GNSS1_FIX_INFO_TOPIC, MIP_GNSS2_FIX_INFO_TOPIC});
+  Publisher<MipGnssFixInfoMsg>::SharedPtrVec          mip_gnss_fix_info_pub_           = Publisher<MipGnssFixInfoMsg>::initializeVec({MIP_GNSS1_FIX_INFO_TOPIC, MIP_GNSS2_FIX_INFO_TOPIC, MIP_GNSS4_FIX_INFO_TOPIC, MIP_GNSS5_FIX_INFO_TOPIC}); 
   Publisher<MipGnssSbasInfoMsg>::SharedPtrVec         mip_gnss_sbas_info_pub_          = Publisher<MipGnssSbasInfoMsg>::initializeVec({MIP_GNSS1_SBAS_INFO_TOPIC, MIP_GNSS2_SBAS_INFO_TOPIC});
-  Publisher<MipGnssRfErrorDetectionMsg>::SharedPtrVec mip_gnss_rf_error_detection_pub_ = Publisher<MipGnssRfErrorDetectionMsg>::initializeVec({MIP_GNSS1_RF_ERROR_DETECTION_TOPIC, MIP_GNSS2_RF_ERROR_DETECTION_TOPIC});
+  Publisher<MipGnssRfErrorDetectionMsg>::SharedPtrVec mip_gnss_rf_error_detection_pub_ = Publisher<MipGnssRfErrorDetectionMsg>::initializeVec({MIP_GNSS1_RF_ERROR_DETECTION_TOPIC, MIP_GNSS2_RF_ERROR_DETECTION_TOPIC, MIP_GNSS4_RF_ERROR_DETECTION_TOPIC, MIP_GNSS5_RF_ERROR_DETECTION_TOPIC});
 
   // MIP GNSS Corrections (0x93) publishers
   Publisher<MipGnssCorrectionsRtkCorrectionsStatusMsg>::SharedPtr mip_gnss_corrections_rtk_corrections_status_pub_ = Publisher<MipGnssCorrectionsRtkCorrectionsStatusMsg>::initialize(MIP_GNSS_CORRECTIONS_RTK_CORRECTIONS_STATUS_TOPIC);
