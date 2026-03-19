@@ -103,6 +103,8 @@ map_frame_id       : "map"
 earth_frame_id     : "earth"
 gnss1_frame_id     : "gnss_1_antenna_link"
 gnss2_frame_id     : "gnss_2_antenna_link"
+gnss4_frame_id     : "gnss_4_antenna_link"
+gnss5_frame_id     : "gnss_5_antenna_link"
 odometer_frame_id  : "odometer_link"
 
 # Target frame ID to publish transform to. Note that there needs to be some path of transforms between this and frame_id
