@@ -1360,18 +1360,20 @@ bool Config::configureSystem(RosNodeType* node)
   bool enable_conservative_rtk;
   getParam<bool>(node, "enable_conservative_rtk", enable_conservative_rtk, false); 
 
-  if (enable_conservative_rtk && mip_device_->supportsDescriptor(mip::commands_gnss::DESCRIPTOR_SET, mip::commands_gnss::CMD_CONFIGURATION))
+  if (enable_conservative_rtk)
   {
-    uint8_t reserved[4] = {0};
-    if (!(mip_cmd_result = mip::commands_gnss::writeRtkConfiguration(*mip_device_, mip::commands_gnss::RtkConfiguration::AmbiguityFixMode::CONSERVATIVE, reserved)))
-      MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to configure RTK mode");
+    if (mip_device_->supportsDescriptor(mip::commands_gnss::DESCRIPTOR_SET, mip::commands_gnss::CMD_CONFIGURATION))
+    {
+      uint8_t reserved[4] = {0};
+      if (!(mip_cmd_result = mip::commands_gnss::writeRtkConfiguration(*mip_device_, mip::commands_gnss::RtkConfiguration::AmbiguityFixMode::CONSERVATIVE, reserved)))
+        MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to configure RTK mode");
+      else
+        MICROSTRAIN_DEBUG(node_, "RTK mode successfully set to Conservative");
+    }
     else
-      MICROSTRAIN_DEBUG(node_, "RTK mode sucessfully set to Conservative")
+      MICROSTRAIN_WARN(node_, "The RTK Configuration Command is not available on this device");
   }
-  else
-  {
-    MICROSTRAIN_WARN(node_, "The RTK Configuration (0x0E, 0x04) Command is not supported on this device.");
-  }
+
   return true;
 }
 
