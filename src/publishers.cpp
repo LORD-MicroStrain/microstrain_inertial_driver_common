@@ -100,7 +100,7 @@ uint8_t getGNSSIndex(const uint8_t gnss_descriptor_set)
       return 3;
       break;
     default:
-      return 0; // TODO: ask rob about default case
+      return 0; //
   }
 }
 
@@ -168,17 +168,13 @@ bool Publishers::configure()
   pressure_pub_->getMessage()->header.frame_id = config_->frame_id_;
   wheel_speed_pub_->getMessage()->header.frame_id = config_->odometer_frame_id_;
 
-  MICROSTRAIN_DEBUG(node_, "configured all publishers before gnss");//TODO: REMOVE
-  printf("testing testing \n");
   for (int i = 0; i < gnss_llh_position_pub_.size(); i++) gnss_llh_position_pub_[i]->getMessage()->header.frame_id = config_->gnss_frame_id_[i];
-  MICROSTRAIN_DEBUG(node_, "configured all publishers after first gnss");//TODO: REMOVE
   for (int i = 0; i < gnss_velocity_pub_.size(); i++) gnss_velocity_pub_[i]->getMessage()->header.frame_id = config_->gnss_frame_id_[i];
   for (int i = 0; i < gnss_velocity_ecef_pub_.size(); i++) gnss_velocity_ecef_pub_[i]->getMessage()->header.frame_id = config_->gnss_frame_id_[i];
   for (int i = 0; i < gnss_odometry_pub_.size(); i++) gnss_odometry_pub_[i]->getMessage()->header.frame_id = config_->earth_frame_id_;
   for (int i = 0; i < gnss_odometry_pub_.size(); i++) gnss_odometry_pub_[i]->getMessage()->child_frame_id = config_->gnss_frame_id_[i];
   for (int i = 0; i < gnss_time_pub_.size(); i++) gnss_time_pub_[i]->getMessage()->header.frame_id = config_->gnss_frame_id_[i];
 
-  MICROSTRAIN_DEBUG(node_, "configured all publishers after gnss"); //TODO: REMOVE
 
   filter_human_readable_status_pub_->getMessage()->header.frame_id = config_->frame_id_;
   filter_imu_pub_->getMessage()->header.frame_id = config_->frame_id_;
@@ -2133,7 +2129,7 @@ void Publishers::updateMipHeader(MipHeaderMsg* mip_header, uint8_t descriptor_se
   // Update the ROS header with the ROS timestamp
   updateHeaderTime(&mip_header->header, descriptor_set, timestamp, gps_timestamp);
 
-  // Default frame ID is determined by the descriptor set TODO: UPDATE
+  // Default frame ID is determined by the descriptor set
   if (descriptor_set == mip::data_gnss::DESCRIPTOR_SET || descriptor_set == mip::data_gnss::MIP_GNSS1_DATA_DESC_SET)
     mip_header->header.frame_id = config_->gnss_frame_id_[GNSS1_ID];
   else if (descriptor_set == mip::data_gnss::MIP_GNSS2_DATA_DESC_SET)
