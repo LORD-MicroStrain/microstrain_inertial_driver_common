@@ -103,6 +103,8 @@ map_frame_id       : "map"
 earth_frame_id     : "earth"
 gnss1_frame_id     : "gnss_1_antenna_link"
 gnss2_frame_id     : "gnss_2_antenna_link"
+gnss4_frame_id     : "gnss_4_antenna_link"
+gnss5_frame_id     : "gnss_5_antenna_link"
 odometer_frame_id  : "odometer_link"
 
 # Target frame ID to publish transform to. Note that there needs to be some path of transforms between this and frame_id
@@ -476,6 +478,22 @@ gnss2_velocity_ecef_data_rate  : 0  # Rate of gnss_2/velocity_ecef topic
 gnss2_odometry_earth_data_rate : 0  # Rate of gnss_2/odometry_earth topic
 gnss2_time_data_rate           : 0  # Rate of gnss_2/time topic
 
+gnss4_llh_position_data_rate   : 2 # Rate of gnss_4/llh_position topic
+gnss4_velocity_data_rate       : 2 # Rate of gnss_4/velocity topic
+gnss4_velocity_ecef_data_rate  : 0 # Rate of gnss_4/velocity topic
+                                    # Note: gnss2_odometry_earth_data_rate depends on the contents of this message.
+                                    #       If it is set to a higher value, this message will be published at that rate.
+gnss4_odometry_earth_data_rate : 0 # Rate of gnss_4/odometry_earth topic
+gnss4_time_data_rate           : 0 # Rate of gnss_4/time topic
+
+gnss5_llh_position_data_rate   : 2 # Rate of gnss_5/llh_position topic
+gnss5_velocity_data_rate       : 2 # Rate of gnss_5/velocity topic
+gnss5_velocity_ecef_data_rate  : 0 # Rate of gnss_5/velocity topic
+                                    # Note: gnss2_odometry_earth_data_rate depends on the contents of this message.
+                                    #       If it is set to a higher value, this message will be published at that rate.
+gnss5_odometry_earth_data_rate : 0 # Rate of gnss_5/odometry_earth topic
+gnss5_time_data_rate           : 0 # Rate of gnss_5/time topic
+
 # The speed at which the individual Filter publishers will publish at.
 filter_human_readable_status_data_rate : 1  # Rate of ekf/status
 filter_imu_data_rate                   : 0  # Rate of ekf/imu/data topic
@@ -505,6 +523,12 @@ mip_gnss1_rf_error_detection_data_rate : 0  # Rate of mip/gnss_1/rf_error_detect
 mip_gnss2_fix_info_data_rate           : 0  # Rate of mip/gnss_1/fix_info topic
 mip_gnss2_sbas_info_data_rate          : 0  # Rate of mip/gnss_2/sbas_info topic
 mip_gnss2_rf_error_detection_data_rate : 0  # Rate of mip/gnss_2/rf_error_detection
+
+mip_gnss4_fix_info_data_rate           : 0  # Rate of mip/gnss_4/fix_info topic
+mip_gnss4_rf_error_detection_data_rate : 0  # Rate of mip/gnss_4/rf_error_detection
+
+mip_gnss5_fix_info_data_rate           : 0  # Rate of mip/gnss_5/fix_info topic
+mip_gnss5_rf_error_detection_data_rate : 0  # Rate of mip/gnss_5/rf_error_detection
 
 mip_filter_status_data_rate                          : 0  # Rate of mip/filter/status topic
 mip_filter_gnss_position_aiding_status_data_rate     : 0  # Rate of mip/filter/gnss_aiding_status

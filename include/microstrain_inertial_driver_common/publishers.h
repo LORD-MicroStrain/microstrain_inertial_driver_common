@@ -242,11 +242,11 @@ public:
   Publisher<TwistWithCovarianceStampedMsg>::SharedPtr wheel_speed_pub_ = Publisher<TwistWithCovarianceStampedMsg>::initialize(IMU_WHEEL_SPEED_TOPIC);
 
   // GNSS publishers
-  Publisher<NavSatFixMsg>::SharedPtrVec                  gnss_llh_position_pub_  = Publisher<NavSatFixMsg>::initializeVec({GNSS1_LLH_POSITION_TOPIC, GNSS2_FIX_TOPIC});
-  Publisher<TwistWithCovarianceStampedMsg>::SharedPtrVec gnss_velocity_pub_      = Publisher<TwistWithCovarianceStampedMsg>::initializeVec({GNSS1_VELOCITY_TOPIC, GNSS2_VELOCITY_TOPIC});
-  Publisher<TwistWithCovarianceStampedMsg>::SharedPtrVec gnss_velocity_ecef_pub_ = Publisher<TwistWithCovarianceStampedMsg>::initializeVec({GNSS1_VELOCITY_ECEF_TOPIC, GNSS2_VELOCITY_ECEF_TOPIC});
-  Publisher<OdometryMsg>::SharedPtrVec                   gnss_odometry_pub_      = Publisher<OdometryMsg>::initializeVec({GNSS1_ODOMETRY_TOPIC, GNSS2_ODOMETRY_TOPIC});
-  Publisher<TimeReferenceMsg>::SharedPtrVec              gnss_time_pub_          = Publisher<TimeReferenceMsg>::initializeVec({GNSS1_TIME_REF_TOPIC, GNSS2_TIME_REF_TOPIC});
+  Publisher<NavSatFixMsg>::SharedPtrVec                  gnss_llh_position_pub_  = Publisher<NavSatFixMsg>::initializeVec({GNSS1_LLH_POSITION_TOPIC, GNSS2_FIX_TOPIC, GNSS4_FIX_TOPIC, GNSS5_FIX_TOPIC}); 
+  Publisher<TwistWithCovarianceStampedMsg>::SharedPtrVec gnss_velocity_pub_      = Publisher<TwistWithCovarianceStampedMsg>::initializeVec({GNSS1_VELOCITY_TOPIC, GNSS2_VELOCITY_TOPIC, GNSS4_VELOCITY_TOPIC, GNSS5_VELOCITY_TOPIC});
+  Publisher<TwistWithCovarianceStampedMsg>::SharedPtrVec gnss_velocity_ecef_pub_ = Publisher<TwistWithCovarianceStampedMsg>::initializeVec({GNSS1_VELOCITY_ECEF_TOPIC, GNSS2_VELOCITY_ECEF_TOPIC, GNSS4_VELOCITY_ECEF_TOPIC, GNSS5_VELOCITY_ECEF_TOPIC});
+  Publisher<OdometryMsg>::SharedPtrVec                   gnss_odometry_pub_      = Publisher<OdometryMsg>::initializeVec({GNSS1_ODOMETRY_TOPIC, GNSS2_ODOMETRY_TOPIC, GNSS4_ODOMETRY_TOPIC, GNSS5_ODOMETRY_TOPIC});
+  Publisher<TimeReferenceMsg>::SharedPtrVec              gnss_time_pub_          = Publisher<TimeReferenceMsg>::initializeVec({GNSS1_TIME_REF_TOPIC, GNSS2_TIME_REF_TOPIC, GNSS4_TIME_REF_TOPIC, GNSS5_TIME_REF_TOPIC});
 
   // Filter publishers
   Publisher<HumanReadableStatusMsg>::SharedPtr            filter_human_readable_status_pub_ = Publisher<HumanReadableStatusMsg>::initialize(FILTER_HUMAN_READABLE_STATUS_TOPIC);
@@ -264,9 +264,9 @@ public:
   Publisher<MipSensorTemperatureStatisticsMsg>::SharedPtr mip_sensor_temperature_statistics_pub_ = Publisher<MipSensorTemperatureStatisticsMsg>::initialize(MIP_SENSOR_TEMPERATURE_STATISTICS_TOPIC);
 
   // MIP GNSS (0x81, 0x91, 0x92) publishers
-  Publisher<MipGnssFixInfoMsg>::SharedPtrVec          mip_gnss_fix_info_pub_           = Publisher<MipGnssFixInfoMsg>::initializeVec({MIP_GNSS1_FIX_INFO_TOPIC, MIP_GNSS2_FIX_INFO_TOPIC});
+  Publisher<MipGnssFixInfoMsg>::SharedPtrVec          mip_gnss_fix_info_pub_           = Publisher<MipGnssFixInfoMsg>::initializeVec({MIP_GNSS1_FIX_INFO_TOPIC, MIP_GNSS2_FIX_INFO_TOPIC, MIP_GNSS4_FIX_INFO_TOPIC, MIP_GNSS5_FIX_INFO_TOPIC}); 
   Publisher<MipGnssSbasInfoMsg>::SharedPtrVec         mip_gnss_sbas_info_pub_          = Publisher<MipGnssSbasInfoMsg>::initializeVec({MIP_GNSS1_SBAS_INFO_TOPIC, MIP_GNSS2_SBAS_INFO_TOPIC});
-  Publisher<MipGnssRfErrorDetectionMsg>::SharedPtrVec mip_gnss_rf_error_detection_pub_ = Publisher<MipGnssRfErrorDetectionMsg>::initializeVec({MIP_GNSS1_RF_ERROR_DETECTION_TOPIC, MIP_GNSS2_RF_ERROR_DETECTION_TOPIC});
+  Publisher<MipGnssRfErrorDetectionMsg>::SharedPtrVec mip_gnss_rf_error_detection_pub_ = Publisher<MipGnssRfErrorDetectionMsg>::initializeVec({MIP_GNSS1_RF_ERROR_DETECTION_TOPIC, MIP_GNSS2_RF_ERROR_DETECTION_TOPIC, MIP_GNSS4_RF_ERROR_DETECTION_TOPIC, MIP_GNSS5_RF_ERROR_DETECTION_TOPIC});
 
   // MIP GNSS Corrections (0x93) publishers
   Publisher<MipGnssCorrectionsRtkCorrectionsStatusMsg>::SharedPtr mip_gnss_corrections_rtk_corrections_status_pub_ = Publisher<MipGnssCorrectionsRtkCorrectionsStatusMsg>::initialize(MIP_GNSS_CORRECTIONS_RTK_CORRECTIONS_STATUS_TOPIC);

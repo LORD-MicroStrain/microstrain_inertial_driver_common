@@ -360,6 +360,42 @@ const std::map<std::string, FieldWrapper::SharedPtrVec> MipPublisherMapping::sta
     FieldWrapperType<mip::data_gnss::GpsTime, mip::data_gnss::MIP_GNSS2_DATA_DESC_SET>::initialize(),
   }},
 
+  // GNSS4 topic mappings.
+  {GNSS4_FIX_TOPIC, {
+    FieldWrapperType<mip::data_gnss::PosLlh, mip::data_gnss::MIP_GNSS4_DATA_DESC_SET>::initialize(),
+  }},
+  {GNSS4_VELOCITY_TOPIC, {
+    FieldWrapperType<mip::data_gnss::VelNed, mip::data_gnss::MIP_GNSS4_DATA_DESC_SET>::initialize(),
+  }},
+  {GNSS4_VELOCITY_ECEF_TOPIC, {
+    FieldWrapperType<mip::data_gnss::VelEcef, mip::data_gnss::MIP_GNSS4_DATA_DESC_SET>::initialize(),
+  }},
+  {GNSS4_ODOMETRY_TOPIC, {
+    FieldWrapperType<mip::data_gnss::PosEcef, mip::data_gnss::MIP_GNSS4_DATA_DESC_SET>::initialize(),
+    FieldWrapperType<mip::data_gnss::VelNed, mip::data_gnss::MIP_GNSS4_DATA_DESC_SET>::initialize(),
+  }},
+  {GNSS4_TIME_REF_TOPIC, {
+    FieldWrapperType<mip::data_gnss::GpsTime, mip::data_gnss::MIP_GNSS4_DATA_DESC_SET>::initialize(),
+  }},
+  
+  // GNSS5 topic mappings.
+  {GNSS5_FIX_TOPIC, {
+    FieldWrapperType<mip::data_gnss::PosLlh, mip::data_gnss::MIP_GNSS5_DATA_DESC_SET>::initialize(),
+  }},
+  {GNSS5_VELOCITY_TOPIC, {
+    FieldWrapperType<mip::data_gnss::VelNed, mip::data_gnss::MIP_GNSS5_DATA_DESC_SET>::initialize(),
+  }},
+  {GNSS5_VELOCITY_ECEF_TOPIC, {
+    FieldWrapperType<mip::data_gnss::VelEcef, mip::data_gnss::MIP_GNSS5_DATA_DESC_SET>::initialize(),
+  }},
+  {GNSS5_ODOMETRY_TOPIC, {
+    FieldWrapperType<mip::data_gnss::PosEcef, mip::data_gnss::MIP_GNSS5_DATA_DESC_SET>::initialize(),
+    FieldWrapperType<mip::data_gnss::VelNed, mip::data_gnss::MIP_GNSS5_DATA_DESC_SET>::initialize(),
+  }},
+  {GNSS5_TIME_REF_TOPIC, {
+    FieldWrapperType<mip::data_gnss::GpsTime, mip::data_gnss::MIP_GNSS5_DATA_DESC_SET>::initialize(),
+  }},
+
   // Filter topic mappings
   {FILTER_HUMAN_READABLE_STATUS_TOPIC, {
     FieldWrapperType<mip::data_gnss::FixInfo, mip::data_gnss::DESCRIPTOR_SET>::initialize(),
@@ -444,6 +480,23 @@ const std::map<std::string, FieldWrapper::SharedPtrVec> MipPublisherMapping::sta
     FieldWrapperType<mip::data_gnss::RfErrorDetection, mip::data_gnss::MIP_GNSS2_DATA_DESC_SET>::initialize()
   }},
 
+  // MIP GNSS4 (0x94) topic mappings
+  {MIP_GNSS4_FIX_INFO_TOPIC, {
+    FieldWrapperType<mip::data_gnss::FixInfo, mip::data_gnss::MIP_GNSS4_DATA_DESC_SET>::initialize(),
+  }},
+  {MIP_GNSS4_RF_ERROR_DETECTION_TOPIC, {
+    FieldWrapperType<mip::data_gnss::RfErrorDetection, mip::data_gnss::MIP_GNSS4_DATA_DESC_SET>::initialize()
+  }},
+
+  // MIP GNSS5 (0x95) topic mappings
+  {MIP_GNSS5_FIX_INFO_TOPIC, {
+    FieldWrapperType<mip::data_gnss::FixInfo, mip::data_gnss::MIP_GNSS5_DATA_DESC_SET>::initialize(),
+  }},
+  {MIP_GNSS5_RF_ERROR_DETECTION_TOPIC, {
+    FieldWrapperType<mip::data_gnss::RfErrorDetection, mip::data_gnss::MIP_GNSS5_DATA_DESC_SET>::initialize()
+  }},
+
+
   // MIP Filter (0x82) topic mappings
   {MIP_FILTER_STATUS_TOPIC, {
     FieldWrapperType<mip::data_filter::Status>::initialize(),
@@ -492,7 +545,21 @@ const std::map<std::string, std::string> MipPublisherMapping::static_topic_to_da
   {GNSS2_VELOCITY_ECEF_TOPIC, "gnss2_velocity_ecef_data_rate"},
   {GNSS2_ODOMETRY_TOPIC,      "gnss2_odometry_earth_data_rate"},
   {GNSS2_TIME_REF_TOPIC,      "gnss2_time_data_rate"},
-
+  
+  // GNSS4 data rates
+  {GNSS4_FIX_TOPIC,           "gnss4_llh_position_data_rate"},
+  {GNSS4_VELOCITY_TOPIC,      "gnss4_velocity_data_rate"},
+  {GNSS4_VELOCITY_ECEF_TOPIC, "gnss4_velocity_ecef_data_rate"},
+  {GNSS4_ODOMETRY_TOPIC,      "gnss4_odometry_earth_data_rate"},
+  {GNSS4_TIME_REF_TOPIC,      "gnss4_time_data_rate"},
+  
+  // GNSS5 data rates
+  {GNSS5_FIX_TOPIC,           "gnss5_llh_position_data_rate"},
+  {GNSS5_VELOCITY_TOPIC,      "gnss5_velocity_data_rate"},
+  {GNSS5_VELOCITY_ECEF_TOPIC, "gnss5_velocity_ecef_data_rate"},
+  {GNSS5_ODOMETRY_TOPIC,      "gnss5_odometry_earth_data_rate"},
+  {GNSS5_TIME_REF_TOPIC,      "gnss5_time_data_rate"},
+  
   // Filter data rates
   {FILTER_HUMAN_READABLE_STATUS_TOPIC, "filter_human_readable_status_data_rate"},
   {FILTER_IMU_DATA_TOPIC,              "filter_imu_data_rate"},
@@ -516,6 +583,14 @@ const std::map<std::string, std::string> MipPublisherMapping::static_topic_to_da
   {MIP_GNSS2_FIX_INFO_TOPIC,           "mip_gnss2_fix_info_data_rate"},
   {MIP_GNSS2_SBAS_INFO_TOPIC,          "mip_gnss2_sbas_info_data_rate"},
   {MIP_GNSS2_RF_ERROR_DETECTION_TOPIC, "mip_gnss2_rf_error_detection_data_rate"},
+
+  // MIP GNSS4 (0x94) data rates
+  {MIP_GNSS4_FIX_INFO_TOPIC,           "mip_gnss4_fix_info_data_rate"},
+  {MIP_GNSS4_RF_ERROR_DETECTION_TOPIC, "mip_gnss4_rf_error_detection_data_rate"},
+
+  // MIP GNSS5 (0x95) data rates
+  {MIP_GNSS5_FIX_INFO_TOPIC,           "mip_gnss5_fix_info_data_rate"},
+  {MIP_GNSS5_RF_ERROR_DETECTION_TOPIC, "mip_gnss5_rf_error_detection_data_rate"},
 
   // MIP filter (0x82) data rates
   {MIP_FILTER_STATUS_TOPIC,                          "mip_filter_status_data_rate"},
