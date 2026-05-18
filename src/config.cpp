@@ -1358,6 +1358,32 @@ bool Config::configureSystem(RosNodeType* node)
     rtcm_on_main_port_ = false;
   }
 
+  // Configure Septentrio input on a given port if enabled. 
+ 
+  bool septentrio_input_enable;
+  uint8_t septentrio_input_port;
+  getParam<bool>(node, "septentrio_input_enable", septentrio_input_enable, false);
+  getParam<uint8_t>(node, "septentrio_input_port", septentrio_input_port, false);
+
+  // Enable Septentrio input on the provided port
+  uint32_t septentrio_protocol = 0x20000000;
+  
+  if (septentrio_input_enable)
+  {
+    MICROSTRAIN_DEBUG(node, "Configuring port %#X for Septentrio Binary Protocol input", septentrio_input_port);
+    if (!(mip_cmd_result = mip::commands_system::writeInterfaceControl(*mip_device_, static_cast<mip::commands_system::CommsInterface>(septentrio_input_port), static_cast<mip::commands_system::CommsProtocol>(septentrio_protocol), mip::commands_system::CommsProtocol::NONE)))
+    {
+      MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to enable Septentrio Binary Protocol Input");
+    }
+  }
+
+  // Configure the baud rate to be 4000000 on the selected port
+  MICROSTRAIN_DEBUG(node, "Configuring port %#X for 4000000 baud", septentrio_input_port);
+  if (!(mip_cmd_result = mip::commands_base::writeCommSpeed(*mip_device_, septentrio_input_port, 0x003d0900)))
+  {
+    MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to set baudrate for port %#X", septentrio_input_port);
+  }
+
   return true;
 }
 
