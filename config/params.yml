@@ -187,7 +187,8 @@ rtk_dongle_enable : True
 ntrip_interface_enable : False
 
 # (GQ7 Only) RTK Configuration 
-# Note: this param will enable the "Conservative Ambiguity Resolution" fix mode for the GNSS receivers. 
+# Note: This is an experimental feature, available upon request in challenging GNSS/RTK conditions.
+# Enabling this param will enable the "Conservative Ambiguity Resolution" fix mode for the GNSS receivers. 
 # Enabling can help reduce the chance of achieving a false RTK integer fix, but may increase time-to-fix
 enable_conservative_rtk : False
 # ****************************************************************** 
