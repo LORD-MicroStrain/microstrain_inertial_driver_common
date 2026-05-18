@@ -1358,8 +1358,25 @@ bool Config::configureSystem(RosNodeType* node)
     rtcm_on_main_port_ = false;
   }
 
+  // Enable conservative RTK solution
+  bool enable_conservative_rtk;
+  getParam<bool>(node, "enable_conservative_rtk", enable_conservative_rtk, false); 
+
+  if (enable_conservative_rtk)
+  {
+    if (mip_device_->supportsDescriptor(mip::commands_gnss::DESCRIPTOR_SET, mip::commands_gnss::CMD_CONFIGURATION))
+    {
+      uint8_t reserved[4] = {0};
+      if (!(mip_cmd_result = mip::commands_gnss::writeRtkConfiguration(*mip_device_, mip::commands_gnss::RtkConfiguration::AmbiguityFixMode::CONSERVATIVE, reserved)))
+        MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to configure RTK mode");
+      else
+        MICROSTRAIN_DEBUG(node_, "RTK mode successfully set to Conservative");
+    }
+    else
+      MICROSTRAIN_WARN(node_, "The RTK Configuration Command is not available on this device");
+  }
+
   // Configure Septentrio input on a given port if enabled. 
- 
   bool septentrio_input_enable;
   uint8_t septentrio_input_port;
   getParam<bool>(node, "septentrio_input_enable", septentrio_input_enable, false);

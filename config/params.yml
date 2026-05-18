@@ -186,6 +186,11 @@ rtk_dongle_enable : True
 # Note: This will require the aux_port configuration to be valid and pointing to a valid aux port
 ntrip_interface_enable : False
 
+# (GQ7 Only) RTK Configuration 
+# Note: This is an experimental feature, available upon request in challenging GNSS/RTK conditions.
+# Enabling this param will enable the "Conservative Ambiguity Resolution" fix mode for the GNSS receivers. 
+# Enabling can help reduce the chance of achieving a false RTK integer fix, but may increase time-to-fix
+enable_conservative_rtk : False
 # ****************************************************************** 
 # Kalman Filter Settings (only applicable for devices with a Kalman Filter) 
 # ****************************************************************** 
