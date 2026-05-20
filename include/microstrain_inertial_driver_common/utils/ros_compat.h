@@ -105,6 +105,8 @@ constexpr auto NUM_GNSS = 4;
 #include "microstrain_inertial_msgs/Mip3dmGpioStateRead.h"
 #include "microstrain_inertial_msgs/Mip3dmGpioStateWrite.h"
 
+#include "microstrain_inertial_msgs/MipGnssReceiverReset.h"
+
 /**
  * ROS2 Includes
  */
@@ -176,6 +178,8 @@ constexpr auto NUM_GNSS = 4;
 #include "microstrain_inertial_msgs/srv/mip3dm_capture_gyro_bias.hpp"
 #include "microstrain_inertial_msgs/srv/mip3dm_gpio_state_read.hpp"
 #include "microstrain_inertial_msgs/srv/mip3dm_gpio_state_write.hpp"
+
+#include "microstrain_inertial_msgs/srv/mip_gnss_receiver_reset.hpp"
 #else
 #error "Unsupported ROS version. -DMICROSTRAIN_ROS_VERSION must be set to 1 or 2"
 #endif
@@ -302,6 +306,8 @@ using MipBaseGetDeviceInformationSrv = ::microstrain_inertial_msgs::MipBaseGetDe
 using Mip3dmCaptureGyroBiasSrv = ::microstrain_inertial_msgs::Mip3dmCaptureGyroBias;
 using Mip3dmGpioStateReadSrv = microstrain_inertial_msgs::Mip3dmGpioStateRead;
 using Mip3dmGpioStateWriteSrv = microstrain_inertial_msgs::Mip3dmGpioStateWrite;
+
+using MipGnssReceiverResetSrv = microstrain_inertial_msgs::MipGnssReceiverReset;
 
 // ROS1 aliases not intended to be used outside this file
 using ParamIntVector = std::vector<int32_t>;
@@ -623,6 +629,8 @@ using MipBaseGetDeviceInformationSrv = microstrain_inertial_msgs::srv::MipBaseGe
 using Mip3dmCaptureGyroBiasSrv = microstrain_inertial_msgs::srv::Mip3dmCaptureGyroBias;
 using Mip3dmGpioStateReadSrv = microstrain_inertial_msgs::srv::Mip3dmGpioStateRead;
 using Mip3dmGpioStateWriteSrv = microstrain_inertial_msgs::srv::Mip3dmGpioStateWrite;
+
+using MipGnssReceiverResetSrv = microstrain_inertial_msgs::srv::MipGnssReceiverReset;
 
 // ROS2 aliases not intended to be used outside this file
 using ParamIntVector = std::vector<int64_t>;
