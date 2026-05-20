@@ -30,7 +30,6 @@ static constexpr auto MIP_3DM_DEVICE_SETTINGS_SAVE_SERVICE = "mip/three_dm/devic
 static constexpr auto MIP_3DM_DEVICE_SETTINGS_LOAD_SERVICE = "mip/three_dm/device_settings/load";
 static constexpr auto MIP_3DM_GPIO_STATE_READ_SERVICE = "mip/three_dm/gpio_state/read";
 static constexpr auto MIP_3DM_GPIO_STATE_WRITE_SERVICE = "mip/three_dm/gpio_state/write";
-static constexpr auto MIP_GNSS_RECEIVER_RESET_SERVICE = "mip/gnss/receiver_reset";
 static constexpr auto MIP_FILTER_RESET_SERVICE = "mip/ekf/reset";
 
 /**
@@ -70,8 +69,6 @@ public:
   bool mip3dmDeviceSettingsLoad(EmptySrv::Request& req, EmptySrv::Response& res);
   bool mip3dmGpioStateRead(Mip3dmGpioStateReadSrv::Request& req, Mip3dmGpioStateReadSrv::Response& res);
   bool mip3dmGpioStateWrite(Mip3dmGpioStateWriteSrv::Request& req, Mip3dmGpioStateWriteSrv::Response& res);
-
-  bool mipGnssReceiverReset(MipGnssReceiverResetSrv::Request& req, MipGnssReceiverResetSrv::Response& res);
 
   bool mipFilterReset(EmptySrv::Request& req, EmptySrv::Response& res);
 
@@ -115,8 +112,6 @@ private:
   RosServiceType<EmptySrv>::SharedPtr mip_3dm_device_settings_load_service_;
   RosServiceType<Mip3dmGpioStateReadSrv>::SharedPtr mip_3dm_gpio_state_read_service_;
   RosServiceType<Mip3dmGpioStateWriteSrv>::SharedPtr mip_3dm_gpio_state_write_service_;
-
-  RosServiceType<MipGnssReceiverResetSrv>::SharedPtr mip_gnss_receiver_reset_service_;
 
   RosServiceType<EmptySrv>::SharedPtr mip_filter_reset_service_;
 };
