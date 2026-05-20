@@ -75,6 +75,7 @@ public:
 
   bool mipFilterReset(EmptySrv::Request& req, EmptySrv::Response& res);
 
+  
 private:
   /**
    * \brief Configures a non MIP command dependent service. This service will always be configured if this functions is called.

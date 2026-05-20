@@ -45,7 +45,7 @@ void logCallbackProxy(void* user, microstrain_log_level level, const char* fmt, 
 void NodeCommon::parseAndPublishMain()
 {
   // This should receive all packets, populate ROS messages and publish them as well
-  if (!config_.mip_device_->device().update(0))
+  if (!config_.mip_device_->device().update(10))
   {
     MICROSTRAIN_ERROR(node_, "Unable to update device");
 
@@ -110,7 +110,7 @@ void NodeCommon::parseAndPublishMain()
 void NodeCommon::parseAndPublishAux()
 {
   // This should receive all packets and populate NMEA messages
-  config_.aux_device_->device().update(0);
+  config_.aux_device_->device().update(10);
 
   // Publish the NMEA messages
   const auto connection = config_.aux_device_->connection();

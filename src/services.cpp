@@ -30,6 +30,7 @@ bool Services::configure()
     raw_file_config_aux_read_service_ = createService<RawFileConfigReadSrv>(node_, RAW_FILE_CONFIG_AUX_READ_SERVICE, &Services::rawFileConfigAuxRead, this);
     raw_file_config_aux_write_service_ = createService<RawFileConfigWriteSrv>(node_, RAW_FILE_CONFIG_AUX_WRITE_SERVICE, &Services::rawFileConfigAuxWrite, this);
   }
+  
 
   // Setup the MIP services
   {
@@ -43,10 +44,6 @@ bool Services::configure()
     mip_3dm_device_settings_load_service_ = configureService<EmptySrv, DeviceSettings>(MIP_3DM_DEVICE_SETTINGS_LOAD_SERVICE, &Services::mip3dmDeviceSettingsLoad);
     mip_3dm_gpio_state_read_service_ = configureService<Mip3dmGpioStateReadSrv, GpioConfig>(MIP_3DM_GPIO_STATE_READ_SERVICE, &Services::mip3dmGpioStateRead);
     mip_3dm_gpio_state_write_service_ = configureService<Mip3dmGpioStateWriteSrv, GpioConfig>(MIP_3DM_GPIO_STATE_WRITE_SERVICE, &Services::mip3dmGpioStateWrite);
-  }
-  {
-    using namespace mip::commands_gnss;  // NOLINT(build/namespaces)
-    mip_gnss_receiver_reset_service_ = configureService<MipGnssReceiverResetSrv, ReceiverReset>(MIP_GNSS_RECEIVER_RESET_SERVICE, &Services::mipGnssReceiverReset);
   }
   {
     using namespace mip::commands_filter;  // NOLINT(build/namespaces)
@@ -291,22 +288,4 @@ bool Services::mip3dmGpioStateWrite(Mip3dmGpioStateWriteSrv::Request& req, Mip3d
 
   return !!mip_cmd_result;
 }
-
-bool Services::mipGnssReceiverReset(MipGnssReceiverResetSrv::Request& req, MipGnssReceiverResetSrv::Response& res)
-{
-  MICROSTRAIN_DEBUG(node_, "Performing receiver reset");
-  MICROSTRAIN_DEBUG(node_, "  receiver_id = %d", req.receiver_id);
-  MICROSTRAIN_DEBUG(node_, "  reset_type = %d", req.reset_type);
-
-  const auto receiver_id = static_cast<mip::commands_gnss::GnssReceiverId>(req.receiver_id);
-  const auto reset_type = static_cast<mip::commands_gnss::ReceiverReset::ResetType>(req.reset_type);
-  const mip::CmdResult mip_cmd_result = mip::commands_gnss::receiverReset(*(config_->mip_device_), receiver_id, reset_type);
-  if (!!mip_cmd_result)
-    MICROSTRAIN_DEBUG(node_, "Reset receiver");
-  else
-    MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to reset receiver");
-
-  return !!mip_cmd_result;
-}
-
 }  // namespace microstrain
