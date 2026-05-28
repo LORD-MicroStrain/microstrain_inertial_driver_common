@@ -105,6 +105,11 @@ public:
   // Whether to enable the hardware odometer through the GPIO pins
   bool enable_hardware_odometer_;
 
+  double accel_range_;
+  double gyro_range_;
+  double mag_range_;
+  double press_range_;
+
   // FILTER
   double gps_leap_seconds_;
   bool filter_enable_gnss_heading_aiding_;
