@@ -202,6 +202,13 @@ bool Publishers::configure()
   std::copy(config_->imu_mag_cov_.begin(), config_->imu_mag_cov_.end(), mag_msg->magnetic_field_covariance.begin());
   pressure_pub_->getMessage()->variance = config_->imu_pressure_vairance_;
 
+  // Update filtered IMU covariance values
+  auto filter_imu_msg = filter_imu_pub_->getMessage();
+  std::copy(config_->imu_linear_cov_.begin(), config_->imu_linear_cov_.end(),
+            filter_imu_msg->linear_acceleration_covariance.begin());
+  std::copy(config_->imu_angular_cov_.begin(), config_->imu_angular_cov_.end(),
+            filter_imu_msg->angular_velocity_covariance.begin());
+
   supports_filter_ecef_ = config_->mip_device_->supportsDescriptor(mip::data_filter::DESCRIPTOR_SET, mip::data_filter::DATA_ECEF_POS);
 
   // Human readable status message configuration
