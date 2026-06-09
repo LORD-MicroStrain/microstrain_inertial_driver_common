@@ -32,6 +32,7 @@ static constexpr auto MIP_3DM_GPIO_STATE_READ_SERVICE = "mip/three_dm/gpio_state
 static constexpr auto MIP_3DM_GPIO_STATE_WRITE_SERVICE = "mip/three_dm/gpio_state/write";
 static constexpr auto MIP_GNSS_RECEIVER_RESET_SERVICE = "mip/gnss/receiver_reset";
 static constexpr auto MIP_FILTER_RESET_SERVICE = "mip/ekf/reset";
+static constexpr auto MIP_BASE_COMMANDED_BIT_SERVICE = "mip/base/commanded_bit";
 
 /**
  * Contains service functions and service handles
@@ -64,6 +65,7 @@ public:
   bool rawFileConfigAuxWrite(RawFileConfigWriteSrv::Request& req, RawFileConfigWriteSrv::Response& res);
 
   bool mipBaseGetDeviceInformation(MipBaseGetDeviceInformationSrv::Request& req, MipBaseGetDeviceInformationSrv::Response& res);
+  bool mipBaseCommandedBIT(EmptySrv::Request& req, EmptySrv::Response& res); // TODO: investiate custom service
 
   bool mip3dmCaptureGyroBias(Mip3dmCaptureGyroBiasSrv::Request& req, Mip3dmCaptureGyroBiasSrv::Response& res);
   bool mip3dmDeviceSettingsSave(EmptySrv::Request& req, EmptySrv::Response& res);
@@ -109,6 +111,7 @@ private:
   RosServiceType<RawFileConfigWriteSrv>::SharedPtr raw_file_config_aux_write_service_;
 
   RosServiceType<MipBaseGetDeviceInformationSrv>::SharedPtr mip_base_get_device_information_service_;
+  RosServiceType<EmptySrv>::SharedPtr mip_base_commanded_bit_;
 
   RosServiceType<Mip3dmCaptureGyroBiasSrv>::SharedPtr mip_3dm_capture_gyro_bias_service_;
   RosServiceType<EmptySrv>::SharedPtr mip_3dm_device_settings_save_service_;

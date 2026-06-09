@@ -36,6 +36,7 @@ bool Services::configure()
   {
     using namespace mip::commands_base;  // NOLINT(build/namespaces)
     mip_base_get_device_information_service_ = configureService<MipBaseGetDeviceInformationSrv, GetDeviceInfo>(MIP_BASE_GET_DEVICE_INFORMATION_SERVICE, &Services::mipBaseGetDeviceInformation);
+    mip_base_commanded_bit_ = configureService<EmptySrv, CommandedTestBitsGq7>(MIP_BASE_COMMANDED_BIT_SERVICE, &&Services::mipBaseCommandedBit);
   }
   {
     using namespace mip::commands_3dm;  // NOLINT(build/namespaces)
@@ -170,6 +171,13 @@ bool Services::mipBaseGetDeviceInformation(MipBaseGetDeviceInformationSrv::Reque
     MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to get device info");
   }
   return !!mip_cmd_result;
+}
+
+bool Services::mipBaseCommandedBIT(EmptySrv::Request& req, EmptySrv::Response& res)
+{
+  MICROSTRAIN_DEBUG(node_, "The Continuous Built-In-Test is a disruptive command, Data will stop streaming momentarily.");
+  uint32_t commanded_bit = 0;
+  const mip::CmdResult mip_cmd_result = mip::commands_base::builtInTest(*(config_->mip_device_), &commanded_bit);
 }
 
 bool Services::mip3dmCaptureGyroBias(Mip3dmCaptureGyroBiasSrv::Request& req, Mip3dmCaptureGyroBiasSrv::Response& res)
