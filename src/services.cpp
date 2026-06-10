@@ -36,7 +36,7 @@ bool Services::configure()
   {
     using namespace mip::commands_base;  // NOLINT(build/namespaces)
     mip_base_get_device_information_service_ = configureService<MipBaseGetDeviceInformationSrv, GetDeviceInfo>(MIP_BASE_GET_DEVICE_INFORMATION_SERVICE, &Services::mipBaseGetDeviceInformation);
-    mip_base_commanded_bit_ = configureService<EmptySrv, CommandedTestBitsGq7>(MIP_BASE_COMMANDED_BIT_SERVICE, &&Services::mipBaseCommandedBit);
+    mip_base_commanded_bit_ = configureService<EmptySrv, BuiltInTest>(MIP_BASE_COMMANDED_BIT_SERVICE, &Services::mipBaseCommandedBIT);
   }
   {
     using namespace mip::commands_3dm;  // NOLINT(build/namespaces)
@@ -176,8 +176,78 @@ bool Services::mipBaseGetDeviceInformation(MipBaseGetDeviceInformationSrv::Reque
 bool Services::mipBaseCommandedBIT(EmptySrv::Request& req, EmptySrv::Response& res)
 {
   MICROSTRAIN_DEBUG(node_, "The Continuous Built-In-Test is a disruptive command, Data will stop streaming momentarily.");
+
+  // Increase device timeout to allow for continuous BIT command
+  const int32_t old_mip_sdk_timeout = config_->mip_device_->device().baseReplyTimeout();
+  config_->mip_device_->device().setBaseReplyTimeout(10000);
+
   uint32_t commanded_bit = 0;
   const mip::CmdResult mip_cmd_result = mip::commands_base::builtInTest(*(config_->mip_device_), &commanded_bit);
+  if (!!mip_cmd_result)
+  {
+    MICROSTRAIN_DEBUG(node_, "Continuous Built-In-Test results: %u", commanded_bit);
+
+    mip::commands_base::CommandedTestBitsGq7 bits(commanded_bit);
+    if (bits.value == mip::commands_base::CommandedTestBitsGq7::NONE)
+      MICROSTRAIN_DEBUG(node_, "All BIT tests passed.");
+    else
+    {
+      if (bits.generalHardwareFault())
+        MICROSTRAIN_DEBUG(node_, "Bit 0: General Hardware Fault");
+      if (bits.generalFirmwareFault())
+        MICROSTRAIN_DEBUG(node_, "Bit 1: General Firmware Fault");
+      if (bits.timingOverload())
+        MICROSTRAIN_DEBUG(node_, "Bit 2: Timing Overload");
+      if (bits.bufferOverrun())
+        MICROSTRAIN_DEBUG(node_, "Bit 3: Buffer Overrun");
+      if (bits.ipcImuFault())
+        MICROSTRAIN_DEBUG(node_, "Bit 8: IMU IPC Fault");
+      if (bits.ipcNavFault())
+        MICROSTRAIN_DEBUG(node_, "Bit 9: Nav IPC Fault");
+      if (bits.ipcGnssFault())
+        MICROSTRAIN_DEBUG(node_, "Bit 10: GNSS IPC Fault");
+      if (bits.commsFault())
+        MICROSTRAIN_DEBUG(node_, "Bit 11: Comms Fault");
+      if (bits.imuAccelFault())
+        MICROSTRAIN_DEBUG(node_, "Bit 12: Accelerometer Fault");
+      if (bits.imuGyroFault())
+        MICROSTRAIN_DEBUG(node_, "Bit 13: Gyroscope Fault");
+      if (bits.imuMagFault())
+        MICROSTRAIN_DEBUG(node_, "Bit 14: Magnetometer Fault");
+      if (bits.imuPressFault())
+        MICROSTRAIN_DEBUG(node_, "Bit 15: Pressure Sensor Fault");
+      if (bits.imuCalError())
+        MICROSTRAIN_DEBUG(node_, "Bit 18: Calibration Error");
+      if (bits.imuGeneralFault())
+        MICROSTRAIN_DEBUG(node_, "Bit 19: General IMU Fault");
+      if (bits.filtSolutionFault())
+        MICROSTRAIN_DEBUG(node_, "Bit 22: Filter Solution Fault");
+      if (bits.filtGeneralFault())
+        MICROSTRAIN_DEBUG(node_, "Bit 23: General Filter Fault");
+      if (bits.gnssReceiver1Fault())
+        MICROSTRAIN_DEBUG(node_, "Bit 24: GNSS Receiver 1 Fault");
+      if (bits.gnssAntenna1Fault())
+        MICROSTRAIN_DEBUG(node_, "Bit 25: GNSS Antenna 1 Fault");
+      if (bits.gnssReceiver2Fault())
+        MICROSTRAIN_DEBUG(node_, "Bit 26: GNSS Receiver 2 Fault");
+      if (bits.gnssAntenna2Fault())
+        MICROSTRAIN_DEBUG(node_, "Bit 27: GNSS Antenna 2 Fault");
+      if (bits.gnssRtcmFailure())
+        MICROSTRAIN_DEBUG(node_, "Bit 28: RTCM Communication Fault");
+      if (bits.gnssRtkFault())
+        MICROSTRAIN_DEBUG(node_, "Bit 29: RTK Dongle Fault");
+      if (bits.gnssGeneralFault())
+        MICROSTRAIN_DEBUG(node_, "Bit 31: General GNSS Fault");
+    }
+    // Reset the timeout
+    config_->mip_device_->device().setBaseReplyTimeout(old_mip_sdk_timeout);
+
+  }
+  else
+  {
+    MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to run Continuous Built-In-Test bit");
+  }
+  return !!mip_cmd_result;
 }
 
 bool Services::mip3dmCaptureGyroBias(Mip3dmCaptureGyroBiasSrv::Request& req, Mip3dmCaptureGyroBiasSrv::Response& res)

@@ -65,7 +65,7 @@ public:
   bool rawFileConfigAuxWrite(RawFileConfigWriteSrv::Request& req, RawFileConfigWriteSrv::Response& res);
 
   bool mipBaseGetDeviceInformation(MipBaseGetDeviceInformationSrv::Request& req, MipBaseGetDeviceInformationSrv::Response& res);
-  bool mipBaseCommandedBIT(EmptySrv::Request& req, EmptySrv::Response& res); // TODO: investiate custom service
+  bool mipBaseCommandedBIT(EmptySrv::Request& req, EmptySrv::Response& res);
 
   bool mip3dmCaptureGyroBias(Mip3dmCaptureGyroBiasSrv::Request& req, Mip3dmCaptureGyroBiasSrv::Response& res);
   bool mip3dmDeviceSettingsSave(EmptySrv::Request& req, EmptySrv::Response& res);
