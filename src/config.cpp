@@ -816,6 +816,10 @@ bool Config::configureFilter(RosNodeType* node)
   getParam<std::vector<double>>(node, "filter_sensor2vehicle_frame_transformation_matrix", filter_sensor2vehicle_frame_transformation_matrix_double, DEFAULT_VECTOR);
   getParam<std::vector<double>>(node, "filter_sensor2vehicle_frame_transformation_quaternion", filter_sensor2vehicle_frame_transformation_quaternion_double, DEFAULT_VECTOR);
 
+  // Gyro and Accel Noise and Bias parameters TODO: add other noise and bias parameters
+  bool configure_noise_and_bias_parameters = false;
+  getParam<bool>(node, "filter_configure_noise_and_bias", configure_noise_and_bias_parameters, false);
+
   // ROS2 can only fetch double vectors from config, so convert the doubles to floats for the MIP SDK
   std::vector<float> filter_init_position(filter_init_position_double.begin(), filter_init_position_double.end());
   std::vector<float> filter_init_velocity(filter_init_velocity_double.begin(), filter_init_velocity_double.end());
@@ -1252,6 +1256,29 @@ bool Config::configureFilter(RosNodeType* node)
   else
   {
     MICROSTRAIN_INFO(node_, "Note: The device does not support the reference point lever arm command");
+  }
+
+  if (configure_noise_and_bias_parameters)
+  {
+      if (mip_device_->supportsDescriptor(descriptor_set, mip::commands_filter::CMD_GYRO_NOISE))
+      {
+        std::vector<double> gyro_noise_std_dev_double(3,0.0);
+        getParam<std::vector<double>>(node, "filter_gyro_noise_std_dev", gyro_noise_std_dev_double, DEFAULT_VECTOR);
+
+        // ROS2 can only fetch double vectors from config, so convert the doubles to floats for the MIP SDK
+        std::vector<float> gyro_noise_std_dev(gyro_noise_std_dev_double.begin(), gyro_noise_std_dev_double.end());
+
+        MICROSTRAIN_INFO(node_, "Setting gyroscope noise standard deviation to [%f, %f, %f]", gyro_noise_std_dev[0], gyro_noise_std_dev[1], gyro_noise_std_dev[2]);
+        if (!(mip_cmd_result = mip::commands_filter::writeGyroNoise(*mip_device_,gyro_noise_std_dev.data())))
+        {
+          MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to configure gyro noise");
+          return false;
+        }
+      }
+      else
+      {
+        MICROSTRAIN_INFO(node_, "Note: The device does not support the gyroscope noise command");
+      }
   }
 
   return true;

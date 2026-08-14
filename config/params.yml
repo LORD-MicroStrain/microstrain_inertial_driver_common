@@ -347,6 +347,9 @@ filter_dynamics_mode : 1
 # 4 = Internal GNSS Receiver 2 only
 filter_gnss_aiding_source_control: 1
 
+# Filter Noise Standard Deviation and Bias configuration
+filter_configure_noise_and_bias: False
+filter_gyro_noise_std_dev: [0.0001, 0.0001, 0.0001]
 # ****************************************************************** 
 # IMU Settings 
 # ****************************************************************** 
