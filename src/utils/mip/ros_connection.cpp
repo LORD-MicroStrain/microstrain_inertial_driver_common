@@ -344,6 +344,14 @@ void RosConnection::extractNmea(const uint8_t* data, size_t data_len)
         continue;
       }
 
+      const size_t null_char_index = sentence.find('\0');
+      if (null_char_index != std::string::npos)
+      {
+        MICROSTRAIN_WARN(node_, "Skipping NMEA sentence containing an embedded null byte at index %lu (length %lu)", static_cast<unsigned long>(null_char_index), static_cast<unsigned long>(sentence.size()));
+        MICROSTRAIN_DEBUG(node_, "  Sentence preview: %s", sentence.c_str());
+        continue;
+      }
+
       // Looks like it is a valid NMEA sentence. Publish
       NMEASentenceMsg msg;
       msg.header.stamp = rosTimeNow(node_);
