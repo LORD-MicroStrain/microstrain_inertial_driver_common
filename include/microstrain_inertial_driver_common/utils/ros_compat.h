@@ -163,6 +163,7 @@ constexpr auto NUM_GNSS = 4;
 #include "microstrain_inertial_msgs/msg/mip_filter_gnss_dual_antenna_status.hpp"
 #include "microstrain_inertial_msgs/msg/mip_system_built_in_test.hpp"
 #include "microstrain_inertial_msgs/msg/mip_system_time_sync_status.hpp"
+#include "microstrain_inertial_msgs/msg/mip_gnss_raw.hpp"
 
 // .h header was deprecated in rolling and will likely be removed in future releases.
 #if MICROSTRAIN_ROLLING == 1 || MICROSTRAIN_HUMBLE == 1
@@ -596,6 +597,7 @@ using MipSensorTemperatureStatisticsMsg = ::microstrain_inertial_msgs::msg::MipS
 using MipGnssFixInfoMsg = ::microstrain_inertial_msgs::msg::MipGnssFixInfo;
 using MipGnssSbasInfoMsg = ::microstrain_inertial_msgs::msg::MipGnssSbasInfo;
 using MipGnssRfErrorDetectionMsg = ::microstrain_inertial_msgs::msg::MipGnssRfErrorDetection;
+using MipGnssRawMsg = ::microstrain_inertial_msgs::msg::MipGnssRaw;
 using MipGnssCorrectionsRtkCorrectionsStatusMsg = ::microstrain_inertial_msgs::msg::MipGnssCorrectionsRtkCorrectionsStatus;
 using MipFilterStatusMsg = ::microstrain_inertial_msgs::msg::MipFilterStatus;
 using MipFilterGnssPositionAidingStatusMsg = ::microstrain_inertial_msgs::msg::MipFilterGnssPositionAidingStatus;
@@ -604,7 +606,6 @@ using MipFilterAidingMeasurementSummaryMsg = ::microstrain_inertial_msgs::msg::M
 using MipFilterGnssDualAntennaStatusMsg = ::microstrain_inertial_msgs::msg::MipFilterGnssDualAntennaStatus;
 using MipSystemBuiltInTestMsg = ::microstrain_inertial_msgs::msg::MipSystemBuiltInTest;
 using MipSystemTimeSyncStatusMsg = ::microstrain_inertial_msgs::msg::MipSystemTimeSyncStatus;
-
 using TransformStampedMsg = ::geometry_msgs::msg::TransformStamped;
 
 // ROS2 Transform Broadcaster
@@ -617,9 +618,6 @@ using TransformBroadcasterType = std::shared_ptr<::tf2_ros::TransformBroadcaster
 using BoolMsg = ::std_msgs::msg::Bool;
 using TimeReferenceMsg = ::sensor_msgs::msg::TimeReference;
 using RTCMMsg = ::rtcm_msgs::msg::Message;
-
-// ROS2 Service Message Types
-using TriggerSrv = std_srvs::srv::Trigger;
 using EmptySrv = std_srvs::srv::Empty;
 
 using RawFileConfigReadSrv = microstrain_inertial_msgs::srv::RawFileConfigRead;

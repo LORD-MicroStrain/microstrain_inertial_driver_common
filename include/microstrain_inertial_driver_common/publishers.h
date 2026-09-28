@@ -247,6 +247,7 @@ public:
   Publisher<TwistWithCovarianceStampedMsg>::SharedPtrVec gnss_velocity_ecef_pub_ = Publisher<TwistWithCovarianceStampedMsg>::initializeVec({GNSS1_VELOCITY_ECEF_TOPIC, GNSS2_VELOCITY_ECEF_TOPIC, GNSS4_VELOCITY_ECEF_TOPIC, GNSS5_VELOCITY_ECEF_TOPIC});
   Publisher<OdometryMsg>::SharedPtrVec                   gnss_odometry_pub_      = Publisher<OdometryMsg>::initializeVec({GNSS1_ODOMETRY_TOPIC, GNSS2_ODOMETRY_TOPIC, GNSS4_ODOMETRY_TOPIC, GNSS5_ODOMETRY_TOPIC});
   Publisher<TimeReferenceMsg>::SharedPtrVec              gnss_time_pub_          = Publisher<TimeReferenceMsg>::initializeVec({GNSS1_TIME_REF_TOPIC, GNSS2_TIME_REF_TOPIC, GNSS4_TIME_REF_TOPIC, GNSS5_TIME_REF_TOPIC});
+  
 
   // Filter publishers
   Publisher<HumanReadableStatusMsg>::SharedPtr            filter_human_readable_status_pub_ = Publisher<HumanReadableStatusMsg>::initialize(FILTER_HUMAN_READABLE_STATUS_TOPIC);
@@ -267,6 +268,7 @@ public:
   Publisher<MipGnssFixInfoMsg>::SharedPtrVec          mip_gnss_fix_info_pub_           = Publisher<MipGnssFixInfoMsg>::initializeVec({MIP_GNSS1_FIX_INFO_TOPIC, MIP_GNSS2_FIX_INFO_TOPIC, MIP_GNSS4_FIX_INFO_TOPIC, MIP_GNSS5_FIX_INFO_TOPIC}); 
   Publisher<MipGnssSbasInfoMsg>::SharedPtrVec         mip_gnss_sbas_info_pub_          = Publisher<MipGnssSbasInfoMsg>::initializeVec({MIP_GNSS1_SBAS_INFO_TOPIC, MIP_GNSS2_SBAS_INFO_TOPIC});
   Publisher<MipGnssRfErrorDetectionMsg>::SharedPtrVec mip_gnss_rf_error_detection_pub_ = Publisher<MipGnssRfErrorDetectionMsg>::initializeVec({MIP_GNSS1_RF_ERROR_DETECTION_TOPIC, MIP_GNSS2_RF_ERROR_DETECTION_TOPIC, MIP_GNSS4_RF_ERROR_DETECTION_TOPIC, MIP_GNSS5_RF_ERROR_DETECTION_TOPIC});
+  Publisher<MipGnssRawMsg>::SharedPtrVec              mip_gnss_raw_pub_                = Publisher<MipGnssRawMsg>::initializeVec({MIP_GNSS1_RAW_TOPIC, MIP_GNSS2_RAW_TOPIC});
 
   // MIP GNSS Corrections (0x93) publishers
   Publisher<MipGnssCorrectionsRtkCorrectionsStatusMsg>::SharedPtr mip_gnss_corrections_rtk_corrections_status_pub_ = Publisher<MipGnssCorrectionsRtkCorrectionsStatusMsg>::initialize(MIP_GNSS_CORRECTIONS_RTK_CORRECTIONS_STATUS_TOPIC);
@@ -356,6 +358,7 @@ private:
   void handleGnssFixInfo(const mip::data_gnss::FixInfo& fix_info, const uint8_t descriptor_set, mip::Timestamp timestamp);
   void handleGnssSbasInfo(const mip::data_gnss::SbasInfo& sbas_info, const uint8_t descriptor_set, mip::Timestamp timestamp);
   void handleGnssRfErrorDetection(const mip::data_gnss::RfErrorDetection& rf_error_detection, const uint8_t descriptor_set, mip::Timestamp timestamp);
+  void handleRaw(const mip::data_gnss::Raw& raw, const uint8_t descriptor_set, mip::Timestamp timestamp);
 
   // Callbacks to handle RTK data from the device
   void handleRtkCorrectionsStatus(const mip::data_gnss::RtkCorrectionsStatus& rtk_corrections_status, const uint8_t descriptor_set, mip::Timestamp timestamp);
