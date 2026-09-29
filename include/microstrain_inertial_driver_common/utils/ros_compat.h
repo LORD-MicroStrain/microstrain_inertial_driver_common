@@ -118,11 +118,11 @@ constexpr auto NUM_GNSS = 4;
 #include "rclcpp_lifecycle/lifecycle_publisher.hpp"
 #endif
 
-#include "tf2_ros/buffer.h"
-#include "tf2_ros/buffer_interface.h"
-#include "tf2_ros/transform_listener.h"
-#include "tf2_ros/static_transform_broadcaster.h"
-#include "tf2_ros/transform_broadcaster.h"
+#include "tf2_ros/buffer.hpp"
+#include "tf2_ros/buffer_interface.hpp"
+#include "tf2_ros/transform_listener.hpp"
+#include "tf2_ros/static_transform_broadcaster.hpp"
+#include "tf2_ros/transform_broadcaster.hpp"
 
 #include "lifecycle_msgs/msg/transition.hpp"
 #include "sensor_msgs/msg/nav_sat_fix.hpp"
