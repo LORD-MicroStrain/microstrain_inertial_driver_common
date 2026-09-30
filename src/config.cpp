@@ -1392,14 +1392,14 @@ bool Config::configureSystem(RosNodeType* node)
     {
       MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to enable Septentrio Binary Protocol Input");
     }
+    // Configure the baud rate to be 4000000 on the selected port
+    MICROSTRAIN_DEBUG(node, "Configuring port %#X for 4000000 baud", septentrio_input_port);
+    if (!(mip_cmd_result = mip::commands_base::writeCommSpeed(*mip_device_, septentrio_input_port, 0x003d0900)))
+    {
+      MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to set baudrate for port %#X", septentrio_input_port);
+    }
   }
 
-  // Configure the baud rate to be 4000000 on the selected port
-  MICROSTRAIN_DEBUG(node, "Configuring port %#X for 4000000 baud", septentrio_input_port);
-  if (!(mip_cmd_result = mip::commands_base::writeCommSpeed(*mip_device_, septentrio_input_port, 0x003d0900)))
-  {
-    MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to set baudrate for port %#X", septentrio_input_port);
-  }
 
   return true;
 }
