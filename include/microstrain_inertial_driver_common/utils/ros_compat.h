@@ -795,7 +795,13 @@ inline StaticTransformBroadcasterType createStaticTransformBroadcaster(RosNodeTy
  */
 inline TransformBroadcasterType createTransformBroadcaster(RosNodeType* node)
 {
+  #if MICROSTRAIN_ROLLING == 1
+  // Rolling expects a node-like object
+  return std::make_shared<tf2_ros::TransformBroadcaster>(*node);
+  #else
+  // Preserve the implementation required by older ROS 2 releases
   return std::make_shared<tf2_ros::TransformBroadcaster>(node);
+  #endif
 }
 
 /**
