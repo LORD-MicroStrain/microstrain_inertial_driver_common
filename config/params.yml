@@ -358,6 +358,12 @@ imu_angular_cov       : [0.01, 0.0, 0.0, 0.0, 0.01, 0.0, 0.0, 0.0, 0.01]
 imu_mag_cov           : [0.01, 0.0, 0.0, 0.0, 0.01, 0.0, 0.0, 0.0, 0.01]
 imu_pressure_variance : 0.01
 
+# Ranges of sensors. 0 means the value is not changed. To get available values, run the driver with all zeros and read the log output.
+accel_range           : 0
+gyro_range            : 0
+mag_range             : 0
+press_range           : 0
+
 # ****************************************************************** 
 # Other Device Settings
 # ****************************************************************** 

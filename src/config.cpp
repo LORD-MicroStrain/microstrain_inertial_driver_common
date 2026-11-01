@@ -391,6 +391,10 @@ bool Config::configure3DM(RosNodeType* node)
   float mag_low_pass_filter_frequency;
   bool pressure_low_pass_filter_enable, pressure_low_pass_filter_auto;
   float pressure_low_pass_filter_frequency;
+  int accel_range;
+  int gyro_range;
+  int mag_range;
+  int press_range;
   getParam<bool>(node, "gpio_config", gpio_config, false);
   getParam<bool>(node, "nmea_message_config", nmea_message_config, false);
   getParam<int32_t>(node, "filter_pps_source", filter_pps_source, 1);
@@ -414,6 +418,10 @@ bool Config::configure3DM(RosNodeType* node)
   getParam<bool>(node, "pressure_low_pass_filter_enable", pressure_low_pass_filter_enable, false);
   getParam<bool>(node, "pressure_low_pass_filter_auto", pressure_low_pass_filter_auto, false);
   getParamFloat(node, "pressure_low_pass_filter_frequency", pressure_low_pass_filter_frequency, 0);
+  getParam<int>(node, "accel_range", accel_range, 0);
+  getParam<int>(node, "gyro_range", gyro_range, 0);
+  getParam<int>(node, "mag_range", mag_range, 0);
+  getParam<int>(node, "press_range", press_range, 0);
 
   mip::CmdResult mip_cmd_result;
   const uint8_t descriptor_set = mip::commands_3dm::DESCRIPTOR_SET;
@@ -694,6 +702,197 @@ bool Config::configure3DM(RosNodeType* node)
   else
   {
     MICROSTRAIN_INFO(node_, "Note: The device does not support the low pass filter settings command");
+  }
+
+  // Sensor ranges
+  if (mip_device_->supportsDescriptor(descriptor_set, mip::commands_3dm::CMD_CALIBRATED_RANGES))
+  {
+    std::vector<mip::commands_3dm::CalibratedSensorRanges::Entry> accel_ranges;
+    std::vector<mip::commands_3dm::CalibratedSensorRanges::Entry> gyro_ranges;
+    std::vector<mip::commands_3dm::CalibratedSensorRanges::Entry> mag_ranges;
+    std::vector<mip::commands_3dm::CalibratedSensorRanges::Entry> press_ranges;
+
+    uint8_t num_ranges;
+    std::array<mip::commands_3dm::CalibratedSensorRanges::Entry, 10> ranges;
+
+    if (!(mip_cmd_result = mip::commands_3dm::calibratedSensorRanges(*mip_device_, mip::commands_3dm::SensorRangeType::ACCEL, &num_ranges, ranges.size(), ranges.data())))
+    {
+      MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to read accelerometer ranges");
+      return false;
+    }
+    else if (num_ranges > 0)
+    {
+      std::copy(ranges.begin(), ranges.begin() + num_ranges, std::back_inserter(accel_ranges));
+      MICROSTRAIN_INFO(node_, "Supported accelerometer ranges:");
+      for (const auto& range : accel_ranges)
+      {
+        MICROSTRAIN_INFO(node_, "- %i: %f g", range.setting, range.range);
+      }
+    }
+
+    if (!(mip_cmd_result = mip::commands_3dm::calibratedSensorRanges(*mip_device_, mip::commands_3dm::SensorRangeType::GYRO, &num_ranges, ranges.size(), ranges.data())))
+    {
+      MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to read gyro ranges");
+      return false;
+    }
+    else if (num_ranges > 0)
+    {
+      std::copy(ranges.begin(), ranges.begin() + num_ranges, std::back_inserter(gyro_ranges));
+      MICROSTRAIN_INFO(node_, "Supported gyro ranges:");
+      for (const auto& range : gyro_ranges)
+      {
+        MICROSTRAIN_INFO(node_, "- %i: %f dps", range.setting, range.range);
+      }
+    }
+
+    if (!(mip_cmd_result = mip::commands_3dm::calibratedSensorRanges(*mip_device_, mip::commands_3dm::SensorRangeType::MAG, &num_ranges, ranges.size(), ranges.data())))
+    {
+      MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to read magnetometer ranges");
+      return false;
+    }
+    else if (num_ranges > 0)
+    {
+      std::copy(ranges.begin(), ranges.begin() + num_ranges, std::back_inserter(mag_ranges));
+      MICROSTRAIN_INFO(node_, "Supported magnetometer ranges:");
+      for (const auto& range : mag_ranges)
+      {
+        MICROSTRAIN_INFO(node_, "- %i: %f G", range.setting, range.range);
+      }
+    }
+
+    if (!(mip_cmd_result = mip::commands_3dm::calibratedSensorRanges(*mip_device_, mip::commands_3dm::SensorRangeType::PRESS, &num_ranges, ranges.size(), ranges.data())))
+    {
+      MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to read pressure sensor ranges");
+      return false;
+    }
+    else if (num_ranges > 0)
+    {
+      std::copy(ranges.begin(), ranges.begin() + num_ranges, std::back_inserter(press_ranges));
+      MICROSTRAIN_INFO(node_, "Supported pressure sensor ranges:");
+      for (const auto& range : press_ranges)
+      {
+        MICROSTRAIN_INFO(node_, "- %i: %f hPa", range.setting, range.range);
+      }
+    }
+
+    if (mip_device_->supportsDescriptor(descriptor_set, mip::commands_3dm::CMD_SENSOR_RANGE))
+    {
+      if (accel_range != 0 && !accel_ranges.empty())
+      {
+        if (!(mip_cmd_result = mip::commands_3dm::writeSensorRange(*mip_device_, mip::commands_3dm::SensorRangeType::ACCEL, accel_range)))
+        {
+          MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to set accelerometer range");
+          return false;
+        }
+        else
+        {
+          MICROSTRAIN_INFO(node_, "Setting accelerometer range to %i", accel_range);
+        }
+      }
+
+      if (gyro_range != 0 && !gyro_ranges.empty())
+      {
+        if (!(mip_cmd_result = mip::commands_3dm::writeSensorRange(*mip_device_, mip::commands_3dm::SensorRangeType::GYRO, gyro_range)))
+        {
+          MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to set gyro range");
+          return false;
+        }
+        else
+        {
+          MICROSTRAIN_INFO(node_, "Setting gyro range to %i", gyro_range);
+        }
+      }
+
+      if (mag_range != 0 && !mag_ranges.empty())
+      {
+        if (!(mip_cmd_result = mip::commands_3dm::writeSensorRange(*mip_device_, mip::commands_3dm::SensorRangeType::MAG, mag_range)))
+        {
+          MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to set magnetometer range");
+          return false;
+        }
+        else
+        {
+          MICROSTRAIN_INFO(node_, "Setting magnetometer range to %i", mag_range);
+        }
+      }
+
+      if (press_range != 0 && !press_ranges.empty())
+      {
+        if (!(mip_cmd_result = mip::commands_3dm::writeSensorRange(*mip_device_, mip::commands_3dm::SensorRangeType::PRESS, press_range)))
+        {
+          MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to set pressure sensor range");
+          return false;
+        }
+        else
+        {
+          MICROSTRAIN_INFO(node_, "Setting pressure sensor range to %i", press_range);
+        }
+      }
+
+      uint8_t accel_range_setting {0};
+      if (!(mip_cmd_result = mip::commands_3dm::readSensorRange(*mip_device_, mip::commands_3dm::SensorRangeType::ACCEL, &accel_range_setting)))
+      {
+        MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to read accelerometer range");
+        return false;
+      }
+      else if (accel_range_setting != 0)
+      {
+        const auto range_found = std::find_if(accel_ranges.begin(), accel_ranges.end(),
+          [accel_range_setting](const auto& range) { return range.setting == accel_range_setting; });
+        accel_range_ = range_found != accel_ranges.end() ? range_found->range : 0.0;
+        MICROSTRAIN_INFO(node_, "Accelerometer range: %f g (%i)", accel_range_, accel_range_setting);
+      }
+
+      uint8_t gyro_range_setting {0};
+      if (!(mip_cmd_result = mip::commands_3dm::readSensorRange(*mip_device_, mip::commands_3dm::SensorRangeType::GYRO, &gyro_range_setting)))
+      {
+        MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to read gyro range");
+        return false;
+      }
+      else if (gyro_range_setting != 0)
+      {
+        const auto range_found = std::find_if(gyro_ranges.begin(), gyro_ranges.end(),
+          [gyro_range_setting](const auto& range) { return range.setting == gyro_range_setting; });
+        gyro_range_ = range_found != gyro_ranges.end() ? range_found->range : 0.0;
+        MICROSTRAIN_INFO(node_, "Gyro range: %f dps (%i)", gyro_range_, gyro_range_setting);
+      }
+
+      uint8_t mag_range_setting {0};
+      if (!(mip_cmd_result = mip::commands_3dm::readSensorRange(*mip_device_, mip::commands_3dm::SensorRangeType::MAG, &mag_range_setting)))
+      {
+        MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to read magnetometer range");
+        return false;
+      }
+      else if (mag_range_setting != 0)
+      {
+        const auto range_found = std::find_if(mag_ranges.begin(), mag_ranges.end(),
+          [mag_range_setting](const auto& range) { return range.setting == mag_range_setting; });
+        mag_range_ = range_found != mag_ranges.end() ? range_found->range : 0.0;
+        MICROSTRAIN_INFO(node_, "Magnetometer range: %f G (%i)", mag_range_, mag_range_setting);
+      }
+
+      uint8_t press_range_setting {0};
+      if (!(mip_cmd_result = mip::commands_3dm::readSensorRange(*mip_device_, mip::commands_3dm::SensorRangeType::PRESS, &press_range_setting)))
+      {
+        MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to read pressure sensor range");
+        return false;
+      }
+      else if (press_range_setting != 0)
+      {
+        const auto range_found = std::find_if(press_ranges.begin(), press_ranges.end(),
+          [press_range_setting](const auto& range) { return range.setting == press_range_setting; });
+        press_range_ = range_found != press_ranges.end() ? range_found->range : 0.0;
+        MICROSTRAIN_INFO(node_, "Pressure sensor range: %f hPa (%i)", press_range_, press_range_setting);
+      }
+    }
+    else
+    {
+      MICROSTRAIN_ERROR(node_, "The device does not support setting sensor ranges");
+    }
+  }
+  else
+  {
+    MICROSTRAIN_INFO(node_, "Note: The device does not support sensor range reading");
   }
 
   return true;
