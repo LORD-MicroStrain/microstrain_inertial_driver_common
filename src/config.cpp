@@ -153,6 +153,7 @@ bool Config::configure(RosNodeType* node)
   getParam<bool>(node, "filter_enable_odometer_aiding", filter_enable_odometer_aiding_, false);
   getParam<bool>(node, "filter_enable_magnetometer_aiding", filter_enable_magnetometer_aiding_, false);
   getParam<bool>(node, "filter_enable_external_heading_aiding", filter_enable_external_heading_aiding_, false);
+  getParam<bool>(node, "filter_enable_body_frame_vel_aiding", filter_enable_body_frame_vel_aiding_, false);
   getParam<bool>(node, "filter_enable_external_gps_time_update", filter_enable_external_gps_time_update_, false);
   getParam<bool>(node, "filter_enable_wheeled_vehicle_constraint", filter_enable_wheeled_vehicle_constraint_, false);
   getParam<bool>(node, "filter_enable_vertical_gyro_constraint", filter_enable_vertical_gyro_constraint_, false);
@@ -1016,7 +1017,8 @@ bool Config::configureFilter(RosNodeType* node)
         !configureFilterAidingMeasurement(mip::commands_filter::AidingMeasurementEnable::AidingSource::ALTIMETER, filter_enable_altimeter_aiding_) ||
         !configureFilterAidingMeasurement(mip::commands_filter::AidingMeasurementEnable::AidingSource::SPEED, filter_enable_odometer_aiding_) ||
         !configureFilterAidingMeasurement(mip::commands_filter::AidingMeasurementEnable::AidingSource::MAGNETOMETER, filter_enable_magnetometer_aiding_) ||
-        !configureFilterAidingMeasurement(mip::commands_filter::AidingMeasurementEnable::AidingSource::EXTERNAL_HEADING, filter_enable_external_heading_aiding_))
+        !configureFilterAidingMeasurement(mip::commands_filter::AidingMeasurementEnable::AidingSource::EXTERNAL_HEADING, filter_enable_external_heading_aiding_) ||
+        !configureFilterAidingMeasurement(mip::commands_filter::AidingMeasurementEnable::AidingSource::BODY_FRAME_VEL, filter_enable_body_frame_vel_aiding_))
       return false;
   }
   else

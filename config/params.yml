@@ -202,6 +202,7 @@ filter_enable_altimeter_aiding        : False
 filter_enable_odometer_aiding         : False
 filter_enable_magnetometer_aiding     : False
 filter_enable_external_heading_aiding : False
+filter_enable_body_frame_vel_aiding   : False
 
 # (GQ7 only) Filter Initialization control
 #     Init Condition source =
