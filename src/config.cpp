@@ -153,6 +153,7 @@ bool Config::configure(RosNodeType* node)
   getParam<bool>(node, "filter_enable_odometer_aiding", filter_enable_odometer_aiding_, false);
   getParam<bool>(node, "filter_enable_magnetometer_aiding", filter_enable_magnetometer_aiding_, false);
   getParam<bool>(node, "filter_enable_external_heading_aiding", filter_enable_external_heading_aiding_, false);
+  getParam<bool>(node, "filter_enable_body_frame_vel_aiding", filter_enable_body_frame_vel_aiding_, false);
   getParam<bool>(node, "filter_enable_external_gps_time_update", filter_enable_external_gps_time_update_, false);
   getParam<bool>(node, "filter_enable_wheeled_vehicle_constraint", filter_enable_wheeled_vehicle_constraint_, false);
   getParam<bool>(node, "filter_enable_vertical_gyro_constraint", filter_enable_vertical_gyro_constraint_, false);
@@ -1016,7 +1017,8 @@ bool Config::configureFilter(RosNodeType* node)
         !configureFilterAidingMeasurement(mip::commands_filter::AidingMeasurementEnable::AidingSource::ALTIMETER, filter_enable_altimeter_aiding_) ||
         !configureFilterAidingMeasurement(mip::commands_filter::AidingMeasurementEnable::AidingSource::SPEED, filter_enable_odometer_aiding_) ||
         !configureFilterAidingMeasurement(mip::commands_filter::AidingMeasurementEnable::AidingSource::MAGNETOMETER, filter_enable_magnetometer_aiding_) ||
-        !configureFilterAidingMeasurement(mip::commands_filter::AidingMeasurementEnable::AidingSource::EXTERNAL_HEADING, filter_enable_external_heading_aiding_))
+        !configureFilterAidingMeasurement(mip::commands_filter::AidingMeasurementEnable::AidingSource::EXTERNAL_HEADING, filter_enable_external_heading_aiding_) ||
+        !configureFilterAidingMeasurement(mip::commands_filter::AidingMeasurementEnable::AidingSource::BODY_FRAME_VEL, filter_enable_body_frame_vel_aiding_))
       return false;
   }
   else
@@ -1364,16 +1366,51 @@ bool Config::configureSystem(RosNodeType* node)
 
   if (enable_conservative_rtk)
   {
-    if (mip_device_->supportsDescriptor(mip::commands_gnss::DESCRIPTOR_SET, mip::commands_gnss::CMD_CONFIGURATION))
-    {
-      uint8_t reserved[4] = {0};
-      if (!(mip_cmd_result = mip::commands_gnss::writeRtkConfiguration(*mip_device_, mip::commands_gnss::RtkConfiguration::AmbiguityFixMode::CONSERVATIVE, reserved)))
-        MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to configure RTK mode");
-      else
-        MICROSTRAIN_DEBUG(node_, "RTK mode successfully set to Conservative");
-    }
+    mip::CmdResult mip_cmd_result = mip::commands_system::writeCommMode(*mip_device_, 0x05);
+    if (!!mip_cmd_result)
+      MICROSTRAIN_DEBUG(node_, "Device in Direct mode to Receiver 1");
     else
-      MICROSTRAIN_WARN(node_, "The RTK Configuration Command is not available on this device");
+      MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to set receiver 1 to direct mode.");
+
+    sleep(1);
+    // Here, we need to send the raw configuration bytes to the receiver to enable CAR mode for the RTK algorithm.
+    // First, define the UBX configuration bytes in a buffer. These are the raw bytes required to write the RTK-Conservative Ambiguity
+    // Resolution mode to the receiver's flash memory.
+    uint8_t data[] = {0xB5, 0x62, 0x06, 0x8A, 0x09, 0x00, 0x00, 0x01, 0x00, 0x00, 0x11, 0x00, 0x14, 0x20, 0x05, 0xe4, 0x07 };
+    size_t size = 17;
+
+    if (mip_device_->send(data, size))
+      MICROSTRAIN_DEBUG(node_, "Receiver configuration bytes sent sucessfully.");
+    else
+      MICROSTRAIN_DEBUG(node_, "Failed to write bytes to receiver");
+
+    // Sleep for 1 second to get the UBX bytes to send to the device correctly
+    sleep(1);
+
+    mip_cmd_result = mip::commands_system::writeCommMode(*mip_device_, 0x06);
+    if (!!mip_cmd_result)
+      MICROSTRAIN_DEBUG(node_, "Device in Direct mode to Receiver 2");
+    else
+      MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to set receiver 2 to direct mode.");
+
+    // Sleep for 1 second to get the UBX bytes to send to the device correctly
+    sleep(1);
+
+    // Send the raw configuration bytes to receiver 2.
+    if (mip_device_->send(data, size))
+      MICROSTRAIN_DEBUG(node_, "Receiver configuration bytes sent sucessfully.");
+    else
+      MICROSTRAIN_DEBUG(node_, "Failed to write bytes to receiver");
+    // Sleep for 1 second to get the UBX bytes to send to the device correctly
+    sleep(1);
+
+    mip_cmd_result = mip::commands_system::writeCommMode(*mip_device_, 0x01); //put the device back into normal mode
+    if (!!mip_cmd_result)
+      MICROSTRAIN_DEBUG(node_, "Device returned to Normal Mode.");
+    else
+      MICROSTRAIN_MIP_SDK_ERROR(node_, mip_cmd_result, "Failed to set the receiver to normal mode. Power cycle device.");
+
+    MICROSTRAIN_INFO(node_, "Conservative RTK mode enabled on Receiver 1 and Receiver 2");
   }
 
   // Configure Septentrio input on a given port if enabled. 
