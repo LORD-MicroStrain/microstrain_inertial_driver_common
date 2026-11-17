@@ -113,6 +113,7 @@ public:
   bool filter_enable_odometer_aiding_;
   bool filter_enable_magnetometer_aiding_;
   bool filter_enable_external_heading_aiding_;
+  bool filter_enable_body_frame_vel_aiding_;
   bool filter_enable_external_gps_time_update_;
   bool filter_enable_wheeled_vehicle_constraint_;
   bool filter_enable_vertical_gyro_constraint_;
