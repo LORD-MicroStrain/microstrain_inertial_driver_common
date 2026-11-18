@@ -2188,7 +2188,11 @@ void Publishers::updateHeaderTime(RosHeaderType* header, uint8_t descriptor_set,
     double utc_timestamp = 0;
     const double gps_timestamp_secs = gpsTimestampSecs(gps_timestamp_copy);
 
-    if (gps_timestamp_secs != 0 && clock_bias_monitor_.hasBiasEstimate())
+    // NOTE: valid_flags.timeValid() is a MASK (TIME_VALID == 0x0003), not a bool -- it is
+    // non-zero when only ONE of TOW/week number is set. Check both bits explicitly.
+    const bool gps_time_valid = gps_timestamp_copy.valid_flags.tow() && gps_timestamp_copy.valid_flags.weekNumber();
+
+    if (gps_time_valid && gps_timestamp_secs != 0 && clock_bias_monitor_.hasBiasEstimate())
     {
       // Determine the hybrid timestamp by subtracting the bias from the GPS timestamp seconds. This should result in a UTC timestamp
       utc_timestamp = gps_timestamp_secs - clock_bias_monitor_.getBiasEstimate();
@@ -2197,6 +2201,14 @@ void Publishers::updateHeaderTime(RosHeaderType* header, uint8_t descriptor_set,
     // If we were not able to compute the hybrid timestamp, default to the ROS timestamp
     if (utc_timestamp == 0)
       utc_timestamp = static_cast<double>(timestamp) / 1000.0;
+
+    // ROS Time::sec is int32. An out-of-range double->int32 conversion is undefined
+    // behaviour; on x86 it yields INT32_MIN and silently poisons the header.
+    if (!(utc_timestamp > 0.0 && utc_timestamp < 2147483647.0))
+    {
+      MICROSTRAIN_WARN_THROTTLE(node_, 5, "Hybrid timestamp %.3f for descriptor set 0x%02x is out of range for a ROS time; falling back to arrival time", utc_timestamp, descriptor_set);
+      utc_timestamp = static_cast<double>(timestamp) / 1000.0;
+    }
 
     // Parse out the pieces of the timestamp into a format ROS can understand
     double utc_timestamp_seconds;
